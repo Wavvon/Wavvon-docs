@@ -93,6 +93,14 @@ export function formatFullTimestamp(unixSec: number): string {
   });
 }
 
+/** Generate a unique profile ID. Prefers crypto.randomUUID when available. */
+export function newProfileId(): string {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return `p_${Date.now()}_${Math.floor(Math.random() * 1e6)}`;
+}
+
 export function formatRelative(unixSec: number): string {
   if (!unixSec) return "—";
   const now = Math.floor(Date.now() / 1000);

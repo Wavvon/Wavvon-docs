@@ -37,8 +37,11 @@ import type {
   AllianceSharedChannel,
 } from "./types";
 import { MAX_ATTACHMENT_BYTES } from "./constants";
-import { formatPubkey, mentionsName } from "./utils/format";
+import { formatPubkey, mentionsName, newProfileId } from "./utils/format";
 import { playMentionPing, playVoiceTone } from "./utils/audio";
+import { readFileAsB64 } from "./utils/files";
+import { buildChannelTree } from "./utils/channels";
+import { useReconnectBackoff } from "./hooks/useReconnectBackoff";
 import { Lightbox } from "./components/Lightbox";
 import { WelcomeRecoveryBlock } from "./components/WelcomeRecoveryBlock";
 import { ChannelPalette } from "./components/ChannelPalette";
@@ -168,44 +171,19 @@ function App() {
   // WS connection status per hub. Missing key means connected (default
   // optimistic so the very first render doesn't flash a banner).
   const [hubConnected, setHubConnected] = useState<Record<string, boolean>>({});
-  const [reconnectingHubs, setReconnectingHubs] = useState<Record<string, boolean>>({});
 
-  // Auto-reconnect bookkeeping. Refs because we don't want re-renders for
-  // backoff state. Timer IDs let us cancel pending retries (manual reconnect,
-  // hub removal). Attempt counts drive exponential backoff: 1s, 2s, 4s, 8s,
-  // 16s, capped at 30s. Reset on successful reconnect.
-  const reconnectTimers = useRef<Record<string, number>>({});
-  const reconnectAttempts = useRef<Record<string, number>>({});
-
-  function clearReconnectTimer(hubId: string) {
-    const id = reconnectTimers.current[hubId];
-    if (id !== undefined) {
-      clearTimeout(id);
-      delete reconnectTimers.current[hubId];
-    }
-  }
-
-  function scheduleReconnect(hubId: string) {
-    // Never have two pending retries for the same hub.
-    clearReconnectTimer(hubId);
-    const attempt = reconnectAttempts.current[hubId] ?? 0;
-    const delayMs = Math.min(1000 * 2 ** attempt, 30_000);
-    setReconnectingHubs((prev) => ({ ...prev, [hubId]: true }));
-    reconnectTimers.current[hubId] = window.setTimeout(async () => {
-      delete reconnectTimers.current[hubId];
-      reconnectAttempts.current[hubId] = attempt + 1;
-      try {
-        await invoke("reconnect_hub", { hubId });
-        // Success path: the hub-ws-status:true event will reset
-        // reconnectAttempts and clear reconnectingHubs.
-      } catch {
-        // Failed — schedule the next retry with longer backoff. We don't
-        // give up automatically; the user can leave the hub if they're
-        // tired of seeing the banner.
-        scheduleReconnect(hubId);
-      }
-    }, delayMs);
-  }
+  const {
+    reconnectingHubs,
+    scheduleReconnect,
+    clearReconnectTimer,
+    setReconnecting,
+    resetAttempts,
+    onReconnected: onHubReconnected,
+    onHubRemoved: onHubRemovedReconnect,
+    cancelAll: cancelAllReconnectTimers,
+  } = useReconnectBackoff(async (hubId) => {
+    await invoke("reconnect_hub", { hubId });
+  });
 
   function toggleChannelPin(hubId: string, channelId: string) {
     setPinnedChannels((prev) => {
@@ -590,8 +568,8 @@ function App() {
     // Manual click is a fresh start: cancel any pending auto-retry and
     // reset backoff so a subsequent failure starts at 1s again.
     clearReconnectTimer(activeHubId);
-    reconnectAttempts.current[activeHubId] = 0;
-    setReconnectingHubs((prev) => ({ ...prev, [activeHubId]: true }));
+    resetAttempts(activeHubId);
+    setReconnecting(activeHubId, true);
     try {
       await invoke("reconnect_hub", { hubId: activeHubId });
       // The hub-ws-status:true event will flip hubConnected and clear
@@ -599,10 +577,7 @@ function App() {
       // yet, the banner still shows briefly -- that's fine.
     } catch (e) {
       setError(String(e));
-      setReconnectingHubs((prev) => {
-        const { [activeHubId]: _, ...rest } = prev;
-        return rest;
-      });
+      setReconnecting(activeHubId, false);
       // Hand control back to the auto-reconnect loop after the manual
       // attempt fails, so we keep trying in the background.
       scheduleReconnect(activeHubId);
@@ -1143,15 +1118,7 @@ function App() {
               return next;
             });
             if (connected) {
-              // Connection restored — cancel any pending retry, reset
-              // backoff, and clear the "reconnecting" indicator.
-              clearReconnectTimer(hub_id);
-              reconnectAttempts.current[hub_id] = 0;
-              setReconnectingHubs((prev) => {
-                if (!prev[hub_id]) return prev;
-                const { [hub_id]: _, ...rest } = prev;
-                return rest;
-              });
+              onHubReconnected(hub_id);
             } else {
               // Connection dropped — kick off the auto-reconnect loop.
               scheduleReconnect(hub_id);
@@ -1389,8 +1356,7 @@ function App() {
       unlistens.forEach((u) => u());
       // Cancel any pending auto-reconnect timers so they don't fire
       // against an unmounted component (matters in dev / HMR).
-      Object.values(reconnectTimers.current).forEach(clearTimeout);
-      reconnectTimers.current = {};
+      cancelAllReconnectTimers();
     };
   }, []);
 
@@ -2040,9 +2006,7 @@ function App() {
         setActiveHubId(remaining[0]?.hub_id ?? null);
       }
       clearHubUnread(hubId);
-      // No more reconnect attempts for a hub the user just left.
-      clearReconnectTimer(hubId);
-      delete reconnectAttempts.current[hubId];
+      onHubRemovedReconnect(hubId);
     } catch (e) {
       setError(String(e));
     }
@@ -2435,21 +2399,6 @@ function App() {
   }
 
   /** Read a File into a base64 string (no data: prefix). */
-  function readFileAsB64(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const s = reader.result;
-        if (typeof s !== "string") return reject(new Error("read failed"));
-        // FileReader returns a data: URL; strip the "data:<mime>;base64," prefix.
-        const idx = s.indexOf(",");
-        resolve(idx >= 0 ? s.slice(idx + 1) : s);
-      };
-      reader.onerror = () => reject(reader.error ?? new Error("read failed"));
-      reader.readAsDataURL(file);
-    });
-  }
-
   async function attachFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
     const next: Attachment[] = [...pendingAttachments];
@@ -2516,13 +2465,6 @@ function App() {
     } catch (e) {
       setError(String(e));
     }
-  }
-
-  function newProfileId(): string {
-    if (typeof crypto !== "undefined" && crypto.randomUUID) {
-      return crypto.randomUUID();
-    }
-    return `p_${Date.now()}_${Math.floor(Math.random() * 1e6)}`;
   }
 
   async function handleCreateProfile() {
@@ -2942,21 +2884,10 @@ function App() {
 
   // Build a nested tree: categories contain their child channels.
   // Top-level = channels with no parent. Sorted by display_order.
-  function buildChannelTree(): { node: Channel; children: Channel[] }[] {
+  const channelTree = useMemo(() => {
     const pinSet = activeHubId ? pinnedChannels[activeHubId] ?? {} : {};
-    // Pinned channels render in the dedicated section at the top, so they
-    // get pulled out of the regular tree to avoid duplication.
-    const sorted = [...channels]
-      .sort((a, b) => a.display_order - b.display_order)
-      .filter((c) => !pinSet[c.id]);
-    const tree: { node: Channel; children: Channel[] }[] = [];
-    const topLevel = sorted.filter((c) => !c.parent_id);
-    for (const ch of topLevel) {
-      const children = sorted.filter((c) => c.parent_id === ch.id);
-      tree.push({ node: ch, children });
-    }
-    return tree;
-  }
+    return buildChannelTree(channels, pinSet);
+  }, [channels, activeHubId, pinnedChannels]);
 
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -3284,7 +3215,7 @@ function App() {
                   installedGames={installedGames}
                   selectedGame={selectedGame}
                   canManageGames={canManageGames}
-                  buildChannelTree={buildChannelTree}
+                  channelTree={channelTree}
                   effectiveNotifyMode={effectiveNotifyMode}
                   onToggleCategoryCollapsed={toggleCategoryCollapsed}
                   onHubDropdownOpenChange={setHubDropdownOpen}

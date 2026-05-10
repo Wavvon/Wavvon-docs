@@ -56,7 +56,7 @@ interface Props {
   installedGames: InstalledGame[];
   selectedGame: InstalledGame | null;
   canManageGames: boolean;
-  buildChannelTree: () => { node: Channel; children: Channel[] }[];
+  channelTree: { node: Channel; children: Channel[] }[];
   effectiveNotifyMode: (hubId: string, channelId: string) => NotifyMode;
   onToggleCategoryCollapsed: (hubId: string, categoryId: string) => void;
   onHubDropdownOpenChange: (v: boolean) => void;
@@ -90,7 +90,7 @@ export function ChannelSidebar({
   userAlliances, allianceChannels, selectedAllianceChannel,
   conversations, selectedConversation, unreadDms,
   installedGames, selectedGame, canManageGames,
-  buildChannelTree, effectiveNotifyMode, onToggleCategoryCollapsed,
+  channelTree, effectiveNotifyMode, onToggleCategoryCollapsed,
   onHubDropdownOpenChange, onSetHubMode, onClearHubUnread, onRemoveHub,
   onOpenHubAdmin, onOpenHubAdminInvites, onOpenCreateChannel,
   onSelectChannel, onChannelContextMenu, onVoiceJoin, onVoiceLeave,
@@ -219,11 +219,11 @@ export function ChannelSidebar({
             </div>
             <DndContext sensors={dndSensors} onDragEnd={onDragEnd}>
               <SortableContext
-                items={buildChannelTree().map(({ node }) => node.id)}
+                items={channelTree.map(({ node }) => node.id)}
                 strategy={verticalListSortingStrategy}
               >
                 <ul className="channel-list">
-                  {buildChannelTree().map(({ node, children }) =>
+                  {channelTree.map(({ node, children }) =>
                     node.is_category ? (
                       <SortableCategoryItem
                         key={node.id}
