@@ -4,6 +4,36 @@ Why Voxply is shaped the way it is. Each entry: the decision, the
 alternative we considered, and why we chose this. New decisions go at
 the top.
 
+## Hub discovery: three-layer architecture
+
+**Decision**: hub discovery is built as three composable layers — deep
+links (`voxply://` URI scheme), an opt-in directory website/API, and
+signed public hub profiles — rather than a single central registry.
+Full design in [`docs/hub-discovery.md`](hub-discovery.md).
+
+**Key choices within the design**:
+
+- **Directory lives in a separate repo** (`voxply-discovery`). Separate
+  deployment lifecycle (web service), separate CI/CD, separate
+  contributor profile. The API contract in hub-discovery.md is the
+  boundary.
+- **Cryptographic listing ownership** — hub signs its own directory
+  listing with its Ed25519 private key. No accounts on the directory
+  service; ownership is proven, not asserted.
+- **Opt-in at every layer** — hubs choose to list on a directory; users
+  choose which hubs appear on their public profile. Nothing is indexed
+  without operator/user action.
+- **Official directory is the default but not the only one** — the
+  client ships pointing at the official instance; operators can
+  self-host their own directory; other client forks set their own
+  default.
+
+**Alternatives considered**: single central registry (rejected —
+violates sovereignty design); DHT/gossip-based discovery (rejected —
+massive complexity for marginal gain at current scale); directory merged
+into the main repo (rejected — deployment lifecycle and contributor
+access mismatch).
+
 ## Nested channels: DnD interaction model
 
 **Context**: schema already supports arbitrary nesting

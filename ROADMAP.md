@@ -7,7 +7,14 @@ shipped features, design questions — lives in the wiki at
 
 ## 🔨 Next up
 
-*(nothing right now — pick from Wishlist below.)*
+- **Hub discovery — Layer 1**: `voxply://` deep link registration,
+  rework "Add hub" dialog to accept address/link, hub preview card,
+  Share button in hub admin. Pure client work. Design: [`docs/hub-discovery.md`](docs/hub-discovery.md).
+- **Hub discovery — Layer 2**: `voxply-discovery` repo (directory
+  website + API), hub-side signing endpoint, "Submit to directory" admin
+  UI, client Discover tab.
+- **Hub discovery — Layer 3**: signed public hub profiles endpoint on
+  hub, "Public profile" settings UI, "Their hubs" on user cards.
 
 ## 📌 Wishlist (undesigned)
 
@@ -23,7 +30,6 @@ items live in the wiki — see
 - **Performance ceiling** — load test WS broadcast, search, voice relay
 - **Accessibility + i18n** — keyboard nav audit, screen-reader, localization
 - **Key revocation** — leaked-key story; today is "regen + notify friends"
-- **Hub discovery** — `voxply-seed` scaffolded but unused; central registry / DHT / word-of-mouth?
 
 ## ⚠️ Known issues
 
