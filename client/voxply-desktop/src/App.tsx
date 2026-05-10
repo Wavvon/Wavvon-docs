@@ -36,7 +36,7 @@ import type {
   AllianceInfo,
   AllianceSharedChannel,
 } from "./types";
-import { MAX_ATTACHMENT_BYTES } from "./constants";
+import { MAX_ATTACHMENT_BYTES, DEMO_HUB_URL } from "./constants";
 import { formatPubkey, mentionsName, newProfileId } from "./utils/format";
 import { playMentionPing, playVoiceTone } from "./utils/audio";
 import { readFileAsB64 } from "./utils/files";
@@ -2936,6 +2936,12 @@ function App() {
     setHubAdminTab("invites");
   }
 
+  function openDemoHub() {
+    if (!DEMO_HUB_URL) return;
+    setHubUrl(DEMO_HUB_URL);
+    setShowAddHub(true);
+  }
+
   // Build a nested tree: categories contain their child channels.
   // Top-level = channels with no parent. Sorted by display_order.
   const channelTree = useMemo(() => {
@@ -3189,6 +3195,10 @@ function App() {
                   Decentralized voice chat where you bring your identity
                   with you. No accounts, no central server.
                 </p>
+
+                <WelcomeRecoveryBlock />
+
+                <p className="welcome-section-heading">What Voxply is</p>
                 <ul className="welcome-points">
                   <li>
                     <strong>Hubs</strong> are independently-run servers — pick
@@ -3205,10 +3215,18 @@ function App() {
                     each other so communities stay connected without merging.
                   </li>
                 </ul>
-                <WelcomeRecoveryBlock />
-                <button className="primary" onClick={() => setShowAddHub(true)}>
-                  Add your first hub
-                </button>
+
+                <p className="welcome-section-heading">Join your first hub</p>
+                <div className="welcome-cta-row">
+                  <button className="primary" onClick={() => setShowAddHub(true)}>
+                    Add your first hub
+                  </button>
+                  {DEMO_HUB_URL && (
+                    <button className="btn-secondary" onClick={openDemoHub}>
+                      Try a demo hub
+                    </button>
+                  )}
+                </div>
                 <p className="welcome-hint muted">
                   Don't have one? Ask a friend for a hub URL, paste an
                   invite link, or run a hub yourself — see{" "}

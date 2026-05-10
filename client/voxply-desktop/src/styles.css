@@ -344,6 +344,22 @@ select,
   font-size: var(--text-xs);
 }
 
+.welcome-section-heading {
+  margin: var(--space-5) 0 var(--space-2);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.welcome-cta-row {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
 /* Recovery-phrase nudge on the welcome screen — visually distinct from
    the body bullets so users notice it before adding a hub. Border ring
    uses --accent so it reads as "do this" rather than danger. */

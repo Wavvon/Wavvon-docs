@@ -142,6 +142,10 @@ export const MIC_METER_MAX = 0.2;
 
 export const RECOVERY_ACK_KEY = "voxply.recoveryAcknowledged";
 
+// Set to a hub URL to enable the "Try a demo hub" button on the welcome
+// screen. null means the button is hidden — don't ship a dead button.
+export const DEMO_HUB_URL: string | null = null;
+
 export const ALL_PERMISSIONS: { id: string; label: string }[] = [
   { id: "admin", label: "Administrator (grants everything)" },
   { id: "manage_channels", label: "Manage channels" },

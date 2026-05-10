@@ -4,6 +4,124 @@ Why Voxply is shaped the way it is. Each entry: the decision, the
 alternative we considered, and why we chose this. New decisions go at
 the top.
 
+## First-run / onboarding: enhanced single screen, opt-in demo hub, non-blocking recovery
+
+**Decision**: keep the welcome screen as a single-screen layout (no
+wizard), reorganise it into three named sections, add an opt-in demo
+hub as a secondary CTA next to the primary "Add your first hub", and
+keep recovery acknowledgement non-blocking. No identity surfacing on
+first run. No in-channel first-use hints in this pass.
+
+**Final shape of the welcome screen** (`empty-state welcome` in
+`App.tsx` ~line 3185, rendered when no hubs are present):
+
+1. **Heading + tagline** — unchanged copy.
+2. **Section 1 — "Protect your identity"**: `WelcomeRecoveryBlock`
+   moves up to be the first content block after the tagline.
+   Rationale: backup is the only thing the user can lose forever; the
+   add-hub step is recoverable. The block keeps its three sub-states
+   (unrevealed / revealed / acknowledged). It does **not** gate the
+   add-hub buttons — both CTAs remain enabled at all times.
+3. **Section 2 — "What Voxply is"**: the existing three bullet points
+   (Hubs / Identity / Alliances), kept verbatim, framed as a brief
+   "what you're getting into" block under a subheading.
+4. **Section 3 — "Join your first hub"**: a CTA row with two buttons:
+   - **Primary** — "Add your first hub" → opens `AddHubModal`
+     (existing flow, unchanged).
+   - **Secondary** — "Try a demo hub" → opens `AddHubModal` with the
+     URL field pre-populated from a new `DEMO_HUB_URL` constant. The
+     user still sees the preview and clicks confirm. The button is
+     hidden when `DEMO_HUB_URL` is empty/null.
+   Followed by the existing footnote about asking a friend / pasting
+   an invite / running your own.
+
+**Demo hub concretely**:
+- New constant `DEMO_HUB_URL: string | null` in `client/voxply-desktop/src/constants.ts`,
+  initially `null` until a Voxply-operated demo server is stood up.
+- The "Try a demo hub" button is conditionally rendered on
+  `DEMO_HUB_URL != null`. No dead button ships.
+- Clicking it opens the same `AddHubModal` with the URL prefilled,
+  not a bypass. The preview-then-confirm flow stays so the user sees
+  what hub they're joining; this also means the modal's existing
+  validation, error handling, and join-approval paths apply unchanged.
+- The demo hub is never auto-joined on first launch. Onboarding stays
+  opt-in.
+
+**Recovery acknowledgement is not a gate**:
+- The user can click "Add your first hub" without revealing or
+  acknowledging the phrase. The block stays visible (and prominent)
+  on the welcome screen until acknowledged, and the same phrase is
+  reachable from Settings → Security afterwards.
+- Rationale: blocking the only useful action on the screen behind a
+  modal-flavoured banner trains users to dismiss safety nudges. A
+  prominent, non-blocking nudge with a permanent re-entry point in
+  Settings is the right pressure level.
+
+**Identity surfacing**: nothing on first run. Public-key fingerprint
+display lives in Settings, not on the welcome screen — too technical
+for a screen whose job is "get the user into a hub."
+
+**Post-first-hub**: once the user has any hub, the welcome screen is
+gone forever (existing behaviour). No in-channel first-use hints
+("try typing a message") are added in this pass. If empty-channel
+guidance is needed later, that is a separate feature with its own
+design entry — it is not part of first-run.
+
+**Alternatives considered**:
+- **Multi-step wizard (Identity / Recovery / Add hub)** — rejected.
+  The user has exactly one decision on first run (which hub), so
+  steps 1 and 2 are filler. A wizard that runs once and then never
+  again earns no reuse for its complexity, and `WelcomeRecoveryBlock`
+  already covers the recovery step in place.
+- **Inline quick-add for the demo hub (skip the preview modal)** —
+  rejected. Hiding the URL the user is about to join contradicts the
+  "you're picking which hub" framing of the rest of the product. The
+  one-extra-click cost is worth keeping the demo hub indistinguishable
+  from any other hub join.
+- **Demo hub button as a placeholder before a URL exists** —
+  rejected. A button that does nothing or shows "coming soon" trains
+  users to distrust CTAs. The `DEMO_HUB_URL != null` gate keeps the
+  feature dark until the server is real.
+- **Block "Add hub" until recovery is acknowledged** — rejected. See
+  above; nudges that block the primary action become friction the
+  user routes around (force-close + relaunch, copying URL into a
+  config file, etc.).
+- **Show public-key fingerprint on welcome** — rejected as first-run
+  noise. A user who cares can find it in Settings; a user who doesn't
+  doesn't need to be told their identity has a hash.
+
+**Implementation impact**:
+- *Client* (`App.tsx` ~3185–3217): reorder the children of
+  `empty-state welcome` to put `<WelcomeRecoveryBlock />` first, wrap
+  the three bullet `<li>`s under a "What Voxply is" subheading, and
+  replace the single primary button with a CTA row containing the
+  primary "Add your first hub" plus a conditional secondary "Try a
+  demo hub". Both buttons call `setShowAddHub(true)`; the demo
+  variant additionally seeds the modal's URL input.
+- *Client* (`AddHubModal`): accept an optional `initialUrl` prop and
+  use it to pre-populate the URL input on open. No other behaviour
+  change; the preview/confirm flow is shared.
+- *Client* (`constants.ts`): add `export const DEMO_HUB_URL: string |
+  null = null;` with a comment that this flips to a real URL once a
+  Voxply demo hub is operated. The welcome screen renders the demo
+  CTA only when this is non-null.
+- *Client* (`WelcomeRecoveryBlock`): no behaviour change. Visual
+  prominence comes from its new position in the layout, not from
+  component changes.
+- *Styles*: a `.welcome-cta-row` (or similar) for the two-button row;
+  `welcome-points` keeps its bullets but lives under a new
+  subheading. No new components.
+- *Server / Tauri*: nothing. First-run is entirely client-side.
+
+**Deferred**:
+- Standing up an actual Voxply-operated demo hub and setting
+  `DEMO_HUB_URL`.
+- In-channel "you're in, try a message" guidance for empty channels.
+- Identity-surfacing affordances (fingerprint, device name) on the
+  welcome screen — kept in Settings only.
+- Any concept of resuming onboarding on a second device (multi-device
+  has its own design space; nothing about first-run pre-empts it).
+
 ## Notifications: client-side filtering, two distinct features, dot-on-active-hub fixed
 
 **Decision**: a four-part answer to the notification model question.
