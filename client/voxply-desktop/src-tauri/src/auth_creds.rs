@@ -27,6 +27,8 @@ pub struct AuthCredentials {
     pub public_key_hex: String,
     signing_source: SigningSource,
     pub cert: Option<SubkeyCert>,
+    pub security_nonce: u64,
+    pub security_level: u32,
 }
 
 impl AuthCredentials {
@@ -64,6 +66,8 @@ impl AuthCredentials {
             "public_key": self.public_key_hex,
             "challenge": challenge_resp.challenge,
             "signature": hex::encode(signature_bytes),
+            "security_nonce": self.security_nonce,
+            "security_level": self.security_level,
         });
         if let Some(cert) = &self.cert {
             body["subkey_cert"] = serde_json::to_value(cert)
@@ -103,20 +107,28 @@ pub fn load_active_credentials() -> Result<AuthCredentials, String> {
             .map_err(|_| "subkey secret must be 32 bytes".to_string())?;
         let subkey =
             DeviceSubkey::from_secret_bytes(&secret_array, paired.device_label.clone());
+        // Subkey devices bypass PoW — the pairing relationship is already a
+        // trust gate; requiring PoW per-subkey would penalise legitimate users.
         return Ok(AuthCredentials {
             public_key_hex: paired.subkey_pubkey,
             signing_source: SigningSource::Subkey(subkey),
             cert: Some(paired.cert),
+            security_nonce: 0,
+            security_level: 0,
         });
     }
 
     let path = Identity::default_path().map_err(|e| e.to_string())?;
     let (identity, _) = Identity::load_or_create(&path).map_err(|e| e.to_string())?;
     let public_key_hex = identity.public_key_hex();
+    let security_nonce = identity.security_nonce;
+    let security_level = identity.security_level;
     Ok(AuthCredentials {
         public_key_hex,
         signing_source: SigningSource::Legacy(identity),
         cert: None,
+        security_nonce,
+        security_level,
     })
 }
 

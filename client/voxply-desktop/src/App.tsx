@@ -726,6 +726,7 @@ function App() {
 
   // Approval queue + hub-wide flags
   const [requireApproval, setRequireApproval] = useState(false);
+  const [minSecurityLevel, setMinSecurityLevel] = useState(0);
   const [pendingMembers, setPendingMembers] = useState<PendingUser[]>([]);
 
   // Games
@@ -1639,8 +1640,10 @@ function App() {
       const settings = await invoke<{
         require_approval: boolean;
         invite_only: boolean;
+        min_security_level: number;
       }>("get_hub_settings");
       setRequireApproval(settings.require_approval);
+      setMinSecurityLevel(settings.min_security_level ?? 0);
     } catch (e) {
       setError(String(e));
     }
@@ -1653,6 +1656,7 @@ function App() {
         description: adminHubDescription,
         icon: adminHubIcon,
         requireApproval: requireApproval,
+        minSecurityLevel: minSecurityLevel,
       });
       // Refresh hub list so the new name flows into the hub-icon title
       const refreshed = await invoke<Hub[]>("list_hubs");
@@ -3112,6 +3116,8 @@ function App() {
             onHubIconChange={setAdminHubIcon}
             requireApproval={requireApproval}
             onRequireApprovalChange={setRequireApproval}
+            minSecurityLevel={minSecurityLevel}
+            onMinSecurityLevelChange={setMinSecurityLevel}
             onSave={handleSaveHubBranding}
             pendingMembers={pendingMembers}
             onApproveMember={handleApproveMember}

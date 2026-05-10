@@ -34,6 +34,8 @@ export interface HubAdminPageProps {
   onHubIconChange: (v: string) => void;
   requireApproval: boolean;
   onRequireApprovalChange: (v: boolean) => void;
+  minSecurityLevel: number;
+  onMinSecurityLevelChange: (v: number) => void;
   onSave: () => void;
   pendingMembers: PendingUser[];
   onApproveMember: (publicKey: string) => void;
@@ -172,6 +174,23 @@ export function HubAdminPage(props: HubAdminPageProps) {
                 see their own status but nothing else until an admin approves
                 them on the Members tab.
               </p>
+            </div>
+            <div className="settings-section">
+              <label className="settings-label">Anti-spam: minimum proof-of-work</label>
+              <p className="muted">
+                Connecting clients must prove CPU work tied to their public key.
+                Higher levels take longer to compute and slow down bot floods.
+                Level 0 disables the check.
+              </p>
+              <select
+                value={props.minSecurityLevel}
+                onChange={(e) => props.onMinSecurityLevelChange(Number(e.target.value))}
+              >
+                <option value={0}>0 — Disabled</option>
+                <option value={10}>10 — Low (&lt;1 second)</option>
+                <option value={15}>15 — Medium (~1 minute)</option>
+                <option value={20}>20 — High (~15 minutes)</option>
+              </select>
             </div>
             <div className="settings-section">
               <button onClick={props.onSave}>Save changes</button>
