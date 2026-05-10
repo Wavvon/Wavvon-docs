@@ -47,6 +47,7 @@ impl AuthCredentials {
         &self,
         hub_url: &str,
         client: &reqwest::Client,
+        invite_code: Option<&str>,
     ) -> Result<String, String> {
         let challenge_resp: ChallengeResponse = client
             .post(format!("{hub_url}/auth/challenge"))
@@ -72,6 +73,9 @@ impl AuthCredentials {
         if let Some(cert) = &self.cert {
             body["subkey_cert"] = serde_json::to_value(cert)
                 .map_err(|e| format!("serialize cert: {e}"))?;
+        }
+        if let Some(code) = invite_code {
+            body["invite_code"] = serde_json::Value::String(code.to_string());
         }
 
         let resp = client

@@ -45,6 +45,10 @@ enum WsCommand {
     DmTyping { conversation_id: String, typing: bool },
 }
 
+struct PendingDeepLink {
+    url: std::sync::Mutex<Option<String>>,
+}
+
 struct VoiceSession {
     channel_id: String,
     hub_id: String,
@@ -693,6 +697,7 @@ fn active_ws_tx(state: &AppState) -> Result<mpsc::UnboundedSender<WsCommand>, St
 #[tauri::command]
 async fn add_hub(
     hub_url: String,
+    invite_code: Option<String>,
     state: State<'_, AppState>,
     app: AppHandle,
 ) -> Result<HubInfo, String> {
@@ -716,7 +721,7 @@ async fn add_hub(
 
     // Authenticate — paired-device clients include the master cert,
     // legacy clients use the single-key flow unchanged.
-    let token = creds.authenticate(&hub_url, &client).await?;
+    let token = creds.authenticate(&hub_url, &client, invite_code.as_deref()).await?;
 
     // Auto-apply the user's default profile to this hub whenever the hub
     // doesn't already have a value for the field. Lets a new hub inherit
@@ -889,7 +894,7 @@ async fn auto_connect_saved(
 ) -> Result<Vec<HubInfo>, String> {
     let saved = load_saved_hubs();
     for hub in &saved {
-        let _ = add_hub(hub.hub_url.clone(), state.clone(), app.clone()).await;
+        let _ = add_hub(hub.hub_url.clone(), None, state.clone(), app.clone()).await;
     }
 
     // Restore the previously-active hub if it successfully reconnected.
@@ -1317,7 +1322,7 @@ async fn reauth_session(
 
     let creds = auth_creds::load_active_credentials()?;
     let client = reqwest::Client::new();
-    let new_token = creds.authenticate(&hub_url, &client).await?;
+    let new_token = creds.authenticate(&hub_url, &client, None).await?;
 
     // Restart the WS task with the new token. Abort the stale one first.
     let (old_task, hub_id_clone) = {
@@ -1658,6 +1663,13 @@ async fn preview_hub_info(url: String) -> Result<InfoResponse, String> {
         return Err(format!("Hub returned {}", resp.status()));
     }
     resp.json().await.map_err(|e| format!("Invalid /info: {e}"))
+}
+
+/// Returns the `voxply://` URL that launched the app (if any) and clears it.
+/// The frontend calls this on mount to detect deep-link launches.
+#[tauri::command]
+fn get_pending_deep_link(state: State<'_, PendingDeepLink>) -> Option<String> {
+    state.url.lock().unwrap().take()
 }
 
 /// Persist a new hub ordering. The provided list should be the desired
@@ -3269,8 +3281,39 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_deep_link::init())
         .setup(|app| {
             app.manage(AppState::default());
+            app.manage(PendingDeepLink { url: std::sync::Mutex::new(None) });
+
+            // Handle deep link if the app was launched via a voxply:// URL
+            {
+                use tauri_plugin_deep_link::DeepLinkExt;
+                if let Ok(Some(urls)) = app.deep_link().get_current() {
+                    for url in &urls {
+                        let raw = url.as_str();
+                        if raw.starts_with("voxply://") {
+                            *app.state::<PendingDeepLink>().url.lock().unwrap() =
+                                Some(raw.to_string());
+                            break;
+                        }
+                    }
+                }
+                // Also handle deep links while the app is already running
+                let handle = app.handle().clone();
+                let _listener_id = app.deep_link().on_open_url(move |event| {
+                    for url in event.urls() {
+                        let raw = url.as_str();
+                        if raw.starts_with("voxply://") {
+                            if let Some(state) = handle.try_state::<PendingDeepLink>() {
+                                *state.url.lock().unwrap() = Some(raw.to_string());
+                            }
+                            let _ = handle.emit("join-hub-requested", raw.to_string());
+                            break;
+                        }
+                    }
+                });
+            }
 
             // System tray: a "Show Voxply" / "Quit" menu plus left-click to
             // focus the main window. Tooltip carries the unread count, kept
@@ -3346,6 +3389,7 @@ pub fn run() {
             reconnect_hub,
             reorder_hubs,
             preview_hub_info,
+            get_pending_deep_link,
             clear_local_data,
             voice_join,
             voice_leave,

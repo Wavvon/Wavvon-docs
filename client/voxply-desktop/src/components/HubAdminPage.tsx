@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type {
   BanInfo,
   Channel,
@@ -78,7 +79,19 @@ export interface HubAdminPageProps {
   channels: Channel[];
 }
 
+function hubToVoxplyUrl(hubUrl: string): string {
+  try {
+    const u = new URL(hubUrl);
+    const hostPort = u.port ? `${u.hostname}:${u.port}` : u.hostname;
+    return `voxply://${hostPort}`;
+  } catch {
+    return `voxply://${hubUrl}`;
+  }
+}
+
 export function HubAdminPage(props: HubAdminPageProps) {
+  const [copiedShare, setCopiedShare] = useState(false);
+
   const tabs: { id: HubAdminTab; label: string }[] = [
     { id: "overview", label: "Overview" },
     { id: "roles", label: "Roles" },
@@ -194,6 +207,28 @@ export function HubAdminPage(props: HubAdminPageProps) {
             </div>
             <div className="settings-section">
               <button onClick={props.onSave}>Save changes</button>
+            </div>
+            <div className="settings-section">
+              <label className="settings-label">Share this hub</label>
+              <p className="muted">
+                Anyone with Voxply who opens this link will see a preview
+                and can join. For invite-only hubs, also share an invite
+                code from the Invites tab.
+              </p>
+              <div className="settings-row">
+                <code className="pubkey-display">
+                  {hubToVoxplyUrl(props.activeHubUrl)}
+                </code>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(hubToVoxplyUrl(props.activeHubUrl));
+                    setCopiedShare(true);
+                    setTimeout(() => setCopiedShare(false), 2000);
+                  }}
+                >
+                  {copiedShare ? "Copied!" : "Copy link"}
+                </button>
+              </div>
             </div>
           </section>
         )}

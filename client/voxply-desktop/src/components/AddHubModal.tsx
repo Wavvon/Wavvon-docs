@@ -3,27 +3,29 @@ import React from "react";
 type HubPreview =
   | { state: "idle" }
   | { state: "loading" }
-  | { state: "ok"; url: string; name: string; description?: string | null; icon?: string | null; invite_only?: boolean }
+  | { state: "ok"; url: string; name: string; description?: string | null; icon?: string | null; invite_only?: boolean; min_security_level?: number }
   | { state: "error"; message: string };
 
 interface Props {
   hubUrl: string;
   onHubUrlChange: (v: string) => void;
   hubPreview: HubPreview;
+  inviteCode: string;
+  onInviteCodeChange: (v: string) => void;
   loading: boolean;
   error: string | null;
   onAdd: () => void;
   onClose: () => void;
 }
 
-export function AddHubModal({ hubUrl, onHubUrlChange, hubPreview, loading, error, onAdd, onClose }: Props) {
+export function AddHubModal({ hubUrl, onHubUrlChange, hubPreview, inviteCode, onInviteCodeChange, loading, error, onAdd, onClose }: Props) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <h3>Add Hub</h3>
         <p className="muted" style={{ marginBottom: "var(--space-3)" }}>
-          Paste the URL of a hub you want to join. The hub's name
-          and description will appear below as you type.
+          Paste a hub address, a <code>voxply://</code> link, or just type
+          a hostname like <code>hub.example.com</code>.
         </p>
         <input
           type="text"
@@ -33,7 +35,7 @@ export function AddHubModal({ hubUrl, onHubUrlChange, hubPreview, loading, error
             if (e.key === "Enter") onAdd();
             if (e.key === "Escape") onClose();
           }}
-          placeholder="https://hub.example.com"
+          placeholder="hub.example.com  or  voxply://hub.example.com/invite"
           autoFocus
         />
         {hubPreview.state === "loading" && (
@@ -58,12 +60,40 @@ export function AddHubModal({ hubUrl, onHubUrlChange, hubPreview, loading, error
               )}
               {hubPreview.invite_only && (
                 <p className="muted hub-preview-warn">
-                  🔒 Invite-only — you'll need an invite to join
+                  🔒 Invite-only — you'll need an invite code to join
+                </p>
+              )}
+              {(hubPreview.min_security_level ?? 0) > 0 && (
+                <p className="muted hub-preview-warn">
+                  ⚙️ Proof-of-work required:{" "}
+                  {(hubPreview.min_security_level ?? 0) >= 20
+                    ? "High (~15 min)"
+                    : (hubPreview.min_security_level ?? 0) >= 15
+                    ? "Medium (~1 min)"
+                    : "Low (<1 sec)"}
                 </p>
               )}
             </div>
           </div>
         )}
+        <div className="settings-section" style={{ marginTop: "var(--space-3)" }}>
+          <label className="settings-label">Invite code (optional)</label>
+          <input
+            type="text"
+            value={inviteCode}
+            onChange={(e) => onInviteCodeChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") onAdd();
+              if (e.key === "Escape") onClose();
+            }}
+            placeholder="Leave blank for open hubs"
+          />
+          {inviteCode && (
+            <p className="muted" style={{ marginTop: "var(--space-1)" }}>
+              Pre-filled from link
+            </p>
+          )}
+        </div>
         <div className="modal-actions">
           <button onClick={onClose} className="btn-secondary">Cancel</button>
           <button onClick={onAdd} disabled={loading}>

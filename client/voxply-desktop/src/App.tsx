@@ -81,10 +81,12 @@ function App() {
         description?: string | null;
         icon?: string | null;
         invite_only?: boolean;
+        min_security_level?: number;
       }
     | { state: "error"; message: string }
   >({ state: "idle" });
   const [hubUrl, setHubUrl] = useState("http://localhost:3000");
+  const [inviteCode, setInviteCode] = useState("");
   // Per-channel unread tracking: hub_id -> { channel_id: true }. Persisted
   // across restarts via Tauri so dots survive the app being closed. Derived
   // counts (per hub, total) drive the badges and tray tooltip.
@@ -1971,17 +1973,67 @@ function App() {
     }
   }
 
+  // Normalise whatever the user typed/pasted/deep-linked into a proper
+  // hub URL + optional invite code.
+  function parseHubInput(raw: string): { hubUrl: string; inviteCode: string } | null {
+    const trimmed = raw.trim();
+    if (!trimmed) return null;
+    if (trimmed.startsWith("voxply://")) {
+      const rest = trimmed.slice("voxply://".length);
+      const slashIdx = rest.indexOf("/");
+      const hostPart = slashIdx === -1 ? rest : rest.slice(0, slashIdx);
+      const codePart = slashIdx === -1 ? "" : rest.slice(slashIdx + 1).split("?")[0];
+      if (!hostPart) return null;
+      const isLocal = hostPart.startsWith("localhost") || hostPart.startsWith("127.");
+      return { hubUrl: `${isLocal ? "http" : "https"}://${hostPart}`, inviteCode: codePart };
+    }
+    if (/^https?:\/\//i.test(trimmed)) return { hubUrl: trimmed, inviteCode: "" };
+    // Plain hostname — normalise to https (http for localhost/loopback)
+    const isLocal = trimmed.startsWith("localhost") || trimmed.startsWith("127.");
+    return { hubUrl: `${isLocal ? "http" : "https"}://${trimmed}`, inviteCode: "" };
+  }
+
+  function handleHubUrlChange(v: string) {
+    setHubUrl(v);
+    const parsed = parseHubInput(v);
+    if (parsed?.inviteCode) setInviteCode(parsed.inviteCode);
+  }
+
+  // On mount: check whether the app was launched via a voxply:// deep link,
+  // and listen for deep links opened while the app is already running.
+  useEffect(() => {
+    invoke<string | null>("get_pending_deep_link").then((url) => {
+      if (!url) return;
+      const parsed = parseHubInput(url);
+      if (parsed) {
+        setHubUrl(parsed.hubUrl);
+        setInviteCode(parsed.inviteCode);
+        setShowAddHub(true);
+      }
+    });
+    const unlisten = listen<string>("join-hub-requested", (event) => {
+      const parsed = parseHubInput(event.payload);
+      if (parsed) {
+        setHubUrl(parsed.hubUrl);
+        setInviteCode(parsed.inviteCode);
+        setShowAddHub(true);
+      }
+    });
+    return () => { unlisten.then((fn) => fn()); };
+  }, []);
+
   // Debounced fetch of /info while the user types a hub URL.
   useEffect(() => {
     if (!showAddHub) {
       setHubPreview({ state: "idle" });
       return;
     }
-    const url = hubUrl.trim();
-    if (!url || !/^https?:\/\//i.test(url)) {
+    const parsed = parseHubInput(hubUrl);
+    if (!parsed) {
       setHubPreview({ state: "idle" });
       return;
     }
+    const resolvedUrl = parsed.hubUrl;
     let cancelled = false;
     setHubPreview({ state: "loading" });
     const handle = setTimeout(async () => {
@@ -1991,15 +2043,17 @@ function App() {
           description?: string | null;
           icon?: string | null;
           invite_only?: boolean;
-        }>("preview_hub_info", { url });
+          min_security_level?: number;
+        }>("preview_hub_info", { url: resolvedUrl });
         if (!cancelled) {
           setHubPreview({
             state: "ok",
-            url,
+            url: resolvedUrl,
             name: info.name,
             description: info.description,
             icon: info.icon,
             invite_only: info.invite_only,
+            min_security_level: info.min_security_level,
           });
         }
       } catch (e) {
@@ -2016,20 +2070,17 @@ function App() {
     setLoading(true);
     setError(null);
     try {
-      const hub = await invoke<Hub>("add_hub", { hubUrl });
+      const resolvedUrl = parseHubInput(hubUrl)?.hubUrl ?? hubUrl;
+      const hub = await invoke<Hub>("add_hub", {
+        hubUrl: resolvedUrl,
+        inviteCode: inviteCode.trim() || null,
+      });
       const allHubs = await invoke<Hub[]>("list_hubs");
       setHubs(allHubs);
-      // Get our public key (assuming it's the same identity for all hubs)
-      if (!publicKey) {
-        const phrase = await invoke<string>("get_recovery_phrase").catch(() => "");
-        // We can't easily get the pub key — pull from /me of the new hub later
-        setPublicKey(null);
-      }
-      // If this is the first hub, set it active
-      if (!activeHubId) {
-        setActiveHubId(hub.hub_id);
-      }
+      if (!publicKey) setPublicKey(null);
+      if (!activeHubId) setActiveHubId(hub.hub_id);
       setShowAddHub(false);
+      setInviteCode("");
     } catch (e) {
       setError(String(e));
     } finally {
@@ -3425,12 +3476,14 @@ function App() {
         {showAddHub && (
           <AddHubModal
             hubUrl={hubUrl}
-            onHubUrlChange={setHubUrl}
+            onHubUrlChange={handleHubUrlChange}
             hubPreview={hubPreview}
+            inviteCode={inviteCode}
+            onInviteCodeChange={setInviteCode}
             loading={loading}
             error={error}
             onAdd={handleAddHub}
-            onClose={() => setShowAddHub(false)}
+            onClose={() => { setShowAddHub(false); setInviteCode(""); }}
           />
         )}
 
