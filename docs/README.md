@@ -63,6 +63,7 @@ Reading order is for learning the system end-to-end. This section is for
 - **Push-to-talk** — [voice.md](voice.md)
 - **Self-mute / self-deafen** — [voice.md](voice.md)
 - **Voice participant list in sidebar** — [client.md](client.md)
+- **Screen share + webcam (designed, not built)** — [screen-share.md](screen-share.md)
 
 ### Federation
 - **Hub-to-hub auth** — [identity.md](identity.md), [federation.md](federation.md)

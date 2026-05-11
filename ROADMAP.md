@@ -7,7 +7,7 @@ shipped features, design questions — lives in the wiki at
 
 ## 🔨 Next up
 
-_Nothing queued — hub discovery (all three layers) just shipped. Pick from the wishlist below._
+- **Screen share (v1)** — WS-relayed WebM chunks, source picker, viewer panel, optional webcam. Designed in [`docs/screen-share.md`](docs/screen-share.md). v2 WebRTC migration deferred.
 
 ## 📌 Wishlist (undesigned)
 
@@ -17,7 +17,6 @@ items live in the wiki — see
 [`farm-model.md`](docs/farm-model.md),
 [`gaming.md`](docs/gaming.md).
 
-- **Screen share** — WebRTC or similar; multi-week
 - **E2E encryption for DMs** — sender-key against recipient pubkey; group DMs are the hard part
 - **Cross-platform packaging** — installers for macOS / Linux / mobile
 - **Performance ceiling** — load test WS broadcast, search, voice relay

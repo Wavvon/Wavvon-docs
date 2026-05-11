@@ -4,6 +4,42 @@ Why Voxply is shaped the way it is. Each entry: the decision, the
 alternative we considered, and why we chose this. New decisions go at
 the top.
 
+## Screen share v1: hub-relayed WebSocket chunks, not WebRTC P2P
+
+**Decision**: ship screen share as WebM chunks (`MediaRecorder`,
+VP8/Opus) sent over the existing chat WebSocket. The hub broadcasts
+each chunk to channel subscribers. Viewers buffer into a
+`MediaSource`. Full design in
+[`docs/screen-share.md`](screen-share.md).
+
+**Alternative considered**: WebRTC peer-to-peer from the start, with
+the hub as SDP/ICE signaler. Direct sharer→viewer media, hub carries
+no video bytes.
+
+**Tradeoff**: WebRTC is the right long-term shape — lower latency
+(~100 ms vs 300–500 ms), higher quality, and zero hub egress for
+media. It costs an entirely new protocol stack (peer connection
+lifecycle, ICE/STUN/TURN configuration, NAT traversal, per-viewer
+uploads on the sharer), none of which Voxply currently exercises.
+The hub-relayed path reuses the existing typed WS envelope channel
+(`server/voxply-hub/src/routes/chat_models.rs` line 175), the
+existing subscriber broadcast logic, and the existing identity/role
+permission machinery. Net cost is a handful of new envelope variants
+plus a per-channel `ActiveShare` map. The hub egress ceiling
+(N × ~2.6 Mbps per viewer) is the obvious scaling pain — and is
+exactly what triggers the v2 migration to WebRTC once it bites.
+Building v1 first also lets the UI surface (source picker, viewer
+layout, permission gate, webcam-as-second-stream) ship and bake
+without coupling it to the transport rewrite.
+
+**Webcam**: same infrastructure, second stream ID. Can be deferred
+to v2-of-the-feature at implementation time; the protocol already
+allows it.
+
+**Supersedes**: the ROADMAP wishlist entry "Screen share — WebRTC or
+similar" implied WebRTC as the obvious choice. This decision says
+the obvious choice is the eventual one, not the first one.
+
 ## Hub discovery: three-layer architecture
 
 **Decision**: hub discovery is built as three composable layers — deep
