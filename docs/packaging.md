@@ -1,67 +1,61 @@
 # Packaging & Release
 
-How Voxply ships to end users across Windows, macOS, and Linux, and how
-the hub server is distributed to operators. The Tauri 2 bundler does the
-heavy lifting; this doc captures what surrounds it — signing, updates,
-CI, and the secrets matrix.
+How Voxply ships to end users across Windows and Linux (the current active
+targets), and how the hub server is distributed to operators. The Tauri 2
+bundler does the heavy lifting; this doc captures what surrounds it —
+signing, updates, CI, and the secrets matrix.
+
+macOS is **deferred** — the Apple Developer Program ($99/year) is a
+barrier for a zero-income open-source project. macOS users can build from
+source. Android and browser clients are on the roadmap.
 
 ---
 
 ## 1. Target platforms and formats
 
-Tauri 2's bundler produces all of these via `tauri build --bundles`. No
-custom packaging scripts.
+Tauri 2's bundler produces these via `tauri build`. No custom packaging scripts.
 
 | Platform | Primary format | Secondary | Notes |
 |---|---|---|---|
-| Windows | `.exe` (NSIS) | `.msi` (WiX) | NSIS gives a friendlier installer UX; MSI for enterprise / Group Policy |
-| macOS | `.dmg` (universal) | — | Single universal binary — `x86_64-apple-darwin` + `aarch64-apple-darwin` lipo'd together |
-| Linux | `.AppImage` | `.deb`, `.rpm` | AppImage works on every distro; `.deb`/`.rpm` for users who want package-manager integration |
+| Windows | `.exe` (NSIS) | `.msi` (WiX) | NSIS gives a friendlier installer UX |
+| Linux | `.AppImage` | `.deb` | AppImage works on every distro without installation |
 
-Mobile (iOS / Android) is deferred — see Open questions.
+**macOS** — deferred. Apple Developer ID + notarization required for Gatekeeper;
+costs $99/year. Build from source works fine in the meantime.
+
+**Android** — planned. Tauri 2 supports Android; needs separate signing setup
+(Android keystore, not Apple). No cost barrier.
+
+**Browser client** — planned. The existing React frontend can run as a web app
+with Tauri `invoke` calls replaced by direct HTTP/WebSocket calls to the hub.
 
 ---
 
 ## 2. Code signing
 
 Two tiers: **dev builds** ship unsigned (CI artifact, devs and early
-testers click through OS warnings); **release builds** are signed and
-notarized where the platform requires it.
+testers click through OS warnings); **release builds** carry the updater
+payload signature so the auto-updater can verify downloads.
 
-### Windows — Authenticode
+### Windows — unsigned (pre-1.0)
 
-- **Updater signature**: `TAURI_SIGNING_PRIVATE_KEY` (Tauri's own Ed25519
-  key, not a code-signing cert) signs the update payload.
-- **Authenticode**: standard or EV cert signs the `.exe` / `.msi`. EV
-  cert (or Azure Trusted Signing) earns immediate SmartScreen trust;
-  standard cert builds reputation over time.
-- **Dev builds**: unsigned. Users see a SmartScreen warning ("More info"
-  → "Run anyway"). Acceptable pre-1.0.
+- **Updater signature**: `TAURI_SIGNING_PRIVATE_KEY` (Ed25519) signs the
+  update payload — this is the only signing we do today.
+- **Authenticode**: deferred. Users see a SmartScreen warning ("More info"
+  → "Run anyway"). Acceptable for a free open-source pre-1.0 project.
+  When the project has revenue, Azure Trusted Signing (~$9/month) is the
+  practical path.
 
-### macOS — Developer ID + notarization
+### macOS — deferred
 
-Mandatory for Gatekeeper. Without notarization the app refuses to launch
-on a fresh Mac.
-
-| Env var | Purpose |
-|---|---|
-| `APPLE_CERTIFICATE` | Developer ID Application cert, base64-encoded `.p12` |
-| `APPLE_CERTIFICATE_PASSWORD` | Passphrase for the `.p12` |
-| `APPLE_ID` | Apple ID used for notarization |
-| `APPLE_PASSWORD` | App-specific password (not the AppleID password) |
-| `APPLE_TEAM_ID` | Developer team ID |
-
-Entitlements required (in `macos.entitlements.plist`):
-
-- `com.apple.security.device.microphone` — voice capture
-- `com.apple.security.device.camera` — webcam (screen share v2)
-- Hardened runtime enabled (notarization requirement)
+Apple Developer Program ($99/year) is out of reach for a zero-income
+open-source solo project. macOS users can build from source (`cargo tauri
+build`). Revisit when the project gains sponsorship.
 
 ### Linux — optional GPG
 
-No mandatory signing on Linux. We may GPG-sign the AppImage so users
-who care can verify. Distro-package repos (PPA, COPR) are out of scope
-for now.
+No mandatory signing. We may GPG-sign the AppImage for users who want to
+verify. Distro packages (PPA, COPR) are out of scope for now.
 
 ---
 
@@ -84,10 +78,8 @@ Tauri 2 updater JSON, served from the endpoint:
   "notes": "...",
   "pub_date": "2026-06-01T12:00:00Z",
   "platforms": {
-    "windows-x86_64":  { "url": "...", "signature": "..." },
-    "darwin-aarch64":  { "url": "...", "signature": "..." },
-    "darwin-x86_64":   { "url": "...", "signature": "..." },
-    "linux-x86_64":    { "url": "...", "signature": "..." }
+    "windows-x86_64": { "url": "...", "signature": "..." },
+    "linux-x86_64":   { "url": "...", "signature": "..." }
   }
 }
 ```
@@ -131,7 +123,7 @@ Two workflows. **Describe their structure; do not write the YAML here.**
 
 | Step | Notes |
 |---|---|
-| Matrix | same three OSes (catch platform-specific compile breakage) |
+| Matrix | `windows-latest`, `ubuntu-22.04` |
 | Setup Rust + Node | as above, no Tauri targets needed |
 | Validate | `cargo check --workspace` + `tsc --noEmit` in `client/voxply-desktop` |
 | No bundling | No installers, no signing — fast PR feedback |
@@ -140,18 +132,11 @@ Two workflows. **Describe their structure; do not write the YAML here.**
 
 | Secret | Used by | Required for |
 |---|---|---|
-| `TAURI_SIGNING_PRIVATE_KEY` | all platforms | Updater payload signature |
-| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | all platforms | Updater key passphrase |
-| `APPLE_CERTIFICATE` | macOS | Code signing |
-| `APPLE_CERTIFICATE_PASSWORD` | macOS | Code signing |
-| `APPLE_ID` | macOS | Notarization |
-| `APPLE_PASSWORD` | macOS | Notarization (app-specific password) |
-| `APPLE_TEAM_ID` | macOS | Notarization |
+| `TAURI_SIGNING_PRIVATE_KEY` | Windows + Linux | Updater payload signature |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | Windows + Linux | Updater key passphrase (omit if key has no password) |
 
-Windows code-signing secrets (cert + passphrase, or Azure Trusted
-Signing creds) are added when an Authenticode cert is procured. Until
-then, Windows release builds are unsigned with an explicit caveat in the
-release notes.
+macOS and Windows Authenticode secrets are not used today. Add them if
+and when the project has a budget for signing certs.
 
 ---
 
@@ -213,17 +198,12 @@ TLS terminate it in a reverse proxy (Caddy / nginx); see `hosting.md`.
 Fields to add when packaging lands. Described, not written:
 
 - `bundle.active: true` — enable the bundler in `tauri build`.
-- `bundle.targets: ["nsis", "dmg", "appimage"]` — primary formats.
-  Secondary formats (`msi`, `deb`, `rpm`) can be added per-platform.
+- `bundle.targets: ["nsis", "appimage"]` — Windows NSIS installer and Linux AppImage.
 - `bundle.icon` — paths to platform-specific icons
-  (`icons/icon.icns`, `icons/icon.ico`, `icons/icon.png`).
-- `plugins.updater.pubkey` — public half of the updater signing key.
+  (`icons/icon.ico`, `icons/icon.png`).
+- `plugins.updater.pubkey` — public half of the updater signing key (already set).
 - `plugins.updater.endpoints` — array containing the
   `releases.voxply.io/latest.json` URL.
-- `bundle.macOS.entitlements` — path to the entitlements plist (mic +
-  camera + hardened runtime).
-- `bundle.macOS.minimumSystemVersion` — pin to a sane floor (e.g.
-  `10.15`).
 
 The `identifier` (`com.voxply.desktop`), `productName` (`Voxply`), and
 `version` already exist and don't change.
@@ -232,19 +212,19 @@ The `identifier` (`com.voxply.desktop`), `productName` (`Voxply`), and
 
 ## 8. Open questions
 
+- **macOS**: deferred until budget allows Apple Developer Program ($99/year).
+  Users on macOS can `cargo tauri build` from source.
+- **Android**: Tauri 2 supports Android with no cost barrier (Android
+  keystore signing is free). Requires Android SDK/NDK setup in CI. Planned
+  after Windows/Linux desktop is stable.
+- **Browser client**: the existing React frontend can run as a web app by
+  replacing `invoke(...)` calls with direct HTTP/WebSocket to the hub.
+  No Tauri dependency — planned as a lightweight companion to the desktop client.
 - **Hub auto-update**: Tauri updater doesn't apply to the hub binary.
-  Options: `systemd` unit with `ExecStartPre` pulling a new Docker
-  image; Watchtower or similar for container hosts; or fully manual.
-  Deferred — operators currently update on their own cadence.
-- **Mobile (iOS / Android)**: Tauri 2 supports both, but each has its
-  own signing pipeline, its own store policy, and (on iOS) sandboxing
-  that conflicts with `voxply://` and free voice access. Deferred until
-  the desktop story is stable.
-- **Windows Store / Mac App Store**: store sandboxing breaks the
-  `voxply://` deep link, breaks unrestricted filesystem access for
-  attachments, and on macOS forbids the entitlements we need. Not worth
-  pursuing.
-- **Delta updates**: Tauri's updater downloads the full installer each
-  time. At current binary size (tens of MB) this is acceptable for v1.
-  Revisit if the binary balloons or if mobile lands (cellular concerns).
+  Options: `systemd` unit with `ExecStartPre` pulling a new Docker image;
+  Watchtower for container hosts; or fully manual. Deferred.
+- **Windows Store / App Stores**: store sandboxing breaks `voxply://` deep
+  links and unrestricted filesystem access. Not worth pursuing.
+- **Delta updates**: Tauri downloads the full installer each time. Acceptable
+  at current binary size (tens of MB). Revisit if the binary grows significantly.
 
