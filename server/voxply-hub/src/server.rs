@@ -134,6 +134,10 @@ pub fn create_router(state: Arc<AppState>) -> Router {
             "/identity/{master}/prefs",
             get(routes::identity::get_prefs).put(routes::identity::put_prefs),
         )
+        .route(
+            "/identity/{pubkey}/dh-key",
+            get(routes::dh_keys::get_dh_key).put(routes::dh_keys::put_dh_key),
+        )
         .route("/identity/pairing/offer", post(routes::pairing::post_offer))
         .route("/identity/pairing/claim", post(routes::pairing::post_claim))
         .route("/identity/pairing/complete", post(routes::pairing::post_complete))

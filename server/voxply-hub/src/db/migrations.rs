@@ -563,6 +563,31 @@ pub async fn run(pool: &SqlitePool) -> Result<()> {
     .execute(pool)
     .await?;
 
+    // E2E encryption: DH key store
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS dh_keys (
+            pubkey         TEXT PRIMARY KEY REFERENCES users(public_key),
+            dh_pubkey_hex  TEXT NOT NULL,
+            signature_hex  TEXT NOT NULL,
+            published_at   INTEGER NOT NULL
+        )",
+    )
+    .execute(pool)
+    .await?;
+
+    // E2E encryption: encrypted DM storage
+    // is_encrypted=1 → content is NULL, ciphertext_json holds the envelope
+    let _ = sqlx::query("ALTER TABLE dm_messages ADD COLUMN is_encrypted INTEGER NOT NULL DEFAULT 0")
+        .execute(pool)
+        .await;
+    let _ = sqlx::query("ALTER TABLE dm_messages ADD COLUMN ciphertext_json TEXT")
+        .execute(pool)
+        .await;
+
+    // content column in dm_messages must be nullable for encrypted messages.
+    // SQLite does not support ALTER COLUMN, so new rows are inserted with NULL content
+    // when is_encrypted=1. Existing rows already have content so no data is lost.
+
     tracing::info!("Database migrations complete");
     Ok(())
 }

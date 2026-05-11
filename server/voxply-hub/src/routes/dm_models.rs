@@ -25,9 +25,23 @@ pub struct ConversationResponse {
 
 #[derive(Deserialize)]
 pub struct SendDmRequest {
-    pub content: String,
+    /// Plaintext content — None when the message is encrypted.
+    pub content: Option<String>,
     #[serde(default)]
     pub attachments: Vec<Attachment>,
+    /// Present instead of content when the message is E2E encrypted.
+    pub encrypted_envelope: Option<EncryptedDmEnvelope>,
+}
+
+/// Wire envelope for an E2E encrypted 1:1 DM.
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct EncryptedDmEnvelope {
+    pub sender_pubkey: String,
+    pub conv_id: String,
+    pub ciphertext_hex: String,
+    pub nonce_hex: String,
+    pub dh_pubkey_hex: String,
+    pub signature_hex: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -36,7 +50,8 @@ pub struct DmMessageResponse {
     pub conversation_id: String,
     pub sender: String,
     pub sender_name: Option<String>,
-    pub content: String,
+    /// None when is_encrypted is true
+    pub content: Option<String>,
     pub created_at: i64,
     #[serde(default)]
     pub attachments: Vec<Attachment>,
@@ -46,6 +61,11 @@ pub struct DmMessageResponse {
     /// remote recipients.
     #[serde(default)]
     pub delivery_failed: bool,
+    /// True when the message body is E2E encrypted
+    #[serde(default)]
+    pub is_encrypted: bool,
+    /// Present when is_encrypted is true
+    pub encrypted_envelope: Option<EncryptedDmEnvelope>,
 }
 
 /// Hub-to-hub DM delivery envelope (POST /federation/dm).
@@ -56,10 +76,11 @@ pub struct FederatedDmRequest {
     pub conv_type: String,
     pub sender: String,
     pub members: Vec<String>,
-    pub content: String,
+    pub content: Option<String>,
     #[serde(default)]
     pub attachments: Vec<Attachment>,
     #[serde(default)]
     pub signature: Option<String>,
     pub created_at: i64,
+    pub encrypted_envelope: Option<EncryptedDmEnvelope>,
 }

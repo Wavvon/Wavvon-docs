@@ -169,6 +169,7 @@ export interface DmMessage {
   content: string;
   timestamp: number;
   attachments?: Attachment[];
+  is_encrypted?: boolean;
   /** True when at least one outbox row for this message has bounced
    *  (retries exhausted). Renders a delivery-failed mark next to the
    *  message. False/missing for received messages and not-yet-bounced sends. */
@@ -183,6 +184,7 @@ export interface DmMessageFull {
   content: string;
   created_at: number;
   attachments?: Attachment[];
+  is_encrypted?: boolean;
   delivery_failed?: boolean;
 }
 

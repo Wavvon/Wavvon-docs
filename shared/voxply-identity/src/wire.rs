@@ -292,6 +292,34 @@ pub enum PairingStatus {
     Expired,
 }
 
+/// Published DH key for a user. Stored on the user's home hub(s).
+/// Signing prefix: "voxply/dh-key/v1\0"
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct DhKeyRecord {
+    pub pubkey: String,        // Ed25519 pubkey (owner)
+    pub dh_pubkey_hex: String, // X25519 pubkey hex
+    pub signature_hex: String, // Ed25519 sig over signing_bytes()
+    pub published_at: i64,
+}
+
+impl DhKeyRecord {
+    pub fn signing_bytes(pubkey: &str, dh_pubkey_hex: &str) -> Vec<u8> {
+        let mut out = b"voxply/dh-key/v1\0".to_vec();
+        let pk = pubkey.as_bytes();
+        out.extend_from_slice(&(pk.len() as u32).to_le_bytes());
+        out.extend_from_slice(pk);
+        let dh = dh_pubkey_hex.as_bytes();
+        out.extend_from_slice(&(dh.len() as u32).to_le_bytes());
+        out.extend_from_slice(dh);
+        out
+    }
+
+    pub fn verify(&self) -> anyhow::Result<()> {
+        let msg = Self::signing_bytes(&self.pubkey, &self.dh_pubkey_hex);
+        crate::verify_signature(&self.pubkey, &msg, &hex::decode(&self.signature_hex)?)
+    }
+}
+
 /// One entry in a user's public hub list.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PublicHubEntry {

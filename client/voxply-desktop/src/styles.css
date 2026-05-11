@@ -3851,3 +3851,31 @@ select:focus {
   cursor: pointer;
   font-size: var(--text-xs);
 }
+
+/* E2E DM encryption UI */
+.dm-group-banner {
+  background: rgba(255, 170, 0, 0.12);
+  border: 1px solid rgba(255, 170, 0, 0.3);
+  border-radius: 4px;
+  color: #ffaa00;
+  font-size: 0.8rem;
+  padding: 6px 12px;
+  margin: 4px 8px 8px;
+  text-align: center;
+}
+
+.dm-lock-icon {
+  font-size: 0.7rem;
+  opacity: 0.6;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+.encryption-warning-modal {
+  max-width: 380px;
+}
+
+.encryption-warning-modal p {
+  margin-bottom: 16px;
+  line-height: 1.5;
+}

@@ -12,12 +12,14 @@ use std::fmt;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use x25519_dalek;
+
 pub use master::MasterIdentity;
 pub use pow::{compute_security_level, leading_zero_bits, verify_security_level};
 pub use subkey::DeviceSubkey;
 pub use wire::{
-    HomeHubList, PairingClaim, PairingComplete, PairingOffer, PairingStatus, PublicHubEntry,
-    PublicHubProfile, RevocationEntry, SignedPrefsBlob, SubkeyCert,
+    DhKeyRecord, HomeHubList, PairingClaim, PairingComplete, PairingOffer, PairingStatus,
+    PublicHubEntry, PublicHubProfile, RevocationEntry, SignedPrefsBlob, SubkeyCert,
 };
 
 pub struct Identity {
@@ -123,6 +125,24 @@ impl Identity {
     pub fn as_subkey_zero(&self, label: String) -> DeviceSubkey {
         let entropy = self.signing_key.to_bytes();
         DeviceSubkey::subkey_zero_from_entropy(&entropy, label)
+    }
+
+    /// Derive the X25519 DH keypair from this identity's Ed25519 seed.
+    /// Uses the standard ed25519→x25519 conversion:
+    /// SHA-512(seed)[0..32] → clamp → X25519 scalar.
+    pub fn dh_keypair(&self) -> (x25519_dalek::StaticSecret, x25519_dalek::PublicKey) {
+        use sha2::{Sha512, Digest};
+        let seed = self.signing_key.to_bytes();
+        let hash = Sha512::digest(&seed);
+        let mut scalar = [0u8; 32];
+        scalar.copy_from_slice(&hash[..32]);
+        // X25519 clamping
+        scalar[0] &= 248;
+        scalar[31] &= 127;
+        scalar[31] |= 64;
+        let secret = x25519_dalek::StaticSecret::from(scalar);
+        let public = x25519_dalek::PublicKey::from(&secret);
+        (secret, public)
     }
 }
 
@@ -272,6 +292,26 @@ mod tests {
             &signature.to_bytes(),
         );
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn dh_keypair_is_deterministic() {
+        let identity = Identity::generate();
+        let (_, pub1) = identity.dh_keypair();
+        let (_, pub2) = identity.dh_keypair();
+        assert_eq!(pub1.as_bytes(), pub2.as_bytes());
+    }
+
+    #[test]
+    fn dh_key_agreement_works() {
+        let alice = Identity::generate();
+        let bob = Identity::generate();
+        let (alice_sec, _) = alice.dh_keypair();
+        let (bob_sec, bob_pub) = bob.dh_keypair();
+        let (_, alice_pub) = alice.dh_keypair();
+        let shared_alice = alice_sec.diffie_hellman(&bob_pub);
+        let shared_bob = bob_sec.diffie_hellman(&alice_pub);
+        assert_eq!(shared_alice.as_bytes(), shared_bob.as_bytes());
     }
 
     #[test]

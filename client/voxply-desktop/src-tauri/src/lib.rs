@@ -7,6 +7,7 @@ use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
 use tokio_tungstenite::tungstenite::Message as WsMessage;
 use voxply_identity::Identity;
+use x25519_dalek;
 
 mod auth_creds;
 mod home_hub;
@@ -253,6 +254,29 @@ struct DmMessageInfo {
     created_at: i64,
     #[serde(default)]
     attachments: Vec<AttachmentInfo>,
+    #[serde(default)]
+    is_encrypted: bool,
+    #[serde(default)]
+    delivery_failed: bool,
+}
+
+/// Raw response from the hub for a DM message — may include an encrypted envelope.
+/// Converted to `DmMessageInfo` after optional in-process decryption.
+#[derive(Deserialize)]
+struct RawDmMessageResponse {
+    id: String,
+    conversation_id: String,
+    sender: String,
+    sender_name: Option<String>,
+    content: Option<String>,
+    created_at: i64,
+    #[serde(default)]
+    attachments: Vec<AttachmentInfo>,
+    #[serde(default)]
+    is_encrypted: bool,
+    #[serde(default)]
+    delivery_failed: bool,
+    encrypted_envelope: Option<serde_json::Value>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -3394,7 +3418,7 @@ async fn get_dm_messages(
 ) -> Result<Vec<DmMessageInfo>, String> {
     let (hub_url, token) = active_session(&state)?;
     let client = reqwest::Client::new();
-    client
+    let raw: Vec<RawDmMessageResponse> = client
         .get(format!("{hub_url}/conversations/{conversation_id}/messages"))
         .bearer_auth(&token)
         .send()
@@ -3402,25 +3426,91 @@ async fn get_dm_messages(
         .map_err(|e| format!("Failed: {e}"))?
         .json()
         .await
-        .map_err(|e| format!("Invalid: {e}"))
+        .map_err(|e| format!("Invalid: {e}"))?;
+
+    let identity_path = voxply_identity::Identity::default_path().map_err(|e| e.to_string())?;
+    let identity = voxply_identity::Identity::load(&identity_path).ok();
+
+    let mut result = Vec::with_capacity(raw.len());
+    for msg in raw {
+        let content = if msg.is_encrypted {
+            if let (Some(env), Some(ref id)) = (&msg.encrypted_envelope, &identity) {
+                decrypt_dm_inner(&conversation_id, env, id).unwrap_or_else(|_| "[decryption failed]".to_string())
+            } else {
+                "[encrypted]".to_string()
+            }
+        } else {
+            msg.content.unwrap_or_default()
+        };
+        result.push(DmMessageInfo {
+            id: msg.id,
+            conversation_id: msg.conversation_id,
+            sender: msg.sender,
+            sender_name: msg.sender_name,
+            content,
+            created_at: msg.created_at,
+            attachments: msg.attachments,
+            is_encrypted: msg.is_encrypted,
+            delivery_failed: msg.delivery_failed,
+        });
+    }
+    Ok(result)
+}
+
+fn decrypt_dm_inner(conv_id: &str, envelope: &serde_json::Value, identity: &voxply_identity::Identity) -> Result<String, String> {
+    use aes_gcm::aead::{Aead, KeyInit};
+    use aes_gcm::{Aes256Gcm, Key, Nonce};
+    use hkdf::Hkdf;
+    use sha2::Sha256;
+
+    let (my_dh_sec, _) = identity.dh_keypair();
+    let sender_dh_hex = envelope["dh_pubkey_hex"].as_str().ok_or("missing dh_pubkey_hex")?;
+    let ciphertext_hex = envelope["ciphertext_hex"].as_str().ok_or("missing ciphertext_hex")?;
+    let nonce_hex = envelope["nonce_hex"].as_str().ok_or("missing nonce_hex")?;
+
+    let sender_bytes = hex::decode(sender_dh_hex).map_err(|e| e.to_string())?;
+    let sender_arr: [u8; 32] = sender_bytes.try_into().map_err(|_| "bad DH key".to_string())?;
+    let sender_pub = x25519_dalek::PublicKey::from(sender_arr);
+    let shared = my_dh_sec.diffie_hellman(&sender_pub);
+
+    let hk = Hkdf::<Sha256>::new(Some(conv_id.as_bytes()), shared.as_bytes());
+    let mut key_bytes = [0u8; 32];
+    hk.expand(b"voxply/dm-key/v1", &mut key_bytes).map_err(|e| e.to_string())?;
+
+    let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&key_bytes));
+    let nonce_bytes = hex::decode(nonce_hex).map_err(|e| e.to_string())?;
+    let nonce = Nonce::from_slice(&nonce_bytes);
+    let ct = hex::decode(ciphertext_hex).map_err(|e| e.to_string())?;
+    let plaintext_bytes = cipher.decrypt(nonce, ct.as_slice()).map_err(|_| "decryption failed".to_string())?;
+    let plaintext: serde_json::Value = serde_json::from_slice(&plaintext_bytes).map_err(|e| e.to_string())?;
+    Ok(plaintext["content"].as_str().unwrap_or("").to_string())
 }
 
 #[tauri::command]
 async fn send_dm(
     conversation_id: String,
-    content: String,
+    content: Option<String>,
     attachments: Option<Vec<AttachmentInfo>>,
+    encrypted_envelope: Option<serde_json::Value>,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
     let client = reqwest::Client::new();
+    let body = if let Some(env) = encrypted_envelope {
+        serde_json::json!({
+            "encrypted_envelope": env,
+            "attachments": attachments.unwrap_or_default(),
+        })
+    } else {
+        serde_json::json!({
+            "content": content.unwrap_or_default(),
+            "attachments": attachments.unwrap_or_default(),
+        })
+    };
     let resp = client
         .post(format!("{hub_url}/conversations/{conversation_id}/messages"))
         .bearer_auth(&token)
-        .json(&serde_json::json!({
-            "content": content,
-            "attachments": attachments.unwrap_or_default(),
-        }))
+        .json(&body)
         .send()
         .await
         .map_err(|e| format!("Failed: {e}"))?;
@@ -3446,6 +3536,199 @@ fn set_tray_unread(count: u32, app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+/// Background update check — fires once at startup and is entirely best-effort.
+/// Any error is logged at WARN level; nothing is propagated to the caller.
+async fn check_for_updates(app: AppHandle) {
+    use tauri_plugin_updater::UpdaterExt;
+
+    let updater = match app.updater() {
+        Ok(u) => u,
+        Err(e) => {
+            tracing::warn!("updater unavailable: {e}");
+            return;
+        }
+    };
+
+    let update = match updater.check().await {
+        Ok(Some(u)) => u,
+        Ok(None) => return,
+        Err(e) => {
+            tracing::warn!("update check failed: {e}");
+            return;
+        }
+    };
+
+    #[derive(Clone, serde::Serialize)]
+    struct UpdatePayload {
+        version: String,
+        notes: Option<String>,
+    }
+
+    let _ = app.emit(
+        "update-available",
+        UpdatePayload {
+            version: update.version.clone(),
+            notes: update.body.clone(),
+        },
+    );
+
+    if let Err(e) = update
+        .download_and_install(|_, _| {}, || {})
+        .await
+    {
+        tracing::warn!("update download/install failed: {e}");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// E2E DM encryption commands
+// ---------------------------------------------------------------------------
+
+#[tauri::command]
+async fn publish_dh_key(state: State<'_, AppState>) -> Result<(), String> {
+    let identity_path = voxply_identity::Identity::default_path()
+        .map_err(|e| e.to_string())?;
+    let identity = voxply_identity::Identity::load(&identity_path)
+        .map_err(|e| e.to_string())?;
+    let (_, dh_pub) = identity.dh_keypair();
+    let dh_pubkey_hex = hex::encode(dh_pub.as_bytes());
+    let sig_bytes = {
+        let msg = voxply_identity::DhKeyRecord::signing_bytes(
+            &identity.public_key_hex(), &dh_pubkey_hex,
+        );
+        identity.sign(&msg).to_bytes()
+    };
+    let signature_hex = hex::encode(sig_bytes);
+    let pubkey_hex = identity.public_key_hex();
+
+    // Collect hub urls + tokens before any await so the MutexGuard is dropped.
+    let hub_sessions: Vec<(String, String)> = {
+        let sessions = state.hubs.lock().unwrap();
+        sessions.values()
+            .map(|s| (s.hub_url.clone(), s.token.clone()))
+            .collect()
+    };
+
+    for (hub_url, token) in hub_sessions {
+        let url = format!("{}/identity/{}/dh-key", hub_url, pubkey_hex);
+        let client = reqwest::Client::new();
+        let _ = client.put(&url)
+            .bearer_auth(&token)
+            .json(&serde_json::json!({
+                "dh_pubkey_hex": &dh_pubkey_hex,
+                "signature_hex": &signature_hex,
+            }))
+            .send()
+            .await;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn fetch_dh_key(
+    pubkey: String,
+    hub_url: String,
+    state: State<'_, AppState>,
+) -> Result<Option<String>, String> {
+    let url = format!("{}/identity/{}/dh-key", hub_url, pubkey);
+    // Drop the MutexGuard before the first await.
+    let token: Option<String> = {
+        let sessions = state.hubs.lock().unwrap();
+        sessions.values()
+            .find(|s| s.hub_url == hub_url)
+            .map(|s| s.token.clone())
+    };
+    let client = reqwest::Client::new();
+    let mut req = client.get(&url);
+    if let Some(t) = token {
+        req = req.bearer_auth(t);
+    }
+    let resp = req.send().await.map_err(|e| e.to_string())?;
+    if resp.status() == reqwest::StatusCode::NOT_FOUND {
+        return Ok(None);
+    }
+    if !resp.status().is_success() {
+        return Err(format!("hub returned {}", resp.status()));
+    }
+    let body: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
+    Ok(body["dh_pubkey_hex"].as_str().map(|s| s.to_string()))
+}
+
+#[tauri::command]
+async fn encrypt_dm(
+    conv_id: String,
+    content: String,
+    recipient_dh_pubkey_hex: String,
+) -> Result<serde_json::Value, String> {
+    use aes_gcm::aead::{Aead, KeyInit};
+    use aes_gcm::{Aes256Gcm, Key, Nonce};
+    use hkdf::Hkdf;
+    use rand::RngCore;
+    use sha2::Sha256;
+
+    let identity_path = voxply_identity::Identity::default_path()
+        .map_err(|e| e.to_string())?;
+    let identity = voxply_identity::Identity::load(&identity_path)
+        .map_err(|e| e.to_string())?;
+    let (my_dh_sec, my_dh_pub) = identity.dh_keypair();
+
+    let rec_bytes = hex::decode(&recipient_dh_pubkey_hex).map_err(|e| e.to_string())?;
+    let rec_arr: [u8; 32] = rec_bytes
+        .try_into()
+        .map_err(|_| "bad DH key length".to_string())?;
+    let rec_pub = x25519_dalek::PublicKey::from(rec_arr);
+
+    let shared = my_dh_sec.diffie_hellman(&rec_pub);
+
+    let hk = Hkdf::<Sha256>::new(Some(conv_id.as_bytes()), shared.as_bytes());
+    let mut key_bytes = [0u8; 32];
+    hk.expand(b"voxply/dm-key/v1", &mut key_bytes)
+        .map_err(|e| e.to_string())?;
+
+    let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&key_bytes));
+    let mut nonce_bytes = [0u8; 12];
+    rand::thread_rng().fill_bytes(&mut nonce_bytes);
+    let nonce = Nonce::from_slice(&nonce_bytes);
+    let plaintext = serde_json::json!({ "content": content }).to_string();
+    let ciphertext = cipher
+        .encrypt(nonce, plaintext.as_bytes())
+        .map_err(|e| e.to_string())?;
+
+    let ciphertext_hex = hex::encode(&ciphertext);
+    let nonce_hex = hex::encode(nonce_bytes);
+    let dh_pubkey_hex = hex::encode(my_dh_pub.as_bytes());
+
+    let signing_msg = {
+        let mut out = b"voxply/dm-ciphertext/v1\0".to_vec();
+        for s in [&conv_id, &ciphertext_hex, &nonce_hex, &dh_pubkey_hex] {
+            let b = s.as_bytes();
+            out.extend_from_slice(&(b.len() as u32).to_le_bytes());
+            out.extend_from_slice(b);
+        }
+        out
+    };
+    let sig = hex::encode(identity.sign(&signing_msg).to_bytes());
+
+    Ok(serde_json::json!({
+        "sender_pubkey": identity.public_key_hex(),
+        "conv_id": conv_id,
+        "ciphertext_hex": ciphertext_hex,
+        "nonce_hex": nonce_hex,
+        "dh_pubkey_hex": dh_pubkey_hex,
+        "signature_hex": sig,
+    }))
+}
+
+#[tauri::command]
+async fn decrypt_dm(
+    conv_id: String,
+    envelope: serde_json::Value,
+) -> Result<String, String> {
+    let identity_path = voxply_identity::Identity::default_path().map_err(|e| e.to_string())?;
+    let identity = voxply_identity::Identity::load(&identity_path).map_err(|e| e.to_string())?;
+    decrypt_dm_inner(&conv_id, &envelope, &identity)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     use tauri::menu::{Menu, MenuItem};
@@ -3454,6 +3737,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_deep_link::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             app.manage(AppState::default());
             app.manage(PendingDeepLink { url: std::sync::Mutex::new(None) });
@@ -3486,6 +3770,10 @@ pub fn run() {
                     }
                 });
             }
+
+            // Kick off a background update check — best-effort, never blocks startup.
+            let update_handle = app.handle().clone();
+            tauri::async_runtime::spawn(check_for_updates(update_handle));
 
             // System tray: a "Show Voxply" / "Quit" menu plus left-click to
             // focus the main window. Tooltip carries the unread count, kept
@@ -3658,6 +3946,10 @@ pub fn run() {
             save_public_profile,
             fetch_public_profile,
             get_hub_ws_info,
+            publish_dh_key,
+            fetch_dh_key,
+            encrypt_dm,
+            decrypt_dm,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

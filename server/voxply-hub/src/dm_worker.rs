@@ -113,8 +113,11 @@ async fn load_envelope(
     state: &AppState,
     message_id: &str,
 ) -> Result<Option<FederatedDmRequest>, sqlx::Error> {
-    let Some(msg): Option<(String, String, String, String, Option<String>, Option<String>, i64)> = sqlx::query_as(
-        "SELECT id, conversation_id, sender, content, attachments, signature, created_at
+    use crate::routes::dm_models::EncryptedDmEnvelope;
+
+    let Some(msg): Option<(String, String, String, Option<String>, Option<String>, Option<String>, i64, i64, Option<String>)> = sqlx::query_as(
+        "SELECT id, conversation_id, sender, content, attachments, signature, created_at,
+                COALESCE(is_encrypted, 0), ciphertext_json
          FROM dm_messages WHERE id = ?",
     )
     .bind(message_id)
@@ -143,6 +146,15 @@ async fn load_envelope(
         .and_then(|s| serde_json::from_str(s).ok())
         .unwrap_or_default();
 
+    let is_encrypted = msg.7 != 0;
+    let encrypted_envelope = if is_encrypted {
+        msg.8
+            .as_deref()
+            .and_then(|s| serde_json::from_str::<EncryptedDmEnvelope>(s).ok())
+    } else {
+        None
+    };
+
     Ok(Some(FederatedDmRequest {
         message_id: msg.0,
         conversation_id: msg.1,
@@ -153,6 +165,7 @@ async fn load_envelope(
         attachments,
         signature: msg.5,
         created_at: msg.6,
+        encrypted_envelope,
     }))
 }
 

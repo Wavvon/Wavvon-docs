@@ -32,3 +32,10 @@ bip39 = "2"
 # domain-separation label. Used to derive the master keypair from the
 # same BIP39 entropy that already backs the per-device subkey.
 hkdf = "0.12"
+
+# x25519-dalek — X25519 Diffie-Hellman for E2E DM encryption.
+# Derived from the Ed25519 seed so no separate key storage is needed.
+x25519-dalek = { version = "2", features = ["static_secrets"] }
+
+# aes-gcm — AES-256-GCM authenticated encryption for DM ciphertext.
+aes-gcm = "0.10"

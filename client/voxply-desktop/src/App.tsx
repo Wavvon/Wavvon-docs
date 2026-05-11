@@ -592,6 +592,12 @@ function App() {
     user: User;
   } | null>(null);
 
+  const [encryptionWarning, setEncryptionWarning] = useState<{
+    message: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+  } | null>(null);
+
   async function handleHubReorder(event: DragEndEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -2189,6 +2195,9 @@ function App() {
       } catch (e) {
         console.error("Auto-connect failed:", e);
       }
+      invoke("publish_dh_key").catch((e) =>
+        console.warn("Failed to publish DH key:", e)
+      );
     })();
   }, []);
 
@@ -2788,33 +2797,77 @@ function App() {
     const content = inputText;
     const attachments = pendingAttachments;
     if (!content.trim() && attachments.length === 0) return;
-    setInputText("");
-    setPendingAttachments([]);
+
+    const doSend = async (encryptedEnvelope?: object) => {
+      setInputText("");
+      setPendingAttachments([]);
+      try {
+        await invoke("send_dm", {
+          conversationId: selectedConversation.id,
+          content: encryptedEnvelope ? undefined : content,
+          attachments: attachments.length > 0 ? attachments : undefined,
+          encryptedEnvelope,
+        });
+        setDmMessages((prev) => {
+          const list = prev[selectedConversation.id] || [];
+          return {
+            ...prev,
+            [selectedConversation.id]: [
+              ...list,
+              {
+                sender: publicKey || "",
+                sender_name: null,
+                content,
+                timestamp: Math.floor(Date.now() / 1000),
+                attachments,
+                is_encrypted: !!encryptedEnvelope,
+              },
+            ],
+          };
+        });
+      } catch (e) {
+        setError(String(e));
+      }
+    };
+
+    if (selectedConversation.conv_type === "group") {
+      await doSend();
+      return;
+    }
+
+    const otherKey = selectedConversation.members.find((k) => k !== publicKey);
+    if (!otherKey) { await doSend(); return; }
+
+    const activeHub = hubs.find((h) => h.is_active);
+    if (!activeHub) { await doSend(); return; }
+
     try {
-      await invoke("send_dm", {
-        conversationId: selectedConversation.id,
+      const dhPubkey = await invoke<string | null>("fetch_dh_key", {
+        pubkey: otherKey,
+        hubUrl: activeHub.hub_url,
+      });
+
+      if (!dhPubkey) {
+        setEncryptionWarning({
+          message: "This recipient hasn't published an encryption key. This message will not be encrypted.",
+          onConfirm: async () => {
+            setEncryptionWarning(null);
+            await doSend();
+          },
+          onCancel: () => setEncryptionWarning(null),
+        });
+        return;
+      }
+
+      const envelope = await invoke<object>("encrypt_dm", {
+        convId: selectedConversation.id,
         content,
-        attachments,
+        recipientDhPubkeyHex: dhPubkey,
       });
-      // Optimistic local append
-      setDmMessages((prev) => {
-        const list = prev[selectedConversation.id] || [];
-        return {
-          ...prev,
-          [selectedConversation.id]: [
-            ...list,
-            {
-              sender: publicKey || "",
-              sender_name: null,
-              content,
-              timestamp: Math.floor(Date.now() / 1000),
-              attachments,
-            },
-          ],
-        };
-      });
+      await doSend(envelope);
     } catch (e) {
-      setError(String(e));
+      console.warn("Encryption failed, sending plaintext:", e);
+      await doSend();
     }
   }
 
@@ -3675,6 +3728,18 @@ function App() {
             onStart={handleShareStart}
             onCancel={() => setShowSharePicker(false)}
           />
+        )}
+
+        {encryptionWarning && (
+          <div className="modal-overlay">
+            <div className="modal encryption-warning-modal">
+              <p>{encryptionWarning.message}</p>
+              <div className="modal-actions">
+                <button onClick={encryptionWarning.onConfirm}>Send anyway</button>
+                <button onClick={encryptionWarning.onCancel}>Cancel</button>
+              </div>
+            </div>
+          </div>
         )}
       </>
     </div>

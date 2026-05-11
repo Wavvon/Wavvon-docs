@@ -1,0 +1,64 @@
+name: Release
+on:
+  push:
+    tags:
+      - 'v*'
+jobs:
+  release:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            target: ''
+          - os: macos-latest
+            target: universal-apple-darwin
+          - os: ubuntu-22.04
+            target: ''
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: client/voxply-desktop/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.os == 'macos-latest' && 'x86_64-apple-darwin,aarch64-apple-darwin' || '' }}
+      - uses: Swatinem/rust-cache@v2
+      - name: Install tauri-cli
+        run: cargo install tauri-cli --version "^2" --locked
+      - name: Install npm deps
+        working-directory: client/voxply-desktop
+        run: npm ci
+      - name: Build (macOS universal)
+        if: matrix.os == 'macos-latest'
+        working-directory: client/voxply-desktop
+        run: cargo tauri build --target universal-apple-darwin
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      - name: Build (Windows / Linux)
+        if: matrix.os != 'macos-latest'
+        working-directory: client/voxply-desktop
+        run: cargo tauri build
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: voxply-${{ matrix.os }}-${{ github.ref_name }}
+          path: |
+            client/voxply-desktop/src-tauri/target/release/bundle/**/*.exe
+            client/voxply-desktop/src-tauri/target/release/bundle/**/*.msi
+            client/voxply-desktop/src-tauri/target/release/bundle/**/*.dmg
+            client/voxply-desktop/src-tauri/target/release/bundle/**/*.AppImage
+            client/voxply-desktop/src-tauri/target/release/bundle/**/*.deb

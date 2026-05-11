@@ -2,6 +2,7 @@ pub mod alliance_models;
 pub mod directory;
 pub mod alliances;
 pub mod channels;
+pub mod dh_keys;
 pub mod dm_models;
 pub mod dms;
 pub mod friends;

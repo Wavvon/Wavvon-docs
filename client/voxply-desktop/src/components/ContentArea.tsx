@@ -188,6 +188,11 @@ export function ContentArea({
                     .join(", ")}
                 </h3>
               </div>
+              {selectedConversation.conv_type === "group" && (
+                <div className="dm-group-banner">
+                  Group DMs are not end-to-end encrypted yet.
+                </div>
+              )}
               <div className="messages">
                 {(dmMessages[selectedConversation.id] || [])
                   .filter((m) => !blockedUsers.has(m.sender))
@@ -205,6 +210,9 @@ export function ContentArea({
                         ⚠ Delivery failed
                       </span>
                     ) : null;
+                    const lockIcon = m.is_encrypted
+                      ? <span className="dm-lock-icon" title="End-to-end encrypted">🔒</span>
+                      : null;
                     const actionText = meAction(m.content);
                     if (actionText !== null) {
                       return (
@@ -219,6 +227,7 @@ export function ContentArea({
                           <span className="message-time" title={formatFullTimestamp(m.timestamp)}>
                             {formatRelative(m.timestamp)}
                           </span>
+                          {lockIcon}
                           {failedBadge}
                         </div>
                       );
@@ -231,6 +240,7 @@ export function ContentArea({
                         <span className="message-time" title={formatFullTimestamp(m.timestamp)}>
                           {formatRelative(m.timestamp)}
                         </span>
+                        {lockIcon}
                         <span className="message-content">
                           <MessageContent content={m.content} knownNames={knownDisplayNames} myName={myDisplayName} />
                         </span>
