@@ -11,7 +11,6 @@ shipped features, design questions — lives in the wiki at
 - **E2E encryption for DMs (v1)** — 1:1 only, static ECDH + AES-GCM, Ed25519-derived X25519 keys, signed envelopes. Designed in [`docs/e2e-encryption.md`](docs/e2e-encryption.md). Group DMs and forward secrecy deferred to v2.
 - **Cross-platform packaging** — Tauri bundler (NSIS / AppImage), `tauri-plugin-updater` auto-update, GitHub Actions release pipeline, hub Docker image. Windows + Linux only; macOS deferred (cost). Designed in [`docs/packaging.md`](docs/packaging.md).
 - **Android client** — Tauri 2 supports Android; no cost barrier. Needs Android SDK CI setup and separate signing. Undesigned.
-- **Browser client** — React frontend running as a web app (direct HTTP/WS to hub, no Tauri). Undesigned.
 
 ## 📌 Wishlist (undesigned)
 
