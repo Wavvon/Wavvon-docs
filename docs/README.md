@@ -34,6 +34,7 @@ If you're new, read in this order:
 16. [future-features.md](future-features.md) — anti-spam, moderation, recovery, bots
 17. [browser-client.md](browser-client.md) — second client (no Tauri), platform adapter, IndexedDB identity, voice deferred
 18. [android-client.md](android-client.md) — Tauri 2 Android wrapper around the browser platform layer, side-loaded APK
+19. [install-android.md](install-android.md) — end-user guide: enable unknown sources, download APK, Play Protect warning
 
 ## Find by feature
 
