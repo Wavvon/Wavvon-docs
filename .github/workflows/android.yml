@@ -21,15 +21,14 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      # Installs build-tools;34.0.0, platforms;android-34, and the NDK.
-      # NDK 25.2.9519653 is the version recommended by Tauri 2 for Android targets.
+      # Installs build-tools;36.1.0, platforms;android-36, and the NDK.
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
           packages: >-
-            build-tools;34.0.0
-            platforms;android-34
-            ndk;25.2.9519653
+            build-tools;36.1.0
+            platforms;android-36
+            ndk;27.0.12077973
 
       - name: Set up Rust (stable, Android targets)
         uses: dtolnay/rust-toolchain@stable
