@@ -10,7 +10,7 @@ shipped features, design questions — lives in the wiki at
 - **Screen share (v1)** — WS-relayed WebM chunks, source picker, viewer panel, optional webcam. Designed in [`docs/screen-share.md`](docs/screen-share.md). v2 WebRTC migration deferred.
 - **E2E encryption for DMs (v1)** — 1:1 only, static ECDH + AES-GCM, Ed25519-derived X25519 keys, signed envelopes. Designed in [`docs/e2e-encryption.md`](docs/e2e-encryption.md). Group DMs and forward secrecy deferred to v2.
 - **Cross-platform packaging** — Tauri bundler (NSIS / AppImage), `tauri-plugin-updater` auto-update, GitHub Actions release pipeline, hub Docker image. Windows + Linux only; macOS deferred (cost). Designed in [`docs/packaging.md`](docs/packaging.md).
-- **Android client** — Tauri 2 supports Android; no cost barrier. Needs Android SDK CI setup and separate signing. Undesigned.
+- **Android client** — Tauri 2 shell + browser platform layer. Designed in [`docs/android-client.md`](docs/android-client.md). Project bootstrapped; needs Android SDK + JDK installed locally to run `cargo tauri android init`, then wire App.tsx and OS plugins.
 
 ## 📌 Wishlist (undesigned)
 
