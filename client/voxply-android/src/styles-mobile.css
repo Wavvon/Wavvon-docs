@@ -1,0 +1,31 @@
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+body {
+  overscroll-behavior: none;
+}
+
+button,
+a,
+[role="button"],
+input,
+select,
+textarea,
+.channel-item,
+.hub-icon,
+.message-action,
+.reaction-btn {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.messages-list,
+.channels-list,
+.members-list,
+.hubs-list,
+.search-results {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
