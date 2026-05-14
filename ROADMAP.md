@@ -8,6 +8,7 @@ shipped features, design questions — lives in the wiki at
 ## 🔨 Next up
 
 - **Android client icons** — placeholder solid-color PNGs in place. Waiting on logo (see [`docs/brand.md`](docs/brand.md)). Run `cargo tauri icon <1024x1024.png>` once ready.
+- **Multi-device pairing** — QR pairing UI, subkey issuance, device list. Infrastructure already in place (DB schema, endpoints, auth enforcement). Designed in [`docs/multi-device.md`](docs/multi-device.md).
 
 ## 🚧 Blocked
 
@@ -23,7 +24,7 @@ items live in the wiki — see
 
 - **Performance ceiling** — load test WS broadcast, search, voice relay
 - **Accessibility + i18n** — keyboard nav audit, screen-reader, localization
-- **Key revocation** — leaked-key story; today is "regen + notify friends"
+- **Key revocation (enforcement)** — hub now rejects revoked keys in HTTP auth and WS handshake. Full multi-device story (subkey issuance, QR pairing UI, prefs sync) lives in [`docs/future-features.md`](docs/future-features.md).
 
 ## ⚠️ Known issues
 

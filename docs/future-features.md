@@ -203,11 +203,21 @@ when revocation matters. Both are real, neither is obviously correct.
 - Per-device storage already isolates hub list, prefs, blocked users,
   voice settings — these are the things that'd need to sync.
 
+### What's already shipped toward this
+
+- `subkey_revocations` and `subkey_certs` tables in the DB schema.
+- `GET/POST /identity/revocations/{master}` and
+  `GET/POST /identity/devices/{master}` endpoints in `identity.rs`.
+- QR pairing state machine (`pairing.rs`): offer, claim, complete, poll.
+- **Auth enforcement**: HTTP middleware and WS handshake now check
+  `subkey_revocations` and return 401 for revoked keys. The table is
+  empty in the single-key model today, so behaviour is unchanged — but
+  revocations will be honoured the moment multi-device keys are issued.
+
 ### What's not done
 
-Everything except the identity primitives. No QR code generation, no
-pairing endpoint on the hub, no device list, no per-device revocation,
-no sync transport, no encrypted blob format.
+QR code generation UI, device list screen, subkey issuance on pairing
+completion, per-hub revocation propagation, encrypted prefs blob sync.
 
 ---
 
