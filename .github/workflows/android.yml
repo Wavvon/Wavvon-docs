@@ -85,8 +85,8 @@ jobs:
         working-directory: client/voxply-android
         run: >-
           cargo tauri android build
-          --target aarch64-linux-android
-          --target armv7-linux-androideabi
+          --target aarch64
+          --target armv7
         env:
           TAURI_ANDROID_KEYSTORE_PATH: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && '/tmp/voxply.keystore' || '' }}
           TAURI_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
