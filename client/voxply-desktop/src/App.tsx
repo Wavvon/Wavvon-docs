@@ -25,7 +25,6 @@ import type {
   MeInfo,
   MemberAdminInfo,
   BanInfo,
-  VoiceMuteInfo,
   InviteInfo,
   PendingUser,
   InstalledGame,
@@ -38,10 +37,8 @@ import type {
   ActiveStream,
   ScreenShareOpts,
 } from "./types";
-import type { ScreenShareViewerRef } from "./components/ScreenShareViewer";
 import { ScreenSharePicker } from "./components/ScreenSharePicker";
-import { useScreenShare } from "./hooks/useScreenShare";
-import { useScreenShareViewer } from "./hooks/useScreenShareViewer";
+import { useVoice } from "./hooks/useVoice";
 import { MAX_ATTACHMENT_BYTES, DEMO_HUB_URL } from "./constants";
 import { formatPubkey, mentionsName, newProfileId } from "./utils/format";
 import { playMentionPing, playVoiceTone } from "./utils/audio";
@@ -145,20 +142,6 @@ function App() {
     });
   }
 
-  // Voice channel populations: channel_id -> count. Polled while a hub is
-  // active so the sidebar can show "🎙️ N" hints. Channels not in the map
-  // have zero participants.
-  // Per-channel voice participants (with display names so the sidebar can
-  // show who is in each voice room, not just the count). Polled alongside
-  // voiceActiveUsers. Channels with no participants are absent from the map.
-  const [voicePartByChannel, setVoicePartByChannel] = useState<
-    Record<string, VoiceParticipant[]>
-  >({});
-  // Public keys of users currently in any voice channel on the active hub.
-  // Polled alongside voicePartByChannel; lets the member list show a 🎙️ chip.
-  const [voiceActiveUsers, setVoiceActiveUsers] = useState<Set<string>>(
-    new Set(),
-  );
 
   // Collapsed categories: hub_id -> { category_id: true }. Persisted so a
   // folded category stays folded across restarts. Categories not in the
@@ -357,38 +340,6 @@ function App() {
       .catch(console.error);
   }, []);
 
-  // Poll voice channel populations + active-user set while a hub is active.
-  // 5s feels live enough without spamming the endpoint; the moment someone
-  // joins or leaves voice you'd see the count flip within that window.
-  useEffect(() => {
-    if (!activeHubId) {
-      setVoicePartByChannel({});
-      setVoiceActiveUsers(new Set());
-      return;
-    }
-    let cancelled = false;
-    async function tick() {
-      try {
-        const [parts, active] = await Promise.all([
-          invoke<Record<string, VoiceParticipant[]>>("voice_channel_participants"),
-          invoke<string[]>("voice_active_users"),
-        ]);
-        if (!cancelled) {
-          setVoicePartByChannel(parts);
-          setVoiceActiveUsers(new Set(active));
-        }
-      } catch {
-        // Network blip while typing in chat is fine -- we'll catch up
-        // on the next tick.
-      }
-    }
-    tick();
-    const handle = setInterval(tick, 5000);
-    return () => {
-      cancelled = true;
-      clearInterval(handle);
-    };
-  }, [activeHubId]);
 
   // Global Ctrl+K (Cmd+K on macOS) opens the channel palette. We listen at
   // the window level so it works regardless of focus -- the palette itself
@@ -732,13 +683,6 @@ function App() {
   // Ban admin
   const [adminBans, setAdminBans] = useState<BanInfo[]>([]);
 
-  // Voice mute admin
-  const [adminVoiceMutes, setAdminVoiceMutes] = useState<VoiceMuteInfo[]>([]);
-  const voiceMutedKeys = useMemo(
-    () => new Set(adminVoiceMutes.map((v) => v.target_public_key)),
-    [adminVoiceMutes]
-  );
-
   // Invite admin
   const [adminInvites, setAdminInvites] = useState<InviteInfo[]>([]);
 
@@ -804,31 +748,7 @@ function App() {
     myDisplayNameRef.current = myDisplayName;
   }, [myDisplayName]);
 
-  // Voice
-  const [voiceChannelId, setVoiceChannelId] = useState<string | null>(null);
-  // Local self-state for the voice bar. Reset on leave so the next channel
-  // join starts unmuted/un-deafened (no surprise carryover).
-  const [selfMuted, setSelfMuted] = useState(false);
-  const [selfDeafened, setSelfDeafened] = useState(false);
-
-  // Screen share
-  const [showSharePicker, setShowSharePicker] = useState(false);
-  const { sharing, startShare, stopShare, kbps: shareKbps } = useScreenShare(voiceChannelId);
-  const { streams: activeScreenShares, viewerRef: screenShareViewerRef } =
-    useScreenShareViewer(voiceChannelId);
-
-  async function handleScreenShare() {
-    if (sharing) {
-      stopShare();
-    } else {
-      setShowSharePicker(true);
-    }
-  }
-
-  async function handleShareStart(opts: ScreenShareOpts) {
-    setShowSharePicker(false);
-    await startShare(opts);
-  }
+  const voice = useVoice({ activeHubId, selectedChannel, setError, setToast });
 
   // Settings
   const [showSettings, setShowSettings] = useState(false);
@@ -840,15 +760,6 @@ function App() {
   const [recoveryPhrase, setRecoveryPhrase] = useState<string | null>(null);
   const [copiedKey, setCopiedKey] = useState(false);
 
-  // Voice settings
-  const [audioInputs, setAudioInputs] = useState<string[]>([]);
-  const [audioOutputs, setAudioOutputs] = useState<string[]>([]);
-  const [voiceInputDevice, setVoiceInputDevice] = useState<string>("");
-  const [voiceOutputDevice, setVoiceOutputDevice] = useState<string>("");
-  const [vadThreshold, setVadThreshold] = useState<number>(0.02);
-  const [voiceMode, setVoiceMode] = useState<"vad" | "ptt">("vad");
-  // KeyboardEvent.code (layout-independent). Default Space; user can rebind.
-  const [pttKey, setPttKey] = useState<string>("Space");
   // Whether to play the mention ping. Local-only preference; OS notifications
   // and unread badges are unaffected by this toggle.
   const [mentionPingEnabled, setMentionPingEnabledState] = useState<boolean>(
@@ -871,46 +782,6 @@ function App() {
     mentionPingRef.current = mentionPingEnabled;
   }, [mentionPingEnabled]);
 
-  // Push-to-talk: when in PTT mode and connected to voice, the configured
-  // key gates the mic. Pressing flips muted=false; releasing flips it back.
-  // We ignore key events fired in form inputs so typing in chat doesn't
-  // toggle the mic. Key.repeat is also skipped -- holding generates many
-  // keydown events but we only care about the first.
-  useEffect(() => {
-    if (voiceMode !== "ptt" || voiceChannelId === null) return;
-
-    function isInputTarget(t: EventTarget | null): boolean {
-      if (!(t instanceof HTMLElement)) return false;
-      const tag = t.tagName;
-      return tag === "INPUT" || tag === "TEXTAREA" || t.isContentEditable;
-    }
-
-    function down(e: KeyboardEvent) {
-      if (e.code !== pttKey || e.repeat || isInputTarget(e.target)) return;
-      e.preventDefault();
-      invoke("voice_set_muted", { muted: false }).catch(() => {});
-      setSelfMuted(false);
-    }
-    function up(e: KeyboardEvent) {
-      if (e.code !== pttKey || isInputTarget(e.target)) return;
-      e.preventDefault();
-      invoke("voice_set_muted", { muted: true }).catch(() => {});
-      setSelfMuted(true);
-    }
-
-    // Start muted in PTT mode; the key press opens the gate.
-    invoke("voice_set_muted", { muted: true }).catch(() => {});
-    setSelfMuted(true);
-
-    window.addEventListener("keydown", down);
-    window.addEventListener("keyup", up);
-    return () => {
-      window.removeEventListener("keydown", down);
-      window.removeEventListener("keyup", up);
-    };
-  }, [voiceMode, voiceChannelId, pttKey]);
-  const [micTesting, setMicTesting] = useState(false);
-  const [micLevel, setMicLevel] = useState<number>(0);
 
   // Friends
   const [showFriends, setShowFriends] = useState(false);
@@ -1039,7 +910,7 @@ function App() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [showSettings, micTesting]);
+  }, [showSettings, voice.micTesting]);
 
   // ESC closes the hub admin view
   useEffect(() => {
@@ -1060,7 +931,7 @@ function App() {
       refreshRoles(); // roles list used for the assign-role dropdown
       refreshMembers();
       refreshPending();
-      refreshVoiceMutes();
+      voice.refreshVoiceMutes();
     } else if (hubAdminTab === "bans") {
       refreshBans();
     } else if (hubAdminTab === "invites") {
@@ -1320,39 +1191,16 @@ function App() {
           participants: VoiceParticipant[];
         }>("voice-joined", (event) => {
           if (event.payload.hub_id !== activeHubIdRef.current) return;
-          setVoiceChannelId(event.payload.channel_id);
-          // Seed the sidebar participant list with the channel's full
-          // member list at join time, so we don't have to wait for the
-          // next 5s poll to render anything.
-          setVoicePartByChannel((prev) => ({
-            ...prev,
-            [event.payload.channel_id]: event.payload.participants,
-          }));
+          voice.onVoiceJoined(event.payload.channel_id, event.payload.participants);
         })
       );
 
-      // Live participant updates so the sidebar reflects join/leave
-      // immediately rather than at the next 5s poll. The polling loop
-      // still runs as a backstop in case we miss an event.
       unlistens.push(
         await listen<{ hub_id: string; channel_id: string; participant: VoiceParticipant }>(
           "voice-participant-joined",
           (event) => {
             if (event.payload.hub_id !== activeHubIdRef.current) return;
-            const { channel_id, participant } = event.payload;
-            setVoicePartByChannel((prev) => {
-              const existing = prev[channel_id] ?? [];
-              if (existing.some((p) => p.public_key === participant.public_key)) {
-                return prev;
-              }
-              return { ...prev, [channel_id]: [...existing, participant] };
-            });
-            setVoiceActiveUsers((prev) => {
-              if (prev.has(participant.public_key)) return prev;
-              const next = new Set(prev);
-              next.add(participant.public_key);
-              return next;
-            });
+            voice.onParticipantJoined(event.payload.channel_id, event.payload.participant);
           }
         )
       );
@@ -1362,32 +1210,14 @@ function App() {
           "voice-participant-left",
           (event) => {
             if (event.payload.hub_id !== activeHubIdRef.current) return;
-            const { channel_id, public_key } = event.payload;
-            setVoicePartByChannel((prev) => {
-              const existing = prev[channel_id];
-              if (!existing) return prev;
-              const next = existing.filter((p) => p.public_key !== public_key);
-              // Drop the channel key entirely when nobody's left in it,
-              // so the sidebar collapses the participants block too.
-              if (next.length === 0) {
-                const { [channel_id]: _, ...rest } = prev;
-                return rest;
-              }
-              return { ...prev, [channel_id]: next };
-            });
-            setVoiceActiveUsers((prev) => {
-              if (!prev.has(public_key)) return prev;
-              const next = new Set(prev);
-              next.delete(public_key);
-              return next;
-            });
+            voice.onParticipantLeft(event.payload.channel_id, event.payload.public_key);
           }
         )
       );
 
       unlistens.push(
         await listen<number>("mic-level", (event) => {
-          setMicLevel(event.payload);
+          voice.onMicLevel(event.payload);
         })
       );
 
@@ -1397,13 +1227,8 @@ function App() {
           async (event) => {
             if (event.payload.hub_id !== activeHubIdRef.current) return;
             setToast(event.payload.message);
-            // If a voice join was rejected by the hub, the local pipeline is
-            // still running — tear it down so the UI matches reality.
             if (event.payload.context === "voice_join") {
-              try {
-                await invoke("voice_leave");
-              } catch {}
-              setVoiceChannelId(null);
+              await voice.onHubErrorVoiceJoin();
             }
           }
         )
@@ -1875,38 +1700,6 @@ function App() {
     }
   }
 
-  async function refreshVoiceMutes() {
-    try {
-      const v = await invoke<VoiceMuteInfo[]>("list_voice_mutes");
-      setAdminVoiceMutes(v);
-    } catch (e) {
-      setError(String(e));
-    }
-  }
-
-  async function handleVoiceMuteMember(publicKey: string) {
-    const reason = prompt("Reason for voice mute (optional)") ?? "";
-    try {
-      await invoke("voice_mute_user_cmd", {
-        targetPublicKey: publicKey,
-        reason: reason.trim() || null,
-      });
-      setToast("Voice muted");
-      await refreshVoiceMutes();
-    } catch (e) {
-      setError(String(e));
-    }
-  }
-
-  async function handleVoiceUnmuteMember(publicKey: string) {
-    try {
-      await invoke("voice_unmute_user_cmd", { targetPublicKey: publicKey });
-      setToast("Voice unmuted");
-      await refreshVoiceMutes();
-    } catch (e) {
-      setError(String(e));
-    }
-  }
 
   async function handleSetTalkPower(channelId: string) {
     let current = 0;
@@ -2581,20 +2374,6 @@ function App() {
     }
   }
 
-  async function handleVoiceJoin(channel?: Channel) {
-    // Defaults to the currently-selected channel — the phone-toggle in
-    // the user footer uses this. When called from a double-click in the
-    // sidebar we pass the clicked channel explicitly so the user
-    // doesn't have to select-then-join.
-    const target = channel ?? selectedChannel;
-    if (!target || target.is_category) return;
-    try {
-      await invoke("voice_join", { channelId: target.id });
-      playVoiceTone("up");
-    } catch (e) {
-      setError(String(e));
-    }
-  }
 
   /** Persist the full LocalProfile to disk. Pass the parts you want to change;
    *  current state is used for the rest. */
@@ -2945,65 +2724,7 @@ function App() {
       }
     } catch {}
 
-    // Load voice devices + stored settings
-    try {
-      const devices = await invoke<{ inputs: string[]; outputs: string[] }>(
-        "list_audio_devices"
-      );
-      setAudioInputs(devices.inputs);
-      setAudioOutputs(devices.outputs);
-
-      const saved = await invoke<{
-        input_device?: string;
-        output_device?: string;
-        vad_threshold?: number;
-        voice_mode?: string;
-        ptt_key?: string;
-      }>("get_voice_settings");
-      setVoiceInputDevice(saved.input_device || "");
-      setVoiceOutputDevice(saved.output_device || "");
-      setVadThreshold(saved.vad_threshold ?? 0.02);
-      setVoiceMode(saved.voice_mode === "ptt" ? "ptt" : "vad");
-      setPttKey(saved.ptt_key || "Space");
-    } catch (e) {
-      console.error("Failed to load voice settings:", e);
-    }
-  }
-
-  async function persistVoiceSettings(
-    input: string,
-    output: string,
-    threshold: number,
-    mode: "vad" | "ptt" = voiceMode,
-    key: string = pttKey,
-  ) {
-    try {
-      await invoke("save_voice_settings", {
-        settings: {
-          input_device: input || null,
-          output_device: output || null,
-          vad_threshold: threshold,
-          voice_mode: mode,
-          ptt_key: key,
-        },
-      });
-    } catch (e) {
-      setError(String(e));
-    }
-  }
-
-  async function toggleMicTest() {
-    try {
-      if (micTesting) {
-        await invoke("mic_test_stop");
-        setMicTesting(false);
-      } else {
-        await invoke("mic_test_start");
-        setMicTesting(true);
-      }
-    } catch (e) {
-      setError(String(e));
-    }
+    await voice.loadVoiceSettings();
   }
 
   function handleDiscoverJoin(url: string, code: string) {
@@ -3014,51 +2735,10 @@ function App() {
   }
 
   async function closeSettings() {
-    if (micTesting) {
-      try {
-        await invoke("mic_test_stop");
-      } catch {}
-      setMicTesting(false);
-    }
+    if (voice.micTesting) await voice.toggleMicTest();
     setShowSettings(false);
   }
 
-  async function toggleSelfMute() {
-    const next = !selfMuted;
-    setSelfMuted(next);
-    try {
-      await invoke("voice_set_muted", { muted: next });
-    } catch (e) {
-      setError(String(e));
-      setSelfMuted(!next);
-    }
-  }
-
-  async function toggleSelfDeafen() {
-    const next = !selfDeafened;
-    setSelfDeafened(next);
-    // Deafen implies mute on the backend; mirror that here so the UI
-    // matches what the audio thread actually does.
-    if (next && !selfMuted) setSelfMuted(true);
-    try {
-      await invoke("voice_set_deafened", { deafened: next });
-    } catch (e) {
-      setError(String(e));
-      setSelfDeafened(!next);
-    }
-  }
-
-  async function handleVoiceLeave() {
-    try {
-      await invoke("voice_leave");
-      setVoiceChannelId(null);
-      setSelfMuted(false);
-      setSelfDeafened(false);
-      playVoiceTone("down");
-    } catch (e) {
-      setError(String(e));
-    }
-  }
 
   async function handleRenameChannel(channel: Channel) {
     const next = prompt("Rename channel", channel.name);
@@ -3286,9 +2966,9 @@ function App() {
             onBanMember={handleBanMember}
             onMuteMember={handleMuteMember}
             onTimeoutMember={handleTimeoutMember}
-            onVoiceMuteMember={handleVoiceMuteMember}
-            onVoiceUnmuteMember={handleVoiceUnmuteMember}
-            voiceMutedKeys={voiceMutedKeys}
+            onVoiceMuteMember={voice.handleVoiceMuteMember}
+            onVoiceUnmuteMember={voice.handleVoiceUnmuteMember}
+            voiceMutedKeys={voice.voiceMutedKeys}
             onToggleRoleAssignment={handleToggleRoleAssignment}
             bans={adminBans}
             onUnban={handleUnban}
@@ -3317,38 +2997,38 @@ function App() {
             publicKey={publicKey}
             copiedKey={copiedKey}
             onCopyKey={copyPublicKey}
-            audioInputs={audioInputs}
-            audioOutputs={audioOutputs}
-            voiceInputDevice={voiceInputDevice}
-            voiceOutputDevice={voiceOutputDevice}
+            audioInputs={voice.audioInputs}
+            audioOutputs={voice.audioOutputs}
+            voiceInputDevice={voice.voiceInputDevice}
+            voiceOutputDevice={voice.voiceOutputDevice}
             onInputDeviceChange={(v) => {
-              setVoiceInputDevice(v);
-              persistVoiceSettings(v, voiceOutputDevice, vadThreshold);
+              voice.setVoiceInputDevice(v);
+              voice.persistVoiceSettings(v, voice.voiceOutputDevice, voice.vadThreshold);
             }}
             onOutputDeviceChange={(v) => {
-              setVoiceOutputDevice(v);
-              persistVoiceSettings(voiceInputDevice, v, vadThreshold);
+              voice.setVoiceOutputDevice(v);
+              voice.persistVoiceSettings(voice.voiceInputDevice, v, voice.vadThreshold);
             }}
-            vadThreshold={vadThreshold}
+            vadThreshold={voice.vadThreshold}
             onVadChange={(v) => {
-              setVadThreshold(v);
-              persistVoiceSettings(voiceInputDevice, voiceOutputDevice, v);
+              voice.setVadThreshold(v);
+              voice.persistVoiceSettings(voice.voiceInputDevice, voice.voiceOutputDevice, v);
             }}
-            voiceMode={voiceMode}
+            voiceMode={voice.voiceMode}
             onVoiceModeChange={(m) => {
-              setVoiceMode(m);
-              persistVoiceSettings(voiceInputDevice, voiceOutputDevice, vadThreshold, m, pttKey);
+              voice.setVoiceMode(m);
+              voice.persistVoiceSettings(voice.voiceInputDevice, voice.voiceOutputDevice, voice.vadThreshold, m, voice.pttKey);
             }}
-            pttKey={pttKey}
+            pttKey={voice.pttKey}
             onPttKeyChange={(k) => {
-              setPttKey(k);
-              persistVoiceSettings(voiceInputDevice, voiceOutputDevice, vadThreshold, voiceMode, k);
+              voice.setPttKey(k);
+              voice.persistVoiceSettings(voice.voiceInputDevice, voice.voiceOutputDevice, voice.vadThreshold, voice.voiceMode, k);
             }}
             mentionPingEnabled={mentionPingEnabled}
             onMentionPingChange={setMentionPingEnabled}
-            micLevel={micLevel}
-            micTesting={micTesting}
-            onToggleMicTest={toggleMicTest}
+            micLevel={voice.micLevel}
+            micTesting={voice.micTesting}
+            onToggleMicTest={voice.toggleMicTest}
             recoveryPhrase={recoveryPhrase}
             onShowRecovery={handleShowRecovery}
             onRecoverIdentity={handleRecoverIdentity}
@@ -3458,10 +3138,10 @@ function App() {
                   pinnedChannels={pinnedChannels}
                   unreadByChannel={unreadByChannel}
                   collapsedCategories={collapsedCategories}
-                  voicePartByChannel={voicePartByChannel}
-                  voiceChannelId={voiceChannelId}
-                  selfMuted={selfMuted}
-                  selfDeafened={selfDeafened}
+                  voicePartByChannel={voice.voicePartByChannel}
+                  voiceChannelId={voice.voiceChannelId}
+                  selfMuted={voice.selfMuted}
+                  selfDeafened={voice.selfDeafened}
                   users={users}
                   publicKey={publicKey}
                   pingByHub={pingByHub}
@@ -3489,20 +3169,20 @@ function App() {
                   onOpenCreateChannel={openCreateChannelUnder}
                   onSelectChannel={selectChannel}
                   onChannelContextMenu={openContextMenu}
-                  onVoiceJoin={handleVoiceJoin}
-                  onVoiceLeave={handleVoiceLeave}
+                  onVoiceJoin={voice.handleVoiceJoin}
+                  onVoiceLeave={voice.handleVoiceLeave}
                   onLaunchGame={launchGame}
                   onOpenEditGame={openEditGame}
                   onSelectAllianceChannel={selectAllianceChannel}
                   onSelectConversation={selectConversation}
                   onOpenFriends={openFriends}
-                  onToggleSelfMute={toggleSelfMute}
-                  onToggleSelfDeafen={toggleSelfDeafen}
+                  onToggleSelfMute={voice.toggleSelfMute}
+                  onToggleSelfDeafen={voice.toggleSelfDeafen}
                   onOpenSettings={openSettings}
                   onSetShowInstallGame={setShowInstallGame}
                   onDragEnd={handleDragEnd}
-                  sharing={sharing}
-                  onScreenShare={handleScreenShare}
+                  sharing={voice.sharing}
+                  onScreenShare={voice.handleScreenShare}
                 />
                 <ContentArea
                   view={view}
@@ -3535,7 +3215,7 @@ function App() {
                   hubConnected={hubConnected}
                   reconnectingHubs={reconnectingHubs}
                   memberSidebarHidden={memberSidebarHidden}
-                  voiceActiveUsers={voiceActiveUsers}
+                  voiceActiveUsers={voice.voiceActiveUsers}
                   inputText={inputText}
                   typingByKey={typingByKey}
                   dmTypingByKey={dmTypingByKey}
@@ -3581,11 +3261,11 @@ function App() {
                   onOpenImage={openImage}
                   onToast={setToast}
                   onError={setError}
-                  activeScreenShares={activeScreenShares}
-                  screenShareViewerRef={screenShareViewerRef}
-                  sharing={sharing}
-                  shareKbps={shareKbps}
-                  onStopShare={stopShare}
+                  activeScreenShares={voice.activeScreenShares}
+                  screenShareViewerRef={voice.screenShareViewerRef}
+                  sharing={voice.sharing}
+                  shareKbps={voice.shareKbps}
+                  onStopShare={voice.stopShare}
                 />
               </>
             )}
@@ -3753,10 +3433,10 @@ function App() {
           />
         )}
 
-        {showSharePicker && (
+        {voice.showSharePicker && (
           <ScreenSharePicker
-            onStart={handleShareStart}
-            onCancel={() => setShowSharePicker(false)}
+            onStart={voice.handleShareStart}
+            onCancel={() => voice.setShowSharePicker(false)}
           />
         )}
 
