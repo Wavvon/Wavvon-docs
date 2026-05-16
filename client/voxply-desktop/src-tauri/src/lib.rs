@@ -221,6 +221,15 @@ struct ChannelInfo {
     created_at: i64,
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub struct HubIcon {
+    pub id: String,
+    pub name: String,
+    pub svg_content: String,
+    pub uploaded_by: String,
+    pub created_at: i64,
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 struct UserInfo {
     public_key: String,
@@ -2704,6 +2713,83 @@ async fn uninstall_game(game_id: String, state: State<'_, AppState>) -> Result<(
 }
 
 #[tauri::command]
+async fn list_hub_icons(state: State<'_, AppState>) -> Result<Vec<HubIcon>, String> {
+    let (hub_url, token) = active_session(&state)?;
+    let client = reqwest::Client::new();
+    let resp = client
+        .get(format!("{hub_url}/hub/icons"))
+        .bearer_auth(&token)
+        .send()
+        .await
+        .map_err(|e| format!("Failed: {e}"))?;
+    if !resp.status().is_success() {
+        return Err(resp.text().await.unwrap_or_default());
+    }
+    resp.json::<Vec<HubIcon>>().await.map_err(|e| format!("Parse error: {e}"))
+}
+
+#[tauri::command]
+async fn create_hub_icon(
+    name: String,
+    svg_content: String,
+    state: State<'_, AppState>,
+) -> Result<HubIcon, String> {
+    let (hub_url, token) = active_session(&state)?;
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(format!("{hub_url}/hub/icons"))
+        .bearer_auth(&token)
+        .json(&serde_json::json!({ "name": name, "svg_content": svg_content }))
+        .send()
+        .await
+        .map_err(|e| format!("Failed: {e}"))?;
+    if !resp.status().is_success() {
+        return Err(resp.text().await.unwrap_or_default());
+    }
+    resp.json::<HubIcon>().await.map_err(|e| format!("Parse error: {e}"))
+}
+
+#[tauri::command]
+async fn rename_hub_icon(
+    icon_id: String,
+    name: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let (hub_url, token) = active_session(&state)?;
+    let client = reqwest::Client::new();
+    let resp = client
+        .patch(format!("{hub_url}/hub/icons/{icon_id}"))
+        .bearer_auth(&token)
+        .json(&serde_json::json!({ "name": name }))
+        .send()
+        .await
+        .map_err(|e| format!("Failed: {e}"))?;
+    if !resp.status().is_success() {
+        return Err(resp.text().await.unwrap_or_default());
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn delete_hub_icon(
+    icon_id: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let (hub_url, token) = active_session(&state)?;
+    let client = reqwest::Client::new();
+    let resp = client
+        .delete(format!("{hub_url}/hub/icons/{icon_id}"))
+        .bearer_auth(&token)
+        .send()
+        .await
+        .map_err(|e| format!("Failed: {e}"))?;
+    if !resp.status().is_success() {
+        return Err(resp.text().await.unwrap_or_default());
+    }
+    Ok(())
+}
+
+#[tauri::command]
 async fn approve_member(
     target_public_key: String,
     state: State<'_, AppState>,
@@ -3963,6 +4049,10 @@ pub fn run() {
             list_installed_games,
             install_game,
             uninstall_game,
+            list_hub_icons,
+            create_hub_icon,
+            rename_hub_icon,
+            delete_hub_icon,
             list_hub_members,
             kick_user_cmd,
             ban_user_cmd,

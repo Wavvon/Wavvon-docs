@@ -597,6 +597,18 @@ pub async fn run(pool: &SqlitePool) -> Result<()> {
     // SQLite does not support ALTER COLUMN, so new rows are inserted with NULL content
     // when is_encrypted=1. Existing rows already have content so no data is lost.
 
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS hub_icons (
+            id          TEXT PRIMARY KEY,
+            name        TEXT NOT NULL,
+            svg_content TEXT NOT NULL,
+            uploaded_by TEXT NOT NULL REFERENCES users(public_key),
+            created_at  INTEGER NOT NULL
+        )",
+    )
+    .execute(pool)
+    .await?;
+
     tracing::info!("Database migrations complete");
     Ok(())
 }

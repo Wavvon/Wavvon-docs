@@ -9,6 +9,7 @@ pub mod friends;
 pub mod chat_models;
 pub mod games;
 pub mod health;
+pub mod hub_icons;
 pub mod hub;
 pub mod identity;
 pub mod me;

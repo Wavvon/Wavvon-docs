@@ -48,6 +48,12 @@ pub fn create_router(state: Arc<AppState>) -> Router {
         .route("/hub/pending/{target_key}/approve", post(routes::hub::approve_user))
         .route("/hub/games", get(routes::games::list_games).post(routes::games::install_game))
         .route("/hub/games/{game_id}", axum::routing::delete(routes::games::uninstall_game))
+        .route("/hub/icons", get(routes::hub_icons::list_icons).post(routes::hub_icons::create_icon))
+        .route(
+            "/hub/icons/{icon_id}",
+            axum::routing::patch(routes::hub_icons::rename_icon)
+                .delete(routes::hub_icons::delete_icon),
+        )
         .route("/admin/directory-sign", post(routes::directory::sign_for_directory))
         .route("/profile/{pubkey}", get(routes::profile::get_profile).put(routes::profile::put_profile))
         .merge(auth_routes)
