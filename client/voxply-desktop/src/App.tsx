@@ -67,6 +67,7 @@ import { EditGameModal } from "./components/EditGameModal";
 import { FriendsModal } from "./components/FriendsModal";
 import { EditDescriptionModal } from "./components/EditDescriptionModal";
 import { ChannelContextMenu } from "./components/ChannelContextMenu";
+import { ChannelAppearanceModal } from "./components/ChannelAppearanceModal";
 import { UserContextMenu } from "./components/UserContextMenu";
 import { HubSidebar } from "./components/HubSidebar";
 import { ChannelSidebar } from "./components/ChannelSidebar";
@@ -698,6 +699,8 @@ function App() {
   // Edit description dialog
   const [editDescriptionChannel, setEditDescriptionChannel] = useState<Channel | null>(null);
   const [editDescriptionValue, setEditDescriptionValue] = useState("");
+
+  const [appearanceChannel, setAppearanceChannel] = useState<Channel | null>(null);
 
   // Channel-bans dialog. Stores the channel we're managing bans for so the
   // modal can fetch + mutate without round-tripping through context menu state.
@@ -3220,6 +3223,21 @@ function App() {
     }
   }
 
+  function handleEditAppearance(channel: Channel) {
+    setAppearanceChannel(channel);
+  }
+
+  async function handleSaveAppearance(channel: Channel, icon: string | null, color: string | null) {
+    try {
+      await invoke("update_channel_appearance", { channelId: channel.id, icon, color });
+      setChannels((prev) =>
+        prev.map((c) => (c.id === channel.id ? { ...c, icon, color } : c))
+      );
+    } catch (e) {
+      setError(String(e));
+    }
+  }
+
   function openContextMenu(e: React.MouseEvent, channel: Channel) {
     e.preventDefault();
     setContextMenu({ x: e.clientX, y: e.clientY, channel });
@@ -3670,6 +3688,7 @@ function App() {
             onSetMode={setChannelMode}
             onTogglePin={toggleChannelPin}
             onMoveChannel={handleMoveChannel}
+            onEditAppearance={handleEditAppearance}
             onDelete={handleDeleteChannel}
           />
         )}
@@ -3681,6 +3700,14 @@ function App() {
             onDescriptionChange={setEditDescriptionValue}
             onSave={handleSaveDescription}
             onClose={() => setEditDescriptionChannel(null)}
+          />
+        )}
+
+        {appearanceChannel && (
+          <ChannelAppearanceModal
+            channel={appearanceChannel}
+            onSave={(icon, color) => handleSaveAppearance(appearanceChannel, icon, color)}
+            onClose={() => setAppearanceChannel(null)}
           />
         )}
 

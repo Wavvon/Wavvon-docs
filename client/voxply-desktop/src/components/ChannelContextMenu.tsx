@@ -15,13 +15,14 @@ interface Props {
   onSetMode: (hubId: string, channelId: string, mode: NotifyMode) => void;
   onTogglePin: (hubId: string, channelId: string) => void;
   onMoveChannel: (channelId: string, parentId: string | null) => void;
+  onEditAppearance: (channel: Channel) => void;
   onDelete: (channelId: string) => void;
 }
 
 export function ChannelContextMenu({
   menu, activeHubId, channels, pinnedChannels, effectiveNotifyMode,
   onClose, onRename, onEditDescription, onSetTalkPower, onManageBans,
-  onSetMode, onTogglePin, onMoveChannel, onDelete,
+  onSetMode, onTogglePin, onMoveChannel, onEditAppearance, onDelete,
 }: Props) {
   const { x, y, channel } = menu;
 
@@ -109,6 +110,12 @@ export function ChannelContextMenu({
               ))}
           </>
         )}
+        <button
+          className="context-menu-item"
+          onClick={() => { onClose(); onEditAppearance(channel); }}
+        >
+          Edit appearance…
+        </button>
         <button
           className="context-menu-item danger"
           onClick={() => onDelete(channel.id)}

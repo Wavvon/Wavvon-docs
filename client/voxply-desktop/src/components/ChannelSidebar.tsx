@@ -22,7 +22,7 @@ import type {
 } from "../types";
 import type { TreeNode, FlatNode } from "../utils/channels";
 import { colorForKey } from "../utils/format";
-import { PhoneIcon, PhoneOffIcon } from "./Icons";
+import { PhoneIcon, PhoneOffIcon, ChannelIconGlyph } from "./Icons";
 import { SortableCategoryItem, SortableChannelItem } from "./SortableItems";
 
 const CHANNEL_INDENT_PX = 16;
@@ -237,7 +237,7 @@ export function ChannelSidebar({
                         onClick={() => onSelectChannel(c)}
                         onContextMenu={(e) => onChannelContextMenu(e, c)}
                       >
-                        # {c.name}
+                        <ChannelIconGlyph icon={c.icon} />{" "}{c.name}
                       </li>
                     ))}
                   </ul>
@@ -306,7 +306,7 @@ export function ChannelSidebar({
                   >
                     {activeNode.node.is_category
                       ? `▾ ${activeNode.node.name.toUpperCase()}`
-                      : `# ${activeNode.node.name}`}
+                      : <><ChannelIconGlyph icon={activeNode.node.icon} />{" "}{activeNode.node.name}</>}
                   </div>
                 )}
               </DragOverlay>

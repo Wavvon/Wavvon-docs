@@ -12,6 +12,8 @@ export interface Channel {
   is_category: boolean;
   display_order: number;
   description: string | null;
+  icon: string | null;
+  color: string | null;
   created_at: number;
 }
 
