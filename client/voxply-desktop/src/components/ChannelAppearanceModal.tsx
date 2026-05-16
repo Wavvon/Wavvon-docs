@@ -1,7 +1,9 @@
-import React, { useRef, useState } from "react";
-import type { Channel } from "../types";
+import React, { useEffect, useRef, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import type { Channel, HubIcon } from "../types";
 import { ChannelIcon } from "./Icons";
 import { ChannelIconPicker } from "./ChannelIconPicker";
+import { sanitizeSvg } from "../utils/svgSanitize";
 
 const ACCENT_COLORS = [
   { id: "red",    hex: "#e74c3c" },
@@ -15,46 +17,6 @@ const ACCENT_COLORS = [
   { id: "gray",   hex: "#7f8c8d" },
 ];
 
-const MAX_SVG_BYTES = 50 * 1024;
-
-function sanitizeSvg(text: string): string | null {
-  try {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(text, "image/svg+xml");
-    if (doc.querySelector("parsererror")) return null;
-    const svgEl = doc.documentElement;
-    if (svgEl.tagName.toLowerCase() !== "svg") return null;
-
-    svgEl.querySelectorAll("script,foreignObject,iframe,use,image").forEach((el) => el.remove());
-
-    function clean(el: Element) {
-      const remove: string[] = [];
-      for (const attr of Array.from(el.attributes)) {
-        const name = attr.name.toLowerCase();
-        if (name.startsWith("on")) {
-          remove.push(attr.name);
-        } else if (
-          (name === "href" || name === "xlink:href" || name === "src") &&
-          attr.value &&
-          !attr.value.startsWith("#") &&
-          !attr.value.startsWith("data:")
-        ) {
-          remove.push(attr.name);
-        }
-      }
-      remove.forEach((n) => el.removeAttribute(n));
-      for (const child of Array.from(el.children)) clean(child);
-    }
-    clean(svgEl);
-
-    const result = new XMLSerializer().serializeToString(svgEl);
-    if (result.length > MAX_SVG_BYTES) return null;
-    return result;
-  } catch {
-    return null;
-  }
-}
-
 interface Props {
   channel: Channel;
   onSave: (icon: string | null, color: string | null, customIconSvg: string | null) => void;
@@ -66,7 +28,12 @@ export function ChannelAppearanceModal({ channel, onSave, onClose }: Props) {
   const [color, setColor] = useState<string | null>(channel.color);
   const [customIconSvg, setCustomIconSvg] = useState<string | null>(channel.custom_icon_svg);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [hubIcons, setHubIcons] = useState<HubIcon[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    invoke<HubIcon[]>("list_hub_icons").then(setHubIcons).catch(() => {});
+  }, []);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -104,6 +71,31 @@ export function ChannelAppearanceModal({ channel, onSave, onClose }: Props) {
             Upload your own .svg file. Scripts and external references are
             stripped automatically.
           </p>
+          {hubIcons.length > 0 && (
+            <div className="hub-icon-library">
+              <p className="muted" style={{ marginBottom: "6px" }}>Hub library</p>
+              <div className="icon-picker-grid">
+                {hubIcons.map((hi) => {
+                  const dataUri = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(hi.svg_content)}`;
+                  const isSelected = customIconSvg === hi.svg_content;
+                  return (
+                    <button
+                      key={hi.id}
+                      type="button"
+                      className={`icon-picker-tile ${isSelected ? "selected" : ""}`}
+                      onClick={() => { setCustomIconSvg(hi.svg_content); setIcon(null); }}
+                      title={hi.name}
+                    >
+                      <span className="icon-picker-glyph">
+                        <img src={dataUri} width={18} height={18} style={{ objectFit: "contain" }} aria-hidden="true" />
+                      </span>
+                      <span className="icon-picker-label">{hi.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           <div className="custom-icon-upload-row">
             {customIconSvg && (
               <>

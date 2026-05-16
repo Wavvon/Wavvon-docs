@@ -18,6 +18,14 @@ export interface Channel {
   created_at: number;
 }
 
+export interface HubIcon {
+  id: string;
+  name: string;
+  svg_content: string;
+  uploaded_by: string;
+  created_at: number;
+}
+
 export interface Attachment {
   name: string;
   mime: string;

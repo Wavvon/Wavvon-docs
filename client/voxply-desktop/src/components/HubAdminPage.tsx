@@ -15,6 +15,7 @@ import { MemberRow } from "./MemberRow";
 import { RoleCreator } from "./RoleCreator";
 import { RoleEditor } from "./RoleEditor";
 import { AlliancesSection } from "./AlliancesSection";
+import { HubIconsSection } from "./HubIconsSection";
 
 export type HubAdminTab =
   | "overview"
@@ -22,7 +23,8 @@ export type HubAdminTab =
   | "members"
   | "bans"
   | "invites"
-  | "alliances";
+  | "alliances"
+  | "icons";
 
 export interface HubAdminPageProps {
   tab: HubAdminTab;
@@ -126,6 +128,7 @@ export function HubAdminPage(props: HubAdminPageProps) {
     { id: "bans", label: "Bans" },
     { id: "invites", label: "Invites" },
     { id: "alliances", label: "Alliances" },
+    { id: "icons", label: "Icons" },
   ];
 
   return (
@@ -480,6 +483,16 @@ export function HubAdminPage(props: HubAdminPageProps) {
             channels={props.channels}
             ownHubUrl={props.activeHubUrl}
           />
+        )}
+        {props.tab === "icons" && (
+          <section>
+            <h1>Icon Library</h1>
+            <p className="muted">
+              Upload custom SVG icons that any member can apply to channels and
+              categories from the appearance editor.
+            </p>
+            <HubIconsSection />
+          </section>
         )}
       </main>
     </div>
