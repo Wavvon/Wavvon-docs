@@ -3994,3 +3994,21 @@ select:focus {
   align-items: center;
   justify-content: center;
 }
+
+.custom-icon-upload-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.custom-icon-preview {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-secondary, #2a2a2a);
+}

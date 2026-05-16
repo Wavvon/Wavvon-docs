@@ -2,7 +2,7 @@ import React from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { Channel, VoiceParticipant } from "../types";
-import { ChannelIconGlyph } from "./Icons";
+import { ChannelIcon } from "./Icons";
 
 /** Hub icon wrapped in dnd-kit's useSortable so the user can drag-reorder
  * the hub sidebar. The drag handle is the whole icon — there's no second
@@ -83,7 +83,7 @@ export function SortableChannelItem({
         {...listeners}
       >
         {unread && <span className="channel-unread-dot" />}
-        <ChannelIconGlyph icon={channel.icon} />
+        <ChannelIcon icon={channel.icon} customIconSvg={channel.custom_icon_svg} />
         {" "}{channel.name}
         {muted && <span className="channel-muted-icon" title="Muted">🔕</span>}
         {participants.length > 0 && (
@@ -162,8 +162,8 @@ export function SortableCategoryItem({
         >
           {collapsed ? "▸" : "▾"}
         </button>
-        {channel.icon && (
-          <ChannelIconGlyph icon={channel.icon} size={13} />
+        {(channel.icon || channel.custom_icon_svg) && (
+          <ChannelIcon icon={channel.icon} customIconSvg={channel.custom_icon_svg} size={13} />
         )}
         <span className="category-name">{channel.name.toUpperCase()}</span>
         {collapsed && childCount > 0 && (

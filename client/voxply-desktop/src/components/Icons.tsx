@@ -100,3 +100,28 @@ export function ChannelIconGlyph({ icon, size = 14 }: { icon: string | null; siz
     </svg>
   );
 }
+
+export function ChannelIcon({
+  icon,
+  customIconSvg,
+  size = 14,
+}: {
+  icon: string | null;
+  customIconSvg: string | null;
+  size?: number;
+}) {
+  if (customIconSvg) {
+    const dataUri = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(customIconSvg)}`;
+    return (
+      <img
+        src={dataUri}
+        width={size}
+        height={size}
+        className="channel-icon-custom"
+        aria-hidden="true"
+        style={{ objectFit: "contain", display: "inline-block", verticalAlign: "middle" }}
+      />
+    );
+  }
+  return <ChannelIconGlyph icon={icon} size={size} />;
+}

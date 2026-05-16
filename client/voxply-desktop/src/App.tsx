@@ -3227,11 +3227,11 @@ function App() {
     setAppearanceChannel(channel);
   }
 
-  async function handleSaveAppearance(channel: Channel, icon: string | null, color: string | null) {
+  async function handleSaveAppearance(channel: Channel, icon: string | null, color: string | null, customIconSvg: string | null) {
     try {
-      await invoke("update_channel_appearance", { channelId: channel.id, icon, color });
+      await invoke("update_channel_appearance", { channelId: channel.id, icon, color, customIconSvg });
       setChannels((prev) =>
-        prev.map((c) => (c.id === channel.id ? { ...c, icon, color } : c))
+        prev.map((c) => (c.id === channel.id ? { ...c, icon, color, custom_icon_svg: customIconSvg } : c))
       );
     } catch (e) {
       setError(String(e));
@@ -3706,7 +3706,7 @@ function App() {
         {appearanceChannel && (
           <ChannelAppearanceModal
             channel={appearanceChannel}
-            onSave={(icon, color) => handleSaveAppearance(appearanceChannel, icon, color)}
+            onSave={(icon, color, customIconSvg) => handleSaveAppearance(appearanceChannel, icon, color, customIconSvg)}
             onClose={() => setAppearanceChannel(null)}
           />
         )}

@@ -14,6 +14,7 @@ export interface Channel {
   description: string | null;
   icon: string | null;
   color: string | null;
+  custom_icon_svg: string | null;
   created_at: number;
 }
 
