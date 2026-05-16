@@ -237,45 +237,40 @@ pub async fn update_channel(
                 _ => {}
             }
         }
-        sqlx::query("UPDATE channels SET parent_id = ? WHERE id = ?")
-            .bind(parent_option.as_deref())
-            .bind(&channel_id)
-            .execute(&state.db)
-            .await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
     }
 
-    if req.description.is_some() {
-        sqlx::query("UPDATE channels SET description = ? WHERE id = ?")
-            .bind(&req.description)
-            .bind(&channel_id)
-            .execute(&state.db)
-            .await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
-    }
+    let needs_update = req.description.is_some()
+        || req.icon.is_some()
+        || req.color.is_some()
+        || req.custom_icon_svg.is_some()
+        || req.parent_id.is_some();
 
-    if let Some(icon_opt) = &req.icon {
-        sqlx::query("UPDATE channels SET icon = ? WHERE id = ?")
-            .bind(icon_opt.as_deref())
-            .bind(&channel_id)
-            .execute(&state.db)
-            .await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
-    }
-
-    if let Some(color_opt) = &req.color {
-        sqlx::query("UPDATE channels SET color = ? WHERE id = ?")
-            .bind(color_opt.as_deref())
-            .bind(&channel_id)
-            .execute(&state.db)
-            .await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
-    }
-
-    if let Some(svg_opt) = &req.custom_icon_svg {
-        sqlx::query("UPDATE channels SET custom_icon_svg = ? WHERE id = ?")
-            .bind(svg_opt.as_deref())
-            .bind(&channel_id)
+    if needs_update {
+        let mut qb = sqlx::QueryBuilder::new("UPDATE channels SET ");
+        let mut sep = qb.separated(", ");
+        if req.description.is_some() {
+            sep.push("description = ");
+            sep.push_bind_unseparated(req.description.as_deref());
+        }
+        if let Some(icon_opt) = &req.icon {
+            sep.push("icon = ");
+            sep.push_bind_unseparated(icon_opt.as_deref());
+        }
+        if let Some(color_opt) = &req.color {
+            sep.push("color = ");
+            sep.push_bind_unseparated(color_opt.as_deref());
+        }
+        if let Some(svg_opt) = &req.custom_icon_svg {
+            sep.push("custom_icon_svg = ");
+            sep.push_bind_unseparated(svg_opt.as_deref());
+        }
+        if let Some(parent_option) = &req.parent_id {
+            sep.push("parent_id = ");
+            sep.push_bind_unseparated(parent_option.as_deref());
+        }
+        qb.push(" WHERE id = ");
+        qb.push_bind(&channel_id);
+        qb.build()
             .execute(&state.db)
             .await
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;

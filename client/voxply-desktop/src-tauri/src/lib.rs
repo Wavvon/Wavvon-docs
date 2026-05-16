@@ -16,7 +16,6 @@ mod prefs_blob;
 
 // --- Shared state ---
 
-#[derive(Default)]
 struct AppState {
     /// Live hub sessions keyed by hub_id (the hub's public_key).
     hubs: Mutex<HashMap<String, HubSession>>,
@@ -24,6 +23,7 @@ struct AppState {
     active_hub: Mutex<Option<String>>,
     /// Voice session (only one at a time across all hubs).
     voice: Mutex<Option<VoiceSession>>,
+    http_client: reqwest::Client,
 }
 
 struct HubSession {
@@ -755,7 +755,7 @@ async fn add_hub(
 ) -> Result<HubInfo, String> {
     let creds = auth_creds::load_active_credentials()?;
 
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
 
     // Get hub info first (gives us hub_id and name)
     let info: InfoResponse = client
@@ -881,7 +881,7 @@ async fn ping_hub(hub_id: String, state: State<'_, AppState>) -> Result<u64, Str
     }
     .ok_or("Hub not connected")?;
 
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let start = std::time::Instant::now();
     let resp = client
         .get(format!("{hub_url}/health"))
@@ -1159,7 +1159,7 @@ async fn spawn_ws_task(
 #[tauri::command]
 async fn list_channels(state: State<'_, AppState>) -> Result<Vec<ChannelInfo>, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     client
         .get(format!("{hub_url}/channels"))
         .bearer_auth(&token)
@@ -1180,7 +1180,7 @@ async fn create_channel(
     state: State<'_, AppState>,
 ) -> Result<ChannelInfo, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .post(format!("{hub_url}/channels"))
         .bearer_auth(&token)
@@ -1207,7 +1207,7 @@ async fn update_channel_description(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .patch(format!("{hub_url}/channels/{channel_id}"))
         .bearer_auth(&token)
@@ -1228,7 +1228,7 @@ async fn rename_channel(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .patch(format!("{hub_url}/channels/{channel_id}"))
         .bearer_auth(&token)
@@ -1249,7 +1249,7 @@ async fn move_channel(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     // Body always contains the parent_id key so the server treats it as a real
     // change (Option<Option<String>> tri-state).
     let body = serde_json::json!({ "parent_id": parent_id });
@@ -1275,7 +1275,7 @@ async fn update_channel_appearance(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let body = serde_json::json!({ "icon": icon, "color": color, "custom_icon_svg": custom_icon_svg });
     let resp = client
         .patch(format!("{hub_url}/channels/{channel_id}"))
@@ -1296,7 +1296,7 @@ async fn reorder_channels(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .post(format!("{hub_url}/channels/reorder"))
         .bearer_auth(&token)
@@ -1313,7 +1313,7 @@ async fn reorder_channels(
 #[tauri::command]
 async fn delete_channel(channel_id: String, state: State<'_, AppState>) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .delete(format!("{hub_url}/channels/{channel_id}"))
         .bearer_auth(&token)
@@ -1329,7 +1329,7 @@ async fn delete_channel(channel_id: String, state: State<'_, AppState>) -> Resul
 #[tauri::command]
 async fn list_users(state: State<'_, AppState>, app: AppHandle) -> Result<Vec<UserInfo>, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .get(format!("{hub_url}/users"))
         .bearer_auth(&token)
@@ -1390,7 +1390,7 @@ async fn reauth_session(
     };
 
     let creds = auth_creds::load_active_credentials()?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let new_token = creds.authenticate(&hub_url, &client, None).await?;
 
     // Restart the WS task with the new token. Abort the stale one first.
@@ -1427,7 +1427,7 @@ async fn get_messages(
     state: State<'_, AppState>,
 ) -> Result<Vec<MessageInfo>, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let mut messages: Vec<MessageInfo> = client
         .get(format!("{hub_url}/channels/{channel_id}/messages"))
         .bearer_auth(&token)
@@ -1450,7 +1450,7 @@ async fn add_reaction(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .post(format!(
             "{hub_url}/channels/{channel_id}/messages/{message_id}/reactions"
@@ -1474,7 +1474,7 @@ async fn remove_reaction(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     // URL-encoding emoji is important since some are multi-byte and can
     // include reserved chars (variation selectors, etc.).
     let encoded = urlencoding_emoji(&emoji);
@@ -1516,7 +1516,7 @@ async fn voice_populations(
     state: State<'_, AppState>,
 ) -> Result<std::collections::HashMap<String, u32>, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .get(format!("{hub_url}/voice/populations"))
         .bearer_auth(&token)
@@ -1538,7 +1538,7 @@ async fn voice_channel_participants(
     state: State<'_, AppState>,
 ) -> Result<std::collections::HashMap<String, Vec<VoiceParticipantInfo>>, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .get(format!("{hub_url}/voice/participants"))
         .bearer_auth(&token)
@@ -1554,7 +1554,7 @@ async fn voice_channel_participants(
 #[tauri::command]
 async fn voice_active_users(state: State<'_, AppState>) -> Result<Vec<String>, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .get(format!("{hub_url}/voice/active-users"))
         .bearer_auth(&token)
@@ -1574,7 +1574,7 @@ async fn search_messages(
     state: State<'_, AppState>,
 ) -> Result<Vec<MessageInfo>, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     // Server returns newest-first; we keep that order for the results panel
     // since users scanning search hits expect recent matches at the top.
     let messages: Vec<MessageInfo> = client
@@ -1599,7 +1599,7 @@ async fn send_message(
     state: State<'_, AppState>,
 ) -> Result<MessageInfo, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let body = serde_json::json!({
         "content": content,
         "attachments": attachments.unwrap_or_default(),
@@ -1626,7 +1626,7 @@ async fn edit_message(
     state: State<'_, AppState>,
 ) -> Result<MessageInfo, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .patch(format!("{hub_url}/channels/{channel_id}/messages/{message_id}"))
         .bearer_auth(&token)
@@ -1647,7 +1647,7 @@ async fn delete_message(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .delete(format!("{hub_url}/channels/{channel_id}/messages/{message_id}"))
         .bearer_auth(&token)
@@ -2078,7 +2078,7 @@ fn mic_test_stop(state: State<'_, AppState>) -> Result<(), String> {
 #[tauri::command]
 async fn update_display_name(display_name: String, state: State<'_, AppState>) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .patch(format!("{hub_url}/me"))
         .bearer_auth(&token)
@@ -2096,7 +2096,7 @@ async fn update_display_name(display_name: String, state: State<'_, AppState>) -
 async fn update_avatar(avatar: String, state: State<'_, AppState>) -> Result<(), String> {
     // Empty string clears the avatar on this hub.
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .patch(format!("{hub_url}/me"))
         .bearer_auth(&token)
@@ -2268,7 +2268,7 @@ struct AllianceSharedChannel {
 #[tauri::command]
 async fn list_alliances(state: State<'_, AppState>) -> Result<Vec<AllianceInfo>, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .get(format!("{hub_url}/alliances"))
         .bearer_auth(&token)
@@ -2287,7 +2287,7 @@ async fn create_alliance(
     state: State<'_, AppState>,
 ) -> Result<AllianceInfo, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .post(format!("{hub_url}/alliances"))
         .bearer_auth(&token)
@@ -2307,7 +2307,7 @@ async fn get_alliance(
     state: State<'_, AppState>,
 ) -> Result<AllianceDetail, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .get(format!("{hub_url}/alliances/{alliance_id}"))
         .bearer_auth(&token)
@@ -2326,7 +2326,7 @@ async fn create_alliance_invite(
     state: State<'_, AppState>,
 ) -> Result<AllianceInvite, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .post(format!("{hub_url}/alliances/{alliance_id}/invite"))
         .bearer_auth(&token)
@@ -2348,7 +2348,7 @@ async fn join_alliance(
     state: State<'_, AppState>,
 ) -> Result<AllianceDetail, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     // The join endpoint runs on OUR hub; our hub then talks to the inviter
     // and mirrors the alliance into our local DB so it shows up in our list.
     let resp = client
@@ -2375,7 +2375,7 @@ async fn leave_alliance(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .delete(format!("{hub_url}/alliances/{alliance_id}/leave"))
         .bearer_auth(&token)
@@ -2408,7 +2408,7 @@ async fn get_alliance_channel_messages(
     state: State<'_, AppState>,
 ) -> Result<Vec<ProxiedMessage>, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .get(format!(
             "{hub_url}/alliances/{alliance_id}/channels/{channel_id}/messages"
@@ -2431,7 +2431,7 @@ async fn send_alliance_channel_message(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .post(format!(
             "{hub_url}/alliances/{alliance_id}/channels/{channel_id}/messages"
@@ -2453,7 +2453,7 @@ async fn list_alliance_shared_channels(
     state: State<'_, AppState>,
 ) -> Result<Vec<AllianceSharedChannel>, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .get(format!("{hub_url}/alliances/{alliance_id}/channels"))
         .bearer_auth(&token)
@@ -2473,7 +2473,7 @@ async fn share_channel_with_alliance(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .post(format!("{hub_url}/alliances/{alliance_id}/channels"))
         .bearer_auth(&token)
@@ -2494,7 +2494,7 @@ async fn unshare_channel_from_alliance(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .delete(format!(
             "{hub_url}/alliances/{alliance_id}/channels/{channel_id}"
@@ -2522,7 +2522,7 @@ struct InviteInfo {
 #[tauri::command]
 async fn list_invites(state: State<'_, AppState>) -> Result<Vec<InviteInfo>, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .get(format!("{hub_url}/invites"))
         .bearer_auth(&token)
@@ -2542,7 +2542,7 @@ async fn create_invite(
     state: State<'_, AppState>,
 ) -> Result<InviteInfo, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .post(format!("{hub_url}/invites"))
         .bearer_auth(&token)
@@ -2562,7 +2562,7 @@ async fn create_invite(
 #[tauri::command]
 async fn revoke_invite(code: String, state: State<'_, AppState>) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .delete(format!("{hub_url}/invites/{code}"))
         .bearer_auth(&token)
@@ -2578,7 +2578,7 @@ async fn revoke_invite(code: String, state: State<'_, AppState>) -> Result<(), S
 #[tauri::command]
 async fn list_bans(state: State<'_, AppState>) -> Result<Vec<BanInfo>, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .get(format!("{hub_url}/moderation/bans"))
         .bearer_auth(&token)
@@ -2597,7 +2597,7 @@ async fn unban_user(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .delete(format!("{hub_url}/moderation/bans/{target_public_key}"))
         .bearer_auth(&token)
@@ -2623,7 +2623,7 @@ struct MemberAdminInfo {
 #[tauri::command]
 async fn get_hub_settings(state: State<'_, AppState>) -> Result<HubSettings, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .get(format!("{hub_url}/hub/settings"))
         .bearer_auth(&token)
@@ -2641,7 +2641,7 @@ async fn list_pending_members(
     state: State<'_, AppState>,
 ) -> Result<Vec<PendingUser>, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .get(format!("{hub_url}/hub/pending"))
         .bearer_auth(&token)
@@ -2659,7 +2659,7 @@ async fn list_installed_games(
     state: State<'_, AppState>,
 ) -> Result<Vec<InstalledGame>, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .get(format!("{hub_url}/hub/games"))
         .bearer_auth(&token)
@@ -2679,7 +2679,7 @@ async fn install_game(
     state: State<'_, AppState>,
 ) -> Result<InstalledGame, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .post(format!("{hub_url}/hub/games"))
         .bearer_auth(&token)
@@ -2699,7 +2699,7 @@ async fn install_game(
 #[tauri::command]
 async fn uninstall_game(game_id: String, state: State<'_, AppState>) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .delete(format!("{hub_url}/hub/games/{game_id}"))
         .bearer_auth(&token)
@@ -2715,7 +2715,7 @@ async fn uninstall_game(game_id: String, state: State<'_, AppState>) -> Result<(
 #[tauri::command]
 async fn list_hub_icons(state: State<'_, AppState>) -> Result<Vec<HubIcon>, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .get(format!("{hub_url}/hub/icons"))
         .bearer_auth(&token)
@@ -2735,7 +2735,7 @@ async fn create_hub_icon(
     state: State<'_, AppState>,
 ) -> Result<HubIcon, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .post(format!("{hub_url}/hub/icons"))
         .bearer_auth(&token)
@@ -2756,7 +2756,7 @@ async fn rename_hub_icon(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .patch(format!("{hub_url}/hub/icons/{icon_id}"))
         .bearer_auth(&token)
@@ -2776,7 +2776,7 @@ async fn delete_hub_icon(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .delete(format!("{hub_url}/hub/icons/{icon_id}"))
         .bearer_auth(&token)
@@ -2795,7 +2795,7 @@ async fn approve_member(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .post(format!("{hub_url}/hub/pending/{target_public_key}/approve"))
         .bearer_auth(&token)
@@ -2813,7 +2813,7 @@ async fn list_hub_members(
     state: State<'_, AppState>,
 ) -> Result<Vec<MemberAdminInfo>, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .get(format!("{hub_url}/hub/members"))
         .bearer_auth(&token)
@@ -2897,7 +2897,7 @@ async fn channel_ban_user(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .post(format!(
             "{hub_url}/moderation/channels/{channel_id}/bans"
@@ -2923,7 +2923,7 @@ async fn channel_unban_user(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .delete(format!(
             "{hub_url}/moderation/channels/{channel_id}/bans/{target_public_key}"
@@ -2944,7 +2944,7 @@ async fn list_channel_bans(
     state: State<'_, AppState>,
 ) -> Result<Vec<ChannelBanInfo>, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .get(format!(
             "{hub_url}/moderation/channels/{channel_id}/bans"
@@ -2986,7 +2986,7 @@ async fn voice_unmute_user_cmd(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .delete(format!("{hub_url}/moderation/voice-mutes/{target_public_key}"))
         .bearer_auth(&token)
@@ -3002,7 +3002,7 @@ async fn voice_unmute_user_cmd(
 #[tauri::command]
 async fn list_voice_mutes(state: State<'_, AppState>) -> Result<Vec<VoiceMuteInfo>, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .get(format!("{hub_url}/moderation/voice-mutes"))
         .bearer_auth(&token)
@@ -3027,7 +3027,7 @@ async fn get_talk_power(
     state: State<'_, AppState>,
 ) -> Result<TalkPowerInfo, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .get(format!("{hub_url}/channels/{channel_id}/talk-power"))
         .bearer_auth(&token)
@@ -3047,7 +3047,7 @@ async fn set_talk_power_cmd(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .post(format!("{hub_url}/channels/{channel_id}/talk-power"))
         .bearer_auth(&token)
@@ -3067,7 +3067,7 @@ async fn post_moderation(
     body: serde_json::Value,
 ) -> Result<(), String> {
     let (hub_url, token) = active_session(state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .post(format!("{hub_url}/{path}"))
         .bearer_auth(&token)
@@ -3088,7 +3088,7 @@ async fn assign_role(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .put(format!("{hub_url}/users/{target_public_key}/roles/{role_id}"))
         .bearer_auth(&token)
@@ -3108,7 +3108,7 @@ async fn unassign_role(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .delete(format!("{hub_url}/users/{target_public_key}/roles/{role_id}"))
         .bearer_auth(&token)
@@ -3124,7 +3124,7 @@ async fn unassign_role(
 #[tauri::command]
 async fn list_roles(state: State<'_, AppState>) -> Result<Vec<RoleInfo>, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     client
         .get(format!("{hub_url}/roles"))
         .bearer_auth(&token)
@@ -3145,7 +3145,7 @@ async fn create_role(
     state: State<'_, AppState>,
 ) -> Result<RoleInfo, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .post(format!("{hub_url}/roles"))
         .bearer_auth(&token)
@@ -3174,7 +3174,7 @@ async fn update_role(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .patch(format!("{hub_url}/roles/{role_id}"))
         .bearer_auth(&token)
@@ -3196,7 +3196,7 @@ async fn update_role(
 #[tauri::command]
 async fn delete_role(role_id: String, state: State<'_, AppState>) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .delete(format!("{hub_url}/roles/{role_id}"))
         .bearer_auth(&token)
@@ -3212,7 +3212,7 @@ async fn delete_role(role_id: String, state: State<'_, AppState>) -> Result<(), 
 #[tauri::command]
 async fn get_me(state: State<'_, AppState>) -> Result<MeInfo, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     client
         .get(format!("{hub_url}/me"))
         .bearer_auth(&token)
@@ -3227,7 +3227,7 @@ async fn get_me(state: State<'_, AppState>) -> Result<MeInfo, String> {
 #[tauri::command]
 async fn get_hub_branding(state: State<'_, AppState>) -> Result<HubBranding, String> {
     let (hub_url, _) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let info: InfoResponse = client
         .get(format!("{hub_url}/info"))
         .send()
@@ -3253,7 +3253,7 @@ async fn update_hub_branding(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .patch(format!("{hub_url}/hub"))
         .bearer_auth(&token)
@@ -3336,7 +3336,7 @@ async fn save_public_profile(
     };
 
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .put(format!("{hub_url}/profile/{pubkey}"))
         .bearer_auth(&token)
@@ -3400,7 +3400,7 @@ async fn submit_to_directory(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
 
     // Step 1: ask the hub to sign the canonical payload
     let sign_resp = client
@@ -3455,7 +3455,7 @@ async fn submit_to_directory(
 #[tauri::command]
 async fn list_friends(state: State<'_, AppState>) -> Result<Vec<FriendInfo>, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     client
         .get(format!("{hub_url}/friends"))
         .bearer_auth(&token)
@@ -3470,7 +3470,7 @@ async fn list_friends(state: State<'_, AppState>) -> Result<Vec<FriendInfo>, Str
 #[tauri::command]
 async fn list_pending_friends(state: State<'_, AppState>) -> Result<Vec<FriendInfo>, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     client
         .get(format!("{hub_url}/friends/pending"))
         .bearer_auth(&token)
@@ -3490,7 +3490,7 @@ async fn send_friend_request(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .post(format!("{hub_url}/friends"))
         .bearer_auth(&token)
@@ -3511,7 +3511,7 @@ async fn send_friend_request(
 #[tauri::command]
 async fn accept_friend(from_public_key: String, state: State<'_, AppState>) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .post(format!("{hub_url}/friends/{from_public_key}/accept"))
         .bearer_auth(&token)
@@ -3527,7 +3527,7 @@ async fn accept_friend(from_public_key: String, state: State<'_, AppState>) -> R
 #[tauri::command]
 async fn remove_friend(target_public_key: String, state: State<'_, AppState>) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .delete(format!("{hub_url}/friends/{target_public_key}"))
         .bearer_auth(&token)
@@ -3543,7 +3543,7 @@ async fn remove_friend(target_public_key: String, state: State<'_, AppState>) ->
 #[tauri::command]
 async fn list_conversations(state: State<'_, AppState>) -> Result<Vec<ConversationInfo>, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     client
         .get(format!("{hub_url}/conversations"))
         .bearer_auth(&token)
@@ -3562,7 +3562,7 @@ async fn create_conversation(
     state: State<'_, AppState>,
 ) -> Result<ConversationInfo, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let resp = client
         .post(format!("{hub_url}/conversations"))
         .bearer_auth(&token)
@@ -3585,7 +3585,7 @@ async fn get_dm_messages(
     state: State<'_, AppState>,
 ) -> Result<Vec<DmMessageInfo>, String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let raw: Vec<RawDmMessageResponse> = client
         .get(format!("{hub_url}/conversations/{conversation_id}/messages"))
         .bearer_auth(&token)
@@ -3663,7 +3663,7 @@ async fn send_dm(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let body = if let Some(env) = encrypted_envelope {
         serde_json::json!({
             "encrypted_envelope": env,
@@ -3779,7 +3779,7 @@ async fn publish_dh_key(state: State<'_, AppState>) -> Result<(), String> {
 
     for (hub_url, token) in hub_sessions {
         let url = format!("{}/identity/{}/dh-key", hub_url, pubkey_hex);
-        let client = reqwest::Client::new();
+        let client = state.http_client.clone();
         let _ = client.put(&url)
             .bearer_auth(&token)
             .json(&serde_json::json!({
@@ -3806,7 +3806,7 @@ async fn fetch_dh_key(
             .find(|s| s.hub_url == hub_url)
             .map(|s| s.token.clone())
     };
-    let client = reqwest::Client::new();
+    let client = state.http_client.clone();
     let mut req = client.get(&url);
     if let Some(t) = token {
         req = req.bearer_auth(t);
@@ -3907,7 +3907,12 @@ pub fn run() {
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
-            app.manage(AppState::default());
+            app.manage(AppState {
+                hubs: Default::default(),
+                active_hub: Default::default(),
+                voice: Default::default(),
+                http_client: reqwest::Client::new(),
+            });
             app.manage(PendingDeepLink { url: std::sync::Mutex::new(None) });
 
             // Handle deep link if the app was launched via a voxply:// URL
