@@ -22,6 +22,7 @@ pub struct ChannelResponse {
     pub description: Option<String>,
     pub icon: Option<String>,
     pub color: Option<String>,
+    pub custom_icon_svg: Option<String>,
     pub created_at: i64,
 }
 
@@ -39,6 +40,8 @@ pub struct UpdateChannelRequest {
     pub icon: Option<Option<String>>,
     #[serde(default, deserialize_with = "deserialize_some")]
     pub color: Option<Option<String>>,
+    #[serde(default, deserialize_with = "deserialize_some")]
+    pub custom_icon_svg: Option<Option<String>>,
 }
 
 /// Lets us distinguish "field missing" from "field explicitly null" in JSON.

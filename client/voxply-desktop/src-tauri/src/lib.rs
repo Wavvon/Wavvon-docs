@@ -217,6 +217,7 @@ struct ChannelInfo {
     description: Option<String>,
     icon: Option<String>,
     color: Option<String>,
+    custom_icon_svg: Option<String>,
     created_at: i64,
 }
 
@@ -1261,11 +1262,12 @@ async fn update_channel_appearance(
     channel_id: String,
     icon: Option<String>,
     color: Option<String>,
+    custom_icon_svg: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
     let client = reqwest::Client::new();
-    let body = serde_json::json!({ "icon": icon, "color": color });
+    let body = serde_json::json!({ "icon": icon, "color": color, "custom_icon_svg": custom_icon_svg });
     let resp = client
         .patch(format!("{hub_url}/channels/{channel_id}"))
         .bearer_auth(&token)
