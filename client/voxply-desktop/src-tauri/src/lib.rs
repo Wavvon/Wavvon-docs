@@ -161,51 +161,6 @@ struct PendingUser {
     first_seen_at: i64,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-struct InstalledGame {
-    id: String,
-    name: String,
-    description: Option<String>,
-    version: String,
-    entry_url: String,
-    thumbnail_url: Option<String>,
-    author: Option<String>,
-    min_players: i64,
-    max_players: i64,
-    installed_by: String,
-    installed_at: i64,
-    manifest_url: String,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-struct GameManifest {
-    // Only name and entry_url are required — everything else is filled in
-    // by the hub. Mirrors the hub-side schema in routes::games.rs so the
-    // quick-install form (just name + URL) can deserialize cleanly.
-    name: String,
-    entry_url: String,
-    #[serde(default)]
-    id: Option<String>,
-    #[serde(default)]
-    version: Option<String>,
-    #[serde(default)]
-    description: Option<String>,
-    #[serde(default)]
-    thumbnail_url: Option<String>,
-    #[serde(default)]
-    author: Option<String>,
-    #[serde(default = "default_min_players")]
-    min_players: i64,
-    #[serde(default = "default_max_players")]
-    max_players: i64,
-}
-
-fn default_min_players() -> i64 {
-    1
-}
-fn default_max_players() -> i64 {
-    1
-}
 
 #[derive(Serialize, Deserialize, Clone)]
 struct ChannelInfo {
@@ -2666,63 +2621,6 @@ async fn list_pending_members(
     resp.json().await.map_err(|e| format!("Invalid: {e}"))
 }
 
-#[tauri::command]
-async fn list_installed_games(
-    state: State<'_, AppState>,
-) -> Result<Vec<InstalledGame>, String> {
-    let (hub_url, token) = active_session(&state)?;
-    let client = state.http_client.clone();
-    let resp = client
-        .get(format!("{hub_url}/hub/games"))
-        .bearer_auth(&token)
-        .send()
-        .await
-        .map_err(|e| format!("Failed: {e}"))?;
-    if !resp.status().is_success() {
-        return Err(resp.text().await.unwrap_or_default());
-    }
-    resp.json().await.map_err(|e| format!("Invalid: {e}"))
-}
-
-#[tauri::command]
-async fn install_game(
-    manifest_url: String,
-    manifest: Option<GameManifest>,
-    state: State<'_, AppState>,
-) -> Result<InstalledGame, String> {
-    let (hub_url, token) = active_session(&state)?;
-    let client = state.http_client.clone();
-    let resp = client
-        .post(format!("{hub_url}/hub/games"))
-        .bearer_auth(&token)
-        .json(&serde_json::json!({
-            "manifest_url": manifest_url,
-            "manifest": manifest,
-        }))
-        .send()
-        .await
-        .map_err(|e| format!("Failed: {e}"))?;
-    if !resp.status().is_success() {
-        return Err(resp.text().await.unwrap_or_default());
-    }
-    resp.json().await.map_err(|e| format!("Invalid: {e}"))
-}
-
-#[tauri::command]
-async fn uninstall_game(game_id: String, state: State<'_, AppState>) -> Result<(), String> {
-    let (hub_url, token) = active_session(&state)?;
-    let client = state.http_client.clone();
-    let resp = client
-        .delete(format!("{hub_url}/hub/games/{game_id}"))
-        .bearer_auth(&token)
-        .send()
-        .await
-        .map_err(|e| format!("Failed: {e}"))?;
-    if !resp.status().is_success() {
-        return Err(resp.text().await.unwrap_or_default());
-    }
-    Ok(())
-}
 
 #[tauri::command]
 async fn list_hub_icons(state: State<'_, AppState>) -> Result<Vec<HubIcon>, String> {
@@ -4123,9 +4021,6 @@ pub fn run() {
             get_hub_settings,
             list_pending_members,
             approve_member,
-            list_installed_games,
-            install_game,
-            uninstall_game,
             list_hub_icons,
             create_hub_icon,
             rename_hub_icon,

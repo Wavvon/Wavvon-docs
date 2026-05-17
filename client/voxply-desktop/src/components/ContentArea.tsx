@@ -7,7 +7,6 @@ import type {
   Attachment,
   User,
   RoleInfo,
-  InstalledGame,
   Conversation,
   AllianceSharedChannel,
   VoiceParticipant,
@@ -42,14 +41,13 @@ interface SelectedAllianceChannel {
 interface TypingEntry { name: string; ts: number }
 
 interface Props {
-  view: "channels" | "dms" | "game";
+  view: "channels" | "dms";
   activeHubId: string | null;
   hubs: Hub[];
   theme: string;
   selectedChannel: Channel | null;
   selectedConversation: Conversation | null;
   selectedAllianceChannel: SelectedAllianceChannel | null;
-  selectedGame: InstalledGame | null;
   messages: Message[];
   searchResults: Message[] | null;
   searchOpen: boolean;
@@ -80,7 +78,6 @@ interface Props {
   messagesContainerRef: React.RefObject<HTMLDivElement | null>;
   messageInputRef: React.RefObject<HTMLInputElement | null>;
   onReconnect: () => void;
-  onCloseGame: () => void;
   onToggleReaction: (messageId: string, emoji: string) => void;
   onSetReplyTarget: (message: Message | null) => void;
   onSaveEdit: () => void;
@@ -120,7 +117,7 @@ interface Props {
 
 export function ContentArea({
   view, activeHubId, hubs, theme,
-  selectedChannel, selectedConversation, selectedAllianceChannel, selectedGame,
+  selectedChannel, selectedConversation, selectedAllianceChannel,
   messages, searchResults, searchOpen, searchQuery,
   dmMessages, allianceMessages,
   users, publicKey, blockedUsers, knownDisplayNames, myDisplayName,
@@ -129,7 +126,7 @@ export function ContentArea({
   hubConnected, reconnectingHubs, memberSidebarHidden, voiceActiveUsers,
   inputText, typingByKey, dmTypingByKey,
   messagesEndRef, messagesContainerRef, messageInputRef,
-  onReconnect, onCloseGame, onToggleReaction, onSetReplyTarget,
+  onReconnect, onToggleReaction, onSetReplyTarget,
   onSaveEdit, onCancelEdit, onStartEdit, onDeleteMessage,
   onSend, onSendDm, onSendAllianceMessage,
   onPingTyping, onPingDmTyping,
@@ -158,26 +155,7 @@ export function ContentArea({
           </div>
         )}
 
-        {view === "game" && selectedGame ? (
-          <>
-            <div className="channel-header">
-              <div className="channel-header-info">
-                <h3>🎮 {selectedGame.name}</h3>
-                {selectedGame.description && (
-                  <p className="channel-description">{selectedGame.description}</p>
-                )}
-              </div>
-              <button className="btn-small" onClick={onCloseGame}>Close</button>
-            </div>
-            <iframe
-              key={`${selectedGame.id}:${theme}`}
-              src={`${selectedGame.entry_url}${selectedGame.entry_url.includes("?") ? "&" : "?"}theme=${theme}`}
-              className="game-frame"
-              sandbox="allow-scripts"
-              title={selectedGame.name}
-            />
-          </>
-        ) : view === "dms" ? (
+        {view === "dms" ? (
           selectedConversation ? (
             <>
               <div className="channel-header">

@@ -1319,27 +1319,6 @@ select,
   color: var(--accent);
 }
 
-/* ============================================================
-   SIDEBAR SECTION HEADERS
-   ============================================================ */
-.sidebar-header-users,
-.sidebar-header-games {
-  margin-top: var(--space-4);
-  border-top: 1px solid var(--border);
-  padding-top: var(--space-3);
-}
-
-/* ============================================================
-   GAME FRAME
-   ============================================================ */
-.game-frame {
-  flex: 1 1 auto;
-  width: 100%;
-  border: none;
-  border-radius: var(--r-md);
-  background: var(--bg-sunken);
-  min-height: 0;
-}
 
 /* ============================================================
    CHANNELS LIST
@@ -1553,105 +1532,6 @@ select,
   border-color: var(--danger-hover);
 }
 
-/* Inline help disclosure inside the Install Game modal — collapsed by
-   default so the modal stays small for users who already know the
-   format, expandable for the rest. */
-.install-game-help {
-  margin-top: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  background: var(--bg-sunken);
-  border-radius: var(--r-md);
-  font-size: var(--text-sm);
-}
-
-.install-game-help summary {
-  cursor: pointer;
-  color: var(--text-muted);
-  user-select: none;
-}
-
-.install-game-help summary:hover {
-  color: var(--text);
-}
-
-.install-game-example {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--r-sm);
-  padding: var(--space-2) var(--space-3);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  color: var(--text);
-  margin-top: var(--space-2);
-  overflow-x: auto;
-  white-space: pre;
-}
-
-/* Game item in the sidebar — needs flex so the gear sits on the right.
-   The gear is hover-revealed so the row stays clean when not aimed at. */
-.channel-item.game-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-}
-
-.game-item-label {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.game-item-gear {
-  opacity: 0;
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 0 var(--space-1);
-  font-size: var(--text-md);
-  line-height: 1;
-  transition: opacity var(--transition-fast), color var(--transition-fast);
-}
-
-/* Reveal the gear when the row is hovered or focused; also keep it
-   visible while the keyboard focus lands on it directly. */
-.channel-item.game-item:hover .game-item-gear,
-.game-item-gear:focus-visible {
-  opacity: 1;
-}
-
-.game-item-gear:hover {
-  color: var(--text);
-}
-
-/* Thumbnail preview shown in the Game settings modal when the user has
-   set a thumbnail URL. Reasonable max so it doesn't blow out the modal. */
-.game-thumbnail-preview {
-  display: block;
-  max-width: 100%;
-  max-height: 120px;
-  margin-top: var(--space-2);
-  border-radius: var(--r-sm);
-  border: 1px solid var(--border);
-  object-fit: contain;
-  background: var(--bg-sunken);
-}
-
-/* Make the Uninstall button in the Game settings modal visually obvious
-   without screaming. Subtle red text on hover; full danger background on
-   active state would be too aggressive for an action behind a confirm. */
-.btn-secondary.game-delete-btn {
-  color: var(--danger);
-  border-color: var(--border);
-}
-
-.btn-secondary.game-delete-btn:hover {
-  background: var(--danger-bg);
-  color: var(--danger);
-  border-color: var(--danger);
-}
 
 .btn-small {
   padding: var(--space-2) var(--space-3);

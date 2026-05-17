@@ -151,21 +151,6 @@ export interface PendingUser {
   first_seen_at: number;
 }
 
-export interface InstalledGame {
-  id: string;
-  name: string;
-  description: string | null;
-  version: string;
-  entry_url: string;
-  thumbnail_url: string | null;
-  author: string | null;
-  min_players: number;
-  max_players: number;
-  installed_by: string;
-  installed_at: number;
-  manifest_url: string;
-}
-
 export interface Friend {
   public_key: string;
   display_name: string | null;

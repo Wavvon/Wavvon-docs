@@ -33,7 +33,7 @@ interface SelectedAllianceChannel {
 }
 
 interface Props {
-  view: "channels" | "dms" | "game";
+  view: "channels" | "dms";
   activeHubId: string | null;
   hubs: Hub[];
   channels: Channel[];
@@ -57,9 +57,6 @@ interface Props {
   conversations: Conversation[];
   selectedConversation: Conversation | null;
   unreadDms: Record<string, boolean>;
-  installedGames: InstalledGame[];
-  selectedGame: InstalledGame | null;
-  canManageGames: boolean;
   channelTree: TreeNode[];
   effectiveNotifyMode: (hubId: string, channelId: string) => NotifyMode;
   onToggleCategoryCollapsed: (hubId: string, categoryId: string) => void;
@@ -74,15 +71,12 @@ interface Props {
   onChannelContextMenu: (e: React.MouseEvent, channel: Channel) => void;
   onVoiceJoin: (channel?: Channel) => void;
   onVoiceLeave: () => void;
-  onLaunchGame: (game: InstalledGame) => void;
-  onOpenEditGame: (game: InstalledGame) => void;
   onSelectAllianceChannel: (alliance: AllianceInfo, channel: AllianceSharedChannel) => void;
   onSelectConversation: (conv: Conversation) => void;
   onOpenFriends: () => void;
   onToggleSelfMute: () => void;
   onToggleSelfDeafen: () => void;
   onOpenSettings: () => void;
-  onSetShowInstallGame: (v: boolean) => void;
   onDragEnd: (event: DragEndEvent) => void;
   sharing: boolean;
   onScreenShare: () => void;
@@ -95,14 +89,13 @@ export function ChannelSidebar({
   users, publicKey, pingByHub, isAdmin, hubNotifyMode, hubDropdownOpen,
   userAlliances, allianceChannels, selectedAllianceChannel,
   conversations, selectedConversation, unreadDms,
-  installedGames, selectedGame, canManageGames,
   channelTree, effectiveNotifyMode, onToggleCategoryCollapsed,
   onHubDropdownOpenChange, onSetHubMode, onClearHubUnread, onRemoveHub,
   onOpenHubAdmin, onOpenHubAdminInvites, onOpenCreateChannel,
   onSelectChannel, onChannelContextMenu, onVoiceJoin, onVoiceLeave,
-  onLaunchGame, onOpenEditGame, onSelectAllianceChannel, onSelectConversation,
+  onSelectAllianceChannel, onSelectConversation,
   onOpenFriends, onToggleSelfMute, onToggleSelfDeafen, onOpenSettings,
-  onSetShowInstallGame, onDragEnd, sharing, onScreenShare,
+  onDragEnd, sharing, onScreenShare,
 }: Props) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [notifySubmenuOpen, setNotifySubmenuOpen] = useState(false);
@@ -373,48 +366,7 @@ export function ChannelSidebar({
               </div>
             )}
 
-            {/* Games */}
-            <div className="sidebar-header sidebar-header-games">
-              <h3>Games</h3>
-              {canManageGames && (
-                <button
-                  className="btn-icon"
-                  onClick={() => onSetShowInstallGame(true)}
-                  title="Install game"
-                >
-                  +
-                </button>
-              )}
-            </div>
-            <ul className="channel-list">
-              {installedGames.map((g) => (
-                <li
-                  key={g.id}
-                  className={`channel-item game-item ${
-                    view === "game" && selectedGame?.id === g.id ? "selected" : ""
-                  }`}
-                  onClick={() => onLaunchGame(g)}
-                  title={g.description ?? ""}
-                >
-                  <span className="game-item-label">🎮 {g.name}</span>
-                  {canManageGames && (
-                    <button
-                      className="game-item-gear"
-                      onClick={(e) => { e.stopPropagation(); onOpenEditGame(g); }}
-                      title="Game settings"
-                      aria-label={`Settings for ${g.name}`}
-                    >
-                      ⚙
-                    </button>
-                  )}
-                </li>
-              ))}
-            </ul>
-            {installedGames.length === 0 && (
-              <p className="muted">
-                {canManageGames ? "No games yet — click + to install." : "No games yet."}
-              </p>
-            )}
+
           </>
         ) : (
           <>

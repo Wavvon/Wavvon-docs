@@ -27,7 +27,6 @@ import type {
   BanInfo,
   InviteInfo,
   PendingUser,
-  InstalledGame,
   Friend,
   Conversation,
   DmMessage,
@@ -58,8 +57,6 @@ import {
 } from "./components/HubAdminPage";
 import { AddHubModal } from "./components/AddHubModal";
 import { CreateChannelModal } from "./components/CreateChannelModal";
-import { InstallGameModal } from "./components/InstallGameModal";
-import { EditGameModal } from "./components/EditGameModal";
 import { FriendsModal } from "./components/FriendsModal";
 import { EditDescriptionModal } from "./components/EditDescriptionModal";
 import { ChannelContextMenu } from "./components/ChannelContextMenu";
@@ -691,33 +688,7 @@ function App() {
   const [maxChannelDepth, setMaxChannelDepth] = useState(0);
   const [pendingMembers, setPendingMembers] = useState<PendingUser[]>([]);
 
-  // Games
-  const [installedGames, setInstalledGames] = useState<InstalledGame[]>([]);
-  const [selectedGame, setSelectedGame] = useState<InstalledGame | null>(null);
-  const [showInstallGame, setShowInstallGame] = useState(false);
-  // Install form fields. Required: name + entry URL. Optional fields under
-  // a "More options" disclosure for users who want to add metadata at
-  // install time. The hub fills in id/version defaults.
-  const [installSimpleName, setInstallSimpleName] = useState("");
-  const [installSimpleEntryUrl, setInstallSimpleEntryUrl] = useState("");
-  const [installDescription, setInstallDescription] = useState("");
-  const [installThumbnailUrl, setInstallThumbnailUrl] = useState("");
-  const [installAuthor, setInstallAuthor] = useState("");
-
-  // Per-game edit modal — replaces the right-click-to-uninstall affordance
-  // with a proper settings panel reachable from the gear icon next to
-  // each game in the sidebar.
-  const [editingGame, setEditingGame] = useState<InstalledGame | null>(null);
-  const [editGameName, setEditGameName] = useState("");
-  const [editGameEntryUrl, setEditGameEntryUrl] = useState("");
-  const [editGameDescription, setEditGameDescription] = useState("");
-  const [editGameThumbnailUrl, setEditGameThumbnailUrl] = useState("");
-  const [editGameAuthor, setEditGameAuthor] = useState("");
-
   const isAdmin = myRoles.some((r) => r.permissions.includes("admin"));
-  const canManageGames = myRoles.some((r) =>
-    r.permissions.includes("admin") || r.permissions.includes("manage_games")
-  );
 
   // Context menu
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; channel: Channel } | null>(null);
@@ -793,7 +764,7 @@ function App() {
   const [friendRequestHubUrl, setFriendRequestHubUrl] = useState("");
 
   // DMs
-  const [view, setView] = useState<"channels" | "dms" | "game">("channels");
+  const [view, setView] = useState<"channels" | "dms">("channels");
   // Mirror current view in a ref so window-level event listeners can read
   // the latest value without re-registering on every state change.
   const viewRef = useRef<typeof view>(view);
@@ -882,25 +853,7 @@ function App() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  // Game SDK bridge: reply to postMessage calls from game iframes.
-  useEffect(() => {
-    function onMessage(e: MessageEvent) {
-      if (!e.data || typeof e.data !== "object") return;
-      if (e.data.type === "voxply:getUser") {
-        const me = users.find((u) => u.public_key === publicKey);
-        const reply = {
-          type: "voxply:user",
-          data: {
-            public_key: publicKey,
-            display_name: me?.display_name ?? null,
-          },
-        };
-        (e.source as Window | null)?.postMessage(reply, "*");
-      }
-    }
-    window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
-  }, [users, publicKey]);
+
 
   // ESC closes the settings view (and stops the mic test if one is running)
   useEffect(() => {
@@ -1303,7 +1256,6 @@ function App() {
         setMessages([]);
         setUserAlliances([]);
         setAllianceChannels({});
-        setInstalledGames([]);
         return;
       }
 
@@ -1341,149 +1293,9 @@ function App() {
         setUserAlliances([]);
         setAllianceChannels({});
       }
-      try {
-        const games = await invoke<InstalledGame[]>("list_installed_games");
-        setInstalledGames(games);
-      } catch {
-        setInstalledGames([]);
-      }
     } catch (e) {
       setError(String(e));
     }
-  }
-
-  async function refreshGames() {
-    try {
-      const g = await invoke<InstalledGame[]>("list_installed_games");
-      setInstalledGames(g);
-    } catch (e) {
-      setError(String(e));
-    }
-  }
-
-  function resetInstallForm() {
-    setInstallSimpleName("");
-    setInstallSimpleEntryUrl("");
-    setInstallDescription("");
-    setInstallThumbnailUrl("");
-    setInstallAuthor("");
-  }
-
-  async function handleQuickInstallGame() {
-    const name = installSimpleName.trim();
-    const entryUrl = installSimpleEntryUrl.trim();
-    if (!name || !entryUrl) return;
-    // Build the inline manifest from whatever the user filled in. Hub
-    // derives id from entry_url and defaults version to "1.0.0", so the
-    // user only ever has to think about user-facing fields.
-    const manifest: Record<string, unknown> = { name, entry_url: entryUrl };
-    if (installDescription.trim()) manifest.description = installDescription.trim();
-    if (installThumbnailUrl.trim()) manifest.thumbnail_url = installThumbnailUrl.trim();
-    if (installAuthor.trim()) manifest.author = installAuthor.trim();
-    try {
-      await invoke("install_game", {
-        manifestUrl: `inline:${entryUrl}`,
-        manifest,
-      });
-      resetInstallForm();
-      setShowInstallGame(false);
-      await refreshGames();
-      setToast("Game installed");
-    } catch (e) {
-      setError(String(e));
-    }
-  }
-
-  function openEditGame(game: InstalledGame) {
-    setEditingGame(game);
-    setEditGameName(game.name);
-    setEditGameEntryUrl(game.entry_url);
-    setEditGameDescription(game.description ?? "");
-    setEditGameThumbnailUrl(game.thumbnail_url ?? "");
-    setEditGameAuthor(game.author ?? "");
-  }
-
-  function closeEditGame() {
-    setEditingGame(null);
-  }
-
-  async function handleSaveGameEdit() {
-    if (!editingGame) return;
-    const name = editGameName.trim();
-    const entryUrl = editGameEntryUrl.trim();
-    if (!name || !entryUrl) return;
-    // Pass the EXISTING id explicitly so the upsert hits the same row
-    // even if the user changed entry_url (which would otherwise produce
-    // a different derived id and create a new entry).
-    const manifest: Record<string, unknown> = {
-      id: editingGame.id,
-      name,
-      entry_url: entryUrl,
-      description: editGameDescription.trim() || null,
-      thumbnail_url: editGameThumbnailUrl.trim() || null,
-      author: editGameAuthor.trim() || null,
-    };
-    try {
-      await invoke("install_game", {
-        manifestUrl: editingGame.manifest_url || `inline:${entryUrl}`,
-        manifest,
-      });
-      closeEditGame();
-      await refreshGames();
-      setToast("Game updated");
-    } catch (e) {
-      setError(String(e));
-    }
-  }
-
-  async function handleDeleteGameFromEditor() {
-    if (!editingGame) return;
-    if (!confirm(`Uninstall "${editingGame.name}"?`)) return;
-    try {
-      await invoke("uninstall_game", { gameId: editingGame.id });
-      const wasSelected = selectedGame?.id === editingGame.id;
-      closeEditGame();
-      await refreshGames();
-      if (wasSelected) {
-        setSelectedGame(null);
-        setView("channels");
-      }
-      setToast("Game uninstalled");
-    } catch (e) {
-      setError(String(e));
-    }
-  }
-
-  async function handleInstallDemoGame() {
-    // Bundled demo game — manifest is inline, entry_url points at the
-    // static asset served by the client.
-    const demoManifest = {
-      id: "voxply-demo-dice",
-      name: "Voxply Dice",
-      description: "A tiny dice roller — included as a demo of the game SDK.",
-      version: "1.0.0",
-      entry_url: "/demo-games/dice.html",
-      thumbnail_url: null,
-      author: "Voxply",
-      min_players: 1,
-      max_players: 1,
-    };
-    try {
-      await invoke("install_game", {
-        manifestUrl: "builtin:voxply-demo-dice",
-        manifest: demoManifest,
-      });
-      setShowInstallGame(false);
-      await refreshGames();
-      setToast("Demo game installed");
-    } catch (e) {
-      setError(String(e));
-    }
-  }
-
-  function launchGame(game: InstalledGame) {
-    setSelectedGame(game);
-    setView("game");
   }
 
   async function openHubAdmin() {
@@ -3169,9 +2981,6 @@ function App() {
                   conversations={conversations}
                   selectedConversation={selectedConversation}
                   unreadDms={unreadDms}
-                  installedGames={installedGames}
-                  selectedGame={selectedGame}
-                  canManageGames={canManageGames}
                   channelTree={channelTree}
                   effectiveNotifyMode={effectiveNotifyMode}
                   onToggleCategoryCollapsed={toggleCategoryCollapsed}
@@ -3186,15 +2995,12 @@ function App() {
                   onChannelContextMenu={openContextMenu}
                   onVoiceJoin={voice.handleVoiceJoin}
                   onVoiceLeave={voice.handleVoiceLeave}
-                  onLaunchGame={launchGame}
-                  onOpenEditGame={openEditGame}
                   onSelectAllianceChannel={selectAllianceChannel}
                   onSelectConversation={selectConversation}
                   onOpenFriends={openFriends}
                   onToggleSelfMute={voice.toggleSelfMute}
                   onToggleSelfDeafen={voice.toggleSelfDeafen}
                   onOpenSettings={openSettings}
-                  onSetShowInstallGame={setShowInstallGame}
                   onDragEnd={handleDragEnd}
                   sharing={voice.sharing}
                   onScreenShare={voice.handleScreenShare}
@@ -3207,7 +3013,6 @@ function App() {
                   selectedChannel={selectedChannel}
                   selectedConversation={selectedConversation}
                   selectedAllianceChannel={selectedAllianceChannel}
-                  selectedGame={selectedGame}
                   messages={messages}
                   searchResults={searchResults}
                   searchOpen={searchOpen}
@@ -3238,7 +3043,6 @@ function App() {
                   messagesContainerRef={messagesContainerRef}
                   messageInputRef={messageInputRef}
                   onReconnect={handleReconnect}
-                  onCloseGame={() => { setSelectedGame(null); setView("channels"); }}
                   onToggleReaction={toggleReaction}
                   onSetReplyTarget={setReplyTarget}
                   onSaveEdit={handleSaveEditedMessage}
@@ -3312,43 +3116,6 @@ function App() {
             parentId={newChannelParentId}
             onCreate={handleCreateChannel}
             onClose={() => setShowCreateChannel(false)}
-          />
-        )}
-
-        {showInstallGame && (
-          <InstallGameModal
-            name={installSimpleName}
-            onNameChange={setInstallSimpleName}
-            entryUrl={installSimpleEntryUrl}
-            onEntryUrlChange={setInstallSimpleEntryUrl}
-            description={installDescription}
-            onDescriptionChange={setInstallDescription}
-            thumbnailUrl={installThumbnailUrl}
-            onThumbnailUrlChange={setInstallThumbnailUrl}
-            author={installAuthor}
-            onAuthorChange={setInstallAuthor}
-            onInstall={handleQuickInstallGame}
-            onInstallDemo={handleInstallDemoGame}
-            onClose={() => { resetInstallForm(); setShowInstallGame(false); }}
-          />
-        )}
-
-        {editingGame && (
-          <EditGameModal
-            game={editingGame}
-            name={editGameName}
-            onNameChange={setEditGameName}
-            entryUrl={editGameEntryUrl}
-            onEntryUrlChange={setEditGameEntryUrl}
-            description={editGameDescription}
-            onDescriptionChange={setEditGameDescription}
-            thumbnailUrl={editGameThumbnailUrl}
-            onThumbnailUrlChange={setEditGameThumbnailUrl}
-            author={editGameAuthor}
-            onAuthorChange={setEditGameAuthor}
-            onSave={handleSaveGameEdit}
-            onDelete={handleDeleteGameFromEditor}
-            onClose={closeEditGame}
           />
         )}
 

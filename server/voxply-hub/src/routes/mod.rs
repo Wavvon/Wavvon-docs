@@ -8,7 +8,6 @@ pub mod dm_models;
 pub mod dms;
 pub mod friends;
 pub mod chat_models;
-pub mod games;
 pub mod health;
 pub mod hub_icons;
 pub mod hub;
