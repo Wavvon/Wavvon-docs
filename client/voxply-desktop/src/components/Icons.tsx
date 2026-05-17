@@ -80,9 +80,9 @@ export const CHANNEL_ICONS: ChannelIconDef[] = [
 ];
 
 export function ChannelIconGlyph({ icon, size = 14 }: { icon: string | null; size?: number }) {
-  if (!icon) return <span className="channel-icon-default" aria-hidden="true">#</span>;
+  if (!icon) return null;
   const def = CHANNEL_ICONS.find((d) => d.id === icon);
-  if (!def) return <span className="channel-icon-default" aria-hidden="true">#</span>;
+  if (!def) return null;
   return (
     <svg
       viewBox="0 0 24 24"

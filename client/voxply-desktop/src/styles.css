@@ -199,6 +199,18 @@ body {
   overflow: hidden;
 }
 
+input,
+textarea,
+select {
+  background: var(--bg-sunken);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  font-family: var(--font-stack);
+  font-size: var(--text-md);
+  padding: var(--space-2) var(--space-3);
+}
+
 #root {
   height: 100vh;
 }
@@ -991,6 +1003,11 @@ select,
   color: var(--danger);
 }
 
+.hub-dropdown-subitem {
+  padding-left: var(--space-6);
+  font-size: var(--text-sm);
+}
+
 /* ============================================================
    HUB BRANDING EDITOR (admin)
    ============================================================ */
@@ -1371,6 +1388,26 @@ select,
   color: var(--accent-text);
 }
 
+.channel-settings-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-faint);
+  opacity: 0;
+  cursor: pointer;
+  padding: 0 var(--space-1);
+  font-size: var(--text-sm);
+  transition: opacity var(--transition-fast), color var(--transition-fast);
+  margin-left: auto;
+}
+
+.channel-item:hover .channel-settings-btn {
+  opacity: 1;
+}
+
+.channel-settings-btn:hover {
+  color: var(--text);
+}
+
 .channel-item {
   display: flex;
   align-items: center;
@@ -1426,20 +1463,26 @@ select,
 
 .user-footer {
   display: flex;
-  align-items: center;
-  gap: var(--space-2);
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-1);
   padding: var(--space-1) 0;
 }
 
 .user-footer-name {
-  flex: 1 1 auto;
-  min-width: 0;
+  flex: none;
+  width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--text);
-  font-weight: var(--weight-medium);
   font-size: var(--text-sm);
+  color: var(--text);
+}
+
+.user-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 .btn-icon-gear {
@@ -3244,9 +3287,9 @@ select:focus {
   background: transparent;
   border: none;
   color: var(--text-muted);
-  font-size: 10px;
-  width: 14px;
-  height: 14px;
+  font-size: 14px;
+  width: 20px;
+  height: 20px;
   cursor: pointer;
   padding: 0;
   display: flex;

@@ -41,6 +41,7 @@ export function SortableChannelItem({
   onClick,
   onDoubleClick,
   onContextMenu,
+  onSettings,
 }: {
   channel: Channel;
   selected: boolean;
@@ -52,6 +53,7 @@ export function SortableChannelItem({
   onClick: () => void;
   onDoubleClick: () => void;
   onContextMenu: (e: React.MouseEvent) => void;
+  onSettings?: (e: React.MouseEvent) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: channel.id });
@@ -93,6 +95,16 @@ export function SortableChannelItem({
           >
             🎙️ {participants.length}
           </span>
+        )}
+        {onSettings && (
+          <button
+            className="channel-settings-btn"
+            onClick={(e) => { e.stopPropagation(); onSettings(e); }}
+            title="Channel settings"
+            aria-label="Channel settings"
+          >
+            ⚙
+          </button>
         )}
       </div>
       {participants.length > 0 && (

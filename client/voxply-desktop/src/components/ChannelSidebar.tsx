@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -17,7 +17,6 @@ import type {
   User,
   AllianceInfo,
   AllianceSharedChannel,
-  InstalledGame,
   Conversation,
 } from "../types";
 import type { TreeNode, FlatNode } from "../utils/channels";
@@ -106,6 +105,23 @@ export function ChannelSidebar({
   onSetShowInstallGame, onDragEnd, sharing, onScreenShare,
 }: Props) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [notifySubmenuOpen, setNotifySubmenuOpen] = useState(false);
+  const hubHeaderRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!hubDropdownOpen) setNotifySubmenuOpen(false);
+  }, [hubDropdownOpen]);
+
+  useEffect(() => {
+    if (!hubDropdownOpen) return;
+    function onOutsideClick(e: MouseEvent) {
+      if (hubHeaderRef.current && !hubHeaderRef.current.contains(e.target as Node)) {
+        onHubDropdownOpenChange(false);
+      }
+    }
+    document.addEventListener("mousedown", onOutsideClick);
+    return () => document.removeEventListener("mousedown", onOutsideClick);
+  }, [hubDropdownOpen, onHubDropdownOpenChange]);
 
   const dndSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -149,7 +165,7 @@ export function ChannelSidebar({
   return (
     <div className="sidebar">
       {view === "channels" && (
-        <div className="hub-header">
+        <div className="hub-header" ref={hubHeaderRef}>
           <button
             className="hub-header-button"
             onClick={() => onHubDropdownOpenChange(!hubDropdownOpen)}
@@ -169,24 +185,29 @@ export function ChannelSidebar({
                   Hub settings
                 </button>
               )}
-              {activeHubId && (() => {
+              <button
+                className="hub-dropdown-item hub-dropdown-submenu-trigger"
+                onClick={() => setNotifySubmenuOpen((v) => !v)}
+              >
+                Notifications {notifySubmenuOpen ? "▴" : "▸"}
+              </button>
+              {notifySubmenuOpen && activeHubId && (() => {
                 const cur = hubNotifyMode[activeHubId] ?? "all";
                 const items: { mode: NotifyMode; label: string }[] = [
-                  { mode: "all", label: "Notify on all messages" },
-                  { mode: "mentions", label: "Notify on @mentions only" },
-                  { mode: "silent", label: "Silence this hub" },
+                  { mode: "all",      label: "All messages" },
+                  { mode: "mentions", label: "@mentions only" },
+                  { mode: "silent",   label: "Silence" },
                 ];
                 return items.map(({ mode, label }) => (
                   <button
                     key={mode}
-                    className="hub-dropdown-item"
+                    className="hub-dropdown-item hub-dropdown-subitem"
                     onClick={() => {
                       onHubDropdownOpenChange(false);
                       onSetHubMode(activeHubId, mode);
                     }}
                   >
-                    {cur === mode ? "✓ " : ""}
-                    {label}
+                    {cur === mode ? "✓ " : "   "}{label}
                   </button>
                 ));
               })()}
@@ -247,7 +268,6 @@ export function ChannelSidebar({
 
             {/* Channels — single flat SortableContext, DFS order */}
             <div className="sidebar-header">
-              <h3>Channels</h3>
               <button
                 className="btn-icon"
                 onClick={() => onOpenCreateChannel(null, false)}
@@ -294,6 +314,7 @@ export function ChannelSidebar({
                         onClick={() => onSelectChannel(n.node)}
                         onDoubleClick={() => { if (voiceChannelId !== n.node.id) onVoiceJoin(n.node); }}
                         onContextMenu={(e) => onChannelContextMenu(e, n.node)}
+                        onSettings={isAdmin ? (e) => onChannelContextMenu(e, n.node) : undefined}
                       />
                     )
                   )}
@@ -462,58 +483,60 @@ export function ChannelSidebar({
           <span className="user-footer-name" title={publicKey ?? undefined}>
             {myDisplayName || publicKey?.slice(0, 12) || "You"}
           </span>
-          {voiceChannelId && (
-            <>
+          <div className="user-footer-actions">
+            {voiceChannelId && (
+              <>
+                <button
+                  onClick={onToggleSelfMute}
+                  className={`btn-icon-gear ${selfMuted ? "active" : ""}`}
+                  title={selfMuted ? "Unmute mic" : "Mute mic"}
+                >
+                  {selfMuted ? "🚫🎙️" : "🎙️"}
+                </button>
+                <button
+                  onClick={onToggleSelfDeafen}
+                  className={`btn-icon-gear ${selfDeafened ? "active" : ""}`}
+                  title={selfDeafened ? "Undeafen" : "Deafen"}
+                >
+                  {selfDeafened ? "🚫🔊" : "🔊"}
+                </button>
+                <button
+                  onClick={onScreenShare}
+                  className={`btn-icon-gear ${sharing ? "active" : ""}`}
+                  title={sharing ? "Stop sharing" : "Share screen"}
+                >
+                  {sharing ? "⏹" : "🖥"}
+                </button>
+              </>
+            )}
+            {voiceChannelId ? (
               <button
-                onClick={onToggleSelfMute}
-                className={`btn-icon-gear ${selfMuted ? "active" : ""}`}
-                title={selfMuted ? "Unmute mic" : "Mute mic"}
+                onClick={onVoiceLeave}
+                className="btn-icon-gear voice-call-btn end"
+                title="Leave voice"
+                aria-label="Leave voice"
               >
-                {selfMuted ? "🚫🎙️" : "🎙️"}
+                <PhoneOffIcon />
               </button>
+            ) : (
               <button
-                onClick={onToggleSelfDeafen}
-                className={`btn-icon-gear ${selfDeafened ? "active" : ""}`}
-                title={selfDeafened ? "Undeafen" : "Deafen"}
+                onClick={() => onVoiceJoin()}
+                className="btn-icon-gear voice-call-btn start"
+                disabled={!selectedChannel || selectedChannel.is_category}
+                title={
+                  !selectedChannel || selectedChannel.is_category
+                    ? "Select a channel first to join voice"
+                    : `Join voice on #${selectedChannel.name}`
+                }
+                aria-label="Join voice"
               >
-                {selfDeafened ? "🚫🔊" : "🔊"}
+                <PhoneIcon />
               </button>
-              <button
-                onClick={onScreenShare}
-                className={`btn-icon-gear ${sharing ? "active" : ""}`}
-                title={sharing ? "Stop sharing" : "Share screen"}
-              >
-                {sharing ? "⏹" : "🖥"}
-              </button>
-            </>
-          )}
-          {voiceChannelId ? (
-            <button
-              onClick={onVoiceLeave}
-              className="btn-icon-gear voice-call-btn end"
-              title="Leave voice"
-              aria-label="Leave voice"
-            >
-              <PhoneOffIcon />
+            )}
+            <button onClick={onOpenSettings} className="btn-icon-gear" title="Settings">
+              ⚙
             </button>
-          ) : (
-            <button
-              onClick={() => onVoiceJoin()}
-              className="btn-icon-gear voice-call-btn start"
-              disabled={!selectedChannel || selectedChannel.is_category}
-              title={
-                !selectedChannel || selectedChannel.is_category
-                  ? "Select a channel first to join voice"
-                  : `Join voice on #${selectedChannel.name}`
-              }
-              aria-label="Join voice"
-            >
-              <PhoneIcon />
-            </button>
-          )}
-          <button onClick={onOpenSettings} className="btn-icon-gear" title="Settings">
-            ⚙
-          </button>
+          </div>
         </div>
       </div>
     </div>
