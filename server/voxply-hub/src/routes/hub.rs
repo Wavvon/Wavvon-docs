@@ -40,6 +40,9 @@ pub async fn update_hub(
     if let Some(level) = req.min_security_level {
         upsert_setting(&state.db, "min_security_level", &level.to_string()).await?;
     }
+    if let Some(d) = req.max_channel_depth {
+        upsert_setting(&state.db, "max_channel_depth", &d.to_string()).await?;
+    }
 
     Ok(StatusCode::OK)
 }
@@ -112,10 +115,16 @@ pub async fn get_hub_settings(
         .and_then(|v| v.parse().ok())
         .unwrap_or(0);
 
+    let max_channel_depth: u32 = read_setting(&state.db, "max_channel_depth")
+        .await
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(0);
+
     Ok(Json(HubSettings {
         require_approval,
         invite_only,
         min_security_level,
+        max_channel_depth,
     }))
 }
 
@@ -124,6 +133,7 @@ pub struct HubSettings {
     pub require_approval: bool,
     pub invite_only: bool,
     pub min_security_level: u32,
+    pub max_channel_depth: u32,
 }
 
 #[derive(Serialize)]
@@ -170,6 +180,8 @@ pub struct UpdateHubRequest {
     pub require_approval: Option<bool>,
     #[serde(default)]
     pub min_security_level: Option<u32>,
+    #[serde(default)]
+    pub max_channel_depth: Option<u32>,
 }
 
 #[derive(Serialize, Deserialize)]

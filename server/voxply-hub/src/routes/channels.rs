@@ -132,6 +132,25 @@ pub async fn create_channel(
         }
     }
 
+    // Enforce max_channel_depth
+    let max_depth = read_max_depth(&state.db).await;
+    if max_depth > 0 {
+        let new_depth = node_depth(&state.db, req.parent_id.as_deref()).await?;
+        let max_code_depth = max_depth - 1;
+        if new_depth > max_code_depth {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                format!("Maximum channel depth ({max_depth}) would be exceeded"),
+            ));
+        }
+        if req.is_category && new_depth >= max_code_depth {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                format!("A category cannot be at the maximum depth ({max_depth})"),
+            ));
+        }
+    }
+
     let id = Uuid::new_v4().to_string();
     let now = crate::auth::handlers::unix_timestamp();
     let is_category_int = if req.is_category { 1i64 } else { 0 };
@@ -235,6 +254,41 @@ pub async fn update_channel(
                     ))
                 }
                 _ => {}
+            }
+
+            // Server-side cycle detection
+            if is_ancestor(&state.db, &channel_id, parent_id).await? {
+                return Err((
+                    StatusCode::BAD_REQUEST,
+                    "Cannot move a channel into its own descendant".to_string(),
+                ));
+            }
+            // Depth enforcement
+            let max_depth = read_max_depth(&state.db).await;
+            if max_depth > 0 {
+                let parent_depth = node_depth(&state.db, Some(parent_id)).await?;
+                let moved_depth = parent_depth + 1;
+                let max_code_depth = max_depth - 1;
+                if moved_depth > max_code_depth {
+                    return Err((
+                        StatusCode::BAD_REQUEST,
+                        format!("Maximum channel depth ({max_depth}) would be exceeded"),
+                    ));
+                }
+                let is_cat: i64 =
+                    sqlx::query_scalar("SELECT is_category FROM channels WHERE id = ?")
+                        .bind(&channel_id)
+                        .fetch_one(&state.db)
+                        .await
+                        .map_err(|e| {
+                            (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
+                        })?;
+                if is_cat == 1 && moved_depth >= max_code_depth {
+                    return Err((
+                        StatusCode::BAD_REQUEST,
+                        format!("A category cannot be at the maximum depth ({max_depth})"),
+                    ));
+                }
             }
         }
     }
@@ -456,4 +510,76 @@ struct ChannelRow {
     color: Option<String>,
     custom_icon_svg: Option<String>,
     created_at: i64,
+}
+
+/// Returns the code-depth a new item would sit at if placed under `parent_id`
+/// (0 = root-level, 1 = one level down, etc.).
+async fn node_depth(
+    db: &sqlx::SqlitePool,
+    parent_id: Option<&str>,
+) -> Result<u32, (StatusCode, String)> {
+    let Some(pid) = parent_id else { return Ok(0) };
+    let mut depth = 1u32;
+    let mut current = pid.to_string();
+    loop {
+        let parent: Option<String> =
+            sqlx::query_scalar("SELECT parent_id FROM channels WHERE id = ?")
+                .bind(&current)
+                .fetch_optional(db)
+                .await
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?
+                .flatten();
+        match parent {
+            None => break,
+            Some(p) => {
+                depth += 1;
+                current = p;
+                if depth > 50 {
+                    return Err((
+                        StatusCode::BAD_REQUEST,
+                        "Channel nesting depth exceeds safety limit".to_string(),
+                    ));
+                }
+            }
+        }
+    }
+    Ok(depth)
+}
+
+/// Returns true if `candidate` is an ancestor of `start`
+/// (i.e. walking up from `start` eventually reaches `candidate`).
+/// Used for server-side cycle detection.
+async fn is_ancestor(
+    db: &sqlx::SqlitePool,
+    candidate: &str,
+    start: &str,
+) -> Result<bool, (StatusCode, String)> {
+    let mut current = start.to_string();
+    for _ in 0..50 {
+        let parent: Option<String> =
+            sqlx::query_scalar("SELECT parent_id FROM channels WHERE id = ?")
+                .bind(&current)
+                .fetch_optional(db)
+                .await
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?
+                .flatten();
+        match parent {
+            None => return Ok(false),
+            Some(p) if p == candidate => return Ok(true),
+            Some(p) => current = p,
+        }
+    }
+    Ok(false)
+}
+
+async fn read_max_depth(db: &sqlx::SqlitePool) -> u32 {
+    sqlx::query_scalar::<_, String>(
+        "SELECT value FROM hub_settings WHERE key = 'max_channel_depth'",
+    )
+    .fetch_optional(db)
+    .await
+    .ok()
+    .flatten()
+    .and_then(|v| v.parse().ok())
+    .unwrap_or(0)
 }

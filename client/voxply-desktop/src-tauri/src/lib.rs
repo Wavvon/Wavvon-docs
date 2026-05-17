@@ -151,6 +151,7 @@ struct HubSettings {
     require_approval: bool,
     invite_only: bool,
     min_security_level: u32,
+    max_channel_depth: u32,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -3261,6 +3262,7 @@ async fn update_hub_branding(
     icon: Option<String>,
     require_approval: Option<bool>,
     min_security_level: Option<u32>,
+    max_channel_depth: Option<u32>,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
@@ -3274,6 +3276,7 @@ async fn update_hub_branding(
             "icon": icon,
             "require_approval": require_approval,
             "min_security_level": min_security_level,
+            "max_channel_depth": max_channel_depth,
         }))
         .send()
         .await
