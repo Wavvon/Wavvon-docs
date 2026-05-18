@@ -211,6 +211,30 @@ select {
   padding: var(--space-2) var(--space-3);
 }
 
+/* Base button reset — every button inherits theme tokens by default.
+   Class-specific rules (.btn-icon, .btn-secondary, etc.) override these
+   via higher CSS specificity without needing !important. */
+button {
+  background: var(--accent);
+  color: var(--accent-text, #fff);
+  border: none;
+  border-radius: var(--r-sm);
+  padding: var(--space-2) var(--space-4);
+  font-family: var(--font-stack);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+button:hover {
+  background: var(--accent-hover);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 #root {
   height: 100vh;
 }
