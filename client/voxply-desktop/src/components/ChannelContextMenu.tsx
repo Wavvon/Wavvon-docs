@@ -1,5 +1,6 @@
 import React from "react";
 import type { Channel, NotifyMode } from "../types";
+import { HoverSubmenu } from "./HoverSubmenu";
 
 interface Props {
   menu: { x: number; y: number; channel: Channel };
@@ -62,30 +63,24 @@ export function ChannelContextMenu({
           </>
         )}
         {activeHubId && (
-          <div className="context-menu-submenu-group">
-            <button className="context-menu-item context-menu-submenu-trigger">
-              Notifications ▸
-            </button>
-            <div className="context-menu-submenu">
-              {(() => {
-                const cur = effectiveNotifyMode(activeHubId, channel.id);
-                const items: { mode: NotifyMode; label: string }[] = [
-                  { mode: "all",      label: "All messages" },
-                  { mode: "mentions", label: "Only @mentions" },
-                  { mode: "silent",   label: "Silent" },
-                ];
-                return items.map(({ mode, label }) => (
-                  <button
-                    key={mode}
-                    className="context-menu-item context-menu-subitem"
-                    onClick={() => { onClose(); onSetMode(activeHubId, channel.id, mode); }}
-                  >
-                    {cur === mode ? "✓ " : "   "}{label}
-                  </button>
-                ));
-              })()}
-            </div>
-          </div>
+          <HoverSubmenu
+            trigger={<button className="context-menu-item context-menu-submenu-trigger">Notifications ▸</button>}
+            triggerClassName="context-menu-submenu-wrap"
+          >
+            {activeHubId && (() => {
+              const cur = effectiveNotifyMode(activeHubId, channel.id);
+              return ([
+                { mode: "all" as NotifyMode, label: "All messages" },
+                { mode: "mentions" as NotifyMode, label: "Only @mentions" },
+                { mode: "silent" as NotifyMode, label: "Silent" },
+              ]).map(({ mode, label }) => (
+                <button key={mode} className="context-menu-item context-menu-subitem"
+                  onClick={() => { onClose(); onSetMode(activeHubId, channel.id, mode); }}>
+                  {cur === mode ? "✓ " : "   "}{label}
+                </button>
+              ));
+            })()}
+          </HoverSubmenu>
         )}
         <button
           className="context-menu-item danger"

@@ -163,7 +163,11 @@ export function SortableCategoryItem({
     >
       <div
         className={`category-header ${isDragTarget ? "drag-target" : ""}`}
-        style={channel.color ? { borderLeft: `3px solid ${channel.color}`, paddingLeft: "6px" } : undefined}
+        style={channel.color ? {
+          background: `${channel.color}26`,
+          borderLeft: `3px solid ${channel.color}`,
+          paddingLeft: "6px",
+        } : undefined}
         onContextMenu={onContextMenu}
         {...attributes}
         {...listeners}
@@ -185,15 +189,6 @@ export function SortableCategoryItem({
         {collapsed && childCount > 0 && (
           <span className="category-count">{childCount}</span>
         )}
-        {onSettings && (
-          <button
-            className="btn-icon-small"
-            onClick={(e) => { e.stopPropagation(); onSettings(e); }}
-            title="Category settings"
-          >
-            ⚙
-          </button>
-        )}
         <button
           className="btn-icon-small"
           onClick={(e) => { e.stopPropagation(); onAdd(); }}
@@ -201,6 +196,15 @@ export function SortableCategoryItem({
         >
           +
         </button>
+        {onSettings && (
+          <button
+            className="btn-icon-small category-settings-btn"
+            onClick={(e) => { e.stopPropagation(); onSettings(e); }}
+            title="Category settings"
+          >
+            ⚙
+          </button>
+        )}
       </div>
       {!collapsed && children}
     </li>

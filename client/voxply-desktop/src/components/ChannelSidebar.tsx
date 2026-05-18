@@ -23,6 +23,7 @@ import type {
 import type { TreeNode, FlatNode } from "../utils/channels";
 import { PhoneOffIcon, ChannelIcon, PingIcon } from "./Icons";
 import { SortableCategoryItem, SortableChannelItem } from "./SortableItems";
+import { HoverSubmenu } from "./HoverSubmenu";
 
 const CHANNEL_INDENT_PX = 16;
 
@@ -185,41 +186,26 @@ export function ChannelSidebar({
               )}
               {isAdmin && (
                 <button className="hub-dropdown-item" onClick={() => { onHubDropdownOpenChange(false); onOpenCreateChannel(null, false); }}>
-                  Create channel
+                  Create channel or category…
                 </button>
               )}
-              {isAdmin && (
-                <button className="hub-dropdown-item" onClick={() => { onHubDropdownOpenChange(false); onOpenCreateChannel(null, true); }}>
-                  Create category
-                </button>
-              )}
-              <div className="hub-dropdown-submenu-group">
-                <button className="hub-dropdown-item hub-dropdown-submenu-trigger">
-                  Notifications ▸
-                </button>
-                <div className="hub-dropdown-subitems">
-                  {activeHubId && (() => {
-                    const cur = hubNotifyMode[activeHubId] ?? "all";
-                    const items: { mode: NotifyMode; label: string }[] = [
-                      { mode: "all",      label: "All messages" },
-                      { mode: "mentions", label: "@mentions only" },
-                      { mode: "silent",   label: "Silence" },
-                    ];
-                    return items.map(({ mode, label }) => (
-                      <button
-                        key={mode}
-                        className="hub-dropdown-item hub-dropdown-subitem"
-                        onClick={() => {
-                          onHubDropdownOpenChange(false);
-                          onSetHubMode(activeHubId, mode);
-                        }}
-                      >
-                        {cur === mode ? "✓ " : "   "}{label}
-                      </button>
-                    ));
-                  })()}
-                </div>
-              </div>
+              <HoverSubmenu
+                trigger={<button className="hub-dropdown-item hub-dropdown-submenu-trigger">Notifications ▸</button>}
+              >
+                {activeHubId && (() => {
+                  const cur = hubNotifyMode[activeHubId] ?? "all";
+                  return ([
+                    { mode: "all" as NotifyMode, label: "All messages" },
+                    { mode: "mentions" as NotifyMode, label: "@mentions only" },
+                    { mode: "silent" as NotifyMode, label: "Silence" },
+                  ]).map(({ mode, label }) => (
+                    <button key={mode} className="hub-dropdown-item hub-dropdown-subitem"
+                      onClick={() => { onHubDropdownOpenChange(false); onSetHubMode(activeHubId, mode); }}>
+                      {cur === mode ? "✓ " : "   "}{label}
+                    </button>
+                  ));
+                })()}
+              </HoverSubmenu>
               {activeHubId && Object.keys(unreadByChannel[activeHubId] ?? {}).length > 0 && (
                 <button
                   className="hub-dropdown-item"
@@ -406,12 +392,7 @@ export function ChannelSidebar({
           >
             {isAdmin && (
               <button className="context-menu-item" onClick={() => { setHubCtxMenu(null); onOpenCreateChannel(null, false); }}>
-                Create channel
-              </button>
-            )}
-            {isAdmin && (
-              <button className="context-menu-item" onClick={() => { setHubCtxMenu(null); onOpenCreateChannel(null, true); }}>
-                Create category
+                Create channel or category…
               </button>
             )}
             {isAdmin && (
@@ -424,23 +405,23 @@ export function ChannelSidebar({
                 Hub settings
               </button>
             )}
-            <div className="context-menu-submenu-group">
-              <button className="context-menu-item context-menu-submenu-trigger">Notifications ▸</button>
-              <div className="context-menu-submenu">
-                {activeHubId && (() => {
-                  const cur = hubNotifyMode[activeHubId] ?? "all";
-                  return ([
-                    { mode: "all" as NotifyMode, label: "All messages" },
-                    { mode: "mentions" as NotifyMode, label: "@mentions only" },
-                    { mode: "silent" as NotifyMode, label: "Silence" },
-                  ]).map(({ mode, label }) => (
-                    <button key={mode} className="context-menu-item context-menu-subitem" onClick={() => { setHubCtxMenu(null); onSetHubMode(activeHubId, mode); }}>
-                      {cur === mode ? "✓ " : "   "}{label}
-                    </button>
-                  ));
-                })()}
-              </div>
-            </div>
+            <HoverSubmenu
+              trigger={<button className="context-menu-item context-menu-submenu-trigger">Notifications ▸</button>}
+            >
+              {activeHubId && (() => {
+                const cur = hubNotifyMode[activeHubId] ?? "all";
+                return ([
+                  { mode: "all" as NotifyMode, label: "All messages" },
+                  { mode: "mentions" as NotifyMode, label: "@mentions only" },
+                  { mode: "silent" as NotifyMode, label: "Silence" },
+                ]).map(({ mode, label }) => (
+                  <button key={mode} className="context-menu-item context-menu-subitem"
+                    onClick={() => { setHubCtxMenu(null); onSetHubMode(activeHubId, mode); }}>
+                    {cur === mode ? "✓ " : "   "}{label}
+                  </button>
+                ));
+              })()}
+            </HoverSubmenu>
             {activeHubId && Object.keys(unreadByChannel[activeHubId] ?? {}).length > 0 && (
               <button className="context-menu-item" onClick={() => { setHubCtxMenu(null); if (activeHubId) onClearHubUnread(activeHubId); }}>
                 Mark all as read
