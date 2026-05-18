@@ -240,13 +240,17 @@ export function AlliancesSection({
         {/* ── Left: list + inline create ── */}
         <div className="alliances-list-panel">
           <div className="alliances-list">
-            {pendingInvites.length > 0 && (
-              <div className="alliance-pending-section">
-                <div className="alliance-pending-header">
-                  Pending invites
+            <div className="alliance-pending-section">
+              <div className="alliance-pending-header">
+                Pending invites
+                {pendingInvites.length > 0 && (
                   <span className="alliance-pending-badge">{pendingInvites.length}</span>
-                </div>
-                {pendingInvites.map((inv) => (
+                )}
+              </div>
+              {pendingInvites.length === 0 ? (
+                <p className="alliances-empty-hint muted">None</p>
+              ) : (
+                pendingInvites.map((inv) => (
                   <div key={inv.id} className="alliance-pending-item">
                     <div className="alliance-pending-name">{inv.alliance_name}</div>
                     <div className="alliance-pending-from muted">{inv.from_hub_name}</div>
@@ -255,9 +259,9 @@ export function AlliancesSection({
                       <button className="btn-secondary" onClick={() => handleRespondInvite(inv.id, false)}>Decline</button>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+                ))
+              )}
+            </div>
             {alliances.length === 0 && !isCreating && (
               <p className="alliances-empty-hint muted">No alliances yet</p>
             )}
