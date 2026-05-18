@@ -46,6 +46,7 @@ async fn setup_with_pool() -> (TestServer, sqlx::SqlitePool) {
         online_users: RwLock::new(std::collections::HashSet::new()),
         screen_shares: RwLock::new(HashMap::new()),
         screen_share_tx: broadcast::channel(16).0,
+        http_client: reqwest::Client::new(),
     });
     let app = server::create_router(state);
     (TestServer::new(app), pool_handle)
@@ -245,6 +246,7 @@ async fn start_real_hub(name: &str) -> String {
         online_users: RwLock::new(std::collections::HashSet::new()),
         screen_shares: RwLock::new(HashMap::new()),
         screen_share_tx: broadcast::channel(16).0,
+        http_client: reqwest::Client::new(),
     });
     let app = server::create_router(state);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -319,6 +321,7 @@ async fn start_real_hub_with_state(name: &str) -> (String, Arc<AppState>) {
         online_users: RwLock::new(std::collections::HashSet::new()),
         screen_shares: RwLock::new(HashMap::new()),
         screen_share_tx: broadcast::channel(16).0,
+        http_client: reqwest::Client::new(),
     });
     let app = server::create_router(state.clone());
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -472,6 +475,7 @@ async fn dm_retries_when_recipient_hub_comes_online() {
         online_users: RwLock::new(std::collections::HashSet::new()),
         screen_shares: RwLock::new(HashMap::new()),
         screen_share_tx: broadcast::channel(16).0,
+        http_client: reqwest::Client::new(),
     });
     let app_b = server::create_router(hub_b_state.clone());
     let listener_b = tokio::net::TcpListener::bind(format!("127.0.0.1:{dead_port}"))

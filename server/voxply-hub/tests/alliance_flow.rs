@@ -37,6 +37,7 @@ async fn start_hub(name: &str) -> (String, Arc<AppState>) {
         online_users: RwLock::new(std::collections::HashSet::new()),
         screen_shares: RwLock::new(HashMap::new()),
         screen_share_tx: broadcast::channel(16).0,
+        http_client: reqwest::Client::new(),
     });
 
     let app = server::create_router(state.clone());
@@ -304,4 +305,218 @@ async fn two_hubs_form_alliance() {
         "expected attribution prefix in {:?}",
         proxied.content
     );
+}
+
+// ---------------------------------------------------------------------------
+// Push-invite tests
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn push_invite_happy_path() {
+    // Hub A creates an alliance and pushes an invite directly to Hub B.
+    // Hub B sees it as a pending invite and can accept it.
+    let (hub_a_url, _hub_a_state) = start_hub("hub-a").await;
+    let (hub_b_url, _hub_b_state) = start_hub("hub-b").await;
+    let client = reqwest::Client::new();
+
+    // First users on each hub automatically receive the Owner (admin) role.
+    let user_a = Identity::generate();
+    let token_a = authenticate_user(&hub_a_url, &user_a).await;
+    let user_b = Identity::generate();
+    let token_b = authenticate_user(&hub_b_url, &user_b).await;
+
+    // Hub A: create an alliance
+    let alliance: AllianceResponse = client
+        .post(format!("{hub_a_url}/alliances"))
+        .bearer_auth(&token_a)
+        .json(&json!({ "name": "Push Alliance" }))
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+
+    // Hub B: no pending invites yet
+    let pending: Vec<voxply_hub::routes::alliance_models::PendingAllianceInviteRow> = client
+        .get(format!("{hub_b_url}/alliances/pending-invites"))
+        .bearer_auth(&token_b)
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(pending.len(), 0);
+
+    // Hub A: push an invite to Hub B
+    let resp = client
+        .post(format!("{hub_a_url}/alliances/{}/push-invite", alliance.id))
+        .bearer_auth(&token_a)
+        .json(&json!({
+            "target_hub_url": hub_b_url,
+            "own_hub_url": hub_a_url,
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), 200, "push-invite: {}", resp.text().await.unwrap_or_default());
+
+    // Hub B: should now see one pending invite
+    let pending: Vec<voxply_hub::routes::alliance_models::PendingAllianceInviteRow> = client
+        .get(format!("{hub_b_url}/alliances/pending-invites"))
+        .bearer_auth(&token_b)
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(pending.len(), 1);
+    assert_eq!(pending[0].alliance_name, "Push Alliance");
+
+    let invite_id = pending[0].id.clone();
+
+    // Hub B: accept the invite (supply our own URL so Hub A can call back).
+    let resp = client
+        .post(format!("{hub_b_url}/alliances/pending-invites/{invite_id}/accept"))
+        .bearer_auth(&token_b)
+        .json(&json!({ "own_hub_url": hub_b_url }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), 200, "accept: {}", resp.text().await.unwrap_or_default());
+
+    // Hub B: pending list should now be empty
+    let pending: Vec<voxply_hub::routes::alliance_models::PendingAllianceInviteRow> = client
+        .get(format!("{hub_b_url}/alliances/pending-invites"))
+        .bearer_auth(&token_b)
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(pending.len(), 0);
+
+    // Hub B: should have the alliance in its list
+    let b_alliances: Vec<AllianceResponse> = client
+        .get(format!("{hub_b_url}/alliances"))
+        .bearer_auth(&token_b)
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert!(
+        b_alliances.iter().any(|a| a.id == alliance.id),
+        "Hub B should have joined the alliance after accepting"
+    );
+}
+
+#[tokio::test]
+async fn push_invite_decline() {
+    // Hub B declines an invite — it should be removed from the pending list
+    // and Hub B should not appear in the alliance.
+    let (hub_a_url, _hub_a_state) = start_hub("hub-a").await;
+    let (hub_b_url, _hub_b_state) = start_hub("hub-b").await;
+    let client = reqwest::Client::new();
+
+    let user_a = Identity::generate();
+    let token_a = authenticate_user(&hub_a_url, &user_a).await;
+    let user_b = Identity::generate();
+    let token_b = authenticate_user(&hub_b_url, &user_b).await;
+
+    let alliance: AllianceResponse = client
+        .post(format!("{hub_a_url}/alliances"))
+        .bearer_auth(&token_a)
+        .json(&json!({ "name": "Decline Test" }))
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+
+    // Push the invite
+    let resp = client
+        .post(format!("{hub_a_url}/alliances/{}/push-invite", alliance.id))
+        .bearer_auth(&token_a)
+        .json(&json!({
+            "target_hub_url": hub_b_url,
+            "own_hub_url": hub_a_url,
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), 200);
+
+    let pending: Vec<voxply_hub::routes::alliance_models::PendingAllianceInviteRow> = client
+        .get(format!("{hub_b_url}/alliances/pending-invites"))
+        .bearer_auth(&token_b)
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(pending.len(), 1);
+    let invite_id = pending[0].id.clone();
+
+    // Hub B: decline
+    let resp = client
+        .delete(format!("{hub_b_url}/alliances/pending-invites/{invite_id}"))
+        .bearer_auth(&token_b)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), 204, "decline: {}", resp.text().await.unwrap_or_default());
+
+    // Pending list should be empty
+    let pending: Vec<voxply_hub::routes::alliance_models::PendingAllianceInviteRow> = client
+        .get(format!("{hub_b_url}/alliances/pending-invites"))
+        .bearer_auth(&token_b)
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(pending.len(), 0);
+
+    // Hub B should NOT be in the alliance
+    let b_alliances: Vec<AllianceResponse> = client
+        .get(format!("{hub_b_url}/alliances"))
+        .bearer_auth(&token_b)
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert!(b_alliances.is_empty(), "Hub B should not have joined after declining");
+}
+
+#[tokio::test]
+async fn push_invite_nonexistent_alliance_rejected() {
+    let (hub_a_url, _) = start_hub("hub-a").await;
+    let (hub_b_url, _) = start_hub("hub-b").await;
+    let client = reqwest::Client::new();
+
+    let user_a = Identity::generate();
+    let token_a = authenticate_user(&hub_a_url, &user_a).await;
+
+    // Try to push an invite for a non-existent alliance_id — should get 404.
+    let resp = client
+        .post(format!("{hub_a_url}/alliances/does-not-exist/push-invite"))
+        .bearer_auth(&token_a)
+        .json(&json!({
+            "target_hub_url": hub_b_url,
+            "own_hub_url": hub_a_url,
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), 404);
 }

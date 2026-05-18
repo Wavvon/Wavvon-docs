@@ -38,6 +38,7 @@ async fn setup() -> (TestServer, Identity) {
         online_users: RwLock::new(std::collections::HashSet::new()),
         screen_shares: RwLock::new(HashMap::new()),
         screen_share_tx: broadcast::channel(16).0,
+        http_client: reqwest::Client::new(),
     });
     let app = server::create_router(state);
     let server = TestServer::new(app);

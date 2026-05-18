@@ -617,33 +617,46 @@ pub async fn join_alliance_local(
     perms.require(ADMIN)?;
 
     let inviter_url = req.inviter_hub_url.trim_end_matches('/').to_string();
+    let detail = do_join_alliance(&state, &inviter_url, &req.alliance_id, &req.invite_token, &req.own_hub_url).await?;
+    Ok(Json(detail))
+}
 
-    // Authenticate to the inviter so we can call their join endpoint as
-    // ourselves (the hub identity), not as the user.
+// ---------------------------------------------------------------------------
+// Push-invite feature
+// ---------------------------------------------------------------------------
+
+/// Extract a common join sequence shared by `join_alliance_local` and
+/// `accept_pending_invite` to avoid duplication.
+async fn do_join_alliance(
+    state: &Arc<AppState>,
+    inviter_url: &str,
+    alliance_id: &str,
+    invite_token: &str,
+    own_hub_url: &str,
+) -> Result<AllianceDetailResponse, (StatusCode, String)> {
     let token = state
         .federation_client
-        .authenticate(&inviter_url, &state.hub_identity)
+        .authenticate(inviter_url, &state.hub_identity)
         .await
         .map_err(|e| (StatusCode::BAD_GATEWAY, format!("Auth to inviter failed: {e}")))?;
 
     let join_resp = state
         .federation_client
-        .post_alliance_join(&inviter_url, &token, &req.alliance_id, &req.invite_token, &req.own_hub_url)
+        .post_alliance_join(inviter_url, &token, alliance_id, invite_token, own_hub_url)
         .await
         .map_err(|e| (StatusCode::BAD_GATEWAY, format!("Join request failed: {e}")))?;
     if !join_resp.status().is_success() {
         let status = join_resp.status();
         let body = join_resp.text().await.unwrap_or_default();
         return Err((
-            StatusCode::from_u16(status.as_u16())
-                .unwrap_or(StatusCode::BAD_GATEWAY),
+            StatusCode::from_u16(status.as_u16()).unwrap_or(StatusCode::BAD_GATEWAY),
             format!("Inviter rejected join: {body}"),
         ));
     }
 
     let detail = state
         .federation_client
-        .get_alliance_detail(&inviter_url, &token, &req.alliance_id)
+        .get_alliance_detail(inviter_url, &token, alliance_id)
         .await
         .map_err(|e| (StatusCode::BAD_GATEWAY, format!("Detail fetch failed: {e}")))?;
 
@@ -667,7 +680,6 @@ pub async fn join_alliance_local(
         .bind(&detail.id)
         .bind(&m.hub_public_key)
         .bind(&m.hub_name)
-        // For our own row store "self" so list_shared_channels skips us.
         .bind(if m.hub_public_key == state.hub_identity.public_key_hex() {
             "self".to_string()
         } else {
@@ -679,29 +691,26 @@ pub async fn join_alliance_local(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
     }
 
-    // Cache the inviter's token for federation calls (e.g. listing remote
-    // shared channels). Other peers will get authenticated lazily on demand.
+    // Cache the inviter's session token for future federation calls.
     let inviter_pubkey: Option<String> = sqlx::query_scalar(
         "SELECT hub_public_key FROM alliance_members WHERE alliance_id = ? AND hub_url = ?",
     )
     .bind(&detail.id)
-    .bind(&inviter_url)
+    .bind(inviter_url)
     .fetch_optional(&state.db)
     .await
     .ok()
     .flatten();
     if let Some(pk) = inviter_pubkey {
-        state.peer_tokens.write().await.insert(pk, token.clone());
+        state.peer_tokens.write().await.insert(pk.clone(), token.clone());
 
-        // Also persist as a peer if we don't already know them
         let exists: Option<String> =
             sqlx::query_scalar("SELECT public_key FROM peers WHERE public_key = ?")
-                .bind(&detail.created_by)
+                .bind(&pk)
                 .fetch_optional(&state.db)
                 .await
                 .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
         if exists.is_none() {
-            // Best-effort: insert the inviter as a peer record
             for m in &detail.members {
                 if m.hub_url != "self" && m.hub_url == inviter_url {
                     let _ = sqlx::query(
@@ -718,13 +727,204 @@ pub async fn join_alliance_local(
         }
     }
 
+    tracing::info!("Joined alliance '{}' via {}", detail.name, inviter_url);
+    Ok(detail)
+}
+
+/// `POST /alliances/{alliance_id}/push-invite`
+/// Hub A admin pushes a direct invite to Hub B over HTTP.
+pub async fn push_invite_handler(
+    State(state): State<Arc<AppState>>,
+    user: AuthUser,
+    Path(alliance_id): Path<String>,
+    Json(req): Json<crate::routes::alliance_models::PushInviteRequest>,
+) -> Result<StatusCode, (StatusCode, String)> {
+    let perms = permissions::user_permissions(&state.db, &user.public_key).await?;
+    perms.require(ADMIN)?;
+
+    // Verify alliance exists
+    let alliance = sqlx::query_as::<_, AllianceRow>(
+        "SELECT id, name, created_by, created_at FROM alliances WHERE id = ?",
+    )
+    .bind(&alliance_id)
+    .fetch_optional(&state.db)
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?
+    .ok_or((StatusCode::NOT_FOUND, "Alliance not found".to_string()))?;
+
+    // Hub name from settings
+    let hub_name: String = sqlx::query_scalar(
+        "SELECT value FROM hub_settings WHERE key = 'name'",
+    )
+    .fetch_optional(&state.db)
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?
+    .unwrap_or_else(|| "Unknown".to_string());
+
+    // Generate invite token: sign alliance_id bytes, hex-encode
+    let signature = state.hub_identity.sign(alliance_id.as_bytes());
+    let invite_token = hex::encode(signature.to_bytes());
+
+    let payload = crate::routes::alliance_models::FederationAllianceInvitePayload {
+        id: Uuid::new_v4().to_string(),
+        alliance_id: alliance.id,
+        alliance_name: alliance.name,
+        from_hub_url: req.own_hub_url.clone(),
+        from_hub_name: hub_name,
+        from_hub_public_key: state.hub_identity.public_key_hex(),
+        invite_token,
+    };
+
+    let target_url = req.target_hub_url.trim_end_matches('/').to_string();
+    let resp = state
+        .http_client
+        .post(format!("{target_url}/federation/alliance-invite"))
+        .json(&payload)
+        .send()
+        .await
+        .map_err(|e| (StatusCode::BAD_GATEWAY, format!("Failed to reach target hub: {e}")))?;
+
+    if !resp.status().is_success() {
+        let status = resp.status();
+        let body = resp.text().await.unwrap_or_default();
+        return Err((
+            StatusCode::from_u16(status.as_u16()).unwrap_or(StatusCode::BAD_GATEWAY),
+            format!("Target hub rejected invite: {body}"),
+        ));
+    }
+
+    Ok(StatusCode::OK)
+}
+
+/// `POST /federation/alliance-invite`
+/// Hub B receives a pushed invite from Hub A (no auth required).
+pub async fn receive_federation_alliance_invite(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<crate::routes::alliance_models::FederationAllianceInvitePayload>,
+) -> Result<StatusCode, (StatusCode, String)> {
+    let now = crate::auth::handlers::unix_timestamp();
+
+    sqlx::query(
+        "INSERT OR IGNORE INTO pending_alliance_invites
+         (id, alliance_id, alliance_name, from_hub_url, from_hub_name, from_hub_public_key, invite_token, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+    )
+    .bind(&payload.id)
+    .bind(&payload.alliance_id)
+    .bind(&payload.alliance_name)
+    .bind(&payload.from_hub_url)
+    .bind(&payload.from_hub_name)
+    .bind(&payload.from_hub_public_key)
+    .bind(&payload.invite_token)
+    .bind(now)
+    .execute(&state.db)
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
+
     tracing::info!(
-        "Joined alliance '{}' via {}",
-        detail.name,
-        &inviter_url
+        "Received alliance invite from '{}' for alliance '{}'",
+        payload.from_hub_name,
+        payload.alliance_name
     );
 
+    Ok(StatusCode::OK)
+}
+
+/// `GET /alliances/pending-invites`
+/// List all pending push invites received by this hub (ADMIN only).
+pub async fn list_pending_invites(
+    State(state): State<Arc<AppState>>,
+    user: AuthUser,
+) -> Result<Json<Vec<crate::routes::alliance_models::PendingAllianceInviteRow>>, (StatusCode, String)> {
+    let perms = permissions::user_permissions(&state.db, &user.public_key).await?;
+    perms.require(ADMIN)?;
+
+    let rows = sqlx::query_as::<_, PendingInviteRow>(
+        "SELECT id, alliance_id, alliance_name, from_hub_url, from_hub_name, from_hub_public_key, invite_token, created_at
+         FROM pending_alliance_invites
+         ORDER BY created_at DESC",
+    )
+    .fetch_all(&state.db)
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
+
+    Ok(Json(
+        rows.into_iter()
+            .map(|r| crate::routes::alliance_models::PendingAllianceInviteRow {
+                id: r.id,
+                alliance_id: r.alliance_id,
+                alliance_name: r.alliance_name,
+                from_hub_url: r.from_hub_url,
+                from_hub_name: r.from_hub_name,
+                from_hub_public_key: r.from_hub_public_key,
+                invite_token: r.invite_token,
+                created_at: r.created_at,
+            })
+            .collect(),
+    ))
+}
+
+/// `POST /alliances/pending-invites/{invite_id}/accept`
+/// Accept a pending push invite, join the alliance, and remove the invite row.
+/// The request body must contain `own_hub_url` — the publicly reachable URL of
+/// this hub — so the inviting hub can call back to verify identity.
+pub async fn accept_pending_invite(
+    State(state): State<Arc<AppState>>,
+    user: AuthUser,
+    Path(invite_id): Path<String>,
+    Json(req): Json<crate::routes::alliance_models::AcceptPendingInviteRequest>,
+) -> Result<Json<AllianceDetailResponse>, (StatusCode, String)> {
+    let perms = permissions::user_permissions(&state.db, &user.public_key).await?;
+    perms.require(ADMIN)?;
+
+    let invite = sqlx::query_as::<_, PendingInviteRow>(
+        "SELECT id, alliance_id, alliance_name, from_hub_url, from_hub_name, from_hub_public_key, invite_token, created_at
+         FROM pending_alliance_invites WHERE id = ?",
+    )
+    .bind(&invite_id)
+    .fetch_optional(&state.db)
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?
+    .ok_or((StatusCode::NOT_FOUND, "Pending invite not found".to_string()))?;
+
+    let inviter_url = invite.from_hub_url.trim_end_matches('/').to_string();
+
+    let detail = do_join_alliance(
+        &state,
+        &inviter_url,
+        &invite.alliance_id,
+        &invite.invite_token,
+        &req.own_hub_url,
+    )
+    .await?;
+
+    // Remove the pending invite now that we've successfully joined.
+    sqlx::query("DELETE FROM pending_alliance_invites WHERE id = ?")
+        .bind(&invite_id)
+        .execute(&state.db)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
+
     Ok(Json(detail))
+}
+
+/// `DELETE /alliances/pending-invites/{invite_id}`
+/// Decline (remove) a pending push invite.
+pub async fn decline_pending_invite(
+    State(state): State<Arc<AppState>>,
+    user: AuthUser,
+    Path(invite_id): Path<String>,
+) -> Result<StatusCode, (StatusCode, String)> {
+    let perms = permissions::user_permissions(&state.db, &user.public_key).await?;
+    perms.require(ADMIN)?;
+
+    sqlx::query("DELETE FROM pending_alliance_invites WHERE id = ?")
+        .bind(&invite_id)
+        .execute(&state.db)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
+
+    Ok(StatusCode::NO_CONTENT)
 }
 
 // Join: a remote hub calls this with an invite token to join the alliance
@@ -834,4 +1034,16 @@ struct LocalMessageRow {
     attachments: Option<String>,
     created_at: i64,
     edited_at: Option<i64>,
+}
+
+#[derive(sqlx::FromRow)]
+struct PendingInviteRow {
+    id: String,
+    alliance_id: String,
+    alliance_name: String,
+    from_hub_url: String,
+    from_hub_name: String,
+    from_hub_public_key: String,
+    invite_token: String,
+    created_at: i64,
 }

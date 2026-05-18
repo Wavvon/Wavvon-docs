@@ -92,6 +92,7 @@ async fn main() -> Result<()> {
         chat_tx,
         federation_client: FederationClient::new(),
         peer_tokens: RwLock::new(HashMap::new()),
+        http_client: reqwest::Client::new(),
         voice_channels: RwLock::new(HashMap::new()),
         voice_udp_port,
         voice_event_tx,

@@ -117,14 +117,19 @@ pub fn create_router(state: Arc<AppState>) -> Router {
         .route("/channels/{channel_id}/talk-power", get(routes::moderation::get_talk_power).post(routes::moderation::set_talk_power))
         .route("/alliances", get(routes::alliances::list_alliances).post(routes::alliances::create_alliance))
         .route("/alliances/join", post(routes::alliances::join_alliance_local))
+        .route("/alliances/pending-invites", get(routes::alliances::list_pending_invites))
+        .route("/alliances/pending-invites/{invite_id}/accept", post(routes::alliances::accept_pending_invite))
+        .route("/alliances/pending-invites/{invite_id}", axum::routing::delete(routes::alliances::decline_pending_invite))
         .route("/alliances/{alliance_id}", get(routes::alliances::get_alliance))
         .route("/alliances/{alliance_id}/invite", post(routes::alliances::create_invite))
+        .route("/alliances/{alliance_id}/push-invite", post(routes::alliances::push_invite_handler))
         .route("/alliances/{alliance_id}/join", post(routes::alliances::join_alliance))
         .route("/alliances/{alliance_id}/leave", axum::routing::delete(routes::alliances::leave_alliance))
         .route("/alliances/{alliance_id}/channels", get(routes::alliances::list_shared_channels)
             .post(routes::alliances::share_channel))
         .route("/alliances/{alliance_id}/channels/{channel_id}", axum::routing::delete(routes::alliances::unshare_channel))
         .route("/alliances/{alliance_id}/channels/{channel_id}/messages", get(routes::alliances::get_alliance_channel_messages).post(routes::alliances::post_alliance_channel_message))
+        .route("/federation/alliance-invite", post(routes::alliances::receive_federation_alliance_invite))
         .route(
             "/identity/{master}/designation",
             get(routes::identity::get_designation).post(routes::identity::put_designation),

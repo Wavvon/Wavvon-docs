@@ -631,6 +631,21 @@ pub async fn run(pool: &SqlitePool) -> Result<()> {
     .execute(pool)
     .await?;
 
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS pending_alliance_invites (
+            id                  TEXT PRIMARY KEY,
+            alliance_id         TEXT NOT NULL,
+            alliance_name       TEXT NOT NULL,
+            from_hub_url        TEXT NOT NULL,
+            from_hub_name       TEXT NOT NULL,
+            from_hub_public_key TEXT NOT NULL,
+            invite_token        TEXT NOT NULL,
+            created_at          INTEGER NOT NULL
+        )",
+    )
+    .execute(pool)
+    .await?;
+
     tracing::info!("Database migrations complete");
     Ok(())
 }

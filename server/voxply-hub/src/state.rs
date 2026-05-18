@@ -83,6 +83,9 @@ pub struct AppState {
     pub chat_tx: broadcast::Sender<ChatEvent>,
     pub federation_client: FederationClient,
     pub peer_tokens: RwLock<HashMap<String, String>>,
+    /// Plain HTTP client for outbound requests that don't go through the
+    /// federation protocol (e.g. sending push invites to foreign hubs).
+    pub http_client: reqwest::Client,
     // Voice: channel_id → {public_key → udp_addr}
     pub voice_channels: RwLock<HashMap<String, HashMap<String, SocketAddr>>>,
     pub voice_udp_port: u16,

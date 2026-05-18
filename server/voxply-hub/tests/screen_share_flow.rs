@@ -39,6 +39,7 @@ async fn start_hub() -> (String, Arc<AppState>) {
         online_users: RwLock::new(std::collections::HashSet::new()),
         screen_shares: RwLock::new(HashMap::new()),
         screen_share_tx: broadcast::channel(256).0,
+        http_client: reqwest::Client::new(),
     });
 
     let app = server::create_router(state.clone());

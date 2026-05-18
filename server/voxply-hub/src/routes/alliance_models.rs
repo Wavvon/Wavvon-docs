@@ -67,3 +67,43 @@ pub struct JoinAllianceLocalRequest {
     pub invite_token: String,
     pub own_hub_url: String,
 }
+
+/// Admin-initiated push invite: Hub A sends this to trigger an outbound invite
+/// directly to Hub B's federation endpoint.
+#[derive(Deserialize)]
+pub struct PushInviteRequest {
+    pub target_hub_url: String,
+    pub own_hub_url: String,
+}
+
+/// Accept a pending push invite. Hub B must supply its own publicly reachable
+/// URL so Hub A can call back to fetch hub info and register the join.
+#[derive(Deserialize)]
+pub struct AcceptPendingInviteRequest {
+    pub own_hub_url: String,
+}
+
+/// Payload sent from Hub A to Hub B's `/federation/alliance-invite` endpoint.
+#[derive(Serialize, Deserialize)]
+pub struct FederationAllianceInvitePayload {
+    pub id: String,
+    pub alliance_id: String,
+    pub alliance_name: String,
+    pub from_hub_url: String,
+    pub from_hub_name: String,
+    pub from_hub_public_key: String,
+    pub invite_token: String,
+}
+
+/// A row from `pending_alliance_invites` as returned to the client.
+#[derive(Serialize, Deserialize)]
+pub struct PendingAllianceInviteRow {
+    pub id: String,
+    pub alliance_id: String,
+    pub alliance_name: String,
+    pub from_hub_url: String,
+    pub from_hub_name: String,
+    pub from_hub_public_key: String,
+    pub invite_token: String,
+    pub created_at: i64,
+}

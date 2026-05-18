@@ -37,6 +37,7 @@ async fn setup() -> TestServer {
         online_users: RwLock::new(std::collections::HashSet::new()),
         screen_shares: RwLock::new(HashMap::new()),
         screen_share_tx: broadcast::channel(16).0,
+        http_client: reqwest::Client::new(),
     });
 
     TestServer::new(server::create_router(state))
