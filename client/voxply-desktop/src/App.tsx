@@ -2903,6 +2903,9 @@ function App() {
                   Browse public hubs to find communities to join, or paste
                   a hub URL directly if you already have one.
                 </p>
+                <button className="welcome-settings-link" onClick={openSettings}>
+                  ⚙ Set up your profile first
+                </button>
               </div>
             ) : myApprovalStatus === "pending" ? (
               <div className="empty-state pending-approval">
