@@ -288,3 +288,14 @@ export interface SyncResult {
   synced: boolean;
   error: string | null;
 }
+
+export interface PendingAllianceInvite {
+  id: string;
+  alliance_id: string;
+  alliance_name: string;
+  from_hub_url: string;
+  from_hub_name: string;
+  from_hub_public_key: string;
+  invite_token: string;
+  created_at: number;
+}

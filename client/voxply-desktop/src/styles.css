@@ -1580,6 +1580,68 @@ select,
   flex: 1;
 }
 
+.alliance-pending-section {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: var(--space-3);
+  margin-bottom: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.alliance-pending-header {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.alliance-pending-badge {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: var(--weight-bold);
+  padding: 1px 6px;
+  line-height: 1.4;
+}
+
+.alliance-pending-item {
+  background: color-mix(in srgb, var(--accent) 6%, var(--bg-elevated));
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--border));
+  border-radius: var(--r-sm);
+  padding: var(--space-2) var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.alliance-pending-name {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--text);
+}
+
+.alliance-pending-from {
+  font-size: var(--text-xs);
+}
+
+.alliance-pending-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.alliance-pending-actions button {
+  flex: 1;
+  font-size: var(--text-xs);
+  padding: 3px var(--space-2);
+}
+
 .alliance-share-code-block {
   margin-top: var(--space-3);
 }
