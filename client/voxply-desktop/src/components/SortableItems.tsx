@@ -192,7 +192,7 @@ export function SortableCategoryItem({
         <button
           className="btn-icon-small"
           onClick={(e) => { e.stopPropagation(); onAdd(); }}
-          title="Add channel or category"
+          title="Add…"
         >
           +
         </button>

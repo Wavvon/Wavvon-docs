@@ -51,6 +51,8 @@ interface Props {
   isAdmin: boolean;
   hubNotifyMode: Record<string, NotifyMode>;
   hubDropdownOpen: boolean;
+  hideSilenced: boolean;
+  silencedChannelIds: Set<string>;
   userAlliances: AllianceInfo[];
   allianceChannels: Record<string, AllianceSharedChannel[]>;
   selectedAllianceChannel: SelectedAllianceChannel | null;
@@ -79,6 +81,7 @@ interface Props {
   onToggleSelfDeafen: () => void;
   onOpenSettings: () => void;
   onDragEnd: (event: DragEndEvent) => void;
+  onToggleHideSilenced: () => void;
   sharing: boolean;
   onScreenShare: () => void;
 }
@@ -88,6 +91,7 @@ export function ChannelSidebar({
   unreadByChannel, collapsedCategories,
   voicePartByChannel, voiceChannelId, selfMuted, selfDeafened,
   users, publicKey, pingByHub, isAdmin, hubNotifyMode, hubDropdownOpen,
+  hideSilenced, silencedChannelIds,
   userAlliances, allianceChannels, selectedAllianceChannel,
   conversations, selectedConversation, unreadDms,
   channelTree, effectiveNotifyMode, onToggleCategoryCollapsed,
@@ -97,7 +101,7 @@ export function ChannelSidebar({
   onVoiceJoin, onVoiceLeave,
   onSelectAllianceChannel, onSelectConversation,
   onOpenFriends, onToggleSelfMute, onToggleSelfDeafen, onOpenSettings,
-  onDragEnd, sharing, onScreenShare,
+  onDragEnd, onToggleHideSilenced, sharing, onScreenShare,
 }: Props) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
@@ -134,8 +138,8 @@ export function ChannelSidebar({
       }
     }
     walk(channelTree);
-    return result;
-  }, [channelTree, activeHubId, collapsedCategories]);
+    return result.filter((n) => n.node.is_category || !silencedChannelIds.has(n.node.id));
+  }, [channelTree, activeHubId, collapsedCategories, silencedChannelIds]);
 
   const activeNode = activeId ? flatVisible.find((n) => n.node.id === activeId) : null;
 
@@ -186,7 +190,7 @@ export function ChannelSidebar({
               )}
               {isAdmin && (
                 <button className="hub-dropdown-item" onClick={() => { onHubDropdownOpenChange(false); onOpenCreateChannel(null, false); }}>
-                  Create channel or category…
+                  Create…
                 </button>
               )}
               <HoverSubmenu
@@ -206,6 +210,12 @@ export function ChannelSidebar({
                   ));
                 })()}
               </HoverSubmenu>
+              <button
+                className="hub-dropdown-item"
+                onClick={() => { onHubDropdownOpenChange(false); onToggleHideSilenced(); }}
+              >
+                {hideSilenced ? "✓ " : ""}Hide silenced channels
+              </button>
               {activeHubId && Object.keys(unreadByChannel[activeHubId] ?? {}).length > 0 && (
                 <button
                   className="hub-dropdown-item"
@@ -392,7 +402,7 @@ export function ChannelSidebar({
           >
             {isAdmin && (
               <button className="context-menu-item" onClick={() => { setHubCtxMenu(null); onOpenCreateChannel(null, false); }}>
-                Create channel or category…
+                Create…
               </button>
             )}
             {isAdmin && (
@@ -405,6 +415,12 @@ export function ChannelSidebar({
                 Hub settings
               </button>
             )}
+            <button
+              className="context-menu-item"
+              onClick={() => { setHubCtxMenu(null); onToggleHideSilenced(); }}
+            >
+              {hideSilenced ? "✓ " : ""}Hide silenced channels
+            </button>
             <HoverSubmenu
               trigger={<button className="context-menu-item context-menu-submenu-trigger">Notifications ▸</button>}
             >

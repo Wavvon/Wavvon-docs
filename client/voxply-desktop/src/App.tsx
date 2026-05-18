@@ -743,6 +743,8 @@ function App() {
   // and the friendship is created already-accepted (no federated request flow yet).
   const [friendRequestHubUrl, setFriendRequestHubUrl] = useState("");
 
+  const [hideSilenced, setHideSilenced] = useState(false);
+
   // DMs
   const [view, setView] = useState<"channels" | "dms">("channels");
   // Mirror current view in a ref so window-level event listeners can read
@@ -2566,6 +2568,15 @@ function App() {
     return buildChannelTree(channels);
   }, [channels]);
 
+  const silencedChannelIds = useMemo(() => {
+    if (!activeHubId || !hideSilenced) return new Set<string>();
+    return new Set(
+      channels
+        .filter((c) => !c.is_category && effectiveNotifyMode(activeHubId, c.id) === "silent")
+        .map((c) => c.id)
+    );
+  }, [activeHubId, hideSilenced, channels, channelNotifyMode, hubNotifyMode]);
+
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -2937,6 +2948,8 @@ function App() {
                   isAdmin={isAdmin}
                   hubNotifyMode={hubNotifyMode}
                   hubDropdownOpen={hubDropdownOpen}
+                  hideSilenced={hideSilenced}
+                  silencedChannelIds={silencedChannelIds}
                   userAlliances={userAlliances}
                   allianceChannels={allianceChannels}
                   selectedAllianceChannel={selectedAllianceChannel}
@@ -2965,6 +2978,7 @@ function App() {
                   onToggleSelfDeafen={voice.toggleSelfDeafen}
                   onOpenSettings={openSettings}
                   onDragEnd={handleDragEnd}
+                  onToggleHideSilenced={() => setHideSilenced((v) => !v)}
                   sharing={voice.sharing}
                   onScreenShare={voice.handleScreenShare}
                 />

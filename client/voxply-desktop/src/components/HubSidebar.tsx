@@ -13,7 +13,7 @@ import { SortableHubIcon } from "./SortableItems";
 interface Props {
   hubs: Hub[];
   activeHubId: string | null;
-  view: "channels" | "dms" | "game";
+  view: "channels" | "dms";
   showDiscover: boolean;
   unreadDms: Record<string, boolean>;
   unreadByHub: Record<string, number>;

@@ -153,8 +153,8 @@ export function AlliancesSection({
     <section>
       <h1>Alliances</h1>
       <p className="muted">
-        Group your hub with other hubs to share channels, voice, and games. A
-        hub can be in multiple alliances.
+        Group your hub with other hubs to share channels and voice. A hub can
+        be in multiple alliances.
       </p>
 
       {error && <div className="error-banner">{error}</div>}
