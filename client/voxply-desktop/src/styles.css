@@ -3258,6 +3258,12 @@ select:focus {
   color: var(--text);
 }
 
+.category-header.drag-target {
+  background: var(--accent);
+  color: #fff;
+  border-radius: var(--r-sm);
+}
+
 .category-name {
   flex: 1;
 }
@@ -3389,6 +3395,11 @@ select:focus {
 .context-menu-item.danger:hover {
   background: var(--danger-bg);
   color: var(--danger);
+}
+
+.context-menu-subitem {
+  padding-left: 24px;
+  font-size: var(--text-sm);
 }
 
 /* ============================================================

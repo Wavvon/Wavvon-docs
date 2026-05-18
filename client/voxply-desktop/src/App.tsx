@@ -114,13 +114,6 @@ function App() {
     Record<string, Record<string, NotifyMode>>
   >({});
 
-  // Pinned channels. Local-only per (hub, channel). Pinned channels render
-  // in their own section above the regular Channels list and don't appear
-  // in the normal list (no duplication).
-  const [pinnedChannels, setPinnedChannels] = useState<
-    Record<string, Record<string, boolean>>
-  >({});
-
   // Blocked users: pubkey set. Persisted to ~/.voxply/blocked_users.json so
   // the choice carries across sessions. Used to filter out their messages
   // from channel + DM views without involving any hub state.
@@ -174,17 +167,6 @@ function App() {
     await invoke("reconnect_hub", { hubId });
   });
 
-  function toggleChannelPin(hubId: string, channelId: string) {
-    setPinnedChannels((prev) => {
-      const hubMap = { ...(prev[hubId] ?? {}) };
-      if (hubMap[channelId]) delete hubMap[channelId];
-      else hubMap[channelId] = true;
-      const next = { ...prev, [hubId]: hubMap };
-      invoke("save_pinned_channels", { state: next }).catch(() => {});
-      return next;
-    });
-  }
-
   function persistNotifyModes(
     hubs: typeof hubNotifyMode,
     channels: typeof channelNotifyMode,
@@ -195,11 +177,14 @@ function App() {
   }
 
   function effectiveNotifyMode(hubId: string, channelId: string): NotifyMode {
-    return (
-      channelNotifyMode[hubId]?.[channelId] ??
-      hubNotifyMode[hubId] ??
-      "all"
-    );
+    let id: string | null = channelId;
+    while (id !== null) {
+      const mode = channelNotifyMode[hubId]?.[id];
+      if (mode !== undefined) return mode;
+      const ch = channels.find((c) => c.id === id);
+      id = ch?.parent_id ?? null;
+    }
+    return hubNotifyMode[hubId] ?? "all";
   }
 
   function setHubMode(hubId: string, mode: NotifyMode) {
@@ -312,13 +297,6 @@ function App() {
         setHubNotifyMode(hubMap);
         setChannelNotifyMode(chanMap);
       })
-      .catch(console.error);
-  }, []);
-
-  // Hydrate pinned-channel state on launch.
-  useEffect(() => {
-    invoke<Record<string, Record<string, boolean>>>("load_pinned_channels")
-      .then((s) => setPinnedChannels(s ?? {}))
       .catch(console.error);
   }, []);
 
@@ -2582,12 +2560,9 @@ function App() {
     setShowAddHub(true);
   }
 
-  // Build a nested tree: categories contain their child channels.
-  // Top-level = channels with no parent. Sorted by display_order.
   const channelTree = useMemo(() => {
-    const pinSet = activeHubId ? pinnedChannels[activeHubId] ?? {} : {};
-    return buildChannelTree(channels, pinSet);
-  }, [channels, activeHubId, pinnedChannels]);
+    return buildChannelTree(channels);
+  }, [channels]);
 
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -2694,20 +2669,6 @@ function App() {
         setSelectedChannel({ ...selectedChannel, description: desc ? desc : null });
       }
       setEditDescriptionChannel(null);
-    } catch (e) {
-      setError(String(e));
-    }
-  }
-
-  async function handleMoveChannel(channelId: string, parentId: string | null) {
-    try {
-      await invoke("move_channel", { channelId, parentId });
-      setChannels((prev) =>
-        prev.map((c) =>
-          c.id === channelId ? { ...c, parent_id: parentId } : c
-        )
-      );
-      setContextMenu(null);
     } catch (e) {
       setError(String(e));
     }
@@ -2962,7 +2923,6 @@ function App() {
                   hubs={hubs}
                   channels={channels}
                   selectedChannel={selectedChannel}
-                  pinnedChannels={pinnedChannels}
                   unreadByChannel={unreadByChannel}
                   collapsedCategories={collapsedCategories}
                   voicePartByChannel={voice.voicePartByChannel}
@@ -3142,8 +3102,6 @@ function App() {
           <ChannelContextMenu
             menu={contextMenu}
             activeHubId={activeHubId}
-            channels={channels}
-            pinnedChannels={pinnedChannels}
             effectiveNotifyMode={effectiveNotifyMode}
             onClose={() => setContextMenu(null)}
             onRename={handleRenameChannel}
@@ -3151,8 +3109,7 @@ function App() {
             onSetTalkPower={handleSetTalkPower}
             onManageBans={(channelId, channelName) => setChannelBansModal({ channelId, channelName })}
             onSetMode={setChannelMode}
-            onTogglePin={toggleChannelPin}
-            onMoveChannel={handleMoveChannel}
+            onOpenCreateChannel={openCreateChannelUnder}
             onEditAppearance={handleEditAppearance}
             onDelete={handleDeleteChannel}
           />

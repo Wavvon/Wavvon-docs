@@ -14,25 +14,13 @@ export interface FlatNode {
   childrenCount: number;
 }
 
-/**
- * Build the full recursive channel tree. Pinned channels are excluded.
- * Returns root-level nodes; each node carries its resolved depth and
- * a recursive children array.
- */
-export function buildChannelTree(
-  channels: Channel[],
-  pinnedSet: Record<string, boolean>,
-): TreeNode[] {
-  const sorted = [...channels]
-    .sort((a, b) => a.display_order - b.display_order)
-    .filter((c) => !pinnedSet[c.id]);
-
+export function buildChannelTree(channels: Channel[]): TreeNode[] {
+  const sorted = [...channels].sort((a, b) => a.display_order - b.display_order);
   function buildChildren(parentId: string | null, depth: number): TreeNode[] {
     return sorted
       .filter((c) => c.parent_id === parentId)
       .map((c) => ({ node: c, depth, children: buildChildren(c.id, depth + 1) }));
   }
-
   return buildChildren(null, 0);
 }
 

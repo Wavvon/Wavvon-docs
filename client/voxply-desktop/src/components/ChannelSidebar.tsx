@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragEndEvent,
+  DragOverEvent,
   DragOverlay,
   DragStartEvent,
   PointerSensor,
@@ -38,7 +39,6 @@ interface Props {
   hubs: Hub[];
   channels: Channel[];
   selectedChannel: Channel | null;
-  pinnedChannels: Record<string, Record<string, boolean>>;
   unreadByChannel: Record<string, Record<string, boolean>>;
   collapsedCategories: Record<string, Record<string, boolean>>;
   voicePartByChannel: Record<string, VoiceParticipant[]>;
@@ -84,7 +84,7 @@ interface Props {
 
 export function ChannelSidebar({
   view, activeHubId, hubs, channels, selectedChannel,
-  pinnedChannels, unreadByChannel, collapsedCategories,
+  unreadByChannel, collapsedCategories,
   voicePartByChannel, voiceChannelId, selfMuted, selfDeafened,
   users, publicKey, pingByHub, isAdmin, hubNotifyMode, hubDropdownOpen,
   userAlliances, allianceChannels, selectedAllianceChannel,
@@ -98,6 +98,7 @@ export function ChannelSidebar({
   onDragEnd, sharing, onScreenShare,
 }: Props) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [notifySubmenuOpen, setNotifySubmenuOpen] = useState(false);
   const hubHeaderRef = useRef<HTMLDivElement>(null);
 
@@ -148,11 +149,19 @@ export function ChannelSidebar({
 
   function handleDragStart(event: DragStartEvent) {
     setActiveId(String(event.active.id));
+    setDragOverId(null);
   }
 
   function handleDragEndWrapped(event: DragEndEvent) {
     setActiveId(null);
+    setDragOverId(null);
     onDragEnd(event);
+  }
+
+  function handleDragOver(e: DragOverEvent) {
+    const overId = e.over ? String(e.over.id) : null;
+    const overNode = overId ? flatVisible.find(n => n.node.id === overId) : null;
+    setDragOverId(overNode?.node.is_category ? overId : null);
   }
 
   return (
@@ -176,6 +185,16 @@ export function ChannelSidebar({
               {isAdmin && (
                 <button className="hub-dropdown-item" onClick={onOpenHubAdmin}>
                   Hub settings
+                </button>
+              )}
+              {isAdmin && (
+                <button className="hub-dropdown-item" onClick={() => { onHubDropdownOpenChange(false); onOpenCreateChannel(null, false); }}>
+                  Create channel
+                </button>
+              )}
+              {isAdmin && (
+                <button className="hub-dropdown-item" onClick={() => { onHubDropdownOpenChange(false); onOpenCreateChannel(null, true); }}>
+                  Create category
                 </button>
               )}
               <button
@@ -232,47 +251,12 @@ export function ChannelSidebar({
       <div className="sidebar-scroll">
         {view !== "dms" ? (
           <>
-            {/* Pinned channels */}
-            {(() => {
-              const pinned = activeHubId
-                ? channels.filter((c) => !c.is_category && pinnedChannels[activeHubId]?.[c.id])
-                : [];
-              if (pinned.length === 0) return null;
-              return (
-                <>
-                  <div className="sidebar-header"><h3>📌 Pinned</h3></div>
-                  <ul className="channel-list">
-                    {pinned.map((c) => (
-                      <li
-                        key={c.id}
-                        className={`channel-item ${selectedChannel?.id === c.id ? "selected" : ""} ${
-                          activeHubId && unreadByChannel[activeHubId]?.[c.id] ? "unread" : ""
-                        }`}
-                        onClick={() => onSelectChannel(c)}
-                        onContextMenu={(e) => onChannelContextMenu(e, c)}
-                      >
-                        <ChannelIcon icon={c.icon} customIconSvg={c.custom_icon_svg} />{" "}{c.name}
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              );
-            })()}
-
             {/* Channels — single flat SortableContext, DFS order */}
-            <div className="sidebar-header">
-              <button
-                className="btn-icon"
-                onClick={() => onOpenCreateChannel(null, false)}
-                title="Create channel"
-              >
-                +
-              </button>
-            </div>
             <DndContext
               sensors={dndSensors}
               onDragStart={handleDragStart}
               onDragEnd={handleDragEndWrapped}
+              onDragOver={handleDragOver}
             >
               <SortableContext
                 items={flatVisible.map((n) => n.node.id)}
@@ -287,6 +271,7 @@ export function ChannelSidebar({
                         collapsed={!!activeHubId && !!collapsedCategories[activeHubId]?.[n.node.id]}
                         childCount={n.childrenCount}
                         style={{ paddingLeft: n.depth * CHANNEL_INDENT_PX }}
+                        isDragTarget={dragOverId === n.node.id}
                         onToggleCollapsed={() => {
                           if (activeHubId) onToggleCategoryCollapsed(activeHubId, n.node.id);
                         }}

@@ -1,11 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import type { Channel, NotifyMode } from "../types";
 
 interface Props {
   menu: { x: number; y: number; channel: Channel };
   activeHubId: string | null;
-  channels: Channel[];
-  pinnedChannels: Record<string, Record<string, boolean>>;
   effectiveNotifyMode: (hubId: string, channelId: string) => NotifyMode;
   onClose: () => void;
   onRename: (channel: Channel) => void;
@@ -13,18 +11,18 @@ interface Props {
   onSetTalkPower: (channelId: string) => void;
   onManageBans: (channelId: string, channelName: string) => void;
   onSetMode: (hubId: string, channelId: string, mode: NotifyMode) => void;
-  onTogglePin: (hubId: string, channelId: string) => void;
-  onMoveChannel: (channelId: string, parentId: string | null) => void;
+  onOpenCreateChannel: (parentId: string | null, isCategory: boolean) => void;
   onEditAppearance: (channel: Channel) => void;
   onDelete: (channelId: string) => void;
 }
 
 export function ChannelContextMenu({
-  menu, activeHubId, channels, pinnedChannels, effectiveNotifyMode,
+  menu, activeHubId, effectiveNotifyMode,
   onClose, onRename, onEditDescription, onSetTalkPower, onManageBans,
-  onSetMode, onTogglePin, onMoveChannel, onEditAppearance, onDelete,
+  onSetMode, onOpenCreateChannel, onEditAppearance, onDelete,
 }: Props) {
   const { x, y, channel } = menu;
+  const [notifyOpen, setNotifyOpen] = useState(false);
 
   return (
     <div
@@ -63,51 +61,49 @@ export function ChannelContextMenu({
             >
               Manage channel bans…
             </button>
-            {activeHubId && (() => {
+          </>
+        )}
+        {activeHubId && (
+          <>
+            <button
+              className="context-menu-item context-menu-submenu-trigger"
+              onClick={() => setNotifyOpen(v => !v)}
+            >
+              Notifications {notifyOpen ? "▴" : "▸"}
+            </button>
+            {notifyOpen && (() => {
               const cur = effectiveNotifyMode(activeHubId, channel.id);
               const items: { mode: NotifyMode; label: string }[] = [
-                { mode: "all", label: "All messages" },
+                { mode: "all",      label: "All messages" },
                 { mode: "mentions", label: "Only @mentions" },
-                { mode: "silent", label: "Silent" },
+                { mode: "silent",   label: "Silent" },
               ];
               return items.map(({ mode, label }) => (
                 <button
                   key={mode}
-                  className="context-menu-item"
+                  className="context-menu-item context-menu-subitem"
                   onClick={() => { onClose(); onSetMode(activeHubId, channel.id, mode); }}
                 >
-                  {cur === mode ? "✓ " : ""}
-                  {label}
+                  {cur === mode ? "✓ " : "   "}{label}
                 </button>
               ));
             })()}
-            {activeHubId && (
-              <button
-                className="context-menu-item"
-                onClick={() => { onClose(); onTogglePin(activeHubId, channel.id); }}
-              >
-                {pinnedChannels[activeHubId]?.[channel.id] ? "Unpin channel" : "Pin channel"}
-              </button>
-            )}
-            {channel.parent_id && (
-              <button
-                className="context-menu-item"
-                onClick={() => onMoveChannel(channel.id, null)}
-              >
-                Move to top level
-              </button>
-            )}
-            {channels
-              .filter((c) => c.is_category && c.id !== channel.parent_id)
-              .map((cat) => (
-                <button
-                  key={cat.id}
-                  className="context-menu-item"
-                  onClick={() => onMoveChannel(channel.id, cat.id)}
-                >
-                  Move to {cat.name}
-                </button>
-              ))}
+          </>
+        )}
+        {channel.is_category && (
+          <>
+            <button
+              className="context-menu-item"
+              onClick={() => { onClose(); onOpenCreateChannel(channel.id, false); }}
+            >
+              Create channel here…
+            </button>
+            <button
+              className="context-menu-item"
+              onClick={() => { onClose(); onOpenCreateChannel(channel.id, true); }}
+            >
+              Create subcategory here…
+            </button>
           </>
         )}
         <button

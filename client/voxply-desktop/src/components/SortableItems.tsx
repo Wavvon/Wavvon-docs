@@ -131,6 +131,7 @@ export function SortableCategoryItem({
   collapsed,
   childCount,
   style,
+  isDragTarget,
   onToggleCollapsed,
   onContextMenu,
   onAddChannel,
@@ -141,6 +142,7 @@ export function SortableCategoryItem({
   collapsed: boolean;
   childCount: number;
   style?: React.CSSProperties;
+  isDragTarget?: boolean;
   onToggleCollapsed: () => void;
   onContextMenu: (e: React.MouseEvent) => void;
   onAddChannel: () => void;
@@ -160,7 +162,7 @@ export function SortableCategoryItem({
       }}
     >
       <div
-        className="category-header"
+        className={`category-header ${isDragTarget ? "drag-target" : ""}`}
         style={channel.color ? { borderLeft: `3px solid ${channel.color}`, paddingLeft: "6px" } : undefined}
         onContextMenu={onContextMenu}
         {...attributes}
