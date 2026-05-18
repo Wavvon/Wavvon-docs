@@ -82,7 +82,7 @@ export function AlliancesSection({
       setIsCreating(false);
       await refresh();
       setSelectedId(created.id);
-      setTab("members");
+      setTab("invite");
     } catch (e) {
       setError(String(e));
     }
