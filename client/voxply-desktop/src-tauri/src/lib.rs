@@ -2366,6 +2366,7 @@ struct PendingAllianceInvite {
     from_hub_public_key: String,
     invite_token: String,
     created_at: i64,
+    message: Option<String>,
 }
 
 /// Tell our own hub to push a direct invite to another hub.
@@ -2374,6 +2375,7 @@ async fn send_alliance_push_invite(
     alliance_id: String,
     target_hub_url: String,
     own_hub_url: String,
+    message: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let (hub_url, token) = active_session(&state)?;
@@ -2384,6 +2386,7 @@ async fn send_alliance_push_invite(
         .json(&serde_json::json!({
             "target_hub_url": target_hub_url,
             "own_hub_url": own_hub_url,
+            "message": message,
         }))
         .send()
         .await

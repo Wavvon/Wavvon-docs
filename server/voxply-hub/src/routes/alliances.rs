@@ -773,6 +773,7 @@ pub async fn push_invite_handler(
         from_hub_name: hub_name,
         from_hub_public_key: state.hub_identity.public_key_hex(),
         invite_token,
+        message: req.message.clone(),
     };
 
     let target_url = req.target_hub_url.trim_end_matches('/').to_string();
@@ -806,8 +807,8 @@ pub async fn receive_federation_alliance_invite(
 
     sqlx::query(
         "INSERT OR IGNORE INTO pending_alliance_invites
-         (id, alliance_id, alliance_name, from_hub_url, from_hub_name, from_hub_public_key, invite_token, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+         (id, alliance_id, alliance_name, from_hub_url, from_hub_name, from_hub_public_key, invite_token, created_at, message)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
     )
     .bind(&payload.id)
     .bind(&payload.alliance_id)
@@ -817,6 +818,7 @@ pub async fn receive_federation_alliance_invite(
     .bind(&payload.from_hub_public_key)
     .bind(&payload.invite_token)
     .bind(now)
+    .bind(payload.message.as_deref())
     .execute(&state.db)
     .await
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
@@ -840,7 +842,7 @@ pub async fn list_pending_invites(
     perms.require(ADMIN)?;
 
     let rows = sqlx::query_as::<_, PendingInviteRow>(
-        "SELECT id, alliance_id, alliance_name, from_hub_url, from_hub_name, from_hub_public_key, invite_token, created_at
+        "SELECT id, alliance_id, alliance_name, from_hub_url, from_hub_name, from_hub_public_key, invite_token, created_at, message
          FROM pending_alliance_invites
          ORDER BY created_at DESC",
     )
@@ -859,6 +861,7 @@ pub async fn list_pending_invites(
                 from_hub_public_key: r.from_hub_public_key,
                 invite_token: r.invite_token,
                 created_at: r.created_at,
+                message: r.message,
             })
             .collect(),
     ))
@@ -878,7 +881,7 @@ pub async fn accept_pending_invite(
     perms.require(ADMIN)?;
 
     let invite = sqlx::query_as::<_, PendingInviteRow>(
-        "SELECT id, alliance_id, alliance_name, from_hub_url, from_hub_name, from_hub_public_key, invite_token, created_at
+        "SELECT id, alliance_id, alliance_name, from_hub_url, from_hub_name, from_hub_public_key, invite_token, created_at, message
          FROM pending_alliance_invites WHERE id = ?",
     )
     .bind(&invite_id)
@@ -1046,4 +1049,5 @@ struct PendingInviteRow {
     from_hub_public_key: String,
     invite_token: String,
     created_at: i64,
+    message: Option<String>,
 }

@@ -640,11 +640,18 @@ pub async fn run(pool: &SqlitePool) -> Result<()> {
             from_hub_name       TEXT NOT NULL,
             from_hub_public_key TEXT NOT NULL,
             invite_token        TEXT NOT NULL,
-            created_at          INTEGER NOT NULL
+            created_at          INTEGER NOT NULL,
+            message             TEXT
         )",
     )
     .execute(pool)
     .await?;
+
+    let _ = sqlx::query(
+        "ALTER TABLE pending_alliance_invites ADD COLUMN message TEXT",
+    )
+    .execute(pool)
+    .await;
 
     tracing::info!("Database migrations complete");
     Ok(())

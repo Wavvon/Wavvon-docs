@@ -74,6 +74,7 @@ pub struct JoinAllianceLocalRequest {
 pub struct PushInviteRequest {
     pub target_hub_url: String,
     pub own_hub_url: String,
+    pub message: Option<String>,
 }
 
 /// Accept a pending push invite. Hub B must supply its own publicly reachable
@@ -93,6 +94,7 @@ pub struct FederationAllianceInvitePayload {
     pub from_hub_name: String,
     pub from_hub_public_key: String,
     pub invite_token: String,
+    pub message: Option<String>,
 }
 
 /// A row from `pending_alliance_invites` as returned to the client.
@@ -106,4 +108,5 @@ pub struct PendingAllianceInviteRow {
     pub from_hub_public_key: String,
     pub invite_token: String,
     pub created_at: i64,
+    pub message: Option<String>,
 }
