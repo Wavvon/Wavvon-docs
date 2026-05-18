@@ -87,7 +87,7 @@ function App() {
       }
     | { state: "error"; message: string }
   >({ state: "idle" });
-  const [hubUrl, setHubUrl] = useState("http://localhost:3000");
+  const [hubUrl, setHubUrl] = useState("");
   const [inviteCode, setInviteCode] = useState("");
   // Per-channel unread tracking: hub_id -> { channel_id: true }. Persisted
   // across restarts via Tauri so dots survive the app being closed. Derived
@@ -1706,6 +1706,7 @@ function App() {
       if (!publicKey) setPublicKey(null);
       if (!activeHubId) setActiveHubId(hub.hub_id);
       setShowAddHub(false);
+      setHubUrl("");
       setInviteCode("");
     } catch (e) {
       setError(String(e));
@@ -3083,7 +3084,7 @@ function App() {
             loading={loading}
             error={error}
             onAdd={handleAddHub}
-            onClose={() => { setShowAddHub(false); setInviteCode(""); }}
+            onClose={() => { setShowAddHub(false); setHubUrl(""); setInviteCode(""); }}
           />
         )}
 
