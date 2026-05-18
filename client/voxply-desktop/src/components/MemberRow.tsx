@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { MemberAdminInfo, RoleInfo } from "../types";
 import { formatPubkey, formatRelative } from "../utils/format";
 
@@ -25,11 +25,64 @@ export function MemberRow({
   onVoiceUnmute: () => void;
   onToggleRole: (roleId: string, hasRole: boolean) => void;
 }) {
-  const [showRoleMenu, setShowRoleMenu] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
+  const [showRoles, setShowRoles] = useState(false);
+  const gearRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const hasRoleId = new Set(member.roles.map((r) => r.id));
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onMouseDown(e: MouseEvent) {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(e.target as Node) &&
+        gearRef.current &&
+        !gearRef.current.contains(e.target as Node)
+      ) {
+        setMenuOpen(false);
+        setShowRoles(false);
+      }
+    }
+    document.addEventListener("mousedown", onMouseDown);
+    return () => document.removeEventListener("mousedown", onMouseDown);
+  }, [menuOpen]);
+
+  function openMenu(x: number, y: number) {
+    setMenuPos({ x, y });
+    setMenuOpen(true);
+    setShowRoles(false);
+  }
+
+  function handleGear(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (menuOpen) {
+      setMenuOpen(false);
+    } else {
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      openMenu(rect.left, rect.bottom + 4);
+    }
+  }
+
+  function handleContextMenu(e: React.MouseEvent) {
+    e.preventDefault();
+    openMenu(e.clientX, e.clientY);
+  }
+
+  function action(fn: () => void) {
+    return () => {
+      setMenuOpen(false);
+      setShowRoles(false);
+      fn();
+    };
+  }
+
   return (
-    <tr>
+    <tr
+      className="member-row"
+      onContextMenu={handleContextMenu}
+    >
       <td>
         <div className="member-name">
           {member.display_name || formatPubkey(member.public_key)}
@@ -37,10 +90,6 @@ export function MemberRow({
         <div className="member-pk" title={member.public_key}>
           {formatPubkey(member.public_key)}
         </div>
-      </td>
-      <td>
-        <span className={`status-dot ${member.online ? "online" : "offline"}`} />{" "}
-        {member.online ? "Online" : "Offline"}
       </td>
       <td>
         <div className="member-roles">
@@ -53,54 +102,75 @@ export function MemberRow({
         </div>
       </td>
       <td>{formatRelative(member.first_seen_at)}</td>
-      <td>{formatRelative(member.last_seen_at)}</td>
       <td>
         <div className="member-actions">
           <button
-            className="btn-small"
-            onClick={() => setShowRoleMenu(!showRoleMenu)}
+            ref={gearRef}
+            className="member-gear-btn"
+            onClick={handleGear}
+            title="Member actions"
           >
-            Roles ▾
+            ⚙
           </button>
-          <button className="btn-small" onClick={onTimeout}>
-            Timeout
-          </button>
-          <button className="btn-small" onClick={onMute}>
-            Mute
-          </button>
-          {voiceMuted ? (
-            <button className="btn-small" onClick={onVoiceUnmute}>
-              Unmute voice
-            </button>
-          ) : (
-            <button className="btn-small" onClick={onVoiceMute}>
-              Mute voice
-            </button>
-          )}
-          <button className="btn-small" onClick={onKick}>
-            Kick
-          </button>
-          <button className="btn-small btn-secondary-small" onClick={onBan}>
-            Ban
-          </button>
-          {showRoleMenu && (
-            <div className="member-role-menu">
-              {allRoles.map((r) => {
-                const has = hasRoleId.has(r.id);
-                // Owner role can't be toggled here (protects server-side rule).
-                if (r.id === "builtin-owner") return null;
-                return (
-                  <label key={r.id} className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={has}
-                      onChange={() => onToggleRole(r.id, has)}
-                    />
-                    {r.name}
-                  </label>
-                );
-              })}
-            </div>
+          {menuOpen && (
+            <>
+              <div
+                className="context-menu-overlay"
+                onMouseDown={() => { setMenuOpen(false); setShowRoles(false); }}
+              />
+              <div
+                ref={menuRef}
+                className="context-menu"
+                style={{ top: menuPos.y, left: menuPos.x }}
+              >
+                <button
+                  className="context-menu-item"
+                  onClick={() => setShowRoles((v) => !v)}
+                >
+                  Roles ▾
+                </button>
+                {showRoles && (
+                  <div style={{ paddingLeft: 8 }}>
+                    {allRoles
+                      .filter((r) => r.id !== "builtin-owner")
+                      .map((r) => {
+                        const has = hasRoleId.has(r.id);
+                        return (
+                          <label key={r.id} className="checkbox-label context-menu-subitem">
+                            <input
+                              type="checkbox"
+                              checked={has}
+                              onChange={() => { onToggleRole(r.id, has); }}
+                            />
+                            {r.name}
+                          </label>
+                        );
+                      })}
+                  </div>
+                )}
+                <button className="context-menu-item" onClick={action(onTimeout)}>
+                  Timeout
+                </button>
+                <button className="context-menu-item" onClick={action(onMute)}>
+                  Mute
+                </button>
+                {voiceMuted ? (
+                  <button className="context-menu-item" onClick={action(onVoiceUnmute)}>
+                    Unmute voice
+                  </button>
+                ) : (
+                  <button className="context-menu-item" onClick={action(onVoiceMute)}>
+                    Mute voice
+                  </button>
+                )}
+                <button className="context-menu-item" onClick={action(onKick)}>
+                  Kick
+                </button>
+                <button className="context-menu-item danger" onClick={action(onBan)}>
+                  Ban
+                </button>
+              </div>
+            </>
           )}
         </div>
       </td>

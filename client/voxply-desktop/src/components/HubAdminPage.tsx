@@ -20,6 +20,7 @@ import { HubBotsSection } from "./HubBotsSection";
 
 export type HubAdminTab =
   | "overview"
+  | "discovery"
   | "roles"
   | "members"
   | "bans"
@@ -127,6 +128,7 @@ export function HubAdminPage(props: HubAdminPageProps) {
 
   const tabs: { id: HubAdminTab; label: string }[] = [
     { id: "overview", label: "Overview" },
+    { id: "discovery", label: "Discovery" },
     { id: "roles", label: "Roles" },
     { id: "members", label: "Members" },
     { id: "bans", label: "Bans" },
@@ -228,17 +230,16 @@ export function HubAdminPage(props: HubAdminPageProps) {
               <p className="muted">
                 Connecting clients must prove CPU work tied to their public key.
                 Higher levels take longer to compute and slow down bot floods.
-                Level 0 disables the check.
+                messages per minute (0 = disabled)
               </p>
-              <select
+              <input
+                type="number"
+                min={0}
+                max={9999}
+                step={1}
                 value={props.minSecurityLevel}
                 onChange={(e) => props.onMinSecurityLevelChange(Number(e.target.value))}
-              >
-                <option value={0}>0 — Disabled</option>
-                <option value={10}>10 — Low (&lt;1 second)</option>
-                <option value={15}>15 — Medium (~1 minute)</option>
-                <option value={20}>20 — High (~15 minutes)</option>
-              </select>
+              />
             </div>
             <div className="settings-section">
               <label className="settings-label">Max channel nesting depth</label>
@@ -257,6 +258,11 @@ export function HubAdminPage(props: HubAdminPageProps) {
             <div className="settings-section">
               <button onClick={props.onSave}>Save changes</button>
             </div>
+          </section>
+        )}
+        {props.tab === "discovery" && (
+          <section>
+            <h1>Discovery</h1>
             <div className="settings-section">
               <label className="settings-label">Share this hub</label>
               <p className="muted">
@@ -411,10 +417,8 @@ export function HubAdminPage(props: HubAdminPageProps) {
               <thead>
                 <tr>
                   <th>Name</th>
-                  <th>Status</th>
                   <th>Roles</th>
                   <th>Joined</th>
-                  <th>Last seen</th>
                   <th>Actions</th>
                 </tr>
               </thead>

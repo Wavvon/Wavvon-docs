@@ -1299,6 +1299,25 @@ select,
   justify-content: flex-end;
 }
 
+.member-gear-btn {
+  opacity: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: var(--space-1) var(--space-2);
+  color: var(--text-muted);
+  border-radius: var(--r-sm);
+  font-size: var(--text-md);
+}
+.member-row:hover .member-gear-btn,
+.member-gear-btn:focus {
+  opacity: 1;
+}
+.member-gear-btn:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
 .member-role-menu {
   position: absolute;
   top: 100%;
