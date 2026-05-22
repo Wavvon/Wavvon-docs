@@ -1,4 +1,7 @@
-# Rust build artifacts
+# Source code lives in voxply-hub and voxply-desktop repos
+/client/
+/server/
+/shared/
 /target/
 
 # IDE
