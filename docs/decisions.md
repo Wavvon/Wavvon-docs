@@ -4,6 +4,128 @@ Why Voxply is shaped the way it is. Each entry: the decision, the
 alternative we considered, and why we chose this. New decisions go at
 the top.
 
+## Lobby, "not a bot" challenge, and onboarding survey: three independent gates
+
+**Decision**: ship three composable onboarding features, each with its
+own hub setting, sharing no control flow assumptions. Full design in
+[`docs/lobby-bot-survey.md`](lobby-bot-survey.md).
+
+1. **Security Level Lobby** — when a user's PoW level is below
+   `min_security_level`, the hub still authenticates them but issues a
+   `lobby`-scoped session token. The user can see a hub-admin-defined
+   welcome blob and (if configured) the onboarding survey, but nothing
+   in regular channels. The client runs PoW in the background; partial
+   levels are submitted as they complete; the hub flips `lobby_status`
+   to `'promoted'` server-side when the threshold is reached. Lobby
+   state is a column on `users`, not a separate table.
+2. **"Not a bot" challenge** — server-rendered SVG puzzles (math /
+   pattern), verified server-side, issuing a single-use
+   `challenge_token` bound to the requesting pubkey for ~10 minutes.
+   The token is required at `/auth/verify` when `challenge_enabled`.
+   Independent of `min_security_level` — a hub can require either,
+   both, or neither.
+3. **Role questionnaire** — admin-defined survey with multiple-choice
+   answers mapped to roles (many-to-many) and optional free-text
+   questions. All-choice answers with no review flags auto-apply roles
+   and promote. Any free-text answer routes the user to the existing
+   `approval_status='pending'` flow with answers visible in the
+   pending-members admin panel.
+
+**Alternatives considered**:
+
+- **One unified "onboarding flow" feature.** Rejected on coupling
+  grounds: PoW gating, bot prevention, and role auto-assignment serve
+  different threat models and different operator goals. A hub running
+  a tight private community wants the survey but not PoW; a hub
+  expecting public traffic wants PoW but no survey; a hub gating
+  against script-kiddies wants the challenge alone. Bundling them
+  forces every admin to think about all three at once. Three flags,
+  three storage shapes, one composed flow at the client.
+- **Lobby as a dedicated "lobby channel" + role.** Rejected: a real
+  channel would inherit the entire permission system, and inventing a
+  "channel visible only to lobby scope" muddies the role model.
+  Scoping the session token and gating routes by scope is one bit
+  of state per user with no cross-cutting effects.
+- **Challenge via third-party service** (the well-known captcha
+  providers). Rejected as a federation violation — no hub should
+  depend on an external service to gate joins. Server-rendered SVG
+  puzzles are weaker against motivated attackers; we accept that in
+  exchange for sovereignty. The bar is "annoying to automate at
+  scale," not "uncrackable."
+- **Role mappings on the question** ("this question grants X role").
+  Rejected because real questions ("what's your platform?") have
+  multiple answers each mapping to different roles. Mapping on the
+  choice via a many-to-many table fits the actual shape.
+- **Free-text answers as a first-class auto-mapping target** (regex
+  matchers, keyword rules). Rejected — every example we sketched
+  ended in a moderation foot-gun. Free-text always implies manual
+  review, and the UI warns admins when their survey contains
+  free-text questions.
+- **Hub-issued partial-PoW credit transferable across hubs.**
+  Rejected for v1 alongside cross-hub challenge tokens — both belong
+  in the "hub certifications" design space (see
+  [`docs/future-features.md`](future-features.md)), not the lobby.
+- **Survey-during-lobby vs survey-as-modal-after-join.** Chose
+  context-driven: when a lobby exists, the survey lives inside it
+  (same screen as PoW progress); when there is no lobby, the survey
+  runs as a blocking modal that the user cannot dismiss without
+  submitting (the survey is the approval gate).
+
+**Tradeoff**: three flags multiply hub-admin configuration surface, and
+the lobby + challenge + survey combination has a non-trivial state
+machine (auth scope, PoW level, approval status, lobby status all
+interact). We accept that because (a) most hubs will enable at most
+one, (b) the state transitions are server-decided and re-derivable
+from columns at any time — no in-memory machine to corrupt, and (c)
+collapsing them into one feature would force admins running smaller
+communities to learn anti-abuse machinery they don't need.
+
+**What changes on the implementation side**:
+
+- *DB*: `users.lobby_status`, `users.lobby_entered_at`,
+  `users.pow_level`; new `bot_challenges`, `challenge_tokens`,
+  `surveys`, `survey_questions`, `survey_choices`,
+  `survey_choice_roles`, `survey_responses`, `survey_answers`. New
+  `hub_settings` rows: `lobby_enabled`, `lobby_welcome_md`,
+  `challenge_enabled`, `challenge_difficulty`.
+- *Hub routes*: new `routes/lobby.rs` (`/lobby/status`,
+  `/lobby/submit-pow`, `/lobby/welcome`, `/hub/settings/lobby`),
+  `routes/challenge.rs` (`/challenge/new`, `/challenge/verify`),
+  `routes/survey.rs` (`/survey/current`, `/survey/submit`,
+  `/admin/survey`, `/admin/survey/responses`). `/auth/verify`
+  optionally accepts a `challenge_token`; the session token grows a
+  `scope: 'lobby' | 'member'` claim and middleware gates non-lobby
+  routes.
+- *Tauri commands*: `lobby_status`, `lobby_start_pow`,
+  `lobby_stop_pow`, `lobby_submit_proof`, `challenge_fetch`,
+  `challenge_submit`, `survey_current`, `survey_submit`,
+  `survey_admin_get`, `survey_admin_put`, `survey_admin_responses`.
+  Existing `add_hub` grows an optional `challenge_token` argument.
+- *Client*: new `Lobby.tsx`, `BotChallenge.tsx`, `Survey.tsx`
+  components. `AddHubModal` inserts the challenge step when the
+  hub's `/info` advertises `challenge_enabled`. Hub Settings gains
+  an "Onboarding" tab containing lobby welcome editor, challenge
+  toggle, and survey editor. Pending-members panel expands rows to
+  show survey answers.
+- *Wire models*: `LobbyStatus`, `ChallengePrompt`, `ChallengeResult`,
+  `Survey`, `SurveySubmitResult`, `SurveyDef`. The `/info` response
+  grows `challenge_enabled` and `lobby_enabled` so the client can
+  branch before authenticating.
+
+**What's deferred**:
+
+- WS push for lobby promotion (poll for v1).
+- Accessibility audio variant of the challenge.
+- Adaptive challenge difficulty after repeated failures from one IP.
+- Cross-hub portable challenge tokens (folded into the future hub
+  certifications work).
+- Per-choice `requires_review` flag on survey choices (column add
+  when a real use case shows up).
+- Conditional / branching survey questions.
+- Localized survey prompts.
+- Survey analytics for admins.
+- Editing a submitted response.
+
 ## Alliance push invites: additive to pull, unauthenticated endpoint, hub-local labels
 
 **Decision**: alliance invites now have two coexisting shapes — the

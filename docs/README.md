@@ -24,6 +24,10 @@ If you're new, read in this order:
 - [hosting.md](hosting.md) — practical guide: systemd, TLS, backups, upgrades
 - [packaging.md](packaging.md) — cross-platform packaging, code signing, auto-update, CI/CD, hub Docker image
 
+### Onboarding & anti-abuse
+
+- [lobby-bot-survey.md](lobby-bot-survey.md) — security-level lobby, "not a bot" challenge, role questionnaire (designed, not built)
+
 ### Future direction (designed, not built)
 
 11. [farm-model.md](farm-model.md) — multi-hub server layer + 5-layer architecture
