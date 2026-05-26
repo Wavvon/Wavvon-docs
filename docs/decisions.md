@@ -4,6 +4,114 @@ Why Voxply is shaped the way it is. Each entry: the decision, the
 alternative we considered, and why we chose this. New decisions go at
 the top.
 
+## External bots: users-with-is_bot, invite-by-pubkey, per-hub directory
+
+**Decision**: external bots are first-class hub members — a `users`
+row with `is_bot=1`, reusing the existing keypair auth, role,
+permission, ban, and message-authorship machinery. Hub admins invite
+by pasting the bot's pubkey; the bot operator runs the bot process
+anywhere and proves control of the private key by signing a single-
+use invite token. Slash commands are routed by the hub to a bot-
+declared webhook URL with a signed envelope; the bot's synchronous
+response posts as a normal (or ephemeral) message. The bot directory
+is per-hub, not federated. Full design in [`docs/bots.md`](bots.md).
+
+**Alternatives considered**:
+
+- **Outbound-webhook-only bots** (no persistent identity; the hub
+  POSTs events to a registered URL and posts replies as a generic
+  "webhook" author). Rejected: cannot participate in roles, can't
+  be banned/muted as an actor, can't author messages with a stable
+  pubkey across restarts, needs a parallel auth scheme. Bots-as-users
+  reuses everything we already have for free.
+- **Parallel `bots` table** instead of an `is_bot` flag on `users`.
+  Rejected: every existing foreign key (`messages.author_pubkey`,
+  `user_roles.pubkey`, `bans.pubkey`) would need a polymorphic
+  variant or a duplicate. The flag is what `future-features.md`
+  already anticipates and what internal service accounts already use.
+- **Central bot directory** across hubs. Rejected on the same
+  sovereignty grounds as a central hub registry — communities curate
+  their own bot lists. Cross-hub bot reputation belongs in the future
+  hub-certifications design space, not the bot system.
+- **WS-push the bot invite** (the same shape as alliance push
+  invites). Rejected: bot processes connect outward only and don't
+  expose a federation endpoint to push to. The pull-style "operator
+  signs a token" is the right shape.
+- **Whitelist-by-pubkey, no signed token** (admin pastes pubkey, bot
+  just connects). Rejected: a typo or impersonation could whitelist
+  the wrong key with no detection. The signed-token round-trip costs
+  one extra request and proves the operator controls the private key
+  before any side effects land.
+- **Webhook firehose for all channel events**. Rejected for v1: bots
+  already receive events on the WebSocket like users do; mirroring
+  every event to an HTTP endpoint would be a DoS magnet against the
+  bot operator and offers nothing the WS doesn't.
+- **Voice-capable bots in v1**. Rejected: the voice relay protocol
+  has no concept of a non-human participant, and TTS / audio-stream
+  bots are a separate design problem. Hard-blocked at the UDP
+  handshake.
+
+**Tradeoff**: the operator must distribute their bot's pubkey
+out-of-band — exactly like hub URLs are distributed today. That is a
+friction tax we accept because the alternative (any indexed list of
+addable bots) collapses into either a central registry (kills
+sovereignty) or a per-hub admin's manual curation problem we haven't
+designed (and that operators may not want). Invite-by-pubkey keeps
+the trust boundary explicit: every hub admin makes a deliberate
+decision about every bot.
+
+The slash-command webhook also introduces a synchronous external
+dependency in the hub's message hot path. We accept that because
+(a) the call is bounded by a short timeout and produces a visible
+error to the invoking user, (b) it only fires on slash-prefixed
+messages (a small fraction of traffic), and (c) the bot operator's
+incentive to keep the endpoint responsive is direct.
+
+**What changes on the implementation side**:
+
+- *DB* (`hub/src/db/migrations.rs` in Voxply-server): `users` gains
+  `is_bot`, `is_bot_removed`, `bot_invite_token`,
+  `bot_invite_expires`. New `bot_profiles`, `bot_commands` tables.
+  `messages` gains `visible_to_pubkey` for ephemeral replies.
+  `approval_status` accepts a new `'bot_pending'` value.
+- *Hub routes* (`hub/src/routes/` in Voxply-server): `POST /bots`
+  (admin invites), `POST /bots/accept-invite` (bot proves key),
+  `GET /bots`, `DELETE /bots/:pubkey`, `PUT /bots/me/profile`,
+  `PUT /bots/me/commands`, `GET /bots/me`. `POST /auth/verify`
+  accepts `is_bot: true` and optional `bot_meta`. `POST /messages`
+  accepts `visible_to_pubkey` only for bot-authored slash responses.
+- *Outbound dispatch* (`hub/src/bots/dispatch.rs`, new in
+  Voxply-server): signed `POST {webhook_url}` envelope using the
+  hub's existing federation keypair primitive
+  (`hub/src/federation/client.rs`).
+- *Permissions* (`hub/src/permissions.rs` in Voxply-server): hard
+  blocks at the kind-check level — bots cannot join voice, cannot
+  send DMs, cannot participate in E2E DMs, cannot solve "not a bot"
+  challenges. Per-bot rate limits at the existing middleware.
+- *Wire models*: `BotMeta`, `BotProfile`, `BotCommand`,
+  `SlashInvocation`, `BotResponse`, `BotInviteToken` in
+  `hub/src/routes/bot_models.rs` (Voxply-server). New WS envelope
+  variants `bot_added`, `bot_removed`, `bot_profile_updated`.
+- *Client* (`Voxply-desktop`): Hub Settings → Bots tab (list, add by
+  pubkey, copy invite token, revoke). Slash-command autocomplete in
+  the composer reads from a cached per-hub command list. Ephemeral
+  message rendering when `visible_to_pubkey == my_pubkey`.
+- *Browser / Android clients*: same wire shapes, directory UI parity.
+  No platform-specific changes.
+
+**What's deferred**:
+
+- Bot DMs (notifications, transactional messages from a bot
+  identity) — needs a friend-graph rethink.
+- OAuth-style capability-scoped tokens per bot — broad token in v1;
+  scoping comes when abuse patterns emerge.
+- Cross-hub bot reputation / certifications — hub-certifications
+  design space.
+- Hub-to-hub bot federation across alliances — a bot is invited per
+  hub today.
+- Async event subscriptions over webhook (firehose) — WS only in v1.
+- Bot-to-bot interaction conventions.
+
 ## Lobby, "not a bot" challenge, and onboarding survey: three independent gates
 
 **Decision**: ship three composable onboarding features, each with its
