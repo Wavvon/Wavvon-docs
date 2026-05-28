@@ -7,8 +7,7 @@ shipped features, design questions — lives in the wiki at
 
 ## 🔨 Next up
 
-- **Performance ceiling** — voice relay O(1) lookup, FTS5 search, WS pre-serialization. See [`docs/performance.md`](docs/performance.md)
-- **Accessibility + i18n** — keyboard nav + focus trap (in progress), ARIA/screen-reader (next), i18n Phase 3 (library + catalogs + provider) done — string extraction is next. See [`docs/accessibility.md`](docs/accessibility.md)
+- **Accessibility + i18n** — Phase 1 keyboard nav shipped (focus rings, FocusTrap, roving tabindex, global shortcuts, KeyboardShortcuts modal — both desktop and web). Phase 2: ARIA/screen-reader. Phase 3: string extraction. See [`docs/accessibility.md`](docs/accessibility.md)
 
 ## 🚧 Blocked
 
