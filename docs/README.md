@@ -23,6 +23,7 @@ If you're new, read in this order:
 
 - [hosting.md](hosting.md) — practical guide: systemd, TLS, backups, upgrades
 - [packaging.md](packaging.md) — cross-platform packaging, code signing, auto-update, CI/CD, hub Docker image
+- [performance.md](performance.md) — load test plan for WS broadcast, search, voice relay; suspected ceilings and "good enough" thresholds (designed, not started)
 
 ### Onboarding & anti-abuse
 
@@ -31,6 +32,7 @@ If you're new, read in this order:
 ### Future direction (designed, not built)
 
 11. [farm-model.md](farm-model.md) — multi-hub server layer + 5-layer architecture
+    - [farm-impl.md](farm-impl.md) — Phase 1 + 2 + 3 implementation design (auth move, multi-tenancy, creation policy + admin panel)
 12. [gaming.md](gaming.md) — game distribution platform + tier progression
 13. [home-hub.md](home-hub.md) — personal-axis state: home hub list, replication, DM canonicalization
 14. [multi-device.md](multi-device.md) — master+subkey identity, QR pairing protocol
@@ -41,6 +43,7 @@ If you're new, read in this order:
 19. [install-android.md](install-android.md) — end-user guide: enable unknown sources, download APK, Play Protect warning
 20. [brand.md](brand.md) — motto, one-liner, logo brief and asset checklist
 21. [bots.md](bots.md) — external bot ecosystem: invite-by-pubkey, slash commands, webhook dispatch, per-hub directory
+22. [accessibility.md](accessibility.md) — keyboard navigation, ARIA / screen-reader support, i18n strategy across desktop / web / Android
 
 ## Find by feature
 

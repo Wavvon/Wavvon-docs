@@ -122,7 +122,12 @@ One backoff/retry/dead-letter implementation, many job kinds.
 
 ## Implementation order (when the time comes)
 
-Multi-month roadmap. Don't start without explicit direction:
+Multi-month roadmap. Don't start without explicit direction.
+
+> Detailed design for phases 1 and 2 lives in
+> [farm-impl.md](farm-impl.md) — exact DB column shapes, route shapes,
+> token format, migration strategy, and wire changes a backend
+> engineer can implement against.
 
 1. Farm-level auth — move `/auth/*` to farm, issue verifiable tokens
 2. Hub multi-tenancy — many hubs in one farm process

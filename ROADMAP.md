@@ -7,7 +7,7 @@ shipped features, design questions — lives in the wiki at
 
 ## 🔨 Next up
 
-- **Accessibility + i18n** — Phases 1 (keyboard nav), 2 (ARIA), and 3 (string extraction) shipped. ~465-key catalog across en/it/es/de; all components use t(). See [`docs/accessibility.md`](docs/accessibility.md)
+- **Android keyboard nav parity** — apply `FocusTrap`, `:focus-visible` ring, and roving tabindex to `android/voxply-desktop/src/` component copies (keyboard shortcuts and cheat-sheet modal excluded — no physical keyboard on Android). See [`docs/accessibility.md`](docs/accessibility.md)
 
 ## 🚧 Blocked
 
@@ -18,10 +18,9 @@ _(nothing blocked)_
 Things we want to build but haven't committed to a design yet. Designed
 items live in the wiki — see
 [`future-features.md`](docs/future-features.md),
-[`farm-model.md`](docs/farm-model.md),
 [`gaming.md`](docs/gaming.md).
 
-_(nothing — see "Designed, not started" for upcoming work)_
+_(nothing — everything designed is either shipped or in "Next up")_
 
 ## 🧭 Designed, not started
 

@@ -4,6 +4,230 @@ Why Voxply is shaped the way it is. Each entry: the decision, the
 alternative we considered, and why we chose this. New decisions go at
 the top.
 
+## Farm model phase 3: creation policy on the farm row, farm-admin pubkey, per-farm discovery probe — no central registry
+
+**Decision**: Phase 3 of the farm model adds (a) a three-valued
+`creation_policy` column on the singleton `farms` row
+(`open` / `admin_only` / `disabled`) plus quota columns
+(`max_hubs_per_user`, `max_hubs_total`) and a `allow_discovery_listing`
+flag; (b) a designated farm admin pubkey (`farms.admin_pubkey`) — no
+new account concept, just the operator's existing user pubkey
+recorded as the privileged identity for farm-level endpoints; (c) a
+client-side `CreateHubModal` with farm picker + form, surfaced both
+from the hub-sidebar `+` button and from a new "Host your own
+community" section on the Discover page; (d) a narrow
+`GET /farm/public-info` probe endpoint so a user pasting a farm URL
+can decide whether to connect, without any central farm registry.
+Full design in [`farm-impl.md`](farm-impl.md) Phase 3.
+
+**Alternatives considered**:
+
+- **A separate "farm admin account" concept** (email/password or a
+  farm-issued credential distinct from a user pubkey). Rejected on
+  the same identity grounds as the rest of the farm model — there is
+  no Voxply account, only pubkeys. The admin is "the pubkey the
+  operator pasted into the CLI flag on first start," same trust shape
+  as a hub's first-admin-is-the-operator bootstrap today.
+- **Per-hub creation policy** instead of per-farm. Rejected: hubs
+  don't exist yet at the moment "can this user create a hub?" is
+  asked. The policy belongs one layer up; per-hub policy would have
+  to live on the farm anyway. One row, one knob.
+- **A two-valued policy** (`open` / `closed`). Rejected: `admin_only`
+  is a real third state — the operator wants the API live for their
+  own use but not for end users. Collapsing it into `open` forces a
+  workaround (deploy with `open`, race the first user); collapsing
+  it into `closed` blocks the operator from using their own API.
+- **A central farm registry** to surface "farms open for hub
+  creation." Rejected on the same sovereignty grounds the hub
+  discovery design rejects a central hub registry. The
+  `Voxply-discovery` directory may grow an optional farm-listing
+  extension reusing the signed-listing primitive, but the protocol
+  primitive is the URL-shared probe (`/farm/public-info`); the
+  directory is one possible consumer, not the discovery mechanism.
+- **Auto-spawn deferred to a later phase** (Phase 2's stance).
+  Reversed for the open-policy creation path only: a client-driven
+  create flow that returns "now SSH into the box and run a command"
+  is not a UX we ship. The operator-driven path stays available for
+  admin-only farms; the open path requires the farm to spawn the hub
+  process automatically with a bounded timeout and tombstone on
+  failure.
+- **Suspend a hub by killing the process**. Rejected: the hub's DB
+  must stay intact (the operator may want to inspect it; the hub
+  owner may dispute the suspension). The farm proxy short-circuiting
+  `/hub/<id>/*` with `503 hub_suspended` gives the same user-visible
+  effect with the hub state preserved.
+- **A true farm-level user ban** that prevents a pubkey from
+  authenticating against the farm at all. Deferred to Phase 4+:
+  Phase 3 covers session revocation (`POST /farm/users/:pk/revoke-
+  sessions`) and per-hub suspension, which composes to the same
+  effect without a new "denied pubkeys" table. A real ban needs a
+  story for "what if the user re-auths immediately" that we
+  haven't designed.
+
+**Tradeoff**: shipping client-driven hub creation forces auto-spawn
+into the farm — a process supervisor inside what was meant to be
+"auth + directory + reverse proxy and nothing else." We accept that
+because the alternative (operator-instructions response from
+`POST /farm/hubs`) makes the open-policy UX unshippable, and because
+the supervisor is scoped narrowly (spawn one binary with one config,
+wait for `/info`, give up on timeout) rather than a general process
+manager. Operators who don't want spawning keep `creation_policy =
+admin_only` and the Phase 2 behaviour is unchanged. The narrow
+`/farm/public-info` endpoint also accepts unauthenticated probes
+exactly the same way `/farm/info` does today; we accept that bandwidth
+because the body is small and the per-farm opt-in
+(`allow_discovery_listing`) defaults to off.
+
+**What changes on the implementation side**:
+
+- *Farm DB* (`farm/src/db/migrations.rs` in Voxply-server):
+  additive ALTERs on `farms` (`creation_policy`, `max_hubs_per_user`,
+  `max_hubs_total`, `allow_discovery_listing`, `admin_pubkey`) and on
+  `hubs` (`suspended_at`, `suspension_reason`).
+- *Farm routes*: `GET /farm/settings`, `PATCH /farm/settings`,
+  `GET /farm/hubs?include=all`, `PATCH /farm/hubs/:id/suspend`,
+  `GET /farm/users`, `POST /farm/users/:pk/revoke-sessions`,
+  `GET /farm/me/hub-quota`, `GET /farm/public-info`. `POST /farm/hubs`
+  body extends with an optional `icon`. `GET /farm/info`'s `policy`
+  block grows `creation_policy` and `allow_discovery_listing`.
+- *Farm process supervisor*: bounded auto-spawn on
+  `POST /farm/hubs`, tombstone on timeout. Operator-provided
+  supervision remains the path for `admin_only` farms.
+- *Farm-admin middleware*: rejects with `403 farm_admin_only` when
+  the token's `sub` doesn't match `farms.admin_pubkey`.
+- *Hub `/info`*: gains a `member_count` field (cached, 60s TTL) used
+  by the farm admin's hub list. Otherwise unchanged.
+- *Client* (`Voxply-desktop`, mirrored on `Voxply-web` and
+  `Voxply-android`): new `CreateHubModal` (farm picker → form →
+  result), new `FarmSettingsPage` (General / Hubs / Users tabs)
+  surfaced only when the user is the farm admin. The hub-sidebar
+  `+` button gains a Join/Create popover. `DiscoverPage.tsx` gains a
+  "Host your own community" tab using the same picker UI plus a
+  "Check a farm URL" probe input. Known-hosts local store grows a
+  `kind: "voxply-hub" | "voxply-farm"` discriminator on each entry.
+
+**What's deferred**:
+
+- True farm-level user ban (a `farm_banned_pubkeys` table) — Phase 4+.
+- Discovery-service-side farm listing (`Voxply-discovery` extension to
+  list farms by `kind = "voxply-farm"`) — out of scope for the farm
+  server; lands when the directory repo picks it up.
+- Per-farm `require_unique_names` enforcement on hub creation.
+- Cross-farm discovery (layer 5) — `seed/` crate work, fundamentally
+  separate.
+- Streaming hub-spawn progress to the client (today: bounded wait +
+  one success/failure response).
+
+## Farm model phases 1 + 2: separate `farm/` crate, signed self-describing tokens, hubs cache farm pubkey
+
+**Decision**: the farm layer ships as a new `farm/` crate in Voxply-
+server, a separate binary from `hub/`. Phase 1 (farm-level auth) is
+deployable on its own against a single hub per farm; Phase 2 (hub
+multi-tenancy) layers on top without changing the auth wire. Farm
+session tokens are Ed25519-signed self-describing blobs
+(`base64url(payload).base64url(signature)`) — hubs verify them locally
+against a farm pubkey cached on startup, with no per-request round-trip
+to the farm. Multi-tenancy uses path-prefix routing (`/hub/<hub_id>/...`)
+proxied by the farm to per-hub processes — one SQLite DB per hub
+stays. Full design in [`farm-impl.md`](farm-impl.md).
+
+**Alternatives considered**:
+
+- **Farm and hub in one binary (embedded library mode)**. Rejected:
+  conflates two failure domains — a hub panic would take down the
+  farm's auth endpoint, stopping new sessions across every hub on the
+  farm. The HTTP boundary keeps each crash radius bounded.
+- **Hub calls the farm to verify each session token**. Rejected: adds
+  1-5ms (LAN) to 20-100ms (different host) to every authenticated
+  request, and makes the hub fully unavailable for the duration of any
+  farm outage. Local verification with a cached pubkey gives the right
+  uptime story (farm down → no new sessions, but existing traffic
+  keeps flowing).
+- **JWT with HS256 shared secret**. Rejected: forces the farm and every
+  hub to hold the same key, with secret distribution and rotation
+  pain. Asymmetric Ed25519 means hubs hold only the public key, which
+  is also published at `/farm/info`.
+- **JWT structurally (RS256/EdDSA-JWT)**. Rejected on the same grounds
+  we don't speak JWT anywhere else — alg negotiation, JWS variants,
+  and the `none` algorithm foot-gun buy nothing on top of the
+  Ed25519 primitive we already use for hub federation and alliance
+  invite tokens. One signing shape across the protocol.
+- **One DB with a `hub_id` column partition** for multi-tenancy.
+  Rejected: SQLite's single-writer model means one busy hub stalls
+  writes for the others; cross-tenant query bugs (forgetting a
+  `WHERE hub_id = ?`) are a class of vulnerability that doesn't exist
+  with per-DB isolation; today's "one file per hub, `cp` is the
+  backup" operability is lost.
+- **Subdomain-per-hub routing** (`abc.farm.example.com`). Rejected:
+  needs a wildcard TLS cert or per-hub DNS, both more operational
+  complexity for the self-hoster the farm model targets. Path prefix
+  keeps one cert, one hostname.
+- **Auto-spawn hubs from `POST /farm/hubs`**. Deferred to Phase 3+:
+  Phase 2 ships with operator-provided process supervision (the farm
+  creates the DB row and returns instructions; the operator runs the
+  hub via their preferred unit). A new process supervisor inside the
+  farm is the wrong scope for Phase 2's "auth + directory + reverse
+  proxy and nothing else" remit.
+- **Ship Phase 1 only after Phase 2 is ready**. Rejected: the trust-
+  model migration risk lives entirely in the auth move. Decoupling
+  it from the multi-tenancy work means we can stabilise the trust
+  boundary on a known-good single-hub deployment, then add
+  multi-tenancy without auth-shaped surprises.
+
+**Tradeoff**: a signed token cannot be un-issued by changing one row in
+a database — revocation needs short expiries (30 days), an opt-in
+revoke-check endpoint hubs can poll, and key rotation as the disaster
+escape hatch. We accept that because the per-request cost is zero and
+the alternative (network call per request) destroys the latency and
+availability properties that justify moving auth to the farm in the
+first place. The three-step migration (dual-issue → stand up farm →
+hubs return `410 use_farm`) is the most delicate part of the rollout;
+we accept that pain in one window in exchange for never having to
+revisit the auth boundary again.
+
+**What changes on the implementation side**:
+
+- *New crate*: `farm/` in Voxply-server, mirroring `hub/`'s structure
+  (`farm/src/main.rs`, `farm/src/server.rs`, `farm/src/state.rs`,
+  `farm/src/db/migrations.rs`, `farm/src/routes/{health,auth,hubs}.rs`,
+  `farm/src/token.rs`).
+- *Farm DB*: `farms` (singleton), `farm_users`, `pending_challenges`,
+  `farm_sessions`, `hubs` (Phase 2). One `farm.db` SQLite file, the
+  same shape as today's `hub.db` for operability.
+- *Farm routes*: `GET /farm/info`, `POST /auth/{challenge,verify,renew}`,
+  `POST /farm/auth/revoke-check`, `GET/POST /farm/hubs`,
+  `GET/PATCH/DELETE /farm/hubs/{hub_id}` (Phase 2).
+- *Hub changes* (`hub/` in Voxply-server): `auth/middleware.rs`
+  rewrites to verify signed tokens locally;
+  `cached_farm_pubkey: ArcSwap<Option<String>>` + `farm_url:
+  Option<String>` added to `AppState`; `auth/handlers.rs` returns
+  `410 Gone` in step 3 of the migration (its user-row-upsert /
+  approval / role-assignment logic migrates into the admission
+  middleware); `routes/health.rs::info` gains a `farm_url` field.
+- *Identity-axis routes move up*: `subkey_revocations`,
+  `subkey_certs`, `pairing`, `prefs`, `dh_keys`, `friends`
+  endpoints relocate from the hub to the farm. The hub keeps
+  community-axis state (channels, messages, voice, bans, roles,
+  approvals, lobby/survey).
+- *Client changes* (`Voxply-desktop`, `Voxply-web`, `Voxply-android`):
+  before `/auth/challenge`, fetch the hub's `/info`; if `farm_url` is
+  set, target auth at the farm. No new client-facing UI in Phase 1 —
+  the user does not know a farm exists yet.
+
+**What's deferred**:
+
+- Phases 3-7 of `farm-model.md` (public/private flag UI, client
+  browse-the-farm UX, client-driven hub creation, hub migration
+  export/import, deep links).
+- Cross-farm discovery (layer 5 — `seed/` crate work).
+- DMs and the federated DM outbox moving to the farm level — called
+  out in `farm-model.md` as the eventual destination; deferred until
+  Phases 1 + 2 are stable.
+- Generic job queue refactor (`dm_worker.rs` → kind-dispatched
+  queue) — lands with farm-level DMs, not before.
+- Bot tokens moving to the farm — bots stay hub-scoped for Phase 1.
+- Auto-spawn process supervisor inside the farm — Phase 3+.
+
 ## External bots: users-with-is_bot, invite-by-pubkey, per-hub directory
 
 **Decision**: external bots are first-class hub members — a `users`
