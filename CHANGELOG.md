@@ -7,35 +7,33 @@ minor bumps signal breaking wire-protocol changes; patch bumps are compatible.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-30
+
 ### Added
 - Cross-platform packaging: NSIS installer (Windows), universal DMG (macOS), AppImage (Linux)
 - Auto-update via `tauri-plugin-updater` with Ed25519-signed update payloads
-- GitHub Actions CI: build-check on PR, full release build on `git tag v*`
-- Hub Docker image (distroless) and `docker-compose.yml` for self-hosters
+- GitHub Actions CI: build-check on PR, release workflow publishes Docker images and static binaries on tag
+- Hub and farm Docker images on `ghcr.io/voxply/hub` and `ghcr.io/voxply/farm`; `docker-compose.yml` and `docker-compose.farm.yml` for self-hosters
 - E2E encrypted 1:1 DMs: AES-256-GCM with X25519 key agreement and Ed25519-signed envelopes
 - Screen share: hub-relayed WebM chunks, source picker, viewer panel, optional webcam
 - Hub discovery layer 3: signed public hub profiles (`GET/PUT /profile/:pubkey`)
-- Multi-device pairing via QR code, SubkeyCert chain, and master identity
+- Multi-device pairing via QR code, SubkeyCert chain, and master identity; `device_list`, `device_revoke`, `subkey_issue` Tauri commands
 - Federation: cross-hub messaging, DM routing, and hub-to-hub authentication
 - Voice channels: Opus audio, VAD, push-to-talk, per-channel role permission
 - Roles & permissions system with built-in @everyone and Owner roles
 - Hub moderation: bans, mutes, channel bans, voice mutes
 - In-hub games via iframe manifests
 - Hub alliances for cross-hub channel sharing
+- Observability: structured JSON logging (`VOXPLY_LOG_FORMAT=json`), per-request `X-Request-ID` header, `GET /metrics` endpoint, optional OpenTelemetry OTLP trace export (`VOXPLY_OTLP_ENDPOINT`)
+- Group DM plaintext warning shown before entering a group conversation
+- Cert bootstrap lockout warning in hub admin certifications settings
+- Recovery contact step-by-step guide in security settings
 
 ### Known limitations
 
-- **Windows SmartScreen warning**: The Windows installer (`.exe`) is currently unsigned
-  because an Authenticode code-signing certificate has not yet been procured. When you run
-  the installer, Windows may show a "Windows protected your PC" SmartScreen dialog.
-
-  **Workaround**: click **More info**, then **Run anyway**. The installer is safe; it is only
-  unsigned because Authenticode signing is still pending. This limitation will be resolved
-  when certificate procurement completes (see [ROADMAP.md](ROADMAP.md) — "Windows
-  Authenticode code signing").
-
-  The auto-updater payload signature (Ed25519, separate key) is unaffected — updates
-  downloaded in-app are cryptographically verified regardless of the installer signature.
+- **Windows SmartScreen warning**: The Windows installer (`.exe`) is currently unsigned.
+  Click **More info → Run anyway** to proceed. Authenticode signing is pending.
+  The auto-updater payload signature (Ed25519) is unaffected.
 
 ## [0.1.0] - 2026-05-01
 
