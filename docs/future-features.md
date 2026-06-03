@@ -54,9 +54,13 @@ verifies cert signatures, expiry, standing, and `cert_require` property
 rules; `GET /info` advertises `cert_requirement`; `IdentityCertificationsSection`
 and `HubCertificationsAdminSection` UI components exist on desktop.
 
-**Still deferred**: automatic cert-issuance sweep job (periodic
-background task that mints certs for qualifying members); `GET
-/certs/revocations` polling endpoint; cross-farm cert relay.
+**Also shipped**: automatic cert-issuance sweep (`hub/src/cert_worker.rs`)
+runs hourly — finds members whose age ≥ `cert_standing_days`, PoW ≥
+`cert_min_pow_level`, and who have no live cert, then signs and inserts
+a `cert_issuances` row. `GET /certs/revocations?since=<ts>` (public, no
+auth) returns revoked certs for external hubs to poll.
+
+**Still deferred**: cross-farm cert relay.
 
 ### Also considered
 
