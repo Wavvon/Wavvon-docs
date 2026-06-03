@@ -559,8 +559,13 @@ current channel or voice state.
 
 ### OS-level picture-in-picture
 
-**Status: NOT YET BUILT.** No `always_on_top` Tauri window exists in
-`src-tauri/`. This is the remaining item in this section.
+**Status: SHIPPED.** `open_pip_window` and `close_pip_window` Tauri
+commands added to `lib.rs`. `desktop/public/pip.html` is a
+self-contained MSE stack that listens for `pip-stream-chunk` / `pip-stream-stop`
+Tauri events and renders the stream in a borderless, always-on-top
+window (320×180 default, min 160×90, draggable, resizable). A "Pop out /
+Pop in" button in `ScreenShareViewer.tsx` opens the window and forwards
+chunks via `emit("pip-stream-chunk")`.
 
 **Problem**: the "Floating overlay" layout (designed in
 [screen-share.md](screen-share.md)) pins the viewer inside the app window.
