@@ -109,9 +109,9 @@ The recovery phrase ([identity.md](identity.md)) is shipped. Subsequent
 layers:
 
 1. **Backup / export** — explicit export-import of `identity.json` with
-   a passphrase wrapper. The file already exists at
-   `~/.voxply/identity.json`; this is just UX. **Not yet built** — no
-   Tauri command or UI for passphrase-protected export/import.
+   a passphrase wrapper. **Shipped**: `export_identity_backup` and
+   `import_identity_backup` Tauri commands (Argon2id + AES-256-GCM),
+   `IdentityBackupSection.tsx` UI in Settings → Account.
 2. **Device linking** — master keypair authorizes per-device sub-keys.
    Revoke a lost device from another. **Shipped as part of multi-device
    pairing** (see that section below); the DB tables, routes, and QR
@@ -350,9 +350,10 @@ create and move. `max_channel_depth` is seeded as `'0'` in
 `hub_settings`. `ChannelSidebar.tsx` uses a recursive `TreeNode`
 structure with depth tracking.
 
-**Still missing**: admin panel UI to set `max_channel_depth` (the
-setting exists in the DB but there's no field in Hub Settings to
-change it).
+**Status: SHIPPED.** `max_channel_depth` is wired end-to-end: the DB
+column, server enforcement, `get_hub_settings` / `save_hub_settings`
+Tauri commands, and a number input in Hub Admin → Overview are all
+present.
 
 ### Open implementation questions
 
