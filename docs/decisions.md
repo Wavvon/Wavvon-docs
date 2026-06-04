@@ -4,6 +4,233 @@ Why Voxply is shaped the way it is. Each entry: the decision, the
 alternative we considered, and why we chose this. New decisions go at
 the top.
 
+## Discovery v2: server-side uptime probing, separate farm catalog, fan-out search, catalog-only analytics
+
+**Decision**: four Voxply-discovery enhancements, all extending the
+existing Next.js + `better-sqlite3` + `@noble/ed25519` stack with no new
+infrastructure. (1) **Hub uptime** — discovery probes each hub's public
+`GET /info` every 15 min from the server, stores results in `hub_pings`,
+shows a 7-day uptime percentage, prunes rows past 30 days. (2) **Farm
+browsing** — a separate `farms` catalog/page/API reusing the signed
+self-listing primitive, not a tagged subset of hub listings. (3) **Global
+search** — `GET /api/search` fans out across catalogs with `Promise.all`,
+merges and ranks, caps 5/type; SQLite FTS5, no search service. (4)
+**Anonymous analytics** — `GET /api/analytics` exposes catalog-only
+counts (registered vs. active hubs, top tags, weekly registrations),
+recomputed hourly. Full design in [`discovery-v2.md`](discovery-v2.md).
+
+**Alternatives considered**:
+
+- **User-driven uptime** (browser clients report reachability). Rejected:
+  leaks which users checked which hubs — the user-level tracking
+  sovereignty forbids. Server-side probing needs no trust relationship
+  and no user identity.
+- **Reusing the farm heartbeat** ([`farm-impl.md`](farm-impl.md)) as the
+  uptime signal. Rejected: hubs authenticate to their farm but not to
+  discovery; discovery probes anonymously. Keeping discovery a non-trusted
+  prober is deliberate.
+- **Farms as tagged hub listings.** Rejected: a farm is an infrastructure
+  provider, not a community; its metadata (pricing, capacity, onboarding)
+  and the user intent ("pick a host") don't overlap with hubs.
+- **A dedicated search service (Elasticsearch/Meilisearch).** Rejected:
+  catalogs are hundreds to low thousands of entries; FTS5 covers it with
+  no second datastore to deploy and sync.
+- **Per-hub usage analytics** (member counts, message volume). Rejected:
+  requires hubs to report private operational data to discovery,
+  inverting the probe relationship. The project does not know what
+  communities do with the software; catalog counts are the only data
+  discovery legitimately has.
+
+**Why this won**: every choice falls out of the sovereignty principle —
+discovery is a catalog, not a surveillance layer. It knows what operators
+publish and what its own probes observe, and nothing about users, message
+content, or who looks up what. The cheapest design that respects that
+boundary is server-side probing plus counts of the registry discovery
+already maintains.
+
+---
+
+## Hub creation: self-submitted signed templates + empty-DB bootstrap, not a curated catalog or a separate command
+
+**Decision**: hub config templates are Ed25519-signed JSON documents
+self-submitted to Voxply-discovery (`POST /api/templates/register`),
+authored by their signing key with no discovery account — the same
+signed-listing primitive hubs, bots, games, and farms already use. A hub
+applies a template on first launch from the empty-`channels` branch of
+`db::migrations::run`, triggered by `VOXPLY_BOOTSTRAP_TOKEN` (wizard-
+customised config) or `VOXPLY_TEMPLATE_URL` (raw defaults), and never
+again (a `bootstrapped_at` marker makes it idempotent). The web wizard at
+`discovery.voxply.app/new` ties them together and emits either a one-click
+managed-farm hub or a pre-filled Docker/binary command. Full design in
+[hub-creation-wizard.md](hub-creation-wizard.md).
+
+**Alternatives considered**:
+
+- **Curated-only template catalog** (discovery vets and publishes a fixed
+  set). Rejected on sovereignty grounds: it would make discovery the one
+  authority deciding what a hub can start as, breaking the open
+  self-submission rule every other catalog follows. A `featured` flag
+  stays as a display hint, never a gate.
+- **A separate `voxply-hub bootstrap` subcommand.** Rejected: it adds a
+  command the operator must remember and sequence, and risks double-runs.
+  Folding bootstrap into the empty-DB migration branch fires it exactly
+  once, automatically.
+- **Wizard inside the desktop client.** Rejected: the wizard must be
+  reachable before any hub or client exists, and serves people generating
+  Docker/binary commands who have no client. A web page on discovery is the
+  zero-install entry; the in-client create-a-hub flow
+  ([farm-impl.md](farm-impl.md)) covers the already-on-a-farm case.
+- **Silent auto-registration with the directory.** Rejected as default:
+  listing a hub publicly is a choice, so the default logs/pre-fills the
+  registration command and full hands-off registration is opt-in via
+  `VOXPLY_DISCOVERY_AUTOREGISTER=true`.
+
+**Tradeoff**: templates are one-shot at first launch and advisory, not
+binding — there is no story for re-applying an updated template to a hub
+already bootstrapped, and an operator can override any seeded setting
+immediately. We accept this because a live re-templating mechanism would
+have to reconcile operator edits against template changes, which is a
+migration problem the starting-point model deliberately avoids.
+
+---
+
+## Admin tooling: a bearer admin token separate from user keypairs, plus an offline DB CLI
+
+**Decision**: hub administration gets three surfaces, none of which
+mixes credentials across the two axes. The **web admin panel** at
+`{hub-url}/admin` is gated by a `web_admin_token` — a 32-byte hex value
+generated on first start, stored in `hub_settings`, printed once to the
+log — carried as `Authorization: Bearer <token>`, and entirely separate
+from user session tokens. The **admin CLI** (`voxply-hub admin ...`)
+operates directly on the local SQLite DB with no HTTP and no running
+hub, gated by filesystem access alone. The **farm console** is the
+farm-axis sibling, gated by the farm admin's keypair session
+(`farms.admin_pubkey`) and fed by a hub→farm `POST /farm/heartbeat`
+push. Full design in [`hub-admin-panel.md`](hub-admin-panel.md).
+
+**Alternatives considered**:
+
+- **Reuse the desktop client's keypair-authed Hub Admin page as the only
+  admin surface.** Rejected as the sole surface: it forces an admin user
+  session, which an operator may not have during setup or while
+  troubleshooting an auth problem. The bearer-token web panel works with
+  no keypair; the desktop page stays as the member-facing admin UI.
+- **A user-session token that also grants admin.** Rejected: a
+  compromised user session would then grant admin. A dedicated token
+  with no membership semantics keeps the blast radius of a leaked chat
+  session away from operator powers.
+- **Admin only over HTTP, scripted locally.** Rejected as the primary
+  CLI path: it needs the hub running and a credential, and pays HTTP +
+  auth cost per call. Direct-DB access works offline and is faster for
+  bulk fixes — the right shape for a maintenance tool. The HTTP API
+  still exists; the CLI is its offline complement.
+- **Farm console polls each hub's admin token.** Rejected: it would push
+  hub-axis secrets into the farm-axis tool. Hubs already authenticate to
+  the farm, so a signed hub→farm heartbeat push reuses existing trust
+  and keeps every admin token on its own hub.
+- **A farm-wide ban store.** Rejected: a ban is a community-axis
+  decision ([`home-hub.md`](home-hub.md)); the farm console fans the
+  same per-hub ban out to many hubs rather than recording a hosting-layer
+  ban. No community-axis state moves to the farm.
+
+**Tradeoff**: a second secret to manage (the web admin token) and a
+single shared token in v1 rather than per-operator scoping — accepted
+because the token is shown once for a password manager and rotatable,
+and per-operator scoping waits for a real multi-operator hub. The web
+panel is localhost-only by default (`WEB_ADMIN_ALLOWED_ORIGINS` to
+widen) so a hub on a public IP doesn't expose `/admin` by accident.
+
+**What changes on the implementation side**:
+
+- *Hub* (Voxply-server): `GET /admin/panel` (embedded HTML),
+  `GET /admin/stats`, a `web_admin_token` row + once-only log line, a
+  bearer guard distinct from the session middleware, a
+  `WEB_ADMIN_ALLOWED_ORIGINS` CORS gate, token rotation; a
+  `voxply-hub admin` clap subcommand tree opening its own short-lived
+  `SqlitePool`; a 60s heartbeat task POSTing `/farm/heartbeat` when
+  `VOXPLY_FARM_URL` is set.
+- *Farm* (Voxply-server `farm/`): `POST /farm/heartbeat` (verifies hub
+  Ed25519 sig, upserts `hub_heartbeats`), `GET /farm/admin/console`,
+  farm-level ban + propagation fan-out to each hub's ban route.
+- *Client* (Voxply-desktop, mirrored web/Android): no change for the web
+  panel (browser-served); the farm console UI extends the Phase 3B Farm
+  Settings view with a heartbeat-driven Hub Fleet panel, cross-hub user
+  search, and ban-propagation approval.
+
+## Moderation enhancements: signed opt-in ban lists, fail-open webhook, hub-local report queue
+
+**Decision**: three additions that extend moderation without ever
+creating a global authority. (1) **Federated ban lists** — a hub
+publishes a signed `GET /federation/banlist` (Ed25519 over the canonical
+payload, the single-hop badge/token primitive); subscribers opt in per
+source, choose hard-reject or soft-flag per source, and local overrides
+always win. The enforcement point is `/auth/verify`, resolving subkey →
+master. (2) **Auto-moderation webhook** — synchronous pre-store
+allow/block POST to an operator-configured URL, HMAC-signed, 500ms
+timeout, **fail-open** on timeout/error, circuit-breaker after 3
+consecutive 5xx. (3) **Content reporting** — `POST /messages/:id/report`
+into a hub-local admin queue, dedup on `(message_id, reporter_pubkey)`,
+reporter hidden from non-admins, no public report count. Full design in
+[`moderation-enhancements.md`](moderation-enhancements.md).
+
+**Alternatives considered**:
+
+- **DHT / global blocklist** instead of per-hub opt-in subscription.
+  Rejected: a universal list means someone owns a platform-wide kill
+  switch — the central authority Voxply refuses
+  ([`threat-model.md`](threat-model.md)). Opt-in subscription gives the
+  same reach (popular curators emerge) with no global coordination.
+- **Reusing the badge/cert primitive for ban signals.** Rejected: badges
+  certify hubs and certs certify users in good standing
+  ([`hub-certifications.md`](hub-certifications.md)) — overloading
+  "absence of a good-standing cert" as a ban conflates "unknown" with
+  "bad." A dedicated endpoint with its own signing context keeps the
+  positive and negative reputation channels separate.
+- **Fail-closed webhook** (block when the moderation service is down).
+  Rejected: a flaky operator-owned service would silently mute the whole
+  hub. Degrading to "no moderation" is the sovereignty default; the
+  circuit breaker bounds the cost of a broken service.
+- **Async post-store moderation** (store, fan out, delete if blocked).
+  Rejected: the message reaches WS subscribers before the delete — the
+  exact leak moderation exists to prevent. Pre-store is the only point a
+  block is real.
+- **Anonymous reporting via hash commitment** in v1. Rejected: removes
+  the admin's ability to weigh and rate-limit a serial false-reporter,
+  and the commitment scheme isn't warranted until abuse appears.
+- **Cross-hub reporting.** Rejected for v1: moderating a community's
+  messages is community-axis state on that community's hub (the two-axis
+  rule); federated ban lists are the cross-hub tool.
+
+**Tradeoff**: federated bans are per-master-pubkey, so a banned user
+minting a fresh identity evades them — the same Sybil limit as every
+pubkey-keyed control, deferred to the lobby/PoW design. The webhook's
+fail-open default means a misconfigured or down service moderates
+nothing; we accept that over the alternative of taking a hub offline.
+None of the three propagates a hub's decisions to peers without an
+explicit opt-in on both ends.
+
+**What changes on the implementation side**:
+
+- *Hub* (Voxply-server): `GET /federation/banlist` publisher + 6-hour
+  sync job + `/auth/verify` gate in `hub/src/routes/federation.rs`; the
+  pre-store webhook dispatch (reusing the bot webhook HTTP/signing helper,
+  [`bots.md`](bots.md)) in the message-create path; `POST
+  /messages/:id/report` + `GET /admin/reports` + review route reusing the
+  existing `hub/src/routes/moderation.rs` ban/delete handlers; migrations
+  for `federated_bans`, `message_reports`, and the new `hub_settings`
+  columns (`banlist_sources` + per-source policy, `moderation_webhook_url`,
+  `moderation_webhook_secret`). Admin routes gate on `manage_users`.
+- *Client* (Voxply-desktop, mirrored web/Android): ban-list source +
+  override admin UI and soft-flag review surface; webhook settings panel
+  with circuit-breaker state; "Report message" context-menu action and an
+  admin "Reports" queue tab.
+
+**What's deferred**: ban-entry TTL, transitive source trust, a curated
+public-list directory in Voxply-discovery, signed un-ban receipts;
+webhook message-editing, per-channel routing, multi-service chaining,
+attachment-content scanning; anonymous reporting, report-time content
+snapshots, reporter-reputation auto-escalation, cross-hub reporting.
+
 ## Identity recovery: passphrase-wrapped backup file + social recovery as vouch-not-grant
 
 **Decision**: the two recovery layers above the shipped phrase are (a) a

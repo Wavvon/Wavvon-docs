@@ -20,35 +20,6 @@ items live in the wiki — see
 [`future-features.md`](docs/future-features.md),
 [`gaming.md`](docs/gaming.md).
 
-### Discovery enhancements
-
-- **Hub uptime tracking** — discovery pings registered hubs periodically
-  and shows uptime history on each hub's listing.
-- **Farm browsing** — dedicated tab: browse available managed farms,
-  pricing tiers, open capacity, and the farm's join flow.
-- **Global search** — find hubs, bots, games, and templates from one
-  search box across all discovery catalog types.
-- **Anonymous aggregate analytics** — total hubs listed, approximate
-  active user counts, most popular tags. Counts only, no user-level data.
-
-### Client quality-of-life
-
-- **Global message search** — search across all connected hubs. Hub-side
-  FTS5 is already in place for forum channels; extend to regular channels.
-- **Message drafts** — save unsent message per channel, persisted across
-  restarts.
-- **Custom emojis** — per-hub emoji library, hub admin uploads; members
-  react and use in messages.
-- **Events / calendar** — scheduled events with title, time, description,
-  RSVP. Shows in channel sidebar; sends a notification at event start.
-  Natural companion to proximity voice for concerts and meetups.
-- **Polls** — native `POST /channels/:id/polls` route + voting UI; no
-  bot dependency.
-- **Thread view improvements** — collapse/expand threads inline, "jump to
-  thread" from anywhere in the message list.
-- **Notification grouping** — batch OS notifications by hub when many
-  arrive quickly; single notification per hub with message count.
-
 ### Carry-over
 
 - **E2E group DMs** — Signal-style sender-key scheme (v2 of
@@ -65,10 +36,26 @@ items live in the wiki — see
 - **Hub admin tooling** — web admin panel at `{hub-url}/admin`, admin CLI
   (`voxply-hub admin ...`), farm console (multi-hub management). Design in
   [`hub-admin-panel.md`](docs/hub-admin-panel.md).
+- **Discovery enhancements** — hub uptime tracking (server-side `/info`
+  probing), farm browsing (separate catalog + `/farms` page), global
+  search (`/api/search` fan-out across catalogs), anonymous aggregate
+  analytics (catalog-only counts, registered vs. active hubs). Design in
+  [`discovery-v2.md`](docs/discovery-v2.md).
+- **Hub creation from discovery** — signed config templates catalog
+  (`/api/templates`, author self-submission), hub first-run bootstrap from
+  `VOXPLY_TEMPLATE_URL` / bootstrap token, web creation wizard at
+  `discovery.voxply.app/new`. Design in
+  [`hub-creation-wizard.md`](docs/hub-creation-wizard.md).
 - **Hub moderation enhancements** — federated ban lists (signed, opt-in
   per source), auto-moderation webhook (fail-open, circuit-breaker), and
   content reporting (hub-local admin queue). Design in
   [`moderation-enhancements.md`](docs/moderation-enhancements.md).
+- **Client quality-of-life** — global message search (hub FTS5 fan-out),
+  message drafts (localStorage), custom emojis (per-hub inline-base64
+  library), events/calendar (native type + RSVP), polls (hub-tallied,
+  live WS totals), thread collapse/expand + jump-to-thread, and OS
+  notification grouping (per-hub debounce). Design in
+  [`client-qol.md`](docs/client-qol.md).
 
 ## 🚀 Recently shipped
 

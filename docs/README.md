@@ -22,6 +22,7 @@ If you're new, read in this order:
 ### Running a hub
 
 - [hosting.md](hosting.md) — practical guide: systemd, TLS, backups, upgrades
+- [hub-operations.md](hub-operations.md) — operator features: backup/restore, data retention, Prometheus `/metrics`, hub key rotation (designed, not started)
 - [packaging.md](packaging.md) — cross-platform packaging, code signing, auto-update, CI/CD, hub Docker image
 - [performance.md](performance.md) — load test plan for WS broadcast, search, voice relay; suspected ceilings and "good enough" thresholds (designed, not started)
 
@@ -33,6 +34,8 @@ If you're new, read in this order:
 
 11. [farm-model.md](farm-model.md) — multi-hub server layer + 5-layer architecture
     - [farm-impl.md](farm-impl.md) — Phase 1 + 2 + 3 implementation design (auth move, multi-tenancy, creation policy + admin panel)
+    - [hub-admin-panel.md](hub-admin-panel.md) — operator admin tooling: web admin panel, admin CLI, farm console
+    - [hub-creation-wizard.md](hub-creation-wizard.md) — signed config templates, hub first-run bootstrap, web creation wizard at `/new`
 12. [gaming.md](gaming.md) — game distribution platform: tiers, registry, hub admin install + permissions, six-call SDK, farm-level games
 13. [home-hub.md](home-hub.md) — personal-axis state: home hub list, replication, DM canonicalization
 14. [multi-device.md](multi-device.md) — master+subkey identity, QR pairing protocol
@@ -41,6 +44,7 @@ If you're new, read in this order:
 16. [future-features.md](future-features.md) — anti-spam, moderation, recovery, bots
     - [server-tags.md](server-tags.md) — self-tags (discovery keywords) + portable signed hub badges
     - [hub-certifications.md](hub-certifications.md) — anti-spam Layer 2: hub-signs-user reputation certs, portable PoW credit
+    - [moderation-enhancements.md](moderation-enhancements.md) — federated ban lists (signed, opt-in), auto-moderation webhook (fail-open), content reporting queue
 17. [browser-client.md](browser-client.md) — second client (no Tauri), platform adapter, IndexedDB identity, voice deferred
 18. [android-client.md](android-client.md) — Tauri 2 Android wrapper around the browser platform layer, side-loaded APK
 19. [install-android.md](install-android.md) — end-user guide: enable unknown sources, download APK, Play Protect warning
@@ -51,6 +55,8 @@ If you're new, read in this order:
 24. [forum.md](forum.md) — forum channel type: post-list variant, posts + reply threads, `create_posts`/`manage_posts` permissions, FTS search
 25. [screen-share-webrtc.md](screen-share-webrtc.md) — screen share v2: WebRTC P2P, hub as SDP/ICE signaler, optional TURN, v1-relay fallback floor, multi-sharer forward-compat, v3 SFU
 26. [block-mute-ignore.md](block-mute-ignore.md) — user-level block / ignore / quiet-hours (DND): personal-axis prefs-blob state, client-side filtering, server-enforced DM block
+27. [discovery-v2.md](discovery-v2.md) — Voxply-discovery enhancements: hub uptime tracking, farm browsing, global search, anonymous aggregate analytics
+28. [client-qol.md](client-qol.md) — client quality-of-life: global search, drafts, custom emojis, events, polls, thread collapse, notification grouping
 
 ## Find by feature
 
@@ -114,9 +120,11 @@ Reading order is for learning the system end-to-end. This section is for
 - **Home hub list (personal-axis state, DM canonicalization)** — [home-hub.md](home-hub.md)
 - **Multi-device pairing (QR, master+subkey)** — [multi-device.md](multi-device.md)
 - **Farm model (multi-hub server, SSO, discovery)** — [farm-model.md](farm-model.md)
+- **Hub creation (config templates, first-run bootstrap, web wizard)** — [hub-creation-wizard.md](hub-creation-wizard.md)
 - **Gaming platform (tiers, SDK, sandbox)** — [gaming.md](gaming.md)
 - **Party multiplayer (Tier 2: sessions, hub relay, `game_*` envelopes)** — [gaming.md](gaming.md)
 - **Screen share v2 (WebRTC P2P, hub as signaler, TURN-optional, v1 fallback)** — [screen-share-webrtc.md](screen-share-webrtc.md)
+- **Client quality-of-life (search, drafts, emojis, events, polls, threads, notifications)** — [client-qol.md](client-qol.md)
 
 ## How to use this wiki
 
