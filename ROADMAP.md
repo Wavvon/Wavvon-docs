@@ -24,6 +24,22 @@ items live in the wiki — see
 - **macOS universal binary (arm64 + x86_64)** — blocked by `audiopus_sys v0.1.8` which compiles Opus for the host arch only; current macOS DMG is arm64 (Apple Silicon). Fix requires upgrading the audio stack to a crate that supports fat library compilation.
 - **Gaming Tier 3** — MMO + persistent shared world; stretch goal. Proximity voice (attenuating by in-game distance) is a general platform feature now designed separately below.
 
+## 🚀 Recently shipped
+
+- **Windows Authenticode signing** — CI signing wired in `release.yml`;
+  activates once `WINDOWS_CERT_THUMBPRINT` secret is set (cert
+  procurement via SignPath.io OSS tier still pending).
+- **Missions system** — API routes in Voxply-discovery, Missions panel +
+  PoW claim flow in desktop, spark balance + cosmetic catalog with
+  entitlement blobs. Design in [`missions.md`](docs/missions.md).
+- **Per-participant voice volume** — `sender_id` in UDP fan-out,
+  per-sender gain pipeline, volume slider in channel sidebar, persistence
+  to `voice_gains.json`. Design in [`voice-volume.md`](docs/voice-volume.md).
+- **Proximity voice** — voice zones in hub (WS protocol, in-memory state,
+  `manage_voice` permission), client-side attenuation (4 models), game SDK
+  calls (`voxply:createVoiceZone`, `voxply:setVoicePosition`). Design in
+  [`proximity-voice.md`](docs/proximity-voice.md).
+
 ## 🧭 Designed, not started
 
 - **Gaming Tier 2 client SDK** — server-side sessions, WS relay, host
@@ -31,18 +47,11 @@ items live in the wiki — see
   client postMessage SDK additions (`voxply:game:ready/send/start/end/
   sharedKvGet/sharedKvSet/snapshot/setJoinPolicy` + incoming events) and
   the Activities-button live-session badge. Design in `gaming.md §Tier 2`.
-- **Windows Authenticode code signing** — EV certificate via SignPath.io
-  cloud HSM; CI signing in `release.yml`; removes SmartScreen warning
-  permanently. Design in [`code-signing.md`](docs/code-signing.md).
-- **Missions system** — sponsor-attested voluntary actions that earn
-  cosmetic-only sparks; anti-fraud via PoW + rate limits + sponsor
-  callbacks; `Voxply-missions` service (new repo). Design in
-  [`missions.md`](docs/missions.md).
 
 ## ⚠️ Known issues
 
 - **Group DMs are plaintext** — hub operator can read group DM content; 1:1 DMs are E2E encrypted. Warning shown before entering group DMs. E2E group DMs (sender-key scheme) are in the wishlist.
-- **Windows installer unsigned** — users see SmartScreen "Windows protected your PC" warning; workaround documented in CHANGELOG.md (`More info → Run anyway`). Permanent fix requires Authenticode cert procurement (see Wishlist).
+- **Windows installer unsigned** — users see SmartScreen "Windows protected your PC" warning; workaround: "More info → Run anyway". Permanent fix once EV cert is procured (see code-signing.md).
 
 ## 💤 Won't do
 
