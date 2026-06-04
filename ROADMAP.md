@@ -29,12 +29,11 @@ _(nothing pending)_
 
 ## 🚀 Recently shipped
 
-- **Video in voice channels** — `useVideo` hook (RTCPeerConnection mesh,
-  active-speaker top-3 with 3s linger, lex-order offer initiation),
-  `VideoGrid` component (equal grid ≤4, active-speaker+thumbnails 5+,
-  self-view overlay), `BackgroundProcessor` (MediaPipe selfie_segmentation,
-  none/blur/image modes via canvas compositing). Hub signaling (Rust side)
-  already landed. Camera toggle and background picker UI are next.
+- **Video in voice channels** — WebRTC mesh, active-speaker management
+  (top-3, 3s linger), `VideoGrid` (equal grid ≤4, active-speaker+thumbnails
+  5+, self-view overlay), `BackgroundProcessor` (MediaPipe none/blur/image),
+  camera toggle + background picker in voice bar, hub signaling envelopes.
+  Scale: mesh works up to ~20; SFU hook designed-in for large events.
   Design in [`video-voice.md`](docs/video-voice.md).
 - **Voice advanced settings** — Standard / Music / Custom audio quality
   profiles. `EffectiveVoiceConfig` resolved at pipeline start; Denoiser
