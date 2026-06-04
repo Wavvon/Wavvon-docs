@@ -38,16 +38,6 @@ items live in the wiki — see
   cosmetic-only sparks; anti-fraud via PoW + rate limits + sponsor
   callbacks; `Voxply-missions` service (new repo). Design in
   [`missions.md`](docs/missions.md).
-- **Per-participant voice volume control** — per-speaker gain slider in the
-  voice channel UI; adds `sender_id` to fan-out UDP packets and splits the
-  receive pipeline by sender. Design in
-  [`voice-volume.md`](docs/voice-volume.md).
-- **Proximity voice** — general platform primitive: voice zones with
-  pluggable attenuation models, position protocol over the chat WS,
-  client-side gain computation. Available to games (Tier 3 SDK),
-  hub admins, and any future spatial feature. Requires per-participant
-  volume control first. Design in
-  [`proximity-voice.md`](docs/proximity-voice.md).
 
 ## ⚠️ Known issues
 
