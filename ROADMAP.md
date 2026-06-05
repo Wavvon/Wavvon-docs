@@ -7,7 +7,11 @@ shipped features, design questions — lives in the wiki at
 
 ## 🔨 Next up
 
-_(nothing — all pre-launch blockers are resolved)_
+- **E2E group DMs hub endpoints** — `push_group_sender_key` / `fetch_group_sender_keys` /
+  `encrypt_group_dm` / `decrypt_group_dm` Tauri commands are done; hub needs
+  `PUT /conversations/:id/sender-keys`, `GET /conversations/:id/sender-keys`, and
+  the `group_encrypted_envelope` field on `POST /conversations/:id/messages` to wire
+  everything up end-to-end.
 
 ## 🚧 Blocked
 
@@ -22,8 +26,6 @@ items live in the wiki — see
 
 ### Carry-over
 
-- **E2E group DMs** — Signal-style sender-key scheme (v2 of
-  e2e-encryption.md); blocks until 1:1 E2E is proven stable in production.
 - **Gaming Tier 3** — MMO + persistent shared world; stretch goal.
   Proximity voice is already a general platform primitive; only the
   persistent-world layer is undesigned.
@@ -92,7 +94,6 @@ items live in the wiki — see
 
 ## ⚠️ Known issues
 
-- **Group DMs are plaintext** — hub operator can read group DM content; 1:1 DMs are E2E encrypted. Warning shown before entering group DMs. E2E group DMs (sender-key scheme) are in the wishlist.
 - **Windows installer unsigned** — users see SmartScreen "Windows protected your PC" warning; workaround: "More info → Run anyway". Permanent fix once EV cert is procured (see code-signing.md).
 
 ## 💤 Won't do
