@@ -7,11 +7,13 @@ shipped features, design questions — lives in the wiki at
 
 ## 🔨 Next up
 
-- **E2E group DMs hub endpoints** — `push_group_sender_key` / `fetch_group_sender_keys` /
-  `encrypt_group_dm` / `decrypt_group_dm` Tauri commands are done; hub needs
-  `PUT /conversations/:id/sender-keys`, `GET /conversations/:id/sender-keys`, and
-  the `group_encrypted_envelope` field on `POST /conversations/:id/messages` to wire
-  everything up end-to-end.
+- **Missing Tauri command implementations** — forum, certifications/badges, game management,
+  and discovery-tags commands are called from the UI but not yet wired into lib.rs. Forum
+  commands (`forum_list_posts`, `forum_get_post`, `forum_create_post`, `forum_create_reply`,
+  `forum_pin_post`, `forum_lock_post`) were added. Still missing: cert/badge commands
+  (`issue_cert`, `list_badges`, `accept_badge`, `grant_badge`, etc.), game management
+  (`install_game`, `uninstall_game`, `list_admin_games`), and discovery tags
+  (`get_discovery_settings`, `set_discovery_tags`).
 
 ## 🚧 Blocked
 
@@ -31,6 +33,20 @@ items live in the wiki — see
   persistent-world layer is undesigned.
 
 ## 🚀 Recently shipped
+
+- **Forum channels** — `forum_list_posts`, `forum_get_post`, `forum_create_post`,
+  `forum_create_reply`, `forum_get_post_replies`, `forum_pin_post`, `forum_lock_post`
+  Tauri commands wired; hub routes and UI components (`ForumPostList`, `ForumPostDetail`,
+  `ForumComposer`) were already complete. Design in [`forum.md`](docs/forum.md).
+- **Block / ignore / DND persistence** — `load_ignored_users` / `save_ignored_users` and
+  `load_dnd_settings` / `save_dnd_settings` Tauri commands added; App.tsx seeds both
+  states from disk on startup. Phase 1+2 client-side block/ignore is now fully persistent.
+  Design in [`block-mute-ignore.md`](docs/block-mute-ignore.md).
+- **Multi-stream screen share overlay** — floating, draggable, resizable `ScreenShareOverlay`
+  replaces the inline viewer; multiple co-op streams tile in a CSS grid. Hub cap removed —
+  unlimited concurrent sharers per channel. Design in [`decisions.md`](docs/decisions.md).
+- **E2E group DMs** — sender-key scheme (Signal-style); hub endpoints + Tauri commands +
+  desktop client all complete. Design in [`e2e-encryption.md`](docs/e2e-encryption.md).
 
 - **Whisper UI** — `useWhisper` hook with inbound event tracking and
   list persistence. `WhisperPanel` in the voice bar with User/Channel/Saved
