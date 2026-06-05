@@ -411,7 +411,7 @@ per-device DND overrides.
 
 **Tradeoff**: WebRTC moves egress off the hub (0 vs N×2.6 Mbps) and cuts latency to ~100 ms, at the cost of an entirely new peer-connection lifecycle (ICE/STUN/TURN, per-viewer uploads, renegotiation) and a non-uniform WebView story (Windows/Android Chromium = full support; Linux = fragile; macOS = no). The per-(sharer,viewer) negotiation with automatic v1 fallback absorbs that non-uniformity without a flag day. P2P's own limit — sharer uplink scales with viewer count — is explicitly left to the v3 SFU.
 
-**Multiple sharers**: data model made forward-compatible now (`ActiveShare` keyed by `(channel_id, sharer_pubkey)`), enabling gated behind `max_sharers_per_channel` (default 1). Flipping the default is the entire enabling change; the multi-share viewer UI (tiling) is the deferred cost.
+**Multiple sharers**: enabled. The data model keys `ActiveShare` by `(channel_id, sharer_pubkey)` so each user holds an independent share slot — no per-channel cap enforced at the hub level. The use-case is co-op gaming: teammates stream their screens simultaneously and viewers overlay each window (floating, movable, resizable) on top of their own game — like picture-in-picture but per-participant. The deferred cost is the viewer-side tiling/overlay UI; the hub is already correct.
 
 **Supersedes**: the v2 sketch in [`screen-share.md`](screen-share.md) "Transport — v2" and the v2 pointer in the "Screen share v1" entry below. Those described a single `ScreenShareSignal` envelope and an unconditional TURN fallback; this entry is the authoritative v2 design and splits signaling into explicit offer/answer/ice/join/leave variants with the optional-TURN + v1-floor fallback ladder.
 
