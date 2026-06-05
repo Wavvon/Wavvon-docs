@@ -7,7 +7,10 @@ shipped features, design questions — lives in the wiki at
 
 ## 🔨 Next up
 
-_(nothing queued — see Wishlist for candidates)_
+- Wire `uploadFile` + `RemoteAttachment` into the server (`POST /channels/:id/upload`); client UI already implemented
+- Wire pinning REST endpoints (`POST/DELETE /channels/:id/pins`) into the server; `PinnedMessagesModal` + pin button already in the web client
+- Wire `GET /users/:pubkey/profile` server route; `UserProfileCard` already implemented in the web client
+- Wire poll and event REST endpoints in the server; `PollCard`, `PollComposer`, `EventCard`, `EventsPanel`, `EventComposer` already implemented in the web client
 
 ## 🚢 Pre-launch checklist
 
@@ -84,6 +87,8 @@ items live in the wiki — see
   persistent-world layer is undesigned.
 
 ## 🚀 Recently shipped
+
+- **Web client feature batch** — file/image upload (`uploadFile` platform call, `RemoteAttachment` type, multipart POST), message pinning (`PinnedMessagesModal`, pin/unpin in message toolbar for admins, 📌 button in channel header), user profile cards (`UserProfileCard` opens on sender name click), native polls (`PollCard` with animated vote bars, `PollComposer` modal), events/calendar (`EventCard`, `EventsPanel`, `EventComposer` modal), per-hub browser notification preferences (`getNotifPref`/`setNotifPref` helpers, settings UI in Notifications tab). WS handler extended for `message_pinned`, `message_unpinned`, `poll_created`, `poll_updated`, `poll_deleted`.
 
 - **Web client chat feature parity** — typing indicators (`typing_start`/`typing_stop` WS events, debounced send, per-channel "X is typing…" display), unread counts (`GET /channels/unread` seeded on hub load, `POST /channels/:id/read` on channel select), and `reactions_updated` WS event handling now wired in the web client. All 7 chat features (WS auto-reconnect, message edit/delete, unread+read, typing, reply-to, invite links, emoji reactions) are now live in the web client.
 - **Rate limiting + RateLimiters refactor** — per-user 30 msg/60 s guard on `POST /messages` and DMs; all AppState rate-limit fields consolidated into a `RateLimiters` struct, fixing all 34+ test setups.
