@@ -261,6 +261,76 @@ principle), and downloadable historical datasets.
 
 ---
 
+## Feature 5 — Skin gallery
+
+**Decision.** A catalog of user-submitted skins (the `.voxplyskin` files
+from [custom-themes.md](custom-themes.md) §11), self-listed with the same
+signed primitive as hubs and farms. A new `skins` table:
+
+```
+skins(
+  id              TEXT PRIMARY KEY,  -- content hash of payload
+  author_pubkey   TEXT,              -- signer + delete authority
+  name            TEXT,
+  base            TEXT,              -- built-in theme extended
+  swatch_bg       TEXT,              -- --bg
+  swatch_surface  TEXT,              -- --surface
+  swatch_accent   TEXT,              -- --accent
+  payload         TEXT,              -- full .voxplyskin JSON
+  featured        INTEGER DEFAULT 0,
+  listed_at       TEXT
+)
+```
+
+The three swatch columns let the browse list render cards without shipping
+the full skin JSON per entry.
+
+`POST /api/skins/register` carries `{ payload, sig }` where `payload` is the
+full `.voxplyskin` JSON bytes and `sig` is a base64url Ed25519 signature over
+those bytes. Discovery verifies `sig` against the `author_pubkey` inside
+`payload`, checks the ≤5-minute nonce, then upserts — mirroring
+`validateAndUpsert` in `api/hubs/route.ts`. `DELETE /api/skins/register`
+(signed, verified against the stored `author_pubkey`) withdraws.
+`GET /api/skins?q=&base=&page=` browses, returning `{ skins: [...], total }`
+with swatches but not payloads; `GET /api/skins/:id` returns the full body.
+The `featured` flag is an operator-set sort hint — not a gate, identical to
+hub listings.
+
+**What discovery does NOT do.** Token value validation (the §7 security
+allow-list in custom-themes.md) runs **client-side on import**, never
+server-side on register. Discovery stores exactly what it receives; the client
+rejects bad token values before applying. This keeps discovery a dumb catalog
+and the validation rule in one place, shared across all three clients.
+
+**Global search.** The `GET /api/search` fan-out (Feature 3) includes skins
+as a `types` entry: `?types=hubs,bots,games,farms,templates,skins`. Skins
+degrade gracefully if the table isn't built yet — an empty section rather
+than an error.
+
+**Tradeoff that decided it.** Like farms (Feature 2), a separate catalog costs
+one table and one page but reuses the entire signed-listing path (`verify.ts`,
+`canonical.ts`, the nonce/replay check). The duplication is shape-only; the
+security primitive is shared. Server-side token validation was rejected because
+it would duplicate the client's allow-list and let the two drift.
+
+**Implementation (all in Voxply-discovery).**
+
+- `db.ts`: `skins` table + `listSkins`, `getSkin`, `upsertSkin`,
+  `deleteSkin`, mirroring the hub helpers.
+- `api/skins/register/route.ts` and `api/skins/route.ts`, following the
+  shared `lib/verify.ts` validation.
+- `app/skins/page.tsx` plus a `SkinCard` component (name, truncated author
+  pubkey, base, three swatches).
+- Client side (Voxply-desktop / web / android): the `platform.skins` adapter
+  gains `browse(query)` and `fetchSkin(id)`; owned by the frontend-engineer
+  per custom-themes.md §11.
+
+**Deferred.** Ranking by download count (needs an anti-gaming solution first),
+an explicit curation queue, and skin version updates (re-listing a new
+`version` under the same name).
+
+---
+
 ## What's deferred (all features)
 
 - **Real-time hub status** — WebSocket push, latency tracking,
@@ -284,6 +354,8 @@ principle), and downloadable historical datasets.
 | `/api/farms`, `/api/search`, `/api/analytics` routes + pages | Voxply-discovery (`discovery/src/app/`) | frontend-engineer |
 | Shared signed-listing validation | Voxply-discovery (`discovery/src/lib/verify.ts`) | frontend-engineer |
 | `GET /farm/info` + signed farm registration | Voxply-server (`seed/` crate) | backend-engineer |
+| `skins` table + helpers, `/api/skins` routes + page | Voxply-discovery (`discovery/src/lib/db.ts`, `discovery/src/app/`) | frontend-engineer |
+| `platform.skins` adapter (`browse`, `fetchSkin`) in clients | Voxply-desktop / Voxply-web / Voxply-android | frontend-engineer |
 
 See [hub-discovery.md](hub-discovery.md) for the signed-listing primitive
 these features extend, and [farm-model.md](farm-model.md) /

@@ -254,17 +254,76 @@ personal skin, with the user always able to opt out. That is a separate
 design: it lives on the community hub, needs operator permissions and
 federation of the token blob, and must reconcile with the personal custom slot.
 
-A **skin gallery in Voxply-discovery** could host signed, browsable skins
-using the same self-submitted signed-listing primitive hubs, bots, and games
-already use. This is where `author_pubkey` graduates from decorative
-attribution to a verified signature and a real trust signal.
+A **skin gallery in Voxply-discovery** is now designed — see §11.
+
+---
+
+## 11. Discovery skin gallery
+
+A browsable gallery of self-submitted skins in Voxply-discovery, reusing
+the same signed-listing primitive hubs, farms, bots, and games already use
+([discovery-v2.md](discovery-v2.md)). This is where `author_pubkey`
+graduates from decorative attribution to a verified signature.
+
+**Registration.** The author signs the full `.voxplyskin` JSON bytes with
+their Ed25519 key — the same key used for hub federation, via the same
+`@noble/ed25519` primitive discovery already uses in
+`discovery/src/lib/verify.ts`. The `author_pubkey` field inside the skin
+body must match the signing key.
+
+```
+POST /api/skins/register
+{ "payload": "<full .voxplyskin JSON, the canonical signed bytes>",
+  "sig":     "<base64url Ed25519 signature over payload>" }
+```
+
+Discovery verifies `sig` against the `author_pubkey` inside `payload`,
+checks the ≤5-minute nonce/replay guard, then upserts. It does **not**
+validate token values (§7 is client-side on import).
+
+**Discovery schema.** A `skins` table:
+
+| Column | Notes |
+|---|---|
+| `id` | content hash of the payload (primary key) |
+| `author_pubkey` | signer; also the delete authority |
+| `name` | display label (≤48) |
+| `base` | built-in theme the skin extends |
+| `swatch_bg` / `swatch_surface` / `swatch_accent` | `--bg` / `--surface` / `--accent` values — so the browse list ships no full JSON per card |
+| `payload` | full `.voxplyskin` JSON, served only by the detail endpoint |
+| `featured` | INTEGER sort hint, operator-set |
+| `listed_at` | timestamp |
+
+**Browse endpoints.** Same shape as `GET /api/hubs`:
+
+- `GET /api/skins?q=<text>&base=<theme>&page=<n>` → `{ skins: [...], total }`, each item carrying id, name, author_pubkey, base, the three swatches, featured — never the full payload.
+- `GET /api/skins/:id` → the full `.voxplyskin` body.
+
+**Delete.** `DELETE /api/skins/register` carries a signed withdrawal;
+discovery verifies the signature against the stored `author_pubkey` and
+removes the row. Same pattern as hub de-listing.
+
+**Browse UI in the client.** A **Browse** tab in Settings → Appearance
+shows a card grid: skin name, truncated author pubkey, base theme, three
+swatches. Clicking a card calls `fetchSkin(id)` and runs the existing
+import preview flow (§5) — user sees the result live, then Apply or
+Discard. The `platform.skins` adapter (§8) gains two new calls:
+`browse(query) → Promise<SkinListItem[]>` and
+`fetchSkin(id) → Promise<Skin>`.
+
+**`featured` flag.** Discovery operators flag skins for the default browse
+landing — not a gate, just a sort hint. Identical to the `featured` flag on
+hub listings.
+
+**Spam / abuse.** Same posture as hubs: open self-submission, no
+pre-moderation, operators can remove any entry. The §7 security validation
+runs client-side on import, never server-side on register.
 
 ---
 
 ## 10. Deferred
 
 - Multi-skin library (saving more than one skin locally; a browsable list).
-- Verified/signed authorship; gallery publish + browse in Voxply-discovery.
 - Hub-level (community-axis) theme override and operator branding.
 - Per-token radius control (currently one global scale knob).
 - Arbitrary shadow strings (currently guided control only).
@@ -284,4 +343,5 @@ attribution to a verified signature and a real trust signal.
 - `Voxply-web/web/src/styles.css` — web token source (keep in sync with desktop)
 - `Voxply-web/web/src/platform/storage.ts` — web persistence layer
 - [home-hub.md](home-hub.md) — personal-axis prefs blob that eventually absorbs the skin
+- [discovery-v2.md](discovery-v2.md) — signed-listing catalog pattern the skin gallery (§11) mirrors
 - [decisions.md](decisions.md) — rationale log
