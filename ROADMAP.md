@@ -7,10 +7,7 @@ shipped features, design questions — lives in the wiki at
 
 ## 🔨 Next up
 
-- Wire `uploadFile` + `RemoteAttachment` into the server (`POST /channels/:id/upload`); client UI already implemented
-- Wire pinning REST endpoints (`POST/DELETE /channels/:id/pins`) into the server; `PinnedMessagesModal` + pin button already in the web client
-- Wire `GET /users/:pubkey/profile` server route; `UserProfileCard` already implemented in the web client
-- Wire poll and event REST endpoints in the server; `PollCard`, `PollComposer`, `EventCard`, `EventsPanel`, `EventComposer` already implemented in the web client
+_(nothing queued — see Wishlist for candidates)_
 
 ## 🚢 Pre-launch checklist
 
@@ -87,6 +84,8 @@ items live in the wiki — see
   persistent-world layer is undesigned.
 
 ## 🚀 Recently shipped
+
+- **File uploads, message pinning, user profiles, polls, events, notification prefs** — full stack: `POST /channels/:id/upload` multipart endpoint + `RemoteAttachment` wire type; `POST/DELETE /channels/:id/pins` + pinned-message broadcast; `GET /users/:pubkey/profile` server route; poll and event REST endpoints (`polls`, `poll_votes`, `hub_events`, `event_rsvps` tables); per-hub notification preference storage. Desktop and web clients wired end-to-end: `uploadFile` Tauri command, `PinnedMessagesModal`, `UserProfileCard`, `PollCard`/`PollComposer`, `EventCard`/`EventsPanel`/`EventComposer`, `getNotifPref`/`setNotifPref`. WS handler extended for `message_pinned`, `message_unpinned`, `poll_created`, `poll_updated`, `poll_deleted`.
 
 - **Web client feature batch** — file/image upload (`uploadFile` platform call, `RemoteAttachment` type, multipart POST), message pinning (`PinnedMessagesModal`, pin/unpin in message toolbar for admins, 📌 button in channel header), user profile cards (`UserProfileCard` opens on sender name click), native polls (`PollCard` with animated vote bars, `PollComposer` modal), events/calendar (`EventCard`, `EventsPanel`, `EventComposer` modal), per-hub browser notification preferences (`getNotifPref`/`setNotifPref` helpers, settings UI in Notifications tab). WS handler extended for `message_pinned`, `message_unpinned`, `poll_created`, `poll_updated`, `poll_deleted`.
 
