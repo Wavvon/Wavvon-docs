@@ -7,31 +7,70 @@ background, see [architecture.md](architecture.md) and
 
 ---
 
-## Environment variables
+## Configuration
 
-| Variable | Purpose | Default |
-|----------|---------|---------|
-| `VOXPLY_HTTP_PORT` | HTTP / WebSocket port | `3000` |
-| `VOXPLY_VOICE_UDP_PORT` | Voice UDP relay port | `3001` |
-| `VOXPLY_TLS_CERT` | Path to TLS cert PEM. Enables HTTPS. | unset |
-| `VOXPLY_TLS_KEY` | Path to TLS private key PEM. Required with cert. | unset |
-| `VOXPLY_FARM_URL` | URL of the farm this hub belongs to (optional). | unset |
+The hub reads configuration from three sources, in priority order (highest last):
 
-The hub binds to `0.0.0.0` on both ports. Data files (`hub.db`,
-`hub_identity.json`) are written to the process working directory; set
-`WorkingDirectory=` in your service unit to control where they land.
+1. **Built-in defaults** — sensible values that work out of the box.
+2. **`hub.toml`** — a TOML file in the working directory. Copy `hub.toml.example` (shipped with the binary) and edit it. The file is optional; missing it is fine.
+3. **`VOXPLY_*` environment variables** — override anything in the file. Useful for Docker / Kubernetes where env injection is the norm.
+
+### hub.toml quick reference
+
+```toml
+http_port       = 3000           # HTTP / WebSocket port
+voice_udp_port  = 3001           # Voice UDP relay port
+
+# tls_cert = "/etc/voxply/hub.crt"   # enable HTTPS (both must be set)
+# tls_key  = "/etc/voxply/hub.key"
+
+owner_pubkey    = "<64-hex>"     # hub owner identity (set before first boot)
+# farm_url      = "https://farm.example.com"
+
+discovery_url   = "https://discovery.voxply.io"
+# template_url  = "https://example.com/template.json"
+# bootstrap_token = ""
+
+log_format      = "text"         # "text" or "json"
+# otlp_endpoint = "http://localhost:4317"
+```
+
+Every option also has a `VOXPLY_<OPTION_NAME>` env var equivalent (e.g. `VOXPLY_HTTP_PORT`, `VOXPLY_TLS_CERT`).
+
+The hub binds to `0.0.0.0` on both ports. Data files (`hub.db`, `hub_identity.json`) are written to the process working directory; set `WorkingDirectory=` in your service unit to control where they land.
+
+---
+
+## Hub ownership
+
+On a fresh hub **no owner is set by default**. You must assign one before opening the hub to users, otherwise nobody has admin access.
+
+**Before first boot (recommended):**
+```toml
+# hub.toml
+owner_pubkey = "<your-64-char-ed25519-pubkey>"
+```
+
+**After first boot (CLI):**
+```bash
+voxply-hub admin users set-owner <pubkey>
+```
+
+**After first boot (web panel):**  
+Visit `http://your-server:3000/admin/panel` → Ownership tab.  
+Activate the panel first: `voxply-hub admin rotate-admin-token`
+
+Your public key is shown in the desktop client's identity / profile panel.
 
 ---
 
 ## First-run bootstrap
 
-On an empty database, the hub runs all migrations automatically. The first
-user to successfully authenticate becomes the **Owner** (the `builtin-owner`
-role is granted with no existing owners present).
+On an empty database, the hub runs all migrations automatically.
 
-To pre-configure a hub for unattended deployment, set
-`VOXPLY_TEMPLATE_URL` to a JSON bootstrap URL and
-`VOXPLY_BOOTSTRAP_TOKEN` to authenticate against it. The hub fetches
+To pre-configure a hub for unattended deployment, set `template_url` in `hub.toml`
+(or `VOXPLY_TEMPLATE_URL`) to a JSON bootstrap URL and `bootstrap_token`
+(or `VOXPLY_BOOTSTRAP_TOKEN`) to authenticate against it. The hub fetches
 the template on first run and creates channels, roles, and settings from it.
 See [hub-creation-wizard.md](hub-creation-wizard.md) for the template schema.
 
