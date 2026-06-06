@@ -7,11 +7,7 @@ shipped features, design questions — lives in the wiki at
 
 ## 🔨 Next up
 
-### Code quality
-- **Split App.tsx (remaining)** — extract `useMessages`, `useChannels` hooks; App.tsx becomes composition root
-- **Shared hub test helper** — `tests/common.rs` with one `setup()` shared across all 34 test files
-- **Typed Tauri errors (remaining)** — migrate remaining commands from `Result<T, String>` to `Result<T, AppError>`; high-call-frequency commands already migrated
-- **Remove remaining `unwrap()` in hub/src** — replace with `?`, `ok_or(...)`, or explicit error handling; no panics in production paths
+_(nothing queued — see Wishlist for candidates)_
 
 ## 🚢 Pre-launch checklist
 
@@ -88,6 +84,8 @@ items live in the wiki — see
   persistent-world layer is undesigned.
 
 ## 🚀 Recently shipped
+
+- **Markdown rendering, link previews, keyboard shortcuts, code quality** — `MessageContent` migrated to `marked` + `DOMPurify`; `LinkPreviewCard` + `fetch_link_preview` Tauri command + hub `GET /link-preview` endpoint; `@` mention autocomplete, `Alt+↑/↓` unread channel navigation, `Escape` dismiss shortcuts; `useMessages` and `useChannels` extracted from App.tsx (composition root pattern); `tests/common.rs` shared hub test helper; all remaining `unwrap()` in `hub/src` replaced with `?`/`ok_or`; remaining Tauri commands migrated to `Result<T, AppError>`. Ships in hub, desktop, and web.
 
 - **Markdown rendering, link previews, keyboard shortcuts, hook extraction, typed errors** — `MessageContent` migrated to `marked` + `DOMPurify` (allow-listed tags, `rel=noopener noreferrer` on all links); `LinkPreviewCard` + lazy `fetch_link_preview` Tauri command; `@` mention autocomplete in channel composer; `Alt+↑/↓` jumps to next/prev unread channel; `Escape` dismisses context menu / palette / reply target; `useNotificationPrefs`, `useUnreadCounts`, `useTypingIndicators`, `useHubConnections` extracted from App.tsx (tsc clean after each); `AppError` enum added to lib.rs, `send_message`, `edit_message`, `delete_message`, `add_reaction`, `remove_reaction`, `get_messages` migrated to `Result<T, AppError>`.
 
