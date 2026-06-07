@@ -102,6 +102,14 @@ items live in the wiki — see
 
 ## 🚀 Recently shipped
 
+- **Farm server agent management + TOTP 2FA (desktop)** — `FarmSettingsPage`
+  gains two new tabs: Servers (list agents with connected status/last-seen,
+  register form that generates a one-time bearer token) and Security (TOTP
+  setup via manual secret entry + 6-digit confirm, disable flow). Five new
+  Tauri commands wired: `get_farm_servers`, `generate_farm_server_token`,
+  `farm_totp_setup`, `farm_totp_confirm`, `farm_totp_disable`.
+  `FarmAdminTab` type extended with `"servers" | "security"`.
+
 - **Admin panel auth — hub server side** — `web_admin_token` bearer flow removed.
   Eight new endpoints (`/admin/auth/*`): Ed25519 challenge-sign, poll, TOTP
   enrollment, TOTP verify (with replay guard), logout, me, and token-login stub.
