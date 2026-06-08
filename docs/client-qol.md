@@ -30,7 +30,7 @@ adapter.
 
 ---
 
-## 1. Global message search
+## 1. Global message search — **SHIPPED**
 
 **Decision**: search runs hub-side over an FTS5 index; the client
 fan-outs the query to every connected hub in parallel and merges. We
@@ -101,7 +101,7 @@ peers), search within DMs, attachment-filename search, date-range filter.
 
 ---
 
-## 2. Message drafts
+## 2. Message drafts — **SHIPPED**
 
 **Decision**: drafts are personal working state, stored client-side in
 `localStorage` under `voxply.drafts` as a JSON map keyed by
@@ -154,7 +154,7 @@ lands.
 
 ---
 
-## 3. Custom emojis
+## 3. Custom emojis — **SHIPPED**
 
 **Decision**: a per-hub emoji library. Hub admins (`manage_channels`
 permission) upload SVG/PNG emoji stored inline as base64 in SQLite;
@@ -226,7 +226,7 @@ catalog on Voxply-discovery.
 
 ---
 
-## 4. Events / calendar
+## 4. Events / calendar — **SHIPPED**
 
 **Decision**: a first-class hub event type — a row carrying a title,
 time, optional location, and an RSVP list — that also posts an event card
@@ -312,7 +312,7 @@ drops the user into the channel's voice at that proximity-zone origin
 
 ---
 
-## 5. Polls
+## 5. Polls — **SHIPPED**
 
 **Decision**: native poll creation in a channel, vote aggregation
 hub-side, live totals pushed over WS. No bot dependency. Community-axis,
@@ -388,7 +388,7 @@ results export.
 
 ---
 
-## 6. Thread view improvements
+## 6. Thread view improvements — **SHIPPED**
 
 **Decision**: keep threads flat (one level), and add an inline
 collapse/expand affordance plus "jump to thread." A denormalized
@@ -453,7 +453,7 @@ search.
 
 ---
 
-## 7. Notification grouping
+## 7. Notification grouping — **SHIPPED**
 
 **Decision**: batch OS notifications per hub with a 3-second debounce, so
 a burst of messages produces one toast instead of ten. A single message
