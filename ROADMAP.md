@@ -7,7 +7,7 @@ shipped features, design questions — lives in the wiki at
 
 ## 🔨 Next up
 
-(empty — all blocked or in progress)
+_(nothing queued — pick from wishlist or known issues)_
 
 ## 🚢 Pre-launch checklist
 
@@ -99,6 +99,10 @@ items live in the wiki — see
 - **E2E v2 — Double Ratchet** — forward secrecy / Signal-style ratchet upgrade from the shipped static-ECDH (Phase 1) and sender-key (Phase 2) schemes. Not yet designed beyond the concept. See [`e2e-encryption.md`](docs/e2e-encryption.md).
 
 ## 🚀 Recently shipped
+
+- **Block/ignore settings panel + DM-block server sync** — `BlockIgnoreSection` wired into all 4 clients (desktop, web, android/voxply-web, android/voxply-desktop); `toggleBlockUser` calls `PUT /identity/dm-blocks` on the active hub in all 4 clients so the server enforces DM blocking. Design in [`block-mute-ignore.md`](docs/block-mute-ignore.md).
+
+- **android/voxply-desktop recovery contacts parity** — six Tauri commands (`list_recovery_contacts`, `set_recovery_contacts`, `remove_recovery_contact`, `list_admin_recovery_requests`, `approve_recovery_request`, `deny_recovery_request`) added to lib.rs with proper bearer auth; `RecoveryContactsSection.tsx` rewritten to use `invoke()` with correct field names (`pubkey`/`added_at`); workspace Cargo.toml fixed (added `voxply-desktop/src-tauri` member, missing deps); `VoiceSettings` initializers updated for new audio profile fields.
 
 - **android/voxply-web recovery contacts parity** — `platform/commands/hubAdmin.ts` (recovery contact CRUD + admin queue commands), `RecoveryContactsSection.tsx` (contact list editor, K-of-N threshold, collapsible how-it-works guide, admin rotation-request queue with approve/deny), wired into `SettingsPage.tsx` Account tab alongside `IdentityBackupSection`. Types match actual server field names (`pubkey`/`added_at`).
 
