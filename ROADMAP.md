@@ -310,6 +310,6 @@ items live in the wiki — see
 - **Load-aware DM routing across a user's hubs** — failover only; load-balancing needs gossip + cross-hub consistency. See [decisions.md](docs/decisions.md)
 - **Concurrent mic test while in voice** — two cpal input streams unreliable cross-platform; live meter covers it
 - **Central authority of any kind** — no global hub directory, global identity service, or DHT; federation is peer-to-peer
-- **Subscriptions, premium tiers, or in-chat advertising** — the missions/sparks system is cosmetics-only; no paywalled features
+- **Subscriptions, premium tiers, or in-chat advertising** — no paywalled features; funding is via voluntary donations
 - **Telemetry collection or data sales** — no opt-out telemetry; operators run their own hubs
 - **Global web-of-trust or negative reputation / shared ban lists** — federated ban lists are opt-in per hub, not a global negative registry
