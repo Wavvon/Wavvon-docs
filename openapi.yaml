@@ -51,6 +51,34 @@ info:
     Bot API endpoints (`/bot/*`) use `Authorization: Bearer <bot_token>` where the
     token is the raw token returned at bot creation time (not a session token).
 
+    ## WebSocket protocol
+
+    All realtime traffic (chat events, typing, DMs, voice presence, proximity
+    voice zones, video and screen-share WebRTC signaling, screen-share chunk
+    relay, forum/poll/pin events, game-session events, and bot event push) runs
+    over a single WebSocket at `GET /ws`.
+
+    - **Connect:** `GET /ws?token=<token>` — the token goes in the **`token`
+      query parameter**, not a header. Both session tokens (from
+      `POST /auth/verify`) and bot tokens are accepted, with the same expiry /
+      revocation / approval / ban checks as REST.
+    - **Framing:** every protocol message is a JSON text frame with a `type`
+      discriminator and the payload fields at the same level
+      (e.g. `{"type":"subscribe","channel_id":"..."}`). Binary frames are used
+      only for screen-share chunk data and are always preceded by a
+      `screen_share_chunk` JSON envelope.
+    - **On connect** the hub sends `{"type":"hello","live_seq":<n>}`,
+      auto-subscribes the connection to every non-banned channel, and replays
+      `screen_share_started` for shares already in progress.
+    - Unknown or malformed client frames are silently ignored; recoverable
+      command failures come back as `{"type":"error","context":...,"message":...}`.
+
+    OpenAPI 3.0 cannot model WebSocket messages natively, so the **complete
+    message-by-message wire reference** (34 client→server messages, 49
+    server→client messages plus 6 raw/bot push messages, with exact field names
+    and types) lives in [`docs/ws-protocol.md`](docs/ws-protocol.md). That file
+    is part of this protocol contract: implement the WS side against it.
+
 servers:
   - url: http://localhost:3000
     description: Local development hub
@@ -107,6 +135,14 @@ components:
           type: array
           items: { $ref: '#/components/schemas/Reaction' }
         reply_to: { $ref: '#/components/schemas/ReplyContext', nullable: true }
+        visible_to_pubkey:
+          type: string
+          description: >-
+            Omitted unless set. When present, only the named user should see
+            this message (ephemeral bot replies).
+        reply_count:
+          type: integer
+          description: Number of direct replies; non-zero only on thread roots.
 
     Attachment:
       type: object
@@ -247,6 +283,35 @@ components:
         error: { type: string }
 
 paths:
+
+  # ── WebSocket ─────────────────────────────────────────────────────────────
+
+  /ws:
+    get:
+      summary: Realtime WebSocket endpoint
+      description: |
+        Upgrades to a WebSocket carrying all realtime traffic. Authenticate
+        with the `token` query parameter (session token or bot token); the
+        upgrade is rejected with `401`/`403` on invalid, expired, or banned
+        credentials.
+
+        The full message catalogue — every client→server and server→client
+        JSON message with exact field names and types — is documented in
+        [`docs/ws-protocol.md`](docs/ws-protocol.md) (see also the
+        "WebSocket protocol" section of this file's description).
+      security: []
+      tags: [WebSocket]
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema: { type: string }
+          description: Session token from `POST /auth/verify`, or a bot token.
+      responses:
+        "101":
+          description: Switching Protocols — WebSocket established.
+        "401":
+          description: Invalid or expired token.
 
   # ── Health ────────────────────────────────────────────────────────────────
 
@@ -1631,34 +1696,6 @@ paths:
     post:
       summary: Sign a directory entry for the hub discovery service
       tags: [Federation]
-
-  # ── WebSocket ─────────────────────────────────────────────────────────────
-
-  /ws:
-    get:
-      summary: Open a WebSocket connection for real-time events
-      description: |
-        Upgrade to WebSocket. Authenticate by passing the Bearer token as the
-        `token` query parameter: `GET /ws?token=<token>`.
-
-        **Server → client event types** (JSON, field `type`):
-        - `message` — new channel message
-        - `message_edited` — message content updated
-        - `message_deleted` — message removed
-        - `reaction_added` / `reaction_removed`
-        - `user_joined` / `user_left`
-        - `user_updated` — display name or avatar changed
-        - `channel_created` / `channel_updated` / `channel_deleted`
-        - `voice_join` / `voice_leave`
-        - `typing` — user is typing in a channel
-        - `dm_message` — new direct message
-        - `screen_share_started` / `screen_share_chunk` / `screen_share_stopped`
-      tags: [WebSocket]
-      parameters:
-        - name: token
-          in: query
-          required: true
-          schema: { type: string }
 
 tags:
   - name: Health

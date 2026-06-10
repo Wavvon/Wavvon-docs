@@ -50,6 +50,13 @@ The full history of shipped work lives in
 
 ## 🚀 Recently shipped
 
+- **WebSocket protocol documented (2026-06-10)** — the protocol contract now
+  covers the WS side: connect/auth and framing in `openapi.yaml` (plus a `/ws`
+  path entry replacing a stale, inaccurate event list), and a complete
+  message-by-message wire reference in
+  [`docs/ws-protocol.md`](docs/ws-protocol.md) (34 client→server,
+  55 server→client messages, verified against the hub source).
+
 - **Workspace hardening batch (2026-06-10)** — hub security fixes (WS session
   validation, atomic invites, SSRF DNS-rebinding, federated-ban check on farm
   tokens, upload headers), client race/cleanup fixes + error boundaries,

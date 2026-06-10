@@ -135,6 +135,7 @@ Reading order is for learning the system end-to-end. This section is for
 - **Database abstraction layer (trait-based store)** — [store-trait-design.md](store-trait-design.md)
 - **Bots & integrations** — [bots.md](bots.md)
 - **Gaming platform (tiers, SDK, sandbox)** — [gaming.md](gaming.md), [games-sdk.md](games-sdk.md)
+- **Protocol contract (REST + WebSocket)** — [`../openapi.yaml`](../openapi.yaml) (REST), [ws-protocol.md](ws-protocol.md) (full WS message reference)
 
 ### Notifications & UI
 - **Three-state notifications (all / mentions / silent)** — [data-model.md](data-model.md), [client.md](client.md), [decisions.md](decisions.md)
