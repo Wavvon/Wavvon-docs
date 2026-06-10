@@ -42,6 +42,16 @@ The full history of shipped work lives in
 
 ## 🚀 Recently shipped
 
+- **Farm/seed/server/voice security sweep (2026-06-10)** — WS agent channel
+  made bounded (was unbounded, OOM risk); DB error during token lookup now
+  closes the socket instead of silently admitting the agent; heartbeat endpoint
+  rejects unknown hub pubkeys even on DB error (was an auth bypass); proxy body
+  size capped at 32 MiB; `public_key` added to `/farm/public-info` response
+  (seed registration was broken without it); `agent::run` now survives malformed
+  JSON from the farm without triggering a reconnect; voice pipeline spawned tasks
+  no longer panic on Opus init failure. Eight new integration tests added across
+  farm_auth_flow and admin_flow.
+
 - **Hub wishlist quick wins (2026-06-10)** — `GET /preview` rate-limited
   (10/min per user), `POST /admin/search/reindex` for operator-driven index
   rebuilds without restart, `federated_bans` now enforced on outbound messages
