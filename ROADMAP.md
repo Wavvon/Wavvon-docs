@@ -41,6 +41,12 @@ The full history of shipped work lives in
 
 ## 🚀 Recently shipped
 
+- **App.tsx decomposition batch 2 (2026-06-11)** — extracted `useHubAdmin`,
+  `useFriends`, and `useSettingsProfile` from App.tsx into
+  `desktop/src/hooks/`. App.tsx: 3937 → 3461 lines (−476). Behavior
+  identical; tsc clean, vitest 71/71 green, vite build succeeds. Android
+  parity pending (android repo not updated in this pass).
+
 - **UDP voice relay tied to WS session (2026-06-10)** — added
   `voice_relay_active` set to `AppState`; `VoiceJoin` inserts, `leave_voice`
   removes; the UDP receive loop rejects packets whose sender pubkey is absent
