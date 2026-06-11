@@ -37,7 +37,7 @@ The full history of shipped work lives in
 ## 📌 Wishlist (undesigned)
 
 - **Project visibility push** — remaining: real screenshots in the READMEs,
-  a hosted demo hub, directory listings, launch post, GitHub repo topics.
+  a hosted demo hub, directory listings, launch post.
   Needed both for adoption and for the code-signing re-application.
   *(2026-06-10: all six READMEs rewritten as landing pages with badges,
   cross-links, and a `docker compose` quick-start.)*
