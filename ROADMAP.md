@@ -50,6 +50,15 @@ The full history of shipped work lives in
 
 ## 🚀 Recently shipped
 
+- **Hub CORS layer + self-describing CLI (2026-06-11)** — `VOXPLY_CORS_ORIGINS`
+  env-var (default `*`) wires a tower-http `CorsLayer` onto the main axum
+  router; `--help` prints a generated env-var table, `--version` prints the
+  version, `--doctor` runs pre-flight checks (port bind, TLS PEM validity,
+  working-dir write), and the startup banner logs effective port, scheme,
+  UDP port, TLS state, CORS origins, and data-file paths with TLS-disabled
+  and voice-UDP firewall warnings. Four CORS integration tests added.
+  hosting.md and browser-client.md updated.
+
 - **Real screenshots + join-flow GIF in READMEs; web client fixes; demo-seed tool (2026-06-11)** —
   screenshots and join-flow GIFs added to main/desktop/web/hub READMEs; web client desktop layout CSS fix, message ordering fix, onboarding style improvements, voice roster bootstrap via `GET /voice/participants`; demo-seed tool populates a fresh hub with 8 identities, 5 channels, ~30 messages, a poll, and emoji reactions.
 

@@ -32,15 +32,40 @@ For a server install, copy the binary to `/usr/local/bin/voxply-hub`.
 
 ## Configuration
 
-The hub is configured entirely by environment variables — no config
-file. The relevant ones:
+The hub is configured by environment variables and an optional `hub.toml`
+in the working directory. Environment variables take priority over `hub.toml`.
+Run `voxply-hub --help` for the full table generated directly from the binary.
 
-| Variable                 | Purpose                                       | Default |
-|--------------------------|-----------------------------------------------|---------|
-| `VOXPLY_HTTP_PORT`       | HTTP/WebSocket port                           | `3000`  |
-| `VOXPLY_VOICE_UDP_PORT`  | Voice UDP relay port                          | `3001`  |
-| `VOXPLY_TLS_CERT`        | Path to TLS cert (PEM). Enables HTTPS         | unset   |
-| `VOXPLY_TLS_KEY`         | Path to TLS private key (PEM). Required with cert | unset |
+Core variables:
+
+| Variable                 | Purpose                                                   | Default                        |
+|--------------------------|-----------------------------------------------------------|--------------------------------|
+| `VOXPLY_HTTP_PORT`       | HTTP/WebSocket port                                       | `3000`                         |
+| `VOXPLY_VOICE_UDP_PORT`  | Voice UDP relay port                                      | `3001`                         |
+| `VOXPLY_TLS_CERT`        | Path to TLS cert (PEM). Both cert and key enable HTTPS    | unset                          |
+| `VOXPLY_TLS_KEY`         | Path to TLS private key (PEM). Required with cert         | unset                          |
+| `VOXPLY_CORS_ORIGINS`    | Allowed CORS origins for the REST API (`*` or comma-list) | `*`                            |
+| `VOXPLY_OWNER_PUBKEY`    | Hub owner key (64 hex chars), seeded on first boot        | unset                          |
+| `VOXPLY_DISCOVERY_URL`   | Discovery service base URL                                | `https://discovery.voxply.io`  |
+| `VOXPLY_LOG_FORMAT`      | Log format: `text` or `json`                              | `text`                         |
+| `VOXPLY_DATABASE_URL`    | Full DB URL. Defaults to SQLite at `hub.db`               | `sqlite:hub.db`                |
+| `VOXPLY_SEARCH_BACKEND`  | Full-text search: `tantivy` (default) or `none`           | `tantivy`                      |
+| `VOXPLY_OTLP_ENDPOINT`   | OpenTelemetry OTLP collector endpoint (optional)          | unset                          |
+
+### CORS
+
+The REST API ships with CORS fully open (`*`) by default. This is safe
+because all protected endpoints require a bearer token — there is no
+cookie-based credential, so there is no CSRF surface. Any origin can read
+public data or authenticate with its own keypair.
+
+To restrict to specific origins (e.g. for a tightly-controlled deployment):
+
+```
+VOXPLY_CORS_ORIGINS=https://app.example.com,https://dashboard.example.com
+```
+
+WebSocket connections (`/ws`) are not subject to CORS.
 
 The hub binds to `0.0.0.0` on both ports. Use a firewall to control
 exposure if needed.
@@ -49,6 +74,42 @@ The data files (`hub.db` and `hub_identity.json`) live in the process
 working directory — there's no env var for this. Set the working
 directory in your service unit (`WorkingDirectory=` for systemd) to
 control where they go.
+
+## CLI reference
+
+`voxply-hub` accepts a small set of flags and subcommands:
+
+| Invocation              | Purpose                                                                 |
+|-------------------------|-------------------------------------------------------------------------|
+| `voxply-hub --help`     | Print all options and a table of every `VOXPLY_*` env var with defaults |
+| `voxply-hub --version`  | Print the binary version                                                |
+| `voxply-hub --doctor`   | Pre-flight checks (port binding, TLS file existence/PEM validity, disk write) |
+| `voxply-hub migrate`    | Apply DB migrations without starting the server                         |
+| `voxply-hub backup`     | Write a backup archive                                                  |
+| `voxply-hub restore`    | Restore from a backup archive                                           |
+| `voxply-hub admin ...`  | Admin CLI (stats, users, channels, tokens)                              |
+| `voxply-hub update`     | Self-update binary from GitHub releases (Linux x86_64 only)             |
+
+`--doctor` is the first thing to run when something isn't working. It
+checks port bindability, TLS file readability and PEM validity, and
+write access to the working directory, then exits 0 on success or 1 on
+any failure.
+
+## Startup banner
+
+On every normal start the hub logs a summary line before serving traffic:
+
+```
+voxply-hub 0.2.0 starting  port=3000 (http)  voice_udp=3001  tls=disabled  cors=*
+data files: /var/lib/voxply/hub.db  /var/lib/voxply/hub_identity.json
+WARN  TLS is disabled — browser clients served over HTTPS cannot connect to an http:// hub ...
+INFO  Reminder: the voice UDP port 3001 must be open in any cloud firewall ...
+```
+
+The TLS warning is printed whenever HTTPS is not configured. The voice
+UDP reminder is always printed — cloud providers (AWS, GCP, Hetzner, etc.)
+require explicit security-group rules to open UDP ports, and forgetting
+this is a common reason voice fails silently.
 
 ## Running directly
 
