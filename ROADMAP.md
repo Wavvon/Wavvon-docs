@@ -11,13 +11,10 @@ The full history of shipped work lives in
 - [ ] **Validate the aarch64 hub binary** — release CI now builds
   `voxply-hub-linux-aarch64` (musl); untested until the next release runs and
   someone boots it on real ARM hardware.
-- [ ] **ContentArea.tsx splits — web + android ports** — desktop split is done
-  (see Recently shipped); web (1,157 lines) and android (979) forks need the
-  same `components/content/` shape applied.
 - [ ] **Remaining App.tsx decomposition** — desktop (~3,260 lines) and android
-  (~3,040) still hold the channel-message/WS wiring. DM cluster extracted (see
-  Recently shipped). Channel message send, WS listener registration, and
-  alliance cluster remain in App.tsx.
+  (~3,040) still hold the channel-message/WS wiring. DM cluster extracted on
+  desktop; android `useDms` parity in progress. Channel message send, WS
+  listener registration, and alliance cluster remain in both roots.
 
 ## 🤔 Design questions
 
@@ -51,6 +48,14 @@ The full history of shipped work lives in
   [`e2e-encryption.md`](docs/e2e-encryption.md).
 
 ## 🚀 Recently shipped
+
+- **ContentArea.tsx ports to all forks (2026-06-11)** — web (1,157 → ~320-line
+  composition root), android/voxply-desktop (979 → ~290), android/voxply-web
+  (881 → ~280) now mirror desktop's `components/content/` shape; each fork's
+  own behavior preserved (web `@platform` adapters and mention pattern,
+  android invoke/hubFetch variants, missing-feature gaps kept as-is —
+  android/voxply-web has no forum so no ForumView). tsc clean in all three
+  apps; vitest web 6/6, android 14/14.
 
 - **ws/connection.rs dispatch refactor (2026-06-11)** — introduced `ConnState`
   (voice_channel, subscribed, pending_chunk, component_rate_limit,
