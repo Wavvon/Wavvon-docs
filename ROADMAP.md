@@ -24,8 +24,8 @@ The full history of shipped work lives in
   "voice is LAN/local only" limitation from the comparison. Phase 2 (voice
   encryption) is a separate later initiative.
 - [ ] **Hub security & correctness from the audit** — federated-DM sender
-  spoofing (H4), rate-limiter keying behind a reverse proxy (H5/H6).
-  H2/H3 (presence refcount + bot_sessions per-session) done. See
+  spoofing (H4). H2/H3 (presence refcount + bot_sessions per-session) and
+  H5/H6 (rate-limiter trusted-proxy + IPv6 canonicalization) done. See
   [code-audit-2026-06-11.md](code-audit-2026-06-11.md).
 - [ ] **Validate the aarch64 hub binary** — release CI now builds
   `voxply-hub-linux-aarch64` (musl); untested until the next release runs and
@@ -68,6 +68,17 @@ The full history of shipped work lives in
   [`e2e-encryption.md`](docs/e2e-encryption.md).
 
 ## 🚀 Recently shipped
+
+- **H5/H6 rate-limiter trusted-proxy + IPv6 canonicalization (2026-06-12)** —
+  `rate_limit.rs` gains a `VOXPLY_TRUSTED_PROXY` setting (default false). When
+  enabled, the limiter derives the real client IP from the last
+  `X-Forwarded-For` entry (the hop the proxy observed) instead of the raw socket
+  address, fixing accidental hub-wide login lockout behind Caddy/nginx (H5).
+  All IPs are canonicalized before keying: IPv4-mapped IPv6 (`::ffff:a.b.c.d`)
+  collapses to the plain IPv4 address; genuine IPv6 is bucketed at the /64
+  prefix (high 64 bits, low 64 zeroed), closing the unlimited-bucket-mint attack
+  vector from a single /64 (H6). Effective mode logged in the startup banner.
+  6 new unit tests + existing 3 integration tests all pass.
 
 - **H2/H3 presence refcount + bot_sessions per-session (2026-06-12)** —
   `online_users` changed from `HashSet<String>` to `HashMap<String, usize>`;
