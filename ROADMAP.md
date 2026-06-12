@@ -33,9 +33,10 @@ The full history of shipped work lives in
   (nginx vhost, compose file, runbook). Gated on the v0.2.1 release (CORS +
   `--doctor` must reach the published image) or a dev-built image transfer;
   server-side needs docker-group access, vhost install, UDP 3001 open.
-- [ ] **Validate the aarch64 hub binary** — release CI now builds
-  `voxply-hub-linux-aarch64` (musl); untested until the next release runs and
-  someone boots it on real ARM hardware.
+- [ ] **Fix the aarch64 hub binary build** — first real release run (v0.2.1,
+  2026-06-12) failed: `aarch64-linux-gnu-gcc` link error in the musl
+  cross-build (aws-lc-sys/ring object files). The x86_64 binary and Docker
+  images are unaffected.
 - [ ] **Remaining App.tsx decomposition** — desktop (~3,260 lines) and android
   (~2,900) hold the channel-message/WS wiring. DM cluster extracted on both
   (desktop `useDms` 348 lines; android parity port preserves its
@@ -270,6 +271,10 @@ Older entries: [`docs/shipped-log.md`](docs/shipped-log.md).
   tag with a PAT/deploy key, or have auto-tag invoke release via
   `workflow_call`. Also: `main` has no required status checks — PR #1
   auto-merged with a red build check; consider requiring "Build check".
+- **Flaky test: `auth_rejected_when_pow_level_below_minimum` (pow_flow)** —
+  probabilistic: a below-minimum PoW can accidentally meet the target and
+  return 200 instead of 403 (seen on 0f9c97d: one CI run green, twin run red).
+  Pin the nonce/difficulty or retry-loop the assertion.
 - **demo-seed exports recovery phrases that don't recover the seeded identity (W27)** — credentials unusable for login; re-seed/screenshot logins blocked.
 - **2026-06-11 audit: web client incomplete port** — 25 divergences found. W12/W3/W4/W25 fixed (reactions 405, typing both ways, 15 CSS class families). W1/W2/W6 fixed (message bleed, hub misattribution, server error surface). W13/W26 fixed (admin panel permission check + routes corrected). W16 fixed (in-channel search now hits `GET /channels/{id}/messages?q=` with 200ms debounce). W10 fixed (WS reconnect triggers full reauth after 3 consecutive failures instead of looping forever on a dead token). Remaining: dead screen-share (W8) and 13 other items. Blocks a credible public web demo.
 - **2026-06-11 audit: networked voice broken** — hub relay registers all clients as 127.0.0.1; voice only works client+hub on one machine. Needs source-address learning.
