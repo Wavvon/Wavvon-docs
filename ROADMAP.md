@@ -8,35 +8,15 @@ The full history of shipped work lives in
 
 ## 🔨 Next up
 
-- [ ] **Web client remediation (demo-blockers first)** — close the
-  highest-impact divergences from the [2026-06-11 audit](code-audit-2026-06-11.md)
-  so the browser client is credible for a public demo and the
-  [comparison](COMPARISON.md) "browser client" row can return to ✅.
-  Priority order: screen-share viewing (W8).
-  In-channel search (W16) and reconnect re-auth (W10) done.
-  Reactions, typing, missing CSS (W12/W3/W4/W25), message bleed/hub identity
-  (W1/W2), server error surface (W6), and admin/moderation panel routes (W13/W26)
-  already done.
 - [ ] **Networked voice — Phase 1, cross-internet test** — server + desktop
   shipped 2026-06-12/13; Android Tauri shell ported 2026-06-13; web voice
-  shipped 2026-06-13 via WebSocket audio relay (`/voice/ws` endpoint,
-  opusscript WASM codec, VoiceWsSession). All four clients complete.
+  shipped 2026-06-13 via WebSocket audio relay. All four clients complete.
   First cross-internet voice test pending (pilot hub). Phase 2 (voice
   encryption) is separate.
-- [ ] **Desktop voice/composer UI cleanup pass** — composer D5b SHIPPED on
-  web 2026-06-13 (reference implementation, Playwright-verified; port to
-  desktop next). Remaining: consolidated call-control bar (D9), leave-voice
-  affordance (D3), implicit voice-channel switching (D6), camera picker (D2),
-  screen-share list fixes (D4). See
-  [pilot-feedback-2026-06-12.md](pilot-feedback-2026-06-12.md) and
-  [design-review-2026-06-13.md](design-review-2026-06-13.md).
 - [ ] **First external operator pilot (videogamezone.eu)** — hub v0.2.3 LIVE
-  at `https://voxply.videogamezone.eu` (runbook: `pilot-videogamezone/`),
-  now also serving the web client at its own URL with same-origin
-  auto-connect. Remaining: first cross-internet voice test (everything
-  shipped, just needs two humans on v0.2.3+ clients), friend onboards +
-  ownership transfer (`admin users set-owner`), doc-test feedback,
-  two-operator federation test.
+  at `https://voxply.videogamezone.eu`. Remaining: first cross-internet voice
+  test (everything shipped, just needs two humans), friend onboards +
+  ownership transfer, doc-test feedback, two-operator federation test.
 - [ ] **Fix macOS desktop build: xcap 0.0.14 fails to compile** — upstream
   E0282 type-inference error on current stable rustc
   (`xcap-0.0.14/src/macos/boxed.rs:22`); blocks the DMG and therefore the
@@ -86,6 +66,24 @@ The full history of shipped work lives in
   [`e2e-encryption.md`](docs/e2e-encryption.md).
 
 ## 🚀 Recently shipped
+
+- **Desktop voice/composer UI pass + web screen-share viewing (2026-06-13)** —
+  D5b: attach+poll collapsed into a "+" menu in desktop `ChannelComposer`;
+  D3/D9: voice control bar buttons (mic, deafen, screen-share, camera) replaced
+  with SVG icons in `ChannelSidebar`; D6: joining a new voice channel now
+  implicitly leaves the current one (`useVoice.handleVoiceJoin`);
+  D2: camera button enumerates devices on first enable — shows a selector when
+  multiple cameras are available (`useVideo.enableVideo`/`switchCamera`);
+  D4: screen-share source grid gains `max-height: 300px; overflow-y: auto`.
+  W8: web screen-share VIEWING now works — `HubWebSocket` gains binary frame
+  support (`binaryType = arraybuffer`, `pendingChunkEnvelope` pattern), and
+  `App.tsx` wires `activeScreenShares` state + `onScreenShareChunk` handler
+  through to the existing `ScreenShareViewer` component. tsc clean.
+
+- **Hub: first-user-becomes-owner bug fixed (2026-06-13)** — `assign_initial_roles`
+  now skips the auto-owner grant when `VOXPLY_OWNER_PUBKEY` is configured
+  (startup seeding already creates the correct owner row before traffic starts).
+  `AppState` gains `owner_pubkey: Option<String>`; all test files updated.
 
 - **H4 federated-DM sender spoofing fixed (2026-06-13)** — Ed25519
   signature verification is enforced on all three receive-federated-DM
