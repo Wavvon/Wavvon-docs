@@ -18,10 +18,11 @@ The full history of shipped work lives in
   (W1/W2), server error surface (W6), and admin/moderation panel routes (W13/W26)
   already done.
 - [ ] **Networked voice — Phase 1, cross-internet test** — server + desktop
-  shipped 2026-06-12/13; Android Tauri shell ported 2026-06-13 (voice crate
-  added, 8 Tauri commands wired, TypeScript join/leave/mute/deafen wired).
-  First cross-internet voice test pending (pilot hub). Web voice blocked on
-  raw-UDP (see Design questions). Phase 2 (voice encryption) is separate.
+  shipped 2026-06-12/13; Android Tauri shell ported 2026-06-13; web voice
+  shipped 2026-06-13 via WebSocket audio relay (`/voice/ws` endpoint,
+  opusscript WASM codec, VoiceWsSession). All four clients complete.
+  First cross-internet voice test pending (pilot hub). Phase 2 (voice
+  encryption) is separate.
 - [ ] **Desktop voice/composer UI cleanup pass** — composer D5b SHIPPED on
   web 2026-06-13 (reference implementation, Playwright-verified; port to
   desktop next). Remaining: consolidated call-control bar (D9), leave-voice
@@ -64,13 +65,6 @@ The full history of shipped work lives in
 
 ## 🤔 Design questions
 
-- **Web voice — WebSocket audio relay or WebRTC** — browsers have no raw UDP
-  API, so VXRG cannot be sent from the web client. Two paths: (a) a
-  WebSocket-based audio relay added to the hub (hub buffers/fans-out Opus
-  frames over WS instead of UDP); (b) WebRTC, which requires a TURN/STUN
-  infrastructure. Either requires a hub protocol change and a new client
-  codec path. Android and desktop continue to use the UDP pipeline; this is a
-  web-only question.
 - **Farm agent WS token in URL query string** — registration tokens appear in
   `/ws/agent?token=…` and therefore in access logs. Moving to a header or a
   first-message auth frame requires a coordinated server/agent protocol change.
@@ -101,6 +95,24 @@ The full history of shipped work lives in
   [`e2e-encryption.md`](docs/e2e-encryption.md).
 
 ## 🚀 Recently shipped
+
+- **Web voice via WebSocket audio relay (2026-06-13)** — browsers cannot send
+  raw UDP, so a second voice path was added: hub gains a `/voice/ws` WebSocket
+  endpoint; web clients authenticate with the session token + channel_id, receive
+  a `voice_ws_ready` JSON frame with `sender_id` and current participants, then
+  exchange binary Opus frames in the same wire format as UDP clients (`[seq:u16
+  BE][ts:u32 BE][opus...]` upload; `[sender_id:u16 BE][packet_type:u8][seq:u16
+  BE][ts:u32 BE][opus...]` download). Hub fan-out in `main.rs` now routes to both
+  UDP (desktop/android) and WS (web) participants in the same channel.
+  `voice_ws_senders` and `voice_udp_socket` added to `AppState`; `leave_voice`
+  and `get_voice_participants` made pub for use by the new `routes/voice_ws.rs`
+  handler. Web client gains `opusscript` (WASM Opus encoder/decoder) and a new
+  `VoiceWsSession` class in `apps/web/src/platform/voice.ts` that captures
+  microphone audio via `getUserMedia`, encodes with a `ScriptProcessorNode`
+  (960-sample / 20ms frames at 48 kHz), and decodes/plays incoming frames.
+  `App.tsx` voice handlers replace `showVoiceNotAvailable()`. All four clients
+  (desktop UDP, android UDP, web WS, hub) now participate in shared voice
+  channels. Hub: 245/245 tests passing. Web: tsc clean.
 
 - **Client monorepo consolidation — all 5 stages complete (2026-06-13)** —
   Voxply-desktop, Voxply-web, and Voxply-android collapsed into the single
@@ -361,11 +373,11 @@ Older entries: [`docs/shipped-log.md`](docs/shipped-log.md).
   pilot hub (2026-06-12). Decide the intended behavior, align code + docs.
 - **demo-seed exports recovery phrases that don't recover the seeded identity (W27)** — credentials unusable for login; re-seed/screenshot logins blocked.
 - **2026-06-11 audit: web client incomplete port** — 25 divergences found. W12/W3/W4/W25 fixed (reactions 405, typing both ways, 15 CSS class families). W1/W2/W6 fixed (message bleed, hub misattribution, server error surface). W13/W26 fixed (admin panel permission check + routes corrected). W16 fixed (in-channel search now hits `GET /channels/{id}/messages?q=` with 200ms debounce). W10 fixed (WS reconnect triggers full reauth after 3 consecutive failures instead of looping forever on a dead token). Remaining: dead screen-share (W8) and 13 other items. Blocks a credible public web demo.
-- **2026-06-11 audit: networked voice (H7 — server + desktop + android fixed)** —
+- **2026-06-11 audit: networked voice (H7 — all clients fixed)** —
   hub relay learns real source addresses via VXRG (shipped 2026-06-12); desktop
-  client ported same day; android Tauri shell ported 2026-06-13. Web voice
-  remains architecturally blocked on raw UDP (see Design questions). First
-  cross-internet voice test still pending.
+  client ported same day; android Tauri shell ported 2026-06-13; web voice
+  shipped 2026-06-13 via WebSocket audio relay. First cross-internet voice
+  test still pending.
 - **2026-06-11 audit: federated-DM security** — endpoint accepts spoofed senders from any logged-in user.
 - Full audit with all 46 findings (file:line and effort): [`code-audit-2026-06-11.md`](code-audit-2026-06-11.md).
 - **Windows installer unsigned** — SmartScreen warning; workaround "More info →
