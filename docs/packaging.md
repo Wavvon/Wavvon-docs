@@ -7,7 +7,9 @@ signing, updates, CI, and the secrets matrix.
 
 macOS is **deferred** — the Apple Developer Program ($99/year) is a
 barrier for a zero-income open-source project. macOS users can build from
-source. Android and browser clients are on the roadmap.
+source. The Android and browser clients have shipped (see
+[android-client.md](android-client.md), [browser-client.md](browser-client.md));
+all three apps now live in the Voxply-client monorepo.
 
 ---
 
@@ -23,11 +25,13 @@ Tauri 2's bundler produces these via `tauri build`. No custom packaging scripts.
 **macOS** — deferred. Apple Developer ID + notarization required for Gatekeeper;
 costs $99/year. Build from source works fine in the meantime.
 
-**Android** — planned. Tauri 2 supports Android; needs separate signing setup
-(Android keystore, not Apple). No cost barrier.
+**Android** — shipped. Tauri 2 Android shell, side-loaded APK signed with a
+self-signed release keystore (Android keystore, not Apple). See
+[android-client.md](android-client.md) and [install-android.md](install-android.md).
 
-**Browser client** — planned. The existing React frontend can run as a web app
-with Tauri `invoke` calls replaced by direct HTTP/WebSocket calls to the hub.
+**Browser client** — shipped. The React frontend runs as a web app with
+Tauri `invoke` calls replaced by direct HTTP/WebSocket calls to the hub
+(including voice over the `/voice/ws` relay). See [browser-client.md](browser-client.md).
 
 ---
 
@@ -112,8 +116,10 @@ Tauri 2 updater JSON, served from the endpoint:
 
 Two workflows. **Describe their structure; do not write the YAML here.**
 
-Each repo carries its own workflows. The desktop client workflows below
-live in Voxply-desktop.
+Each repo carries its own workflows. The client workflows below live in
+the Voxply-client monorepo and cover all three apps (`apps/desktop`,
+`apps/web`, `apps/android`) — `build.yml` is a single workflow across
+them rather than one per former repo.
 
 ### `release.yml` — on `git tag v*`
 
@@ -133,7 +139,7 @@ live in Voxply-desktop.
 |---|---|
 | Matrix | `windows-latest`, `ubuntu-22.04` |
 | Setup Rust + Node | as above, no Tauri targets needed |
-| Validate | `cargo check --workspace` + `tsc --noEmit` in `desktop/` (Voxply-desktop) |
+| Validate | `cargo check --workspace` + `tsc --noEmit` across `apps/*` (Voxply-client) |
 | No bundling | No installers, no signing — fast PR feedback |
 
 ### Secrets matrix
@@ -191,11 +197,11 @@ TLS terminate it in a reverse proxy (Caddy / nginx); see `hosting.md`.
 ## 6. Versioning
 
 - **Semver**. `v0.x.y` until the wire protocol stabilises.
-- **Each repo tags independently**. Voxply-server, Voxply-desktop,
-  Voxply-android, Voxply-web, and Voxply-discovery each carry their
-  own version. Wire-compat is the contract; the openapi.yaml in the
-  docs repo is the authoritative shape. Mismatched client/hub versions
-  are an operator concern only when wire-compat is broken.
+- **Each repo tags independently**. Voxply-server, Voxply-client (one
+  version for desktop/web/Android together), and Voxply-discovery each
+  carry their own version. Wire-compat is the contract; the openapi.yaml
+  in the docs repo is the authoritative shape. Mismatched client/hub
+  versions are an operator concern only when wire-compat is broken.
 - **`CHANGELOG.md`** at repo root, [Keep a Changelog](https://keepachangelog.com/)
   format. Sections: Added / Changed / Deprecated / Removed / Fixed /
   Security.

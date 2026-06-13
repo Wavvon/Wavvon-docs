@@ -120,6 +120,15 @@ forwarded to the owning bot's HTTP webhook (not over WS).
 
 ### Voice
 
+> Transport note: the events below are the channel-WS control plane and
+> apply to all clients. **Audio frames** travel out of band: native clients
+> (desktop, Android) use the UDP relay (the `udp_register_token` bind under
+> [`voice_joined`](#voice_joined)); the browser, which cannot open raw UDP,
+> uses a separate `/voice/ws` WebSocket relay (`hub/src/routes/voice_ws.rs`
+> in Voxply-server) carrying the same Opus wire format. The control-plane
+> events here are identical regardless of which audio transport a participant
+> uses. See [voice.md](voice.md).
+
 #### `voice_join`
 Join a voice channel. May be rejected with an [`error`](#error) (context
 `voice_join`) when the user is voice-muted hub-wide, voice-muted in the

@@ -1,16 +1,25 @@
 # Android Client
 
-A third client living in the **Voxply-android** repo (at `android/`)
-that wraps the **browser client's** React UI and platform layer inside
-a Tauri 2 Android shell. Tauri 2 supports Android with no licensing
-cost; the Android keystore is free. We use Tauri only for the OS shell
-(window, status bar, deep links, secure storage), not for a Rust
-backend on-device.
+A third client living at `apps/android/android/` in the **Voxply-client**
+monorepo that wraps the **browser client's** React UI and platform layer
+inside a Tauri 2 Android shell. Tauri 2 supports Android with no licensing
+cost; the Android keystore is free. We use Tauri for the OS shell (window,
+status bar, deep links, secure storage) and — unlike the original design —
+for an on-device voice pipeline.
 
-The Android client is **feature-subset, not feature-parity**: voice and
-screen share are deferred (same UDP/WebRTC story as the browser), and
-the layout assumes a portrait phone viewport — a responsive pass on the
-shared components.
+> Historical note: this doc was written when Android was its own
+> `Voxply-android` repo, shared code came in through cross-repo Vite
+> aliases, and voice was deferred. All three changed: the clients
+> consolidated into the Voxply-client monorepo (shared code lives in
+> `packages/*`; see [client-monorepo.md](client-monorepo.md)), and
+> **voice shipped on Android (2026-06-13)** using the native `voxply-voice`
+> UDP pipeline driven through Tauri commands — Android speaks UDP voice
+> like desktop, not the browser's WS relay. The cross-repo-alias prose
+> below is kept as design history.
+
+The Android client is now near feature-parity. Voice works (native UDP
+pipeline); screen share is still deferred (no `getDisplayMedia` in the
+Android WebView), and the layout assumes a portrait phone viewport.
 
 ---
 
@@ -59,10 +68,14 @@ android/
     └── src/lib.rs            ~50 lines: setup, plugin registration, no commands beyond OS glue
 ```
 
-The Rust side carries no business logic — no hub HTTP, no WS, no
-crypto. Everything that exists in `desktop/src-tauri/src/lib.rs` (in
-Voxply-desktop) already has a TypeScript twin in `web/src/platform/`
-(in Voxply-web); that twin is what Android uses.
+The Rust side carries no networking business logic — no hub HTTP, no WS,
+no crypto. The hub/DM/identity surface that lives in
+`apps/desktop/src-tauri/src/lib.rs` (Voxply-client) has a TypeScript twin
+in the shared platform layer (`packages/platform`), and that twin is what
+Android uses. The one exception added later is **voice**: Android drives
+the native `voxply-voice` UDP pipeline through a set of ~8 Tauri commands
+(join/leave, mute, deafen, device select, etc.), the same crate the
+desktop uses (see [voice.md](voice.md)).
 
 ---
 
@@ -186,8 +199,8 @@ manually. Crude but matches the side-loaded distribution model.
 | DMs (+ E2E encrypted) | yes | Same noble stack runs on Android WebView |
 | Reactions, replies, mentions, search | yes | |
 | Attachments (3 MB) | yes | Android intent picker via tauri-plugin-dialog |
-| Voice (Opus/UDP) | **no** | Same blocker as browser; defer until WebRTC bridge designed |
-| Voice participant list (read-only) | yes | |
+| Voice (Opus/UDP) | yes | Native `voxply-voice` pipeline via ~8 Tauri commands; shipped 2026-06-13 |
+| Voice participant list | yes | |
 | Screen share | **no** | `getDisplayMedia` is desktop-only in WebViews; would need Android `MediaProjection` JNI plugin |
 | Roles, admin, invites, alliances | yes | |
 | Hub discovery, friends, multi-hub | yes | |

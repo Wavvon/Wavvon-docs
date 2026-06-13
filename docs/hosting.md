@@ -313,7 +313,7 @@ journalctl -u voxply-hub -f
    (proxy to `127.0.0.1:3000`, forward WebSocket upgrades, set
    `VOXPLY_TRUSTED_PROXY=true`). Voice UDP still hits 3001 directly.
 
-**Optional web client**: download the web-client `dist` from a Voxply-web
+**Optional web client**: download the web-client `dist` from a Voxply-client
 release, unpack it (it must contain `index.html`), and point
 `VOXPLY_WEB_CLIENT_DIR` at that directory. See
 [Serving the web client](#serving-the-web-client).
@@ -342,12 +342,12 @@ TLS, firewall, and web-client options are identical — the only difference
 is where the binary came from.
 
 **Building the official Docker image** (bakes the web client in): the
-image is a multi-stage build. CI checks out Voxply-web into
-`web-client-src/` in the build context, and a `node:22` stage builds the
-SPA into `/web-client`:
+image is a multi-stage build. CI checks out the Voxply-client monorepo
+into `web-client-src/` in the build context, and a `node:22` stage builds
+the `apps/web` SPA into `/web-client`:
 
 ```bash
-# With the web client (Voxply-web checked out into web-client-src/):
+# With the web client (Voxply-client checked out into web-client-src/):
 docker build -f hub/Dockerfile -t voxply-hub:local .
 
 # Without web-client-src/ present, the image still builds, but /web-client
@@ -360,8 +360,8 @@ docker run -e VOXPLY_WEB_CLIENT_DIR= voxply-hub:local
 **Build the web-client dist standalone** (for method 3's optional serving):
 
 ```bash
-git clone https://github.com/voxply/Voxply-web && cd Voxply-web/web
-npm ci && npm run build       # output in web/dist (contains index.html)
+git clone https://github.com/voxply/Voxply-client && cd Voxply-client
+pnpm install && pnpm --filter web build   # output in apps/web/dist (contains index.html)
 ```
 
 ---

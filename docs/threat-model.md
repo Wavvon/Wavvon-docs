@@ -59,10 +59,11 @@ These are known gaps. Each shapes a future feature decision.
 - **Metadata leaks.** Even with E2E DM bodies, peers see
   who-talked-to-whom-when. Onion-routing the federation transport
   would fix this; out of scope.
-- **Voice plaintext on the hub UDP relay.** Voice packets are
-  encoded but not encrypted to the hub. The hub operator can
-  passively wiretap voice. **Mitigation: peer-to-peer voice when
-  topology allows, or SRTP-style E2E.**
+- **Voice plaintext on the hub relay.** Voice frames are Opus-encoded
+  but not encrypted to the hub, on both the UDP relay (desktop, Android)
+  and the `/voice/ws` WebSocket relay (browser). The hub operator can
+  passively wiretap voice on either path. **Mitigation: peer-to-peer
+  voice when topology allows, or SRTP-style E2E.**
 - **Bot abuse.** Once bots ship (#148), a compromised bot token
   posts anywhere the bot has permission. Per-bot rate limits +
   scoped tokens are the planned defense.

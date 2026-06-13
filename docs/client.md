@@ -1,12 +1,13 @@
 # Desktop Client
 
-Tauri 2 + React 19 + TypeScript. Lives in the Voxply-desktop repo. Two
-halves:
+Tauri 2 + React 19 + TypeScript. Lives at `apps/desktop/` in the
+Voxply-client monorepo (shared TS in `packages/core|ui|platform|i18n`).
+Two halves:
 
-- **Rust shell** (`desktop/src-tauri/` in Voxply-desktop) — file I/O,
+- **Rust shell** (`apps/desktop/src-tauri/` in Voxply-client) — file I/O,
   voice, OS notifications, system tray, OS-native dialogs. Communicates
   with the UI via Tauri commands.
-- **React UI** (`desktop/src/` in Voxply-desktop) — everything visual.
+- **React UI** (`apps/desktop/src/` in Voxply-client) — everything visual.
 
 ## React entry
 
@@ -85,7 +86,7 @@ These do **not** sync across devices today. (See [decisions.md](decisions.md).)
 
 ## Tauri commands
 
-Defined in `desktop/src-tauri/src/lib.rs` (Voxply-desktop). A non-exhaustive
+Defined in `apps/desktop/src-tauri/src/lib.rs` (Voxply-client). A non-exhaustive
 list:
 
 - `load_identity` / `save_identity` — keypair persistence
@@ -214,8 +215,15 @@ needs a refactor to take a base path before it's testable.
 The React side has no test framework wired up yet — that's a separate
 future task.
 
+## Sibling clients
+
+This is the reference client. The web client ([browser-client.md](browser-client.md))
+and Android client ([android-client.md](android-client.md)) reuse the same
+React UI and a shared platform layer (`packages/platform` in Voxply-client),
+swapping only the transport/storage adapter. All three now ship voice —
+desktop and Android over UDP via the `voice/` crate, web over the hub's
+WebSocket relay (see [voice.md](voice.md)).
+
 ## What's not done
 
-- Mobile client
-- Web client (would need WebRTC voice)
 - Plugin system / theme marketplace

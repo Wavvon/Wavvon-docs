@@ -1,23 +1,30 @@
 # Browser Client
 
-A second client living in the **Voxply-web** repo (at `web/`) that
-hosts the same React UI as the desktop ([client.md](client.md)) but
+A second client living at `apps/web/` in the **Voxply-client** monorepo
+that hosts the same React UI as the desktop ([client.md](client.md)) but
 with no Tauri shell. The hub's HTTP + WebSocket API is unchanged; what
 changes is the platform layer sitting between the UI and the network.
 
-The browser client is **feature-subset, not feature-parity**: voice is
-deferred (no raw UDP from the browser), and everything voice-adjacent
-falls back to a read-only view. Text, DMs, E2E, screen share, admin
-flows all work.
+> Historical note: this doc was written when the web client was its own
+> `Voxply-web` repo and voice was deferred. Both have since changed —
+> the clients consolidated into the Voxply-client monorepo (see
+> [client-monorepo.md](client-monorepo.md) and [decisions.md](decisions.md)),
+> and **voice now works in the browser** over the hub's WebSocket relay
+> (see "Voice" below and [voice.md](voice.md)). The shared UI and platform
+> layer now live in `packages/*` rather than being aliased across repos.
+
+The browser client is now near feature-parity. Text, DMs, E2E, screen
+share, admin flows, and voice all work; the remaining gaps are
+browser-platform limits (system tray, native auto-update).
 
 ---
 
 ## Project layout
 
-A crate-less project at `web/` inside Voxply-web. Same React 19 +
-TypeScript + Vite versions as the desktop client — pin identically
-across the two repos (a shared `package.json` catalog needs cross-repo
-machinery; pin-by-convention is the v1 answer).
+The project lives at `apps/web/` in the Voxply-client monorepo, sharing
+React/TypeScript/Vite versions with the other apps via the pnpm-workspace
+catalog. (Earlier this was a standalone `web/` project in a separate repo
+with versions pinned by convention; the monorepo replaced that.)
 
 ```
 web/                            (Voxply-web repo)
@@ -85,7 +92,7 @@ export const platform = {
   channels: { list, create, rename, move, reorder, delete, ... },
   messages: { get, send, edit, delete, addReaction, removeReaction, search },
   dms: { listConversations, listMessages, send, create, encrypt, decrypt },
-  voice: { /* throws NotSupportedInBrowser */ },
+  voice: { join, leave, mute, deafen, /* WebSocket relay, see "Voice" */ },
   identity: { getPublicKey, getRecoveryPhrase, recoverFromPhrase },
   prefs: { loadBlocked, saveBlocked, loadPinned, savePinned, ... },
   // ...
@@ -324,7 +331,7 @@ function signBytes(msg: Uint8Array, seedHex: string): string;  // hex
 ```
 
 The envelope shape matches the Rust producer in
-`desktop/src-tauri/src/lib.rs` in Voxply-desktop (the `encrypt_dm` Tauri command);
+`apps/desktop/src-tauri/src/lib.rs` in Voxply-client (the `encrypt_dm` Tauri command);
 the canonical signing bytes match the format defined in
 [e2e-encryption.md](e2e-encryption.md) §"Message authentication"
 (domain-separated prefix, length-prefixed strings).
@@ -335,31 +342,30 @@ the canonical signing bytes match the format defined in
 
 ---
 
-## Voice — deferred
+## Voice — WebSocket relay
 
-Voice is Opus-over-UDP via a hub-side relay (see [voice.md](voice.md)).
-The browser cannot open raw UDP sockets; the only realistic path is
-WebRTC, which would require the hub to terminate ICE/DTLS-SRTP and
-transcode to/from the existing Opus relay. That's its own design
-project, not this one.
+Voice **works in the browser**. Native clients ride Opus-over-UDP via the
+hub relay; the browser cannot open raw UDP sockets, so the hub exposes a
+parallel `/voice/ws` WebSocket relay and the browser speaks the same Opus
+wire format over it. Both transports fan out into the same channel — a
+browser user and a desktop user hear each other. Full data flow and frame
+format in [voice.md](voice.md).
 
-**Browser v1 behaviour**:
+We chose the WS relay over WebRTC: WebRTC would force the hub to terminate
+ICE/DTLS-SRTP and run a full SFU, whereas the WS relay reuses the existing
+Opus fan-out and hub session auth almost unchanged. See
+[decisions.md](decisions.md) ("Web voice via a WebSocket Opus relay").
 
-- Voice channels still appear in the channel list. They behave like
-  text channels for messaging.
-- The "join voice" button is replaced by a tooltip:
-  *"Voice is not available in the browser client. Open Voxply on your
-  desktop to join."*
-- Voice participant lists still render (the `/voice/participants`
-  endpoint is read-only). The browser user sees who is in voice; they
-  just cannot hear or speak.
-- Voice population badges (`🎙️ N`) still render.
-- The mute/deafen footer buttons are hidden in the browser (they only
-  make sense while in voice).
+**Browser specifics**:
 
-This degrades gracefully: a user with the browser on one screen and the
-desktop on another can chat in text on either, while voice continues to
-work on the desktop.
+- Microphone capture is `getUserMedia`; encode/decode is `opusscript` (a
+  WASM Opus codec), framed at 960 samples / 20 ms via a
+  `ScriptProcessorNode`. No RNNoise/VAD denoise in the browser path.
+- The voice client lives in `VoiceWsSession` (`apps/web/src/platform/voice.ts`
+  in Voxply-client); `App.tsx`'s join/leave/mute/deafen handlers drive it
+  directly (the old `showVoiceNotAvailable()` stub is gone).
+- Participant lists and `🎙️ N` badges render as on desktop; the
+  mute/deafen footer buttons are live while in voice.
 
 ---
 
@@ -392,8 +398,8 @@ Everything else — `getDisplayMedia`, the WebSocket frame protocol, the
 | DMs | yes | yes | |
 | E2E encrypted DMs | yes | yes | All-noble crypto stack |
 | Screen share | yes | yes | Already WebView-native |
-| Voice (Opus/UDP) | yes | **no** | UDP not reachable from browser |
-| Voice participant list (read-only) | yes | yes | `/voice/participants` |
+| Voice | yes (Opus/UDP) | yes (Opus/WS relay) | `/voice/ws`; `opusscript` WASM codec; no RNNoise denoise in browser |
+| Voice participant list | yes | yes | `/voice/participants` |
 | Reactions | yes | yes | |
 | Attachments | yes | yes | base64 in JSON, same shape |
 | Hub admin (members, roles, bans, invites) | yes | yes | |
@@ -437,7 +443,8 @@ Everything else — `getDisplayMedia`, the WebSocket frame protocol, the
 - Desktop client structure and state conventions: [client.md](client.md)
 - E2E envelope format (must match byte-for-byte): [e2e-encryption.md](e2e-encryption.md)
 - Identity model and seed format: [identity.md](identity.md)
-- Voice pipeline (why it can't ride along in v1): [voice.md](voice.md)
+- Voice pipeline and the WS relay the browser uses: [voice.md](voice.md)
 - Hub HTTP routes: `hub/src/routes/mod.rs` (Voxply-server)
-- Tauri commands the adapter replaces: `desktop/src-tauri/src/lib.rs` (Voxply-desktop)
-- Shared types the browser also consumes: `desktop/src/types.ts` (Voxply-desktop)
+- Tauri commands the adapter replaces: `apps/desktop/src-tauri/src/lib.rs` (Voxply-client)
+- Shared types the browser also consumes: `packages/core` / `apps/desktop/src/types.ts` (Voxply-client)
+- Monorepo migration that consolidated the repos: [client-monorepo.md](client-monorepo.md)

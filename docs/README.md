@@ -8,7 +8,7 @@ you the rationale and points you to the right files.
 
 If you're new, read in this order:
 
-1. [architecture.md](architecture.md) — what runs where, the four repos and the crates inside Voxply-server
+1. [architecture.md](architecture.md) — what runs where, the four repos (hub server, the Voxply-client monorepo, docs, discovery) and the crates inside Voxply-server
 2. [identity.md](identity.md) — keypairs, recovery, auth
 3. [federation.md](federation.md) — how hubs talk to each other
 4. [alliances.md](alliances.md) — multi-hub groups (Voxply's differentiator)
@@ -50,7 +50,7 @@ These shipped — the doc is the design rationale behind the code (see
 16. [browser-client.md](browser-client.md) — second client (no Tauri), platform adapter, IndexedDB identity
 17. [android-client.md](android-client.md) — Tauri 2 Android wrapper around the browser platform layer, side-loaded APK
     - [install-android.md](install-android.md) — end-user guide: enable unknown sources, download APK, Play Protect warning
-    - [client-monorepo.md](client-monorepo.md) — **designed, not built**: consolidating the three client repos into one pnpm-workspace monorepo (`packages/core|ui|platform|i18n` + `apps/*`); staged migration, git-subtree history preservation, CI/release/updater cutover. Hub server stays separate. See [decisions.md](decisions.md).
+    - [client-monorepo.md](client-monorepo.md) — **shipped (2026-06-13)**: the three client repos were consolidated into the one pnpm-workspace Voxply-client monorepo (`packages/core|ui|platform|i18n` + `apps/*`); staged migration, git-subtree history preservation, CI/release/updater cutover. Hub server stays separate. See [decisions.md](decisions.md).
 18. [bots.md](bots.md) — external bot ecosystem: invite-by-pubkey, slash commands, webhook dispatch, per-hub directory
 19. [accessibility.md](accessibility.md) — keyboard navigation, ARIA / screen-reader support, i18n strategy across desktop / web / Android
 20. [forum.md](forum.md) — forum channel type: post-list variant, posts + reply threads, `create_posts`/`manage_posts` permissions, FTS search
@@ -110,7 +110,8 @@ Reading order is for learning the system end-to-end. This section is for
 - **Friends (local + cross-hub via stored hub URL)** — [federation.md](federation.md)
 
 ### Voice (in any channel — every channel is unified text + voice)
-- **Opus codec + UDP relay** — [voice.md](voice.md)
+- **Opus codec + UDP relay (desktop / Android)** — [voice.md](voice.md)
+- **Web voice via WebSocket Opus relay (browser)** — [voice.md](voice.md), [browser-client.md](browser-client.md), [decisions.md](decisions.md)
 - **RNNoise denoise + VAD** — [voice.md](voice.md)
 - **Push-to-talk** — [voice.md](voice.md)
 - **Audio quality profiles (Standard / Music / Custom)** — [voice-advanced-settings.md](voice-advanced-settings.md)

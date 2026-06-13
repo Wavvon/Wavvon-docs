@@ -2,10 +2,15 @@
 
 **Status:** designed, not built. Personal-axis, v1.
 
+> Paths in this doc predate the client monorepo. The clients now live in
+> the Voxply-client monorepo: read `Voxply-desktop/desktop/` as
+> `apps/desktop/`, `Voxply-web/web/` as `apps/web/`, and shared CSS tokens
+> as a candidate for `packages/ui`. See [architecture.md](architecture.md).
+
 Voxply ships four built-in themes — Calm, Classic, Linear, Light — driven
 entirely by CSS custom properties set on `[data-theme="..."]` in each
-client's `styles.css` (desktop: `Voxply-desktop/desktop/src/styles.css`;
-web: `Voxply-web/web/src/styles.css`). A skin is just a fifth, user-owned
+client's `styles.css` (desktop: `apps/desktop/src/styles.css`;
+web: `apps/web/src/styles.css`). A skin is just a fifth, user-owned
 set of values for those same tokens. No new rendering path — we reuse the
 token cascade that already paints the whole app.
 

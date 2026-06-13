@@ -1,10 +1,13 @@
 # Voice
 
-Real-time voice over UDP, Opus-encoded, with RNNoise denoise and voice
-activity detection. The capture/encode/playback side lives in the
-`voice/` crate in Voxply-desktop; the hub-side UDP relay lives in the
-`hub/` crate in Voxply-server. Both sides share the wire format
-defined in the `voice/` crate.
+Real-time voice over Opus, with RNNoise denoise and voice activity
+detection. Two transports share one wire format and one hub fan-out:
+**UDP** for the native clients (desktop, Android) and a **WebSocket
+relay** for the browser, which cannot open raw UDP sockets. The native
+capture/encode/playback pipeline lives in the `voice/` crate in
+Voxply-client; the hub-side UDP relay and the WS relay both live in the
+`hub/` crate in Voxply-server. All four clients participate in the same
+voice channels.
 
 ## Pipeline
 
@@ -24,7 +27,8 @@ playback (cpal)
 
 ## Files
 
-All paths below are in the `voice/` crate of Voxply-desktop:
+All paths below are in the `voice/` crate of Voxply-client (the native
+UDP pipeline used by the desktop and Android shells):
 
 | Stage              | File |
 |--------------------|------|
@@ -65,6 +69,32 @@ the packet's actual source address. Audio is never relayed to or from an
 address that has not completed this bind — which also closes the
 spoofed-source reflection vector. Design and rationale:
 [voice-networking-design.md](voice-networking-design.md).
+
+## Web voice — the WebSocket relay
+
+Browsers cannot send raw UDP, so the hub exposes a second voice path
+alongside UDP: a `/voice/ws` WebSocket endpoint (`hub/src/routes/voice_ws.rs`
+in Voxply-server). A web client authenticates with its session token +
+`channel_id`, receives a `voice_ws_ready` JSON frame carrying its assigned
+`sender_id` and the current participant list, then exchanges **binary Opus
+frames in the same wire format as UDP clients** — `[seq:u16 BE][ts:u32 BE]
+[opus…]` on upload, `[sender_id:u16 BE][packet_type:u8][seq:u16 BE][ts:u32
+BE][opus…]` on download.
+
+The hub fan-out routes every relayed frame to **both** transports for the
+channel: UDP for desktop/Android participants and WS for web participants.
+`AppState` gained `voice_ws_senders` (the per-channel WS sender registry)
+and `voice_udp_socket`; `leave_voice` and `get_voice_participants` are
+`pub` so the WS handler shares the same participant bookkeeping as UDP.
+
+The web client side is `VoiceWsSession` in
+`apps/web/src/platform/voice.ts` (Voxply-client). It captures the
+microphone via `getUserMedia`, encodes/decodes with `opusscript` (a WASM
+Opus codec — there is no native Opus crate in the browser), framing at
+960 samples / 20 ms per frame at 48 kHz via a `ScriptProcessorNode`, and
+plays decoded frames back. RNNoise/VAD denoise is not in the browser path;
+the WASM codec and the browser audio graph are the practical ceiling for
+v1.
 
 > Note: there's no separate "voice channel" type. Every Voxply channel
 > is both text and voice — joining voice is something a user does

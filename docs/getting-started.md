@@ -10,14 +10,14 @@ that is yours forever.
 ## Download
 
 The Voxply desktop app is available for Windows, macOS, and Linux from the
-[Voxply releases page](https://github.com/Voxply/Voxply-desktop/releases).
+[Voxply releases page](https://github.com/Voxply/Voxply-client/releases).
 
 **Windows**: installers are currently **not code-signed** (signing for a
 young open-source project is in progress — the CI signing pipeline is
 already wired). SmartScreen will warn about an unrecognized app: click
 **More info → Run anyway**. Builds are reproducible from the public
-[Voxply-desktop](https://github.com/Voxply/Voxply-desktop) repository via
-GitHub Actions.
+[Voxply-client](https://github.com/Voxply/Voxply-client) monorepo (which
+holds the desktop, web, and Android apps) via GitHub Actions.
 
 **macOS / Linux**: notarization and GPG signing are planned for a future
 release. On macOS, right-click the app and choose **Open** the first time;

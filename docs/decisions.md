@@ -6,7 +6,51 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Web voice via a WebSocket Opus relay, not WebRTC
+
+**Decision** (shipped 2026-06-13): the browser client joins the same voice
+channels as native clients by relaying Opus frames over a hub WebSocket
+endpoint (`/voice/ws`), not over WebRTC. Native clients keep their UDP
+path; the hub fan-out routes each relayed frame to both UDP (desktop,
+Android) and WS (web) participants in one channel. The browser frames the
+same Opus wire format as UDP, encoding/decoding with the `opusscript` WASM
+codec. Hub handler is `hub/src/routes/voice_ws.rs` (Voxply-server); the
+client side is `VoiceWsSession` in `apps/web/src/platform/voice.ts`
+(Voxply-client). Full data flow in [voice.md](voice.md).
+
+**Why**: the browser cannot open raw UDP sockets, so the existing transport
+was a hard wall. The WS relay reuses what already exists — the hub's Opus
+fan-out, the session-token auth, and the exact UDP wire format — adding
+only a second sender registry (`voice_ws_senders`) and a socket handle to
+`AppState`. It got browser voice working end-to-end against the live pipeline
+with no new media stack on the hub.
+
+**Alternatives considered**:
+
+- **WebRTC (SFU on the hub)** — rejected for v1: it forces the hub to
+  terminate ICE/DTLS-SRTP and run a real SFU, a large new subsystem, for
+  no gain over relaying the Opus frames we already produce. WebRTC stays
+  the right answer for a future P2P/lower-latency upgrade and is already
+  the chosen path for screen-share v2 ([screen-share-webrtc.md](screen-share-webrtc.md)),
+  but voice did not need it to ship.
+- **Leave browser voice deferred (status quo)** — rejected: it was the
+  largest remaining parity gap and produced the "join voice button + voice
+  unavailable banner" contradiction the design review flagged.
+
+**Tradeoff**: the WS relay carries audio through the hub's WebSocket layer
+rather than a dedicated media transport, and the browser path has no
+RNNoise/VAD denoise (the WASM codec and `ScriptProcessorNode` graph are the
+v1 ceiling). Per-stream WS framing is heavier than UDP; acceptable because
+the browser audience is smaller and latency-tolerant relative to native.
+
 ## Client apps consolidate into one monorepo; hub server stays separate
+
+> **Status (2026-06-13): shipped.** The three client repos were merged into
+> the Voxply-client monorepo across five staged commits — `apps/desktop`,
+> `apps/web`, `apps/android/android` plus shared `packages/core|ui|platform|i18n`.
+> The decision below is preserved as written (future tense); the structure
+> it describes is now live. See [architecture.md](architecture.md) for the
+> current repository map.
 
 **Decision**: the three client repos — Voxply-desktop, Voxply-web,
 Voxply-android — merge into a single client monorepo (`voxply`) with

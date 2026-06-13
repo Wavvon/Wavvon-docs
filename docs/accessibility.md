@@ -225,14 +225,14 @@ Picked over Lingui and a custom solution.
 - Custom solution: rejected on cost; pluralization and ICU date
   formatting alone justify a library.
 
-Same library in all three clients. Catalogs live in a shared package
-(`@voxply/i18n`) under Voxply-web (which already hosts shared types).
-Desktop and Android consume it via their bundler's shared-source alias.
+Same library in all three clients. Catalogs live in the shared workspace
+package `packages/i18n` in the Voxply-client monorepo; desktop, web, and
+Android all consume it as a workspace dependency.
 
 ### String catalog layout
 
 ```
-voxply-web/i18n/
+packages/i18n/
   en.json            # source of truth
   it.json
   es.json
