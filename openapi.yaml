@@ -734,6 +734,43 @@ paths:
       summary: Participants in the caller's current voice channel
       tags: [Voice]
 
+  /voice/ws:
+    get:
+      summary: Voice WebSocket endpoint
+      description: |
+        Upgrades to a WebSocket for real-time audio relay. Authenticate with
+        the `token` query parameter (same session token used for `/ws`); the
+        upgrade is rejected silently on invalid or expired credentials.
+
+        On successful upgrade the server sends a `voice_ws_ready` JSON text
+        frame containing the assigned `sender_id` (u16) and the current
+        `participants` list.  After that, the client sends binary audio
+        frames (`[seq:u16][ts:u32][opus…]`) and receives fan-out frames
+        (`[sender_id:u16][type:u8][opus…]`) from other participants.
+        The connection also carries UDP-sourced audio for peers that joined
+        via the UDP voice path.
+
+        Closing the WebSocket triggers the same leave-voice teardown as the
+        UDP flow.
+      security: []
+      tags: [Voice, WebSocket]
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema: { type: string }
+          description: Session token from `POST /auth/verify`.
+        - name: channel_id
+          in: query
+          required: true
+          schema: { type: string }
+          description: ID of the voice channel to join.
+      responses:
+        "101":
+          description: Switching Protocols — voice WebSocket established.
+        "401":
+          description: Invalid or expired token (connection closed immediately).
+
   # ── Messages ──────────────────────────────────────────────────────────────
 
   /channels/{channel_id}/messages:
