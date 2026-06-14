@@ -28,12 +28,6 @@ The full history of shipped work lives in
   2026-06-12) failed: `aarch64-linux-gnu-gcc` link error in the musl
   cross-build (aws-lc-sys/ring object files). The x86_64 binary and Docker
   images are unaffected.
-- [ ] **Remaining App.tsx decomposition** — desktop (~3,260 lines) and android
-  (~2,900) hold the channel-message/WS wiring. DM cluster extracted on both
-  (desktop `useDms` 348 lines; android parity port preserves its
-  plaintext-group divergences). Channel message send, WS listener
-  registration, and alliance cluster remain in both roots.
-
 ## 🤔 Design questions
 
 - **Farm agent WS token in URL query string** — registration tokens appear in
@@ -66,6 +60,18 @@ The full history of shipped work lives in
   [`e2e-encryption.md`](docs/e2e-encryption.md).
 
 ## 🚀 Recently shipped
+
+- **App.tsx decomposition — channel-message, alliance, WS hooks (2026-06-14)** —
+  desktop App.tsx 3,259 → ~1,450 lines; android App.tsx 993 → ~560 lines.
+  Desktop: `useChannelMessages` owns all message/search/notification state and
+  chat event listeners (message, message_edited, message_deleted,
+  chat-reactions-updated, post-created, reply-created); `useAlliances` owns
+  alliance state + `loadAlliances()`; `useWsHandlers` registers hub-ws-status,
+  voice, DM, hub-error, and hub-session-lost Tauri listeners. Ref ordering fixed
+  (myDisplayNameRef/selectedChannelIdRef hoisted; stable clearInputRef pattern
+  breaks useDms forward-reference). Android: same three hooks; stableHandlers
+  wired via stable setter refs to avoid useMemo staleness. pnpm typecheck clean
+  across all three apps.
 
 - **Desktop voice/composer UI pass + web screen-share viewing (2026-06-13)** —
   D5b: attach+poll collapsed into a "+" menu in desktop `ChannelComposer`;
