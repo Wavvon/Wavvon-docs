@@ -17,13 +17,10 @@ The full history of shipped work lives in
   at `https://voxply.videogamezone.eu`. Remaining: first cross-internet voice
   test (everything shipped, just needs two humans), friend onboards +
   ownership transfer, doc-test feedback, two-operator federation test.
-- [ ] **Fix macOS desktop build: xcap 0.0.14 fails to compile** — upstream
-  E0282 type-inference error on current stable rustc
-  (`xcap-0.0.14/src/macos/boxed.rs:22`); blocks the DMG and therefore the
-  updater manifest (the manifest job needs all three platforms). Options:
-  bump xcap, pin the macOS toolchain, or make the manifest job tolerate a
-  missing platform. Until fixed, releases ship Windows+Linux only and
-  `latest.json` is never published (auto-updater stays dormant).
+- [ ] **Fix macOS desktop build: xcap 0.9.6 now compiles** — bumped from
+  0.0.14 to 0.9.6 to resolve upstream E0282 error; call sites in
+  `screen_share.rs` updated for new API. Verify in CI before removing from
+  Known issues.
 - [ ] **Fix the aarch64 hub binary build** — first real release run (v0.2.1,
   2026-06-12) failed: `aarch64-linux-gnu-gcc` link error in the musl
   cross-build (aws-lc-sys/ring object files). The x86_64 binary and Docker
@@ -60,6 +57,27 @@ The full history of shipped work lives in
   [`e2e-encryption.md`](docs/e2e-encryption.md).
 
 ## 🚀 Recently shipped
+
+- **Web client audit remainder (W5–W24) — 13 findings fixed (2026-06-14)** —
+  W5: reactions broadcast preserves `me` flag. W7: `voice_participant_speaking`
+  wired; speaking ring lights. W9: `dm_member_changed` WS event handled. W11:
+  poll event names fixed; `onPin`/`onPoll` wired. W14: events types corrected
+  (`starts_at`, `rsvp_counts`); RSVP uses POST/cancel. W15: farm unsuspend
+  uses correct endpoint. W17: pending-approval hub shows landing screen. W18:
+  alliance shared channels fetched on hub connect. W19: mention pings play audio
+  + OS notification on permission. W20: `pingHub` called on interval. W21:
+  `UserContextMenu` wired; right-click on members works. W22: group-DM
+  `group_encrypted_envelope` handled (placeholder for encrypted-only clients).
+  W23: scroll position tracked; "N new messages" pill wired. W24: unmounted
+  components cleanup — DiscoverPage, IdentityBackupSection, PollComposer,
+  EventsPanel, GameSessionPanel, ExternalBotSection. Web client is now a
+  credible public demo.
+
+- **CI build fixes (2026-06-14)** — Android: `@noble/curves` and
+  `@noble/hashes` added as direct deps, resolving Rollup import failure.
+  Desktop macOS: `xcap` bumped 0.0.14 → 0.9.6 (E0282 fixed); call sites in
+  `screen_share.rs` updated for new API. Auto-tag correctly dispatches release
+  workflows via `gh workflow run` (stale "never triggers" known issue removed).
 
 - **App.tsx decomposition — channel-message, alliance, WS hooks (2026-06-14)** —
   desktop App.tsx 3,259 → ~1,450 lines; android App.tsx 993 → ~560 lines.
@@ -358,15 +376,6 @@ Older entries: [`docs/shipped-log.md`](docs/shipped-log.md).
   voice-channel switching UX, missing role-assignment paths, immutable banner
   spacers, call-control sprawl, no Activity view. Details and owner proposals:
   [pilot-feedback-2026-06-12.md](pilot-feedback-2026-06-12.md).
-- **auto-tag can never trigger the release workflow** — `auto-tag.yml` pushes
-  tags with the default `GITHUB_TOKEN`, and GitHub does not fire workflows from
-  events created by that token. Working practice since 2026-06-13: push the
-  version tag manually on the develop head BEFORE merging (tag-first flow) so
-  auto-tag finds it taken and the user-pushed tag triggers the release.
-  Proper fix: PAT/deploy-key for auto-tag, or `workflow_call`. Debris: desktop
-  tag `v0.2.2` is a bot-created ghost (no release; superseded by v0.2.3/4) —
-  delete when convenient. Also: `main` has no required status checks in any
-  repo — consider requiring "Build check".
 - **First user to join a fresh hub silently becomes owner** —
   `assign_initial_roles` (hub `auth/handlers.rs`) grants `builtin-owner` to the
   first registrant when no owner exists, contradicting the operator guide
@@ -375,14 +384,6 @@ Older entries: [`docs/shipped-log.md`](docs/shipped-log.md).
   stranger who joins first takes the hub. Found live on the videogamezone
   pilot hub (2026-06-12). Decide the intended behavior, align code + docs.
 - **demo-seed exports recovery phrases that don't recover the seeded identity (W27)** — credentials unusable for login; re-seed/screenshot logins blocked.
-- **2026-06-11 audit: web client incomplete port — RESOLVED 2026-06-14** — all 25 divergences fixed. W1-W26 all closed (see shipped-log for detail). The web client is now a credible public demo.
-- **2026-06-13 v0.2.5 post-deployment issues (develop, pending release)** — i18n keys showing as raw strings (fixed: `initImmediate:false` + context-menu z-index), whisper panel hiding behind hub list (fixed: `left:0`), member menu items unclickable (fixed: context-menu z-index). Screen-share start fixed (was using Electron-only `chromeMediaSource`; now uses OS picker). Web voice errors now surfaced as toast (were silently swallowed). Remaining feature gaps: camera tile not draggable/resizable; background-effect button misplaced (should be in video settings, not voice toolbar).
-- **2026-06-11 audit: networked voice (H7 — all clients fixed)** —
-  hub relay learns real source addresses via VXRG (shipped 2026-06-12); desktop
-  client ported same day; android Tauri shell ported 2026-06-13; web voice
-  shipped 2026-06-13 via WebSocket audio relay. First cross-internet voice
-  test still pending.
-- **2026-06-11 audit: federated-DM security (H4) — FIXED 2026-06-13** — Ed25519 signature verification added to all three receive-federated-DM paths in `hub/src/routes/dms/messages.rs`. All hub audit items resolved.
 - Full audit with all 46 findings (file:line and effort): [`code-audit-2026-06-11.md`](code-audit-2026-06-11.md).
 - **Windows installer unsigned** — SmartScreen warning; workaround "More info →
   Run anyway". See the code-signing blocker above.
