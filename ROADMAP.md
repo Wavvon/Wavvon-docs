@@ -44,13 +44,13 @@ The full history of shipped work lives in
 
 ## 📌 Wishlist (undesigned)
 
-- **WebAuthn / Passkey authentication** — replace seed-phrase identity storage
-  with device-native authenticators (Face ID, Windows Hello, YubiKey). No
-  passphrase to remember, no `localStorage` keypair exposure, survives hub
-  identity rotation cleanly. Additive — existing seed flow stays for
-  desktop/android. Design: [`webauthn-auth.md`](docs/webauthn-auth.md).
-  Estimate ~5 days (hub `webauthn-rs` + 6 routes + web `@simplewebauthn/browser`
-  wiring + Settings UI).
+- **WebAuthn / Passkey authentication + "Trust this device"** — replace
+  seed-phrase identity storage with device-native authenticators (Face ID,
+  Windows Hello, YubiKey) across all three clients. No passphrase, no plaintext
+  key on disk, survives hub identity rotation. "Trust this device" issues a
+  long-lived device token in platform-secure storage so repeated opens skip the
+  biometric tap. Additive — existing seed flow stays as fallback.
+  Design: [`webauthn-auth.md`](docs/webauthn-auth.md). Estimate ~9 days.
 
 - **Project visibility push** — remaining: a hosted demo hub, directory listings, launch post.
   Needed both for adoption and for the code-signing re-application.
