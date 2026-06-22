@@ -191,24 +191,48 @@ export async function startAssertion(options: PublicKeyCredentialRequestOptionsJ
 4. Store in `localStorage`: session token + hub URL only.
    No seed, no keypair material.
 
-**Identity key** — the Ed25519 signing key still needs to live
-somewhere on the web client. Preferred approach (PRF extension,
-Chrome 116+ / Safari 17+): derive the key from the passkey via the
-`prf` WebAuthn extension so it never touches `localStorage`. Fallback
-for older browsers: generate once, AES-wrap with a random key stored
-in `localStorage`. The session token authenticates you to the hub;
-the wrapped key authenticates your messages. Upgradeable to pure-PRF
-later without breaking identity.
+**Identity key — interaction with the multi-device subkey model**
+
+Voxply's identity model (see [`multi-device.md`](multi-device.md))
+has two layers:
+
+- **Master key** — cold, only signs subkey certs and revocations.
+  Derived today from the BIP39 phrase.
+- **Per-device subkey** — generated fresh and randomly on each
+  device, certified by master, used for all daily signing.
+
+WebAuthn PRF replaces the BIP39 phrase **only as the source of the
+master key**. Everything else in the multi-device model is unchanged:
+
+```
+Today:     BIP39 phrase ──→ master key ──signs──→ subkey certs
+With PRF:  Bitwarden PRF ──→ master key ──signs──→ subkey certs
+                              (same derivation, different input)
+```
+
+Each device still generates its own fresh random subkey and gets it
+certified by master. Subkey revocation, QR pairing, and the cert
+verification flow in `hub/src/auth` are all unaffected.
+
+PRF replaces the "write down 24 words" UX with "your Bitwarden
+account is your master key" — the security model is equivalent: a
+compromised Bitwarden vault = compromised master, same as a leaked
+phrase today.
+
+For the web client, the master key (from PRF) is kept **cold in
+memory** — used only when signing a new subkey cert (first run or
+pairing a new device). The subkey lives in `localStorage`
+(AES-wrapped) for daily signing. Upgradeable to pure-enclave storage
+once PRF is universal.
 
 > **Passkey providers (Bitwarden, 1Password, Dashlane):** when the
-> user's passkey is stored in a password manager rather than the
-> device's built-in authenticator, the manager acts as the WebAuthn
-> responder — including PRF. This gives cross-device sync independent
-> of Apple/Google ecosystems and closes the Linux gap (no platform
-> authenticator needed; "install Bitwarden" is the fallback story
-> instead of libfido2). Voxply's code is identical either way — the
-> browser routes the `navigator.credentials` call to whichever
-> provider the user has configured.
+> user's passkey is stored in a password manager, the manager acts as
+> the WebAuthn + PRF responder. PRF output is deterministic per
+> passkey, so the master key is the same on any device where the user
+> signs in with that Bitwarden account — giving cross-device master
+> access without typing a phrase. Subkeys remain device-specific.
+> Voxply's code is identical either way — the browser routes
+> `navigator.credentials` to whichever provider is configured.
 
 ---
 
@@ -338,39 +362,38 @@ Under **Settings → Account**:
 
 | Client | Today | v1 with WebAuthn | Future (PRF) |
 |---|---|---|---|
-| Web | Seed in `localStorage` | AES-wrapped key in `localStorage` (PRF fallback) | PRF → key derived in enclave, never stored |
-| Desktop | `~/.voxply/identity.json` plaintext | Same file (WebAuthn changes auth ceremony only) | `keyring` crate — OS keychain |
-| Android | Plaintext file | `EncryptedSharedPreferences` | PRF via Credential Manager (Android 14+ / API 34+) |
+| Web | Master seed + subkey in `localStorage` | Subkey AES-wrapped in `localStorage`; master derived on demand from phrase | Master from PRF (enclave); subkey AES-wrapped in `localStorage` |
+| Desktop | `~/.voxply/identity.json` plaintext (master + subkey) | Same file; WebAuthn changes auth ceremony only | Master from PRF via webview shim; subkey in `keyring` |
+| Android | Plaintext file | Subkey in `EncryptedSharedPreferences` | Master from PRF via Credential Manager (Android 14+) |
 
-### Cross-client identity via Bitwarden PRF
+### Cross-client master key via Bitwarden PRF
 
 When a user stores their passkey in Bitwarden (or 1Password), the PRF
 output is **deterministic across all devices and clients**:
 
 ```
-PRF(passkey_private_key, "voxply-identity-v1") → same 32 bytes
+PRF(passkey_private_key, "voxply-master/v1") → same 32-byte master seed
   on Chrome (web)    → Bitwarden browser extension provides PRF
   on Android         → Bitwarden Android via Credential Manager
-  on Desktop         → Bitwarden browser extension in the webview shim
+  on Desktop         → Bitwarden browser extension in webview shim
 ```
 
-This means: **the Bitwarden passkey IS the identity anchor.** No
-recovery phrase, no key file, no manual sync. A user who opens
-Voxply on Chrome and on Android sees the same identity automatically,
-as long as both devices have the same Bitwarden account.
+This means: **the Bitwarden passkey IS the master key anchor** —
+equivalent to having the BIP39 phrase available everywhere the user is
+signed into Bitwarden. Each device still generates its own fresh
+subkey and gets it certified by the master (as per the multi-device
+protocol). Per-device revocation is fully intact.
 
-Constraints to be aware of:
+Constraints:
 - Android PRF via Credential Manager requires Android 14+ (API 34)
-  and a Bitwarden Android version that implements PRF passkeys.
-  Users on older Android fall back to the AES-wrapped
-  `EncryptedSharedPreferences` path (different key per device —
-  same hub session, but different signing key, so message signatures
-  differ across devices).
-- Desktop Tauri would need to drive the WebAuthn ceremony through a
-  webview shim to reach the Bitwarden extension, or implement a
-  native Bitwarden SDK integration.
-- The PRF label (`"voxply-identity-v1"`) must be identical on all
-  clients — treat it as a versioned protocol constant.
+  and a Bitwarden Android version that implements PRF. Users on
+  older Android fall back to prompting for the phrase to derive
+  master (same as today), or defer pairing until they upgrade.
+- Desktop Tauri needs a webview shim or native plugin to reach the
+  Bitwarden browser extension for PRF.
+- The PRF label (`"voxply-master/v1"`) is a versioned protocol
+  constant — must be identical across all clients and never changed
+  (a different label derives a different master key).
 
 ---
 
