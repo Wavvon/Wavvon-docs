@@ -66,6 +66,28 @@ The full history of shipped work lives in
 
 ## 🚀 Recently shipped
 
+- **Web client stabilisation pass (2026-06-22/23)** —
+  Welcome screen: gated on `hubs.length === 0` (removed stale
+  `seenWelcome` localStorage gate); "Hosted by [url]" link added to
+  both `WelcomeScreen` and `AddHubModal` hub preview cards.
+  Channel creation: `CreateChannelModal` wired from all three entry
+  points (hub dropdown, category "+" button, right-click menu); added
+  Banner and Category types alongside Text and Forum.
+  Channel management: `ChannelSettingsModal` created — pre-filled
+  name/description edit, two-step delete confirmation; accessible via
+  gear icon (`onOpenChannelSettings`) and right-click context menu.
+  WS event audit: `forum_event`, all screen-share signalling
+  (`screen_share_offer_in/answer_in/ice_in`,
+  `screen_share_viewer_joined/left`, `stream_subscribed/ended/hub_streams`),
+  and video/whisper events (`voice_whisper_started/stopped`,
+  `video_participant_enabled/disabled/participants`,
+  `video_offer_in/answer_in/ice_in`) wired into `ws.ts` dispatch.
+  Profile: `SettingsPage` calls `onProfileSaved` after `PATCH /me`;
+  `App.tsx` re-fetches `/me` and `/users` so display name updates in
+  the member list immediately. Hub server CI: `moderation_flow` tests
+  fixed — `ws_voice_join_and_recv` helper now skips `member_online`/
+  `member_offline` frames before matching the expected event.
+
 - **Web client audit remainder (W5–W24) — 13 findings fixed (2026-06-14)** —
   W5: reactions broadcast preserves `me` flag. W7: `voice_participant_speaking`
   wired; speaking ring lights. W9: `dm_member_changed` WS event handled. W11:
