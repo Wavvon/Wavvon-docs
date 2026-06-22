@@ -200,6 +200,16 @@ in `localStorage`. The session token authenticates you to the hub;
 the wrapped key authenticates your messages. Upgradeable to pure-PRF
 later without breaking identity.
 
+> **Passkey providers (Bitwarden, 1Password, Dashlane):** when the
+> user's passkey is stored in a password manager rather than the
+> device's built-in authenticator, the manager acts as the WebAuthn
+> responder — including PRF. This gives cross-device sync independent
+> of Apple/Google ecosystems and closes the Linux gap (no platform
+> authenticator needed; "install Bitwarden" is the fallback story
+> instead of libfido2). Voxply's code is identical either way — the
+> browser routes the `navigator.credentials` call to whichever
+> provider the user has configured.
+
 ---
 
 ### Desktop (`apps/desktop`, Tauri)
@@ -211,7 +221,7 @@ native equivalent.
 |---|---|---|
 | Windows 10 1903+ | Windows Hello (PIN, face, fingerprint) | `windows` crate — `SecurityCredentialsUI` or WebAuthn API via `webauthn.dll` |
 | macOS 12+ | Touch ID / Face ID (on supported hardware) | `Security.framework` via `tauri-plugin-biometric` or a custom `LAContext` Tauri command |
-| Linux | Hardware key only (no universal platform authenticator) | `libfido2` via a Tauri command; graceful fallback to seed-phrase if no key present |
+| Linux | No universal platform authenticator | Browser passkey providers (Bitwarden, 1Password) cover most users; `libfido2` for hardware keys; seed-phrase fallback |
 
 **Recommended Tauri command pattern:**
 
@@ -381,6 +391,7 @@ and a startup warning when `webauthn_enabled = true` but TLS is off.
   once passkey coverage is high, or kept indefinitely as a fallback?
 - Conditional UI (autofill-triggered passkey prompts) for the hub
   URL field — nice to have, low priority.
-- Linux desktop: if no hardware key is present, should we fall back
-  to seed-phrase, or gate the feature behind a "hardware key required"
-  message?
+- Linux desktop: the recommended path is "install Bitwarden/1Password
+  as a passkey provider"; hardware key (libfido2) is the power-user
+  option; seed-phrase is the last-resort fallback. Confirm this
+  ordering is acceptable before shipping.
