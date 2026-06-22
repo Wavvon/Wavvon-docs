@@ -336,11 +336,41 @@ Under **Settings → Account**:
 
 ## Identity key — summary across clients
 
-| Client | Today | v1 with WebAuthn | Future |
+| Client | Today | v1 with WebAuthn | Future (PRF) |
 |---|---|---|---|
-| Web | Seed in `localStorage` | AES-wrapped key in `localStorage` (PRF fallback) | PRF extension — key in enclave |
-| Desktop | `~/.voxply/identity.json` plaintext | Same file (WebAuthn only changes auth ceremony) | `keyring` crate — OS keychain |
-| Android | Plaintext file | `EncryptedSharedPreferences` | Android Keystore-backed |
+| Web | Seed in `localStorage` | AES-wrapped key in `localStorage` (PRF fallback) | PRF → key derived in enclave, never stored |
+| Desktop | `~/.voxply/identity.json` plaintext | Same file (WebAuthn changes auth ceremony only) | `keyring` crate — OS keychain |
+| Android | Plaintext file | `EncryptedSharedPreferences` | PRF via Credential Manager (Android 14+ / API 34+) |
+
+### Cross-client identity via Bitwarden PRF
+
+When a user stores their passkey in Bitwarden (or 1Password), the PRF
+output is **deterministic across all devices and clients**:
+
+```
+PRF(passkey_private_key, "voxply-identity-v1") → same 32 bytes
+  on Chrome (web)    → Bitwarden browser extension provides PRF
+  on Android         → Bitwarden Android via Credential Manager
+  on Desktop         → Bitwarden browser extension in the webview shim
+```
+
+This means: **the Bitwarden passkey IS the identity anchor.** No
+recovery phrase, no key file, no manual sync. A user who opens
+Voxply on Chrome and on Android sees the same identity automatically,
+as long as both devices have the same Bitwarden account.
+
+Constraints to be aware of:
+- Android PRF via Credential Manager requires Android 14+ (API 34)
+  and a Bitwarden Android version that implements PRF passkeys.
+  Users on older Android fall back to the AES-wrapped
+  `EncryptedSharedPreferences` path (different key per device —
+  same hub session, but different signing key, so message signatures
+  differ across devices).
+- Desktop Tauri would need to drive the WebAuthn ceremony through a
+  webview shim to reach the Bitwarden extension, or implement a
+  native Bitwarden SDK integration.
+- The PRF label (`"voxply-identity-v1"`) must be identical on all
+  clients — treat it as a versioned protocol constant.
 
 ---
 
