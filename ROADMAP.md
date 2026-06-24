@@ -8,6 +8,38 @@ The full history of shipped work lives in
 
 ## 🔨 Next up
 
+- [ ] **Remove games feature** — replaced by bots; iframe/session infrastructure
+  is dead weight. Individual tasks below:
+  - [ ] **S1** — Delete `hub/src/routes/games/` (admin, session_v1, session_v2,
+    helpers, models, mod); deregister all `/games/*` and `/admin/games/*` routes
+    from the axum router. Run `cargo check`.
+  - [ ] **S2** — Delete `hub/src/routes/ws/handlers/game.rs`; remove all game
+    variants from `WsClientMessage`/`WsServerMessage` enums. Run `cargo check`.
+  - [ ] **S3** — Delete `farm/src/routes/games.rs`; deregister farm game routes.
+    Run `cargo check`.
+  - [ ] **S4** — Remove `GameStore` trait from `voxply-store` and its SQLite
+    implementation from `voxply-store-sqlite`. Run `cargo check`.
+  - [ ] **S5** — Drop the 6 game tables from `db/migrations.rs` (`hub_games`,
+    `enabled_games`, `channel_games`, `game_sessions`, `game_shared_kv`,
+    `game_channel_kv`); remove `HubGameRow`/`GameSessionRow` from `row_types.rs`;
+    drop `active_game_sessions`, `GameSessionState`, and `GamePlayer` from
+    `state.rs`. Run `cargo test`.
+  - [ ] **D1** — Delete `src-tauri/src/games.rs`; remove its `register()` call
+    from `lib.rs`. Run `cargo check`.
+  - [ ] **D2** — Delete `GameModal.tsx`, `GamePicker.tsx`, `GamesAdminSection.tsx`;
+    remove the Activities button and all game state from `ContentArea`/`App.tsx`.
+  - [ ] **D3** — Remove game types (`InstalledGame`, `GameAdminInfo`,
+    `GameSession`, `GameSessionPlayer`, `GameSessionDetail`) from `types.ts`.
+    Run `tsc --noEmit`.
+  - [ ] **W1** — Delete `apps/web/src/components/GameSessionPanel.tsx` and
+    `GameModal.tsx`; remove game wiring from `App.tsx`. Run `tsc --noEmit`.
+  - [ ] **A1** — Delete `apps/android/.../GameSessionView.tsx`; remove game
+    wiring from the Android app. Run `tsc --noEmit`.
+  - [ ] **Docs** — Delete `docs/gaming.md` and `docs/games-sdk.md`; remove all
+    `/games/*` paths from `openapi.yaml`; remove game message types from
+    `ws-protocol.md`; remove "bot-launched game modals" from the bot
+    deferred-scope known issue.
+
 - [ ] **Networked voice — Phase 1, cross-internet test** — server + desktop
   shipped 2026-06-12/13; Android Tauri shell ported 2026-06-13; web voice
   shipped 2026-06-13 via WebSocket audio relay. All four clients complete.
@@ -44,6 +76,15 @@ The full history of shipped work lives in
 
 ## 📌 Wishlist (undesigned)
 
+- **Full PostgreSQL backend** — the store abstraction layer is shipped
+  (`voxply-store` traits + `voxply-store-sqlite` on `AnyPool`), and
+  `VOXPLY_DATABASE_URL=postgresql://…` can already connect, but a proper
+  Postgres backend still needs: Postgres-native migrations (replacing
+  SQLite FTS5 virtual tables with `tsvector`/`pg_trgm`), a
+  `voxply-store-postgres` crate (or verified `AnyPool` coverage), CI
+  service container for integration tests, and operator documentation.
+  Design groundwork in [`store-trait-design.md`](docs/store-trait-design.md).
+
 - **WebAuthn / Passkey authentication + "Trust this device"** — replace
   seed-phrase identity storage with device-native authenticators (Face ID,
   Windows Hello, YubiKey) across all three clients. No passphrase, no plaintext
@@ -57,9 +98,6 @@ The full history of shipped work lives in
   *(2026-06-10: all six READMEs rewritten as landing pages with badges,
   cross-links, and a `docker compose` quick-start.
   2026-06-11: demo-seed tool added; real screenshots + join-flow GIF added to READMEs.)*
-- **Gaming Tier 3** — MMO + persistent shared world; stretch goal. Proximity
-  voice is already a platform primitive; only the persistent-world layer is
-  undesigned.
 - **E2E v2 — Double Ratchet** — forward secrecy upgrade from the shipped
   static-ECDH and sender-key schemes. See
   [`e2e-encryption.md`](docs/e2e-encryption.md).
