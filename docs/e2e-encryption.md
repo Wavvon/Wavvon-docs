@@ -250,6 +250,11 @@ event; the client handles it by calling `rotate_group_sender_key`.
 
 ### Canonical signing bytes
 
+For the complete byte-level layout, primitive encoding helpers, and test
+vectors for **all** envelope types (including multi-device envelopes:
+SubkeyCert, PairingOffer, PairingClaim, RevocationEntry, HomeHubList) see
+[wire-format.md](wire-format.md).
+
 **Group message envelope** (Ed25519 over):
 
 ```

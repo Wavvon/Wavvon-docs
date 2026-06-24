@@ -312,6 +312,11 @@ channel's voice. Clicking it opens the source picker modal.
 
 ### Source picker modal
 
+> **Desktop-native modal (designed, not built):** A unified Voxply-native
+> source picker with thumbnail previews (bypassing the OS overlay) is designed
+> in [screen-share-modal.md](screen-share-modal.md). The current v1 picker
+> uses the OS-native `getDisplayMedia()` overlay described below.
+
 | Element | Behaviour |
 |---|---|
 | Source list | Output of `getDisplayMedia()` OS picker — monitor and window thumbnails |

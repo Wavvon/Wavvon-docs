@@ -44,6 +44,7 @@ These shipped — the doc is the design rationale behind the code (see
 13. [multi-device.md](multi-device.md) — master+subkey identity, QR pairing protocol
 14. [e2e-encryption.md](e2e-encryption.md) — E2E encrypted DMs: X25519 from Ed25519 seed, static ECDH + AES-GCM, signed envelopes, group sender keys
     - [identity-recovery.md](identity-recovery.md) — recovery UX beyond the phrase: passphrase-wrapped `.voxply-backup` export/import + per-hub recovery contacts (vouch, not auto-grant)
+    - [wire-format.md](wire-format.md) — canonical byte-level spec for all signed envelopes in the identity crate (multi-device + E2E DM + identity verification); test vectors for client implementors
 15. [server-tags.md](server-tags.md) — self-tags (discovery keywords) + portable signed hub badges
     - [hub-certifications.md](hub-certifications.md) — anti-spam Layer 2: hub-signs-user reputation certs, portable PoW credit
     - [moderation-enhancements.md](moderation-enhancements.md) — federated ban lists (signed, opt-in), auto-moderation webhook (fail-open), content reporting queue
@@ -54,17 +55,19 @@ These shipped — the doc is the design rationale behind the code (see
 18. [bots.md](bots.md) — external bot ecosystem: invite-by-pubkey, slash commands, webhook dispatch, per-hub directory
 19. [accessibility.md](accessibility.md) — keyboard navigation, ARIA / screen-reader support, i18n strategy across desktop / web / Android
 20. [forum.md](forum.md) — forum channel type: post-list variant, posts + reply threads, `create_posts`/`manage_posts` permissions, FTS search
-21. [screen-share-webrtc.md](screen-share-webrtc.md) — screen share v2: WebRTC P2P, hub as SDP/ICE signaler, optional TURN, v1-relay fallback floor, multi-sharer
-22. [block-mute-ignore.md](block-mute-ignore.md) — user-level block / ignore / quiet-hours (DND): personal-axis prefs-blob state, client-side filtering, server-enforced DM block
-23. [discovery-v2.md](discovery-v2.md) — Voxply-discovery enhancements: hub uptime tracking, farm browsing, global search, anonymous aggregate analytics
-24. [client-qol.md](client-qol.md) — client quality-of-life: global search, drafts, custom emojis, events, polls, thread collapse, notification grouping
-25. [store-trait-design.md](store-trait-design.md) — database abstraction: trait-based store, crate split (voxply-store / voxply-store-sqlite, voxply-store-postgres as future community contribution), migration path
-26. [custom-themes.md](custom-themes.md) — user-created skins: CSS token system, .voxplyskin file format, export/import, persistence
-27. [brand.md](brand.md) — motto, one-liner, logo brief and asset checklist (final logo asset still pending)
+21. [banner-channels.md](banner-channels.md) — banner channel type: full-width image rows in the hub sidebar (decorative chrome, hub-uploaded or external URL), drag-drop ordered like regular channels
+22. [screen-share-webrtc.md](screen-share-webrtc.md) — screen share v2: WebRTC P2P, hub as SDP/ICE signaler, optional TURN, v1-relay fallback floor, multi-sharer
+23. [block-mute-ignore.md](block-mute-ignore.md) — user-level block / ignore / quiet-hours (DND): personal-axis prefs-blob state, client-side filtering, server-enforced DM block
+24. [discovery-v2.md](discovery-v2.md) — Voxply-discovery enhancements: hub uptime tracking, farm browsing, global search, anonymous aggregate analytics
+25. [client-qol.md](client-qol.md) — client quality-of-life: global search, drafts, custom emojis, events, polls, thread collapse, notification grouping
+26. [store-trait-design.md](store-trait-design.md) — database abstraction: trait-based store, crate split (voxply-store / voxply-store-sqlite, voxply-store-postgres as future community contribution), migration path
+27. [custom-themes.md](custom-themes.md) — user-created skins: CSS token system, .voxplyskin file format, export/import, persistence
+28. [brand.md](brand.md) — motto, one-liner, logo brief and asset checklist (final logo asset still pending)
 
 ### Future direction (designed, not built)
 
 - [home-hub.md](home-hub.md) — personal-axis state: home hub list, replication, DM canonicalization
+- [screen-share-modal.md](screen-share-modal.md) — unified desktop screen-share picker: Tauri `list_capture_sources` command, thumbnail grid, single-modal UX replacing the current two-step OS overlay
 - [future-features.md](future-features.md) — anti-spam PoW, deferred bot scope, other backlog designs
 
 ### Archived designs
@@ -84,6 +87,7 @@ Reading order is for learning the system end-to-end. This section is for
 - **Keypair, recovery phrase, auth** — [identity.md](identity.md)
 - **Identity backup & recovery contacts** — [identity-recovery.md](identity-recovery.md)
 - **Multi-device pairing (QR, master+subkey)** — [multi-device.md](multi-device.md)
+- **Wire format spec (signed envelopes, byte sequences, test vectors)** — [wire-format.md](wire-format.md)
 - **Roles & permissions** — [data-model.md](data-model.md), [decisions.md](decisions.md)
 - **Moderation (ban / mute / timeout / kick, approval queue)** — [data-model.md](data-model.md)
 - **Federated ban lists, auto-mod webhook, report queue** — [moderation-enhancements.md](moderation-enhancements.md)
@@ -93,6 +97,7 @@ Reading order is for learning the system end-to-end. This section is for
 - **Web admin panel login (removed)** — [admin-panel-auth.md](admin-panel-auth.md) (archived; see [decisions.md](decisions.md))
 
 ### Messaging
+- **Banner channels (decorative image rows in sidebar)** — [banner-channels.md](banner-channels.md)
 - **Text channels & categories** — [data-model.md](data-model.md), [client.md](client.md)
 - **Drag-drop channel/category reorder, nested channels** — [client.md](client.md)
 - **Markdown, code blocks, /me actions** — [client.md](client.md)
@@ -122,6 +127,7 @@ Reading order is for learning the system end-to-end. This section is for
 - **Video / webcam in voice channels** — [video-voice.md](video-voice.md)
 - **Networked voice fix + voice encryption plan** (design only) — [voice-networking-design.md](voice-networking-design.md)
 - **Screen share** — [screen-share.md](screen-share.md) (v1 transport), [screen-share-webrtc.md](screen-share-webrtc.md) (v2 WebRTC)
+- **Screen share unified modal (desktop, designed)** — [screen-share-modal.md](screen-share-modal.md)
 
 ### Federation
 - **Hub-to-hub auth** — [identity.md](identity.md), [federation.md](federation.md)
@@ -154,6 +160,7 @@ Reading order is for learning the system end-to-end. This section is for
 ### Future direction (designed, not built)
 - **Anti-spam proof-of-work** — [future-features.md](future-features.md), [hub-certifications.md](hub-certifications.md)
 - **Home hub list (personal-axis state, DM canonicalization)** — [home-hub.md](home-hub.md)
+- **Screen share unified modal (desktop)** — [screen-share-modal.md](screen-share-modal.md)
 - **Gaming Tier 3 (persistent shared world)** — [gaming.md](gaming.md), [`../ROADMAP.md`](../ROADMAP.md) wishlist
 - **E2E v2 — Double Ratchet (forward secrecy)** — [e2e-encryption.md](e2e-encryption.md), [`../ROADMAP.md`](../ROADMAP.md) wishlist
 
