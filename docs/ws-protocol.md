@@ -351,51 +351,6 @@ chunk (if any), then live chunks. Failure: [`error`](#error) with context
 | `source_channel_id` | string | |
 | `stream_id` | string | |
 
-### Game sessions (Tier 2 realtime)
-
-Game sessions are created/joined over REST (`/games/...`); these WS messages
-carry in-session realtime traffic. Validation failures produce an
-[`error`](#error) whose `context` matches the message type.
-
-#### `game_send`
-Relay an opaque game event to the session. Sender must be in the session
-roster. Relayed to channel subscribers as [`game_event`](#game_event). When
-`to` is set, the hub verifies the target is in the roster before relaying
-(delivery still goes out on the channel broadcast).
-
-| field | type | notes |
-|---|---|---|
-| `session_id` | string | |
-| `payload` | any JSON value | opaque — never interpreted by the hub |
-| `to` | string | optional target pubkey |
-
-#### `game_set_status`
-Host-only status change. Relayed as a [`game_event`](#game_event) whose
-`payload` is `{ "type": "status_changed", "status": "<status>" }`.
-
-| field | type | notes |
-|---|---|---|
-| `session_id` | string | |
-| `status` | string | |
-
-#### `game_snapshot`
-Store an opaque state snapshot for late joiners / host migration. Sender must
-be in the roster. No broadcast is produced.
-
-| field | type | notes |
-|---|---|---|
-| `session_id` | string | |
-| `blob` | string | base64- or hex-encoded snapshot; stored opaque |
-
-#### `game_end`
-Host-only. Ends the session and broadcasts
-[`game_session_ended`](#game_session_ended) with `reason: "ended"`.
-
-| field | type | notes |
-|---|---|---|
-| `session_id` | string | |
-| `result` | any JSON value | optional final result, echoed in the broadcast |
-
 ### Bots
 
 #### `resume`
@@ -435,7 +390,7 @@ First message after connect.
 #### `error`
 Generic error for a failed client message. `context` is a machine-readable
 hint matching the originating message type (e.g. `voice_join`,
-`stream_subscribe`, `game_send`).
+`stream_subscribe`).
 
 | field | type | notes |
 |---|---|---|
@@ -807,76 +762,6 @@ Reply to `stream_list`.
 | field | type | notes |
 |---|---|---|
 | `streams` | array of [HubStreamInfo](#hubstreaminfo) | |
-
-### Game sessions
-
-#### `game_session_created`
-
-| field | type | notes |
-|---|---|---|
-| `session_id` | string | |
-| `channel_id` | string | |
-| `game_id` | string | |
-| `host_pubkey` | string | |
-| `max_players` | integer (i64) | omitted when absent |
-
-#### `game_session_joined`
-A player joined a (v1) game session.
-
-| field | type | notes |
-|---|---|---|
-| `session_id` | string | |
-| `player_pubkey` | string | |
-
-#### `game_player_joined`
-A player joined the session roster (v2 sessions; includes display name).
-
-| field | type | notes |
-|---|---|---|
-| `session_id` | string | |
-| `pubkey` | string | |
-| `display_name` | string | omitted when absent |
-
-#### `game_player_left`
-
-| field | type | notes |
-|---|---|---|
-| `session_id` | string | |
-| `pubkey` | string | |
-
-#### `game_host_changed`
-Host role transferred (e.g. after the host left or disconnected).
-
-| field | type | notes |
-|---|---|---|
-| `session_id` | string | |
-| `new_host_pubkey` | string | |
-
-#### `game_state_updated`
-Host posted a state patch (opaque JSON) via REST.
-
-| field | type | notes |
-|---|---|---|
-| `session_id` | string | |
-| `patch` | any JSON value | opaque |
-
-#### `game_event`
-A relayed game move/event (from `game_send`), or a status change (from
-`game_set_status`, with `payload = { "type": "status_changed", "status": ... }`).
-
-| field | type | notes |
-|---|---|---|
-| `session_id` | string | |
-| `from_pubkey` | string | |
-| `payload` | any JSON value | opaque |
-
-#### `game_session_ended`
-
-| field | type | notes |
-|---|---|---|
-| `session_id` | string | |
-| `reason` | string | omitted when absent; observed values: `"ended"`, `"abandoned"`, `"force_ended"`, `"timeout"` |
-| `result` | any JSON value | omitted when absent; host-supplied final result |
 
 ### Bot-only messages
 

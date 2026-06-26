@@ -8,18 +8,18 @@ The full history of shipped work lives in
 
 ## 🔨 Next up
 
-- [ ] **Remove games feature** — replaced by bots; iframe/session infrastructure
+- [x] **Remove games feature** — replaced by bots; iframe/session infrastructure
   is dead weight. Individual tasks below:
-  - [ ] **S1** — Delete `hub/src/routes/games/` (admin, session_v1, session_v2,
+  - [x] **S1** — Delete `hub/src/routes/games/` (admin, session_v1, session_v2,
     helpers, models, mod); deregister all `/games/*` and `/admin/games/*` routes
     from the axum router. Run `cargo check`.
-  - [ ] **S2** — Delete `hub/src/routes/ws/handlers/game.rs`; remove all game
+  - [x] **S2** — Delete `hub/src/routes/ws/handlers/game.rs`; remove all game
     variants from `WsClientMessage`/`WsServerMessage` enums. Run `cargo check`.
-  - [ ] **S3** — Delete `farm/src/routes/games.rs`; deregister farm game routes.
+  - [x] **S3** — Delete `farm/src/routes/games.rs`; deregister farm game routes.
     Run `cargo check`.
-  - [ ] **S4** — Remove `GameStore` trait from `voxply-store` and its SQLite
+  - [x] **S4** — Remove `GameStore` trait from `voxply-store` and its SQLite
     implementation from `voxply-store-sqlite`. Run `cargo check`.
-  - [ ] **S5** — Drop the 6 game tables from `db/migrations.rs` (`hub_games`,
+  - [x] **S5** — Drop the 6 game tables from `db/migrations.rs` (`hub_games`,
     `enabled_games`, `channel_games`, `game_sessions`, `game_shared_kv`,
     `game_channel_kv`); remove `HubGameRow`/`GameSessionRow` from `row_types.rs`;
     drop `active_game_sessions`, `GameSessionState`, and `GamePlayer` from
@@ -35,7 +35,7 @@ The full history of shipped work lives in
     `GameModal.tsx`; remove game wiring from `App.tsx`. Run `tsc --noEmit`.
   - [x] **A1** — Delete `apps/android/.../GameSessionView.tsx`; remove game
     wiring from the Android app. Run `tsc --noEmit`.
-  - [ ] **Docs** — Delete `docs/gaming.md` and `docs/games-sdk.md`; remove all
+  - [x] **Docs** — Delete `docs/gaming.md` and `docs/games-sdk.md`; remove all
     `/games/*` paths from `openapi.yaml`; remove game message types from
     `ws-protocol.md`; remove "bot-launched game modals" from the bot
     deferred-scope known issue.
@@ -485,7 +485,7 @@ Older entries: [`docs/shipped-log.md`](docs/shipped-log.md).
 - **Per-hub subkey revocation propagation** — revoking a multi-device subkey on
   one hub isn't known to other hubs. See [`multi-device.md`](docs/multi-device.md).
 - **Bot deferred scope** — voice/screen-share injection, bot DMs, outgoing
-  webhooks, bot-launched game modals: no timeline. See
+  webhooks: no timeline. See
   [`future-features.md`](docs/future-features.md).
 - **Forum: reactions + attachments on posts** — not yet supported. See
   [`forum.md`](docs/forum.md).
