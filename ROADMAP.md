@@ -24,11 +24,11 @@ The full history of shipped work lives in
     `game_channel_kv`); remove `HubGameRow`/`GameSessionRow` from `row_types.rs`;
     drop `active_game_sessions`, `GameSessionState`, and `GamePlayer` from
     `state.rs`. Run `cargo test`.
-  - [ ] **D1** — Delete `src-tauri/src/games.rs`; remove its `register()` call
+  - [x] **D1** — Delete `src-tauri/src/games.rs`; remove its `register()` call
     from `lib.rs`. Run `cargo check`.
-  - [ ] **D2** — Delete `GameModal.tsx`, `GamePicker.tsx`, `GamesAdminSection.tsx`;
+  - [x] **D2** — Delete `GameModal.tsx`, `GamePicker.tsx`, `GamesAdminSection.tsx`;
     remove the Activities button and all game state from `ContentArea`/`App.tsx`.
-  - [ ] **D3** — Remove game types (`InstalledGame`, `GameAdminInfo`,
+  - [x] **D3** — Remove game types (`InstalledGame`, `GameAdminInfo`,
     `GameSession`, `GameSessionPlayer`, `GameSessionDetail`) from `types.ts`.
     Run `tsc --noEmit`.
   - [x] **W1** — Delete `apps/web/src/components/GameSessionPanel.tsx` and
