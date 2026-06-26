@@ -40,6 +40,37 @@ The full history of shipped work lives in
     `ws-protocol.md`; remove "bot-launched game modals" from the bot
     deferred-scope known issue.
 
+- [ ] **Bot mini-apps + bot media** — generic mechanism for bots to embed
+  interactive web experiences and inject audio/video into channels.
+  Design: [`bot-mini-apps.md`](bot-mini-apps.md), [`bot-media.md`](bot-media.md).
+  Individual tasks below:
+  - [ ] **M1** — Add `mini_app_url` field to bot registration (`POST /bots`);
+    store in DB; return in `GET /bots/{id}`. Run `cargo check`.
+  - [ ] **M2** — Add `bot_app_launch`, `bot_app_join`, `bot_app_open`,
+    `bot_app_close` variants to `WsServerMessage`/`WsClientMessage`. Implement
+    `bot_app_join` handler: verify bot is registered, mint scoped session token
+    (channel-bound, TTL 4h), send `bot_app_open` back to the joining client.
+    Run `cargo test`.
+  - [ ] **M3** — Hub: `POST /bots/{id}/voice/join` — verify bot, mint voice
+    token, register bot as voice participant; `DELETE /bots/{id}/voice/leave`.
+    Bot appears in `GET /voice/participants` with `is_bot: true`. Run `cargo test`.
+  - [ ] **M4** — Hub: `POST /bots/{id}/screenshare/start` — register bot stream
+    in `hub_streams`; `DELETE /bots/{id}/screenshare/stop`. Run `cargo test`.
+  - [ ] **M5** — Desktop client: open a second sandboxed `WebviewWindow` on
+    `bot_app_open`; inject `__VOXPLY_HUB__`, `__VOXPLY_TOKEN__`,
+    `__VOXPLY_CHANNEL__`, `__VOXPLY_BOT_ID__`. Render launch card in channel
+    on `bot_app_launch`. Run `cargo check` + `tsc --noEmit`.
+  - [ ] **M6** — Web client: render launch card on `bot_app_launch`; open
+    sandboxed `<iframe>` on join; deliver token via `postMessage`. Run `tsc --noEmit`.
+  - [ ] **M7** — Android client: mirror desktop `WebviewWindow` approach.
+    Run `tsc --noEmit`.
+  - [ ] **M8** — Add `requires_camera` to bot registration; add
+    `bots.allow_camera` gate to `hub.toml`/settings; plumb camera permission
+    into webview CSP on all three clients. Run `cargo check` + `tsc --noEmit`.
+  - [ ] **Docs** — Add `bot_app_*` WS messages to `ws-protocol.md`; add
+    `/bots/{id}/voice/join`, `/bots/{id}/screenshare/start` to `openapi.yaml`;
+    update bot operator guide with mini-app and media sections.
+
 - [ ] **Networked voice — Phase 1, cross-internet test** — server + desktop
   shipped 2026-06-12/13; Android Tauri shell ported 2026-06-13; web voice
   shipped 2026-06-13 via WebSocket audio relay. All four clients complete.
@@ -75,31 +106,6 @@ The full history of shipped work lives in
   logo is ready. See [`brand.md`](docs/brand.md).
 
 ## 📌 Wishlist (undesigned)
-
-- **Bot mini-apps** — bots declare a `mini_app_url`; a `bot_app_launch` WS
-  message renders a launch card in the channel; clicking it opens a sandboxed
-  webview (desktop/android: second `WebviewWindow`; web: sandboxed `<iframe>`)
-  with a scoped session token injected. The mini-app connects back to the hub
-  WS and exchanges messages with the bot and other players — the hub stays
-  generic, all game logic lives in the bot + mini-app. Enables Gartic
-  Phone-style drawing games, shared whiteboards, trivia timers, anything
-  interactive. Estimate ~6 days.
-  Design: [`bot-mini-apps.md`](docs/bot-mini-apps.md).
-
-- **Bot media capabilities (voice + video injection)** — bots that
-  push audio and video into channels. Voice bots authenticate via
-  `POST /bots/{id}/voice/join` and stream Opus frames over the
-  existing `/voice/ws` path; hub fans them out to all voice
-  participants (desktop UDP + web WS) unchanged. Video bots authenticate
-  via `POST /bots/{id}/screenshare/start` and push frames through the
-  existing screen-share relay; clients render them in `ScreenShareViewer`
-  with no changes. Mini-apps can optionally request device camera access
-  (opt-in, operator-gated in `hub.toml`) for pose detection and scoring.
-  Enables music bots, karaoke backing tracks, and Just Dance-style
-  party games (voice bot plays music, video bot streams reference dancer,
-  mini-app scores via device camera). Prerequisite: bot mini-apps.
-  Estimate ~4.5 days on top of mini-apps.
-  Design: [`bot-media.md`](docs/bot-media.md).
 
 - **Full PostgreSQL backend** — the store abstraction layer is shipped
   (`voxply-store` traits + `voxply-store-sqlite` on `AnyPool`), and
