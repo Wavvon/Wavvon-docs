@@ -44,27 +44,27 @@ The full history of shipped work lives in
   interactive web experiences and inject audio/video into channels.
   Design: [`bot-mini-apps.md`](bot-mini-apps.md), [`bot-media.md`](bot-media.md).
   Individual tasks below:
-  - [ ] **M1** — Add `mini_app_url` field to bot registration (`POST /bots`);
+  - [x] **M1** — Add `mini_app_url` field to bot registration (`POST /bots`);
     store in DB; return in `GET /bots/{id}`. Run `cargo check`.
-  - [ ] **M2** — Add `bot_app_launch`, `bot_app_join`, `bot_app_open`,
+  - [x] **M2** — Add `bot_app_launch`, `bot_app_join`, `bot_app_open`,
     `bot_app_close` variants to `WsServerMessage`/`WsClientMessage`. Implement
     `bot_app_join` handler: verify bot is registered, mint scoped session token
     (channel-bound, TTL 4h), send `bot_app_open` back to the joining client.
     Run `cargo test`.
-  - [ ] **M3** — Hub: `POST /bots/{id}/voice/join` — verify bot, mint voice
+  - [x] **M3** — Hub: `POST /bots/{id}/voice/join` — verify bot, mint voice
     token, register bot as voice participant; `DELETE /bots/{id}/voice/leave`.
     Bot appears in `GET /voice/participants` with `is_bot: true`. Run `cargo test`.
-  - [ ] **M4** — Hub: `POST /bots/{id}/screenshare/start` — register bot stream
+  - [x] **M4** — Hub: `POST /bots/{id}/screenshare/start` — register bot stream
     in `hub_streams`; `DELETE /bots/{id}/screenshare/stop`. Run `cargo test`.
-  - [ ] **M5** — Desktop client: open a second sandboxed `WebviewWindow` on
+  - [x] **M5** — Desktop client: open a second sandboxed `WebviewWindow` on
     `bot_app_open`; inject `__VOXPLY_HUB__`, `__VOXPLY_TOKEN__`,
     `__VOXPLY_CHANNEL__`, `__VOXPLY_BOT_ID__`. Render launch card in channel
     on `bot_app_launch`. Run `cargo check` + `tsc --noEmit`.
-  - [ ] **M6** — Web client: render launch card on `bot_app_launch`; open
+  - [x] **M6** — Web client: render launch card on `bot_app_launch`; open
     sandboxed `<iframe>` on join; deliver token via `postMessage`. Run `tsc --noEmit`.
-  - [ ] **M7** — Android client: mirror desktop `WebviewWindow` approach.
+  - [x] **M7** — Android client: mirror desktop `WebviewWindow` approach.
     Run `tsc --noEmit`.
-  - [ ] **M8** — Add `requires_camera` to bot registration; add
+  - [x] **M8** — Add `requires_camera` to bot registration; add
     `bots.allow_camera` gate to `hub.toml`/settings; plumb camera permission
     into webview CSP on all three clients. Run `cargo check` + `tsc --noEmit`.
   - [ ] **Docs** — Add `bot_app_*` WS messages to `ws-protocol.md`; add
