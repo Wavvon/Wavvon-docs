@@ -31,9 +31,9 @@ The full history of shipped work lives in
   - [ ] **D3** — Remove game types (`InstalledGame`, `GameAdminInfo`,
     `GameSession`, `GameSessionPlayer`, `GameSessionDetail`) from `types.ts`.
     Run `tsc --noEmit`.
-  - [ ] **W1** — Delete `apps/web/src/components/GameSessionPanel.tsx` and
+  - [x] **W1** — Delete `apps/web/src/components/GameSessionPanel.tsx` and
     `GameModal.tsx`; remove game wiring from `App.tsx`. Run `tsc --noEmit`.
-  - [ ] **A1** — Delete `apps/android/.../GameSessionView.tsx`; remove game
+  - [x] **A1** — Delete `apps/android/.../GameSessionView.tsx`; remove game
     wiring from the Android app. Run `tsc --noEmit`.
   - [ ] **Docs** — Delete `docs/gaming.md` and `docs/games-sdk.md`; remove all
     `/games/*` paths from `openapi.yaml`; remove game message types from
@@ -75,6 +75,31 @@ The full history of shipped work lives in
   logo is ready. See [`brand.md`](docs/brand.md).
 
 ## 📌 Wishlist (undesigned)
+
+- **Bot mini-apps** — bots declare a `mini_app_url`; a `bot_app_launch` WS
+  message renders a launch card in the channel; clicking it opens a sandboxed
+  webview (desktop/android: second `WebviewWindow`; web: sandboxed `<iframe>`)
+  with a scoped session token injected. The mini-app connects back to the hub
+  WS and exchanges messages with the bot and other players — the hub stays
+  generic, all game logic lives in the bot + mini-app. Enables Gartic
+  Phone-style drawing games, shared whiteboards, trivia timers, anything
+  interactive. Estimate ~6 days.
+  Design: [`bot-mini-apps.md`](docs/bot-mini-apps.md).
+
+- **Bot media capabilities (voice + video injection)** — bots that
+  push audio and video into channels. Voice bots authenticate via
+  `POST /bots/{id}/voice/join` and stream Opus frames over the
+  existing `/voice/ws` path; hub fans them out to all voice
+  participants (desktop UDP + web WS) unchanged. Video bots authenticate
+  via `POST /bots/{id}/screenshare/start` and push frames through the
+  existing screen-share relay; clients render them in `ScreenShareViewer`
+  with no changes. Mini-apps can optionally request device camera access
+  (opt-in, operator-gated in `hub.toml`) for pose detection and scoring.
+  Enables music bots, karaoke backing tracks, and Just Dance-style
+  party games (voice bot plays music, video bot streams reference dancer,
+  mini-app scores via device camera). Prerequisite: bot mini-apps.
+  Estimate ~4.5 days on top of mini-apps.
+  Design: [`bot-media.md`](docs/bot-media.md).
 
 - **Full PostgreSQL backend** — the store abstraction layer is shipped
   (`voxply-store` traits + `voxply-store-sqlite` on `AnyPool`), and
