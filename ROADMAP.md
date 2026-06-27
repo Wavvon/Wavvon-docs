@@ -485,6 +485,9 @@ Older entries: [`docs/shipped-log.md`](docs/shipped-log.md).
   item 6 fixed 2026-06-27: web voice control bar — dead screen-share button
   (no-op in web) hidden by making onScreenShare optional; emoji mic/deafen
   icons replaced with matching SVGs from desktop for visual consistency.
+  item 7 fixed 2026-06-27: emoji picker rebuilt — 4-column grid (was 8),
+  20px emoji (was 16px), clipped bottom row at 148px (shows scroll hint),
+  mint/accent hover tint.
   Most apply to desktop too.
   Items 8+9 fixed 2026-06-27: `.chat-column` max-width 1300px wrapper caps line
   length on wide screens; `#` hash glyph for text channels with no custom icon;
