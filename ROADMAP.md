@@ -482,7 +482,10 @@ Older entries: [`docs/shipped-log.md`](docs/shipped-log.md).
   item 5 fixed 2026-06-27: message-row anatomy unified — --msg-gutter variable
   introduced; reply-preview and reactions widths fixed to prevent overflow; S-path
   CSS connector (::before L-shape) replaces unicode ↪ arrow;
-  voice-UI contradictions. Most apply to desktop too.
+  item 6 fixed 2026-06-27: web voice control bar — dead screen-share button
+  (no-op in web) hidden by making onScreenShare optional; emoji mic/deafen
+  icons replaced with matching SVGs from desktop for visual consistency.
+  Most apply to desktop too.
   Items 8+9 fixed 2026-06-27: `.chat-column` max-width 1300px wrapper caps line
   length on wide screens; `#` hash glyph for text channels with no custom icon;
   DRAFT badge color fixed on selected channels.
