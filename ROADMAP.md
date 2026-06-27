@@ -499,13 +499,11 @@ Older entries: [`docs/shipped-log.md`](docs/shipped-log.md).
   non-existent friends page).
   See [design-review-2026-06-13.md](design-review-2026-06-13.md).
 - **2026-06-12 pilot feedback: desktop issues remaining (D10)** — D1 fixed 2026-06-27 (whisper panel portal). D2 fixed 2026-06-27 (camera picker in voice settings: useVideo enumerates videoinput devices, SettingsPage gains camera selector, preference persisted to localStorage). D3 fixed 2026-06-27 (leave-voice button: PhoneOffIcon replaces bare red emoji). D5a fixed 2026-06-27 (`.input-area button` scoped to `[type="submit"]` so icon buttons in the composer no longer render as accent CTAs). D6: handleVoiceJoin already auto-leaves the active channel before joining another; no code change needed. D7 fixed 2026-06-27 (roles submenu in user context menu for admins). D8 fixed 2026-06-27 (banner channels: right-click → Edit banner/Delete for admins; drag-to-reorder via SortableBannerItem; BannerEditModal with URL input + live preview). D10: no Activity view (wishlist). D4 fixed 2026-06-27 (screen-share picker: added .screen-share-source-thumb CSS so thumbnails render; .selected shows accent border; picker max-height 85vh). D9 fixed 2026-06-27 (voice control bar consolidated from 7 to 4 controls: mic/deafen/camera primary, rest in "···" popover). All D items resolved. Details: [pilot-feedback-2026-06-12.md](pilot-feedback-2026-06-12.md).
-- **First user to join a fresh hub silently becomes owner** —
-  `assign_initial_roles` (hub `auth/handlers.rs`) grants `builtin-owner` to the
-  first registrant when no owner exists, contradicting the operator guide
-  ("fresh hub has no owner until assigned") and undermining
-  `WAVVON_OWNER_PUBKEY` deployments where the operator joins later: any
-  stranger who joins first takes the hub. Found live on the videogamezone
-  pilot hub (2026-06-12). Decide the intended behavior, align code + docs.
+- **First user to join a fresh hub silently becomes owner** — **FIXED 2026-06-27**:
+  removed the auto-grant from `assign_initial_roles`; `configured_owner` param
+  dropped; startup `tracing::warn!` emitted when no `WAVVON_OWNER_PUBKEY` is set.
+  Hub now starts ownerless and requires the operator to set `WAVVON_OWNER_PUBKEY`
+  (or assign the role manually). Found live on the videogamezone pilot (2026-06-12).
 - Full audit with all 46 findings (file:line and effort): [`code-audit-2026-06-11.md`](code-audit-2026-06-11.md).
   All 46 findings resolved. H12: `idx_messages_channel_created`, `idx_messages_reply_to`, and `idx_dm_messages_conversation_created` present in hub migrations (verified 2026-06-27). H13: `idx_federated_bans_target` present in hub migrations (verified 2026-06-27). W25 (orphaned CSS) and W27 (recovery phrase) were already fixed by the monorepo consolidation and identity refactor respectively.
   Fixed: H9 (CORS warn — 2026-06-27), H11 (get_messages N+1 → 3 bulk queries — **FIXED 2026-06-27**), H14 (list_members N+M+1 → 3 queries, LIMIT 1000 — **FIXED 2026-06-27**), H15 (farm-token auth 5 reads → 1 combined query — **FIXED 2026-06-27**), H16 (federated DM delivery background tokio::spawn — **FIXED 2026-06-27**), H17 (tantivy Mutex unwrap — **FIXED 2026-06-27**), H20 (chat broadcast capacity 256→4096, lagged WS frame — **FIXED 2026-06-27**), H21 (handle_typing ban check — 2026-06-27), H22 (badge-offer rate-limit + duplicate guard — **FIXED 2026-06-27**), H23 (preview SSRF proxy-aware + redirect IP guard — **FIXED 2026-06-27**).
