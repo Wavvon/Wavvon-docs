@@ -474,10 +474,9 @@ Older entries: [`docs/shipped-log.md`](docs/shipped-log.md).
 - **2026-06-13 design review: web client top-10** — composer rebuilt to D5b
   spec (in progress); item 2 fixed 2026-06-27: polls now fetched from server
   on channel switch (PollCard/PollComposer were wired but channelPolls was
-  never populated); mixed-locale UI (item 3:
-  ChannelSidebar, App.tsx ctx menu, SearchBar, CreateChannelModal, SettingsPage,
-  WelcomeScreen, UserProfileCard wired 2026-06-27 — HubAdminPage still needs
-  wiring); item 4 fixed 2026-06-27 (display-name prompt after first hub join);
+  never populated); item 3 fixed 2026-06-27: all web client screens now
+  wired for i18n (HubAdminPage last to land); item 4 fixed 2026-06-27
+  (display-name prompt after first hub join);
   message-row anatomy; voice-UI contradictions. Most apply to desktop too.
   Items 8+9 fixed 2026-06-27: `.chat-column` max-width 1300px wrapper caps line
   length on wide screens; `#` hash glyph for text channels with no custom icon;
