@@ -480,6 +480,11 @@ Older entries: [`docs/shipped-log.md`](docs/shipped-log.md).
   Items 8+9 fixed 2026-06-27: `.chat-column` max-width 1300px wrapper caps line
   length on wide screens; `#` hash glyph for text channels with no custom icon;
   DRAFT badge color fixed on selected channels.
+  Item 10 fixed 2026-06-27: "Browse public hubs" in WelcomeScreen now wired
+  (`onBrowse` prop propagated through WelcomeScreenContainer → App.tsx sets
+  `showDiscover`); first non-banner channel auto-selected on hub load when none
+  is selected; DM empty state copy updated to reference member list (not a
+  non-existent friends page).
   See [design-review-2026-06-13.md](design-review-2026-06-13.md).
 - **2026-06-12 pilot feedback: desktop issues remaining (D10)** — D1 fixed 2026-06-27 (whisper panel portal). D7 fixed 2026-06-27 (roles submenu in user context menu for admins). D8 fixed 2026-06-27 (banner channels: right-click → Edit banner/Delete for admins; drag-to-reorder via SortableBannerItem; BannerEditModal with URL input + live preview). D10: no Activity view (wishlist). Details: [pilot-feedback-2026-06-12.md](pilot-feedback-2026-06-12.md).
 - **First user to join a fresh hub silently becomes owner** —
