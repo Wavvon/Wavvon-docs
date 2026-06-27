@@ -472,11 +472,14 @@ Older entries: [`docs/shipped-log.md`](docs/shipped-log.md).
 ## ⚠️ Known issues
 
 - **2026-06-13 design review: web client top-10** — composer rebuilt to D5b
-  spec (in progress); polls were dead code in web; mixed-locale UI; hex-string
-  identity onboarding; message-row anatomy; voice-UI contradictions. Most apply
-  to desktop too. Items 8+9 fixed 2026-06-27: `.chat-column` max-width 1300px
-  wrapper caps line length on wide screens; `#` hash glyph for text channels
-  with no custom icon; DRAFT badge color fixed on selected channels.
+  spec (in progress); polls were dead code in web; mixed-locale UI (item 3:
+  ChannelSidebar, App.tsx ctx menu, SearchBar, CreateChannelModal wired
+  2026-06-27 — SettingsPage, WelcomeScreen, HubAdminPage, UserProfileCard still
+  need wiring); hex-string identity onboarding; message-row anatomy;
+  voice-UI contradictions. Most apply to desktop too. Items 8+9 fixed 2026-06-27:
+  `.chat-column` max-width 1300px wrapper caps line length on wide screens;
+  `#` hash glyph for text channels with no custom icon; DRAFT badge color fixed
+  on selected channels.
   See [design-review-2026-06-13.md](design-review-2026-06-13.md).
 - **2026-06-12 pilot feedback: desktop issues remaining (D10)** — D1 fixed 2026-06-27 (whisper panel portal). D7 fixed 2026-06-27 (roles submenu in user context menu for admins). D8 fixed 2026-06-27 (banner channels: right-click → Edit banner/Delete for admins; drag-to-reorder via SortableBannerItem; BannerEditModal with URL input + live preview). D10: no Activity view (wishlist). Details: [pilot-feedback-2026-06-12.md](pilot-feedback-2026-06-12.md).
 - **First user to join a fresh hub silently becomes owner** —
