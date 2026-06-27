@@ -472,7 +472,9 @@ Older entries: [`docs/shipped-log.md`](docs/shipped-log.md).
 ## ⚠️ Known issues
 
 - **2026-06-13 design review: web client top-10** — composer rebuilt to D5b
-  spec (in progress); polls were dead code in web; mixed-locale UI (item 3:
+  spec (in progress); item 2 fixed 2026-06-27: polls now fetched from server
+  on channel switch (PollCard/PollComposer were wired but channelPolls was
+  never populated); mixed-locale UI (item 3:
   ChannelSidebar, App.tsx ctx menu, SearchBar, CreateChannelModal, SettingsPage,
   WelcomeScreen, UserProfileCard wired 2026-06-27 — HubAdminPage still needs
   wiring); item 4 fixed 2026-06-27 (display-name prompt after first hub join);
@@ -486,7 +488,7 @@ Older entries: [`docs/shipped-log.md`](docs/shipped-log.md).
   is selected; DM empty state copy updated to reference member list (not a
   non-existent friends page).
   See [design-review-2026-06-13.md](design-review-2026-06-13.md).
-- **2026-06-12 pilot feedback: desktop issues remaining (D10)** — D1 fixed 2026-06-27 (whisper panel portal). D7 fixed 2026-06-27 (roles submenu in user context menu for admins). D8 fixed 2026-06-27 (banner channels: right-click → Edit banner/Delete for admins; drag-to-reorder via SortableBannerItem; BannerEditModal with URL input + live preview). D10: no Activity view (wishlist). Details: [pilot-feedback-2026-06-12.md](pilot-feedback-2026-06-12.md).
+- **2026-06-12 pilot feedback: desktop issues remaining (D10)** — D1 fixed 2026-06-27 (whisper panel portal). D3 fixed 2026-06-27 (leave-voice button: PhoneOffIcon replaces bare red emoji). D5a fixed 2026-06-27 (`.input-area button` scoped to `[type="submit"]` so icon buttons in the composer no longer render as accent CTAs). D6: handleVoiceJoin already auto-leaves the active channel before joining another; no code change needed. D7 fixed 2026-06-27 (roles submenu in user context menu for admins). D8 fixed 2026-06-27 (banner channels: right-click → Edit banner/Delete for admins; drag-to-reorder via SortableBannerItem; BannerEditModal with URL input + live preview). D10: no Activity view (wishlist). Details: [pilot-feedback-2026-06-12.md](pilot-feedback-2026-06-12.md).
 - **First user to join a fresh hub silently becomes owner** —
   `assign_initial_roles` (hub `auth/handlers.rs`) grants `builtin-owner` to the
   first registrant when no owner exists, contradicting the operator guide
