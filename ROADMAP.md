@@ -84,10 +84,10 @@ The full history of shipped work lives in
   0.0.14 to 0.9.6 to resolve upstream E0282 error; call sites in
   `screen_share.rs` updated for new API. Verify in CI before removing from
   Known issues.
-- [ ] **Fix the aarch64 hub binary build** — first real release run (v0.2.1,
-  2026-06-12) failed: `aarch64-linux-gnu-gcc` link error in the musl
-  cross-build (aws-lc-sys/ring object files). The x86_64 binary and Docker
-  images are unaffected.
+- [x] **Fix the aarch64 hub binary build** — replaced `aarch64-linux-gnu-gcc`
+  (GNU ABI, incompatible with musl) with `cargo-zigbuild` (Zig provides its
+  own musl headers; handles aws-lc-sys/ring C objects cleanly). x86_64 and
+  Docker builds unchanged.
 ## 🤔 Design questions
 
 - **Farm agent WS token in URL query string** — registration tokens appear in
