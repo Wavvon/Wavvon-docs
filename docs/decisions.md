@@ -1,6 +1,6 @@
-# Design Decisions
+﻿# Design Decisions
 
-Why Voxply is shaped the way it is. Each entry: the decision, the
+Why Wavvon is shaped the way it is. Each entry: the decision, the
 alternative we considered, and why we chose this. New decisions go at
 the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
@@ -14,9 +14,9 @@ endpoint (`/voice/ws`), not over WebRTC. Native clients keep their UDP
 path; the hub fan-out routes each relayed frame to both UDP (desktop,
 Android) and WS (web) participants in one channel. The browser frames the
 same Opus wire format as UDP, encoding/decoding with the `opusscript` WASM
-codec. Hub handler is `hub/src/routes/voice_ws.rs` (Voxply-server); the
+codec. Hub handler is `hub/src/routes/voice_ws.rs` (Wavvon-server); the
 client side is `VoiceWsSession` in `apps/web/src/platform/voice.ts`
-(Voxply-client). Full data flow in [voice.md](voice.md).
+(Wavvon-client). Full data flow in [voice.md](voice.md).
 
 **Why**: the browser cannot open raw UDP sockets, so the existing transport
 was a hard wall. The WS relay reuses what already exists — the hub's Opus
@@ -46,27 +46,27 @@ the browser audience is smaller and latency-tolerant relative to native.
 ## Client apps consolidate into one monorepo; hub server stays separate
 
 > **Status (2026-06-13): shipped.** The three client repos were merged into
-> the Voxply-client monorepo across five staged commits — `apps/desktop`,
+> the Wavvon-client monorepo across five staged commits — `apps/desktop`,
 > `apps/web`, `apps/android/android` plus shared `packages/core|ui|platform|i18n`.
 > The decision below is preserved as written (future tense); the structure
 > it describes is now live. See [architecture.md](architecture.md) for the
 > current repository map.
 
-**Decision**: the three client repos — Voxply-desktop, Voxply-web,
-Voxply-android — merge into a single client monorepo (`voxply`) with
+**Decision**: the three client repos — Wavvon-desktop, Wavvon-web,
+Wavvon-android — merge into a single client monorepo (`wavvon`) with
 internal pnpm workspace packages (`packages/core`, `packages/ui`,
 `packages/platform`, `packages/i18n`) for shared code and per-app
-projects under `apps/*`. The Rust hub server (Voxply-server) stays its
+projects under `apps/*`. The Rust hub server (Wavvon-server) stays its
 own repo. Full plan, staged migration, and CI/release/updater details in
 [client-monorepo.md](client-monorepo.md).
 
 **Why**: the clients already share code, but through three fragile edges.
-A `file:` dep from desktop into Voxply-web (`@voxply/utils`,
-`@voxply/i18n`) pulled a **second copy of React** into the packaged
+A `file:` dep from desktop into Wavvon-web (`@wavvon/utils`,
+`@wavvon/i18n`) pulled a **second copy of React** into the packaged
 desktop build and crashed it, forcing a `dedupe` band-aid in the desktop
 Vite config (desktop `7844c31`). The desktop release workflow checks out
 **two repos** just to resolve i18n. The Android web fork reaches across
-repos via a Vite alias (`@components` → `../voxply-desktop/src/...`) that
+repos via a Vite alias (`@components` → `../wavvon-desktop/src/...`) that
 only works with both repos checked out side by side. And the trigger:
 invite-link parsing (`#invite=` / `?invite=`) would otherwise be written
 2–3 times — the desktop has `parseHubInput()`, the web client has no URL
@@ -82,7 +82,7 @@ flagged this refactor as deferred; this is it.
   quo)** — rejected: it is the source of the double-React crash, the
   dual-checkout release, and the side-by-side-checkout requirement; every
   shared-code change is a multi-repo dance.
-- **Standalone published `@voxply/core` npm package (separate repo)** —
+- **Standalone published `@wavvon/core` npm package (separate repo)** —
   rejected: the publish / version-bump / update-consumers cycle adds
   *more* friction than today, not less. An internal workspace package
   shares code with zero release machinery and lets a shared-code change
@@ -96,8 +96,8 @@ flagged this refactor as deferred; this is it.
 public repo count six → four, a minor negative against the stated
 stars/visibility goal (mitigated by keeping the old repos archived but
 visible, and by one well-documented clients repo being a stronger
-newcomer entry point). The Voxply-server Docker web-builder stage must
-re-point its Voxply-web checkout to the monorepo's `apps/web` — a
+newcomer entry point). The Wavvon-server Docker web-builder stage must
+re-point its Wavvon-web checkout to the monorepo's `apps/web` — a
 cross-repo coordination point called out in the migration. The TS
 identity crypto stays byte-pinned to the hub's wire-format vectors; that
 contract was already cross-repo and is unchanged (now one TS
@@ -106,19 +106,19 @@ implementation instead of three).
 ## Hubs may optionally self-serve the web client (operator sovereignty, not central hosting)
 
 **Decision**: a hub can serve the browser client from its own origin. Setting
-`VOXPLY_WEB_CLIENT_DIR` makes the hub serve a directory of built web-client
+`WAVVON_WEB_CLIENT_DIR` makes the hub serve a directory of built web-client
 assets at `/` with SPA fallback; unset, the hub is API-only exactly as before.
 The official Docker image bakes a version-matched web-client build in and sets
 the var by default, so `docker compose up` yields a working client at the hub's
 own URL. The served client defaults its first hub connection to its serving
-origin (via an injected `window.__VOXPLY_HOME_HUB__`) while keeping the
+origin (via an injected `window.__WAVVON_HOME_HUB__`) while keeping the
 type-a-URL flow for adding other hubs.
 
 **Why**: the highest-value growth lever for a small operator is "send a link, a
 friend is in" — no app install, no typing a hub URL into a separate hosted page.
 Serving the client from the hub's own origin delivers that and is also the most
 federation-honest shape: each operator serves their own client from their own
-domain. This is not a Voxply-operated service — it reinforces operator
+domain. This is not a Wavvon-operated service — it reinforces operator
 sovereignty rather than centralizing anything, and it does not phone home.
 Requested by the first external hub operator (videogamezone pilot, 2026-06-12).
 
@@ -135,7 +135,7 @@ Requested by the first external hub operator (videogamezone pilot, 2026-06-12).
   needing a manual mount; baking into the image is what makes it frictionless.
 
 **Tradeoff**: the Docker image grows by the web-client bundle and the hub
-release pipeline gains a cross-repo Voxply-web checkout (same pattern the
+release pipeline gains a cross-repo Wavvon-web checkout (same pattern the
 desktop release uses for i18n). The served client is pinned to the web-client
 release current at the hub release cut; the floor is that the served client
 never requires API surface newer than the hub shipping it. API 404 semantics
@@ -145,11 +145,11 @@ navigations.
 ## Demo Hub removed — discovery is the entry point for new users
 
 **Decision**: the "Try a demo hub" button and `DEMO_HUB_URL` constant are
-removed from all clients. There is no Voxply-operated demo hub. New users
+removed from all clients. There is no Wavvon-operated demo hub. New users
 find entry points through the discovery site; communities that want to be
 newcomer-friendly can tag themselves accordingly there.
 
-**Why**: a Voxply-operated hub is a service relationship — the project
+**Why**: a Wavvon-operated hub is a service relationship — the project
 would run infrastructure, make uptime commitments, and own a community
 space. That directly contradicts the "we publish software, not services"
 posture. The code was always a single constant and one conditional button;
@@ -165,13 +165,13 @@ a dead code path with no operational backing is worse than no path at all.
 
 ---
 
-## Missions, sparks, and cosmetic catalog removed — Voxply operates no monetization infrastructure
+## Missions, sparks, and cosmetic catalog removed — Wavvon operates no monetization infrastructure
 
 **Decision**: the missions system (sponsor-funded spark rewards), spark
 balance, cosmetic catalog, and entitlement blobs are removed entirely from
-all clients and from Voxply-discovery. `MISSIONS_ENABLED`,
+all clients and from Wavvon-discovery. `MISSIONS_ENABLED`,
 `MISSIONS_SERVICE_URL`, `MissionsSection`, `CosmeticsSection`, and all
-related discovery API routes are deleted. Voxply ships software only; it
+related discovery API routes are deleted. Wavvon ships software only; it
 operates no monetization service. Sustainability is an open question
 handled by donations and community support, without building a revenue
 mechanism into the protocol.
@@ -181,7 +181,7 @@ mechanism into the protocol.
 signing. That is infrastructure debt that grows with adoption and assumes
 the project always operates it. More importantly, it puts a sponsor
 relationship structurally inside the software, even when well-scoped. The
-sovereignty pitch is cleaner and more honest without it: Voxply publishes
+sovereignty pitch is cleaner and more honest without it: Wavvon publishes
 software, anyone can run it, no part of the software phones home to a
 project-operated service.
 
@@ -189,9 +189,9 @@ project-operated service.
 
 - **Keeping missions behind `MISSIONS_ENABLED = false`** — dead code with
   a constant implies future intent. If the intent is gone, so is the code.
-- **Farm hosting as a Voxply revenue line** — anyone can operate a farm;
+- **Farm hosting as a Wavvon revenue line** — anyone can operate a farm;
   the project publishing farm software is not the same as the project
-  running a farm for money. If someone at Voxply wants to run a commercial
+  running a farm for money. If someone at Wavvon wants to run a commercial
   farm later, that is an independent business decision, not something baked
   into the software design.
 - **A "supporter flair" cosmetic tied to donations** — tying any cosmetic
@@ -206,10 +206,10 @@ community funding) can be explored without adding any code to the protocol.
 
 ## Observability: operator-scoped infrastructure metrics only — no PII in spans or metrics
 
-**Decision**: Voxply ships two observability surfaces for hub operators:
+**Decision**: Wavvon ships two observability surfaces for hub operators:
 a Prometheus-compatible `GET /metrics` endpoint (aggregate counters —
 uptime, DB size, active connections, message throughput) and optional
-OTLP trace export via `VOXPLY_OTLP_ENDPOINT`. Both are **infrastructure
+OTLP trace export via `WAVVON_OTLP_ENDPOINT`. Both are **infrastructure
 observability tools for the hub operator**, not user analytics. The
 hard rule: **no personally-identifiable information may appear in any
 span, metric label, or structured log field**. Permitted: HTTP
@@ -236,9 +236,9 @@ value — latency, error rates, and throughput do not require identity.
   a dev environment with a local trace sink and a test account; shipping
   it in the production path permanently associates identity with traffic
   patterns in the operator's monitoring store.
-- **Message-count metrics labelled by channel** (`voxply_messages_total{channel="general"}`).
+- **Message-count metrics labelled by channel** (`wavvon_messages_total{channel="general"}`).
   Rejected: channel names are community content, not infrastructure. The
-  existing aggregate `voxply_messages_total` counter carries no label.
+  existing aggregate `wavvon_messages_total` counter carries no label.
 - **Opt-in "detailed mode"** that unlocks PII labels when the operator
   enables it. Rejected: any opt-in expands the surface and the rule
   becomes "PII is ok in some deployments," which is the wrong invariant
@@ -285,7 +285,7 @@ hub management.
 multiple servers) → Server (compute node, runs hub processes) → Hub (community
 space, the product users experience). A hub is never run directly — it is
 always started and managed by a server agent connected to a farm. Standalone
-`voxply-hub` binary usage is deprecated.
+`wavvon-hub` binary usage is deprecated.
 
 **Why**: the original "hub = server" assumption no longer holds. The farm needs
 to manage geographically distributed servers. A standalone hub creates a
@@ -303,11 +303,11 @@ wizard and the farm's control surface.
 ## OAuth account linking — rejected as an auth mechanism; deferred as a social badge
 
 **Decision**: OAuth login (Google, Steam, GitHub, etc.) will not be used as an
-identity mechanism or recovery path in Voxply.
+identity mechanism or recovery path in Wavvon.
 
-**Why rejected for auth/recovery**: linking a Voxply identity to a centralized
+**Why rejected for auth/recovery**: linking a Wavvon identity to a centralized
 provider account means that if the provider bans the user, suspends the app, or
-changes its API, the user loses Voxply access too. This directly conflicts with
+changes its API, the user loses Wavvon access too. This directly conflicts with
 the "your hub can't take your identity" sovereignty pillar that justifies the
 Ed25519 keypair model.
 
@@ -318,7 +318,7 @@ phrase is encrypted with it, and the result is stored wherever the user chooses
 feel without any third-party dependency. Design in
 [`identity-recovery.md`](identity-recovery.md) — Part 1 (Backup / export).
 
-**OAuth may still ship as**: a "verified badge" feature — "this Voxply identity is
+**OAuth may still ship as**: a "verified badge" feature — "this Wavvon identity is
 linked to my GitHub / Steam profile". That is metadata for social proof, not auth.
 Tracked in [`future-features.md`](future-features.md).
 
@@ -334,7 +334,7 @@ is a better first-time safety net and doesn't require any external account.
 **Decision**: the web admin surfaces (hub web panel, farm console) drop the
 shared `web_admin_token` for a two-factor login tied to real identity. Factor
 one is an Ed25519 challenge signed by the user's **desktop app** — the browser
-shows a challenge, a `voxply://sign-admin` deep link hands it to the Tauri app,
+shows a challenge, a `wavvon://sign-admin` deep link hands it to the Tauri app,
 which confirms with a dialog and signs with the user's existing key
 (`auth_creds.rs`), then POSTs the signature to the server's own
 `/admin/auth/signed` endpoint (desktop→server, so no browser localhost listener
@@ -356,7 +356,7 @@ in [`admin-panel-auth.md`](admin-panel-auth.md).
   to revoke per-person. This entry supersedes that flow.
 - **Sign in the browser** (import the key into the page / WebCrypto). Rejected:
   the private key must never enter the browser. Keeping the desktop app as the
-  signer matches the rest of Voxply's auth and behaves like a hardware key.
+  signer matches the rest of Wavvon's auth and behaves like a hardware key.
 - **A browser localhost callback server** for the signature. Rejected: it
   reintroduces the CORS/preflight problem and an open local port. Routing the
   signature desktop→server over HTTPS avoids both — the browser only ever talks
@@ -380,10 +380,10 @@ covers the headless case for operators without the desktop app on the box.
 
 **Decision**: user-created skins expose a curated set of CSS custom properties
 (surfaces, text, accent, status, borders, effects, shadows, one radius scale knob)
-as a JSON `.voxplyskin` file with a `base` fallback theme and a `tokens` override
+as a JSON `.wavvonskin` file with a `base` fallback theme and a `tokens` override
 map. The active skin is applied via `element.style.setProperty()` on
 `document.documentElement`; a `[data-theme="custom"]` block in `styles.css` holds
-the base fallback. The skin is stored in `~/.voxply/appearance.json` (desktop/android)
+the base fallback. The skin is stored in `~/.wavvon/appearance.json` (desktop/android)
 or `localStorage` (web) using the same `#[serde(default)]` pattern as `voice.json`.
 The existing four-theme picker gains a fifth "Custom" card that shows the skin name
 and three swatches when a skin is active. Full design in
@@ -392,7 +392,7 @@ and three swatches when a skin is active. Full design in
 **Alternatives considered**:
 
 - **Arbitrary CSS injection** (a raw textarea the user types CSS into). Rejected:
-  a shared `.voxplyskin` file becomes an attack vector (`url()` for external
+  a shared `.wavvonskin` file becomes an attack vector (`url()` for external
   fetches, `;`/`}` to break out of declarations, `expression()` in older engines).
   Even locally, an accidental layout breakage is unrecoverable without a "reset all."
   A validated token allowlist is the correct blast radius.
@@ -423,7 +423,7 @@ author sets only what they want to differ; the theme maintainer owns the rest.
 
 ## Database abstraction: trait-based store crate split, not inline raw SQLx
 
-**Decision**: the hub's data layer will move from a bare `sqlx::SqlitePool` embedded directly in `AppState` and raw `sqlx::query*` calls scattered across every route handler, to a set of domain-split traits (`AuthStore`, `UserStore`, `ChannelStore`, `MessageStore`, `RoleStore`, `InviteStore`, `ModerationStore`, `SettingsStore`, and more) collected into a `HubStore` super-trait, implemented by `voxply-store-sqlite` (the current code, moved) and eventually `voxply-store-postgres` (community contribution). `AppState.db: SqlitePool` becomes `AppState.store: Arc<dyn HubStore>`. A `StoreError` enum (`NotFound`, `Conflict`, `PermissionDenied`, `Internal`) replaces per-route ad-hoc `.map_err()` and `"UNIQUE"` string-sniffing. `#[async_trait]` is the dispatch mechanism. Transaction scope is managed by a `with_transaction<F, T>` closure. Migration contract: each backend owns its schema via a `Migrate` trait; the hub calls `store.run_migrations()` on startup. Full design in [`store-trait-design.md`](store-trait-design.md).
+**Decision**: the hub's data layer will move from a bare `sqlx::SqlitePool` embedded directly in `AppState` and raw `sqlx::query*` calls scattered across every route handler, to a set of domain-split traits (`AuthStore`, `UserStore`, `ChannelStore`, `MessageStore`, `RoleStore`, `InviteStore`, `ModerationStore`, `SettingsStore`, and more) collected into a `HubStore` super-trait, implemented by `wavvon-store-sqlite` (the current code, moved) and eventually `wavvon-store-postgres` (community contribution). `AppState.db: SqlitePool` becomes `AppState.store: Arc<dyn HubStore>`. A `StoreError` enum (`NotFound`, `Conflict`, `PermissionDenied`, `Internal`) replaces per-route ad-hoc `.map_err()` and `"UNIQUE"` string-sniffing. `#[async_trait]` is the dispatch mechanism. Transaction scope is managed by a `with_transaction<F, T>` closure. Migration contract: each backend owns its schema via a `Migrate` trait; the hub calls `store.run_migrations()` on startup. Full design in [`store-trait-design.md`](store-trait-design.md).
 
 **Alternatives considered**:
 
@@ -435,7 +435,7 @@ author sets only what they want to differ; the theme maintainer owns the rest.
 
 **Tradeoff**: `Arc<dyn HubStore>` with `#[async_trait]` adds one heap allocation (a boxed `Pin<Box<dyn Future>>`) per database call — negligible against any real IO round-trip. The `with_transaction` closure pattern is awkward when callers need to branch on intermediate results inside a transaction; those flows must be written as linear closures. Both costs are accepted: allocation is noise; transaction shape discipline is necessary regardless of the abstraction.
 
-**What's deferred**: the actual refactor — create `voxply-store`, move the current SQLx bodies to `voxply-store-sqlite`, update the hub to use `Arc<dyn HubStore>`, add `voxply-store-postgres` as a community contribution. This decision records the intent and the design; implementation starts when prioritized.
+**What's deferred**: the actual refactor — create `wavvon-store`, move the current SQLx bodies to `wavvon-store-sqlite`, update the hub to use `Arc<dyn HubStore>`, add `wavvon-store-postgres` as a community contribution. This decision records the intent and the design; implementation starts when prioritized.
 
 ---
 

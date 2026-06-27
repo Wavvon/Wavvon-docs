@@ -1,6 +1,6 @@
-# Farm → Server → Hub Architecture
+﻿# Farm → Server → Hub Architecture
 
-How Voxply manages geographically distributed servers under a single farm.
+How Wavvon manages geographically distributed servers under a single farm.
 
 ---
 
@@ -15,11 +15,11 @@ Farm  (control plane — one per operator/organization)
 
 | Layer | Binary | Responsibility |
 |-------|--------|----------------|
-| Farm | `voxply-farm` | Lifecycle, routing table, discovery, farm panel |
-| Server | `voxply-server` | Hub process management, metrics, log forwarding |
-| Hub | `voxply-hub` | Community — channels, users, voice, messages |
+| Farm | `wavvon-farm` | Lifecycle, routing table, discovery, farm panel |
+| Server | `wavvon-server` | Hub process management, metrics, log forwarding |
+| Hub | `wavvon-hub` | Community — channels, users, voice, messages |
 
-**A hub is never started directly.** It is always spawned and managed by a server agent. The `voxply-hub` binary is an internal implementation detail of `voxply-server`, not a user-facing deployment target.
+**A hub is never started directly.** It is always spawned and managed by a server agent. The `wavvon-hub` binary is an internal implementation detail of `wavvon-server`, not a user-facing deployment target.
 
 ---
 
@@ -33,7 +33,7 @@ Servers connect *outbound* to the farm rather than the farm polling inward. This
 
 ### Protocol
 
-Each `voxply-server` maintains a persistent **WebSocket** connection to its farm. The connection is authenticated (see Registration below) and multiplexes two message flows:
+Each `wavvon-server` maintains a persistent **WebSocket** connection to its farm. The connection is authenticated (see Registration below) and multiplexes two message flows:
 
 **Server → Farm (push):**
 - `heartbeat` — sent every 15 s; includes CPU %, memory %, disk %, hub process states
@@ -58,11 +58,11 @@ A server is added to a farm once, by the operator, before it is deployed.
 
 ```
 Step 1 — Operator generates a registration token on the farm:
-  voxply-farm server add --name "eu-1" --label region=eu --label provider=hetzner
+  wavvon-farm server add --name "eu-1" --label region=eu --label provider=hetzner
   → Registration token: <one-time 32-byte hex>
 
 Step 2 — Server agent starts and presents the token:
-  voxply-server --farm wss://farm.example.com --token <token>
+  wavvon-server --farm wss://farm.example.com --token <token>
 
 Step 3 — Farm verifies the token (single use), records the server,
   and issues a long-lived server credential for subsequent reconnects.
@@ -151,7 +151,7 @@ The farm domain (`farm.example.com`) is control plane only. Hub addresses point 
 
 ## Farm Panel (server operator view)
 
-A minimal web UI served by `voxply-farm` at `/farm/admin/panel`. Protected by `web_admin_token` in `farm.toml` — the operator already has shell access; no Ed25519 ceremony needed here.
+A minimal web UI served by `wavvon-farm` at `/farm/admin/panel`. Protected by `web_admin_token` in `farm.toml` — the operator already has shell access; no Ed25519 ceremony needed here.
 
 **What it shows:**
 - Server list: name, region labels, status (online/offline), last heartbeat

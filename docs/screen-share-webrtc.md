@@ -1,4 +1,4 @@
-# Screen Share Tier 2 — WebRTC Migration
+﻿# Screen Share Tier 2 — WebRTC Migration
 
 v2 of screen share. The user-visible feature is identical to v1
 ([`screen-share.md`](screen-share.md)); the transport changes from
@@ -88,7 +88,7 @@ v3 SFU (§8).
 ## 2. Signaling protocol
 
 Signaling rides the **existing chat WebSocket** — same typed envelope
-channel as v1 (`hub/src/routes/chat_models.rs` in Voxply-server).
+channel as v1 (`hub/src/routes/chat_models.rs` in Wavvon-server).
 No new socket.
 
 ### New envelopes
@@ -164,7 +164,7 @@ opaque strings it relays.
 
 ## 3. Tauri / WebView constraints
 
-Voxply desktop uses Tauri 2 over the system WebView (WRY): WebView2 on
+Wavvon desktop uses Tauri 2 over the system WebView (WRY): WebView2 on
 Windows, WKWebView on macOS, WebKitGTK on Linux, Android System
 WebView on Android. WebRTC support is **not uniform**.
 
@@ -255,7 +255,7 @@ not two separate stream IDs (cleaner than v1).
 
 ## 7. Data model and protocol changes
 
-### Wire protocol (Voxply-server, `hub/src/routes/chat_models.rs`)
+### Wire protocol (Wavvon-server, `hub/src/routes/chat_models.rs`)
 
 - New signaling envelopes (§2).
 - `ScreenShareStart` gains `transport: "chunks" | "webrtc"` and
@@ -263,7 +263,7 @@ not two separate stream IDs (cleaner than v1).
   `transport` as `"chunks"`.
 - v1 chunk envelopes retained as the relay-fallback floor.
 
-### Hub runtime state (Voxply-server, `hub/src/state.rs`)
+### Hub runtime state (Wavvon-server, `hub/src/state.rs`)
 
 `ActiveShare` map is re-keyed to `HashMap<(channel_id, sharer_pubkey), ActiveShare>`. `ActiveShare` gains a `viewers: HashSet<pubkey>` field (for join/leave routing and WS-disconnect cleanup). No DB schema changes; no persistence.
 

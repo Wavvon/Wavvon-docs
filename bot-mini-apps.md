@@ -1,8 +1,8 @@
-# Bot mini-apps
+﻿# Bot mini-apps
 
 A generic mechanism for bots to embed interactive web experiences —
 drawing games, shared whiteboards, trivia timers, anything — directly
-inside a Voxply channel, without adding game-specific logic to the hub.
+inside a Wavvon channel, without adding game-specific logic to the hub.
 
 ## Motivation
 
@@ -23,20 +23,20 @@ A bot can declare a `mini_app_url` in its registration payload. When
 the bot (or a user command) triggers a game session, the bot sends a
 `bot_app_launch` WS message to the channel. The client renders a
 **launch card** with a button. Clicking it opens the mini-app URL in a
-sandboxed webview inside the Voxply client window.
+sandboxed webview inside the Wavvon client window.
 
 The hub injects auth context into the webview at load time — the same
 pattern used when the hub self-serves the web client:
 
 ```
-window.__VOXPLY_HUB__     = "https://hub.example.com"
-window.__VOXPLY_TOKEN__   = "<scoped-session-token>"
-window.__VOXPLY_CHANNEL__ = "<channel-id>"
-window.__VOXPLY_BOT_ID__  = "<bot-pubkey>"
+window.__WAVVON_HUB__     = "https://hub.example.com"
+window.__WAVVON_TOKEN__   = "<scoped-session-token>"
+window.__WAVVON_CHANNEL__ = "<channel-id>"
+window.__WAVVON_BOT_ID__  = "<bot-pubkey>"
 ```
 
 The mini-app connects to the hub's existing `/ws` endpoint using
-`__VOXPLY_TOKEN__` and exchanges messages with the bot (and with other
+`__WAVVON_TOKEN__` and exchanges messages with the bot (and with other
 mini-app instances in the same channel) through the normal WS relay.
 **The hub sees only ordinary WS messages — it has no concept of
 canvas, game state, or drawing strokes.**
@@ -66,7 +66,7 @@ a URL query string.
 ### Bot registration field
 
 ```json
-{ "mini_app_url": "https://gartic.example.com/voxply" }
+{ "mini_app_url": "https://gartic.example.com/wavvon" }
 ```
 
 Optional. Absent bots behave exactly as today.
@@ -100,7 +100,7 @@ Client renders this as a launch card in the channel. Users who click
 ```json
 {
   "type": "bot_app_open",
-  "mini_app_url": "https://gartic.example.com/voxply",
+  "mini_app_url": "https://gartic.example.com/wavvon",
   "session_token": "<scoped-token>",
   "channel_id": "<id>",
   "bot_id": "<pubkey>"

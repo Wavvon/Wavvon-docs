@@ -1,4 +1,4 @@
-# Federation
+﻿# Federation
 
 Hubs are independent SQLite-backed servers. Federation lets them talk
 without a central authority. Two federation features ship today:
@@ -13,8 +13,8 @@ the same challenge-response primitive used for users
 ([identity.md](identity.md)), just acting as itself rather than on behalf
 of a user.
 
-Code: `hub/src/federation/client.rs` (outbound, Voxply-server),
-`hub/src/federation/handlers.rs` (inbound, Voxply-server).
+Code: `hub/src/federation/client.rs` (outbound, Wavvon-server),
+`hub/src/federation/handlers.rs` (inbound, Wavvon-server).
 
 ## Federated DMs
 
@@ -25,7 +25,7 @@ User on Hub A sends DM to User on Hub B
   ↓
 Hub A writes to its outbox table
   ↓
-dm_worker (hub/src/dm_worker.rs in Voxply-server) picks it up
+dm_worker (hub/src/dm_worker.rs in Wavvon-server) picks it up
   ↓
 Hub A POSTs to Hub B's federation endpoint, signed as Hub A
   ↓
@@ -37,8 +37,8 @@ Hub B pushes via WebSocket if recipient is online
 Retry logic and failover live in the worker. The outbox survives
 restarts because it's a SQLite table.
 
-Routes: `hub/src/routes/dms.rs` (Voxply-server). Models:
-`hub/src/routes/dm_models.rs` (Voxply-server).
+Routes: `hub/src/routes/dms.rs` (Wavvon-server). Models:
+`hub/src/routes/dm_models.rs` (Wavvon-server).
 
 ### Why outbox-style
 
@@ -52,7 +52,7 @@ Routes: `hub/src/routes/dms.rs` (Voxply-server). Models:
 When Hub B reads messages from Hub A's shared alliance channel, Hub B
 gets the messages *and* their reactions in one shot.
 `hub/src/routes/alliances.rs::get_alliance_channel_messages` in
-Voxply-server loads reactions for both local and remote rows by
+Wavvon-server loads reactions for both local and remote rows by
 reusing `messages::load_reactions` (made `pub(crate)` for this).
 
 ## Cross-hub friends
@@ -64,7 +64,7 @@ created already-accepted (no federated request flow exists yet, so
 leaving them pending forever would be misleading) and DMs to them
 route through the existing federated DM outbox using the stored URL.
 
-Code: `hub/src/routes/friends.rs` (Voxply-server). Schema in
+Code: `hub/src/routes/friends.rs` (Wavvon-server). Schema in
 `hub/src/db/migrations.rs`.
 
 **v1 limitation**: cross-hub adds are one-sided. Bob doesn't get a
@@ -86,7 +86,7 @@ tokens. Full design in [alliances.md](alliances.md) and rationale in
 ## What federation does **not** do
 
 - **No global directory**. There's no DHT or seed-list mechanism in active
-  use. The `seed/` crate in Voxply-server is a scaffold; users connect by URL.
+  use. The `seed/` crate in Wavvon-server is a scaffold; users connect by URL.
 - **No automatic peer discovery**. Alliance members are added explicitly
   via invite tokens.
 - **No cross-hub user identity sync**. Your pubkey is the same; your
@@ -95,7 +95,7 @@ tokens. Full design in [alliances.md](alliances.md) and rationale in
 
 ## Where to look in code
 
-All paths below live in the `hub/` crate of Voxply-server.
+All paths below live in the `hub/` crate of Wavvon-server.
 
 | Concern              | File |
 |----------------------|------|

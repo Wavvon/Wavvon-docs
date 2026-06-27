@@ -1,9 +1,9 @@
-# Windows Code Signing (Authenticode)
+﻿# Windows Code Signing (Authenticode)
 
-How the Voxply desktop app (Voxply-desktop) will eventually earn Windows'
+How the Wavvon desktop app (Wavvon-desktop) will eventually earn Windows'
 trust so users stop seeing SmartScreen's "Windows protected your PC" on
 first run. Today the NSIS `.exe` installer is unsigned; the documented
-workaround is "More info → Run anyway" (see Voxply-desktop's README).
+workaround is "More info → Run anyway" (see Wavvon-desktop's README).
 
 The **updater payload signature** (`TAURI_SIGNING_PRIVATE_KEY`, Ed25519,
 documented in `packaging.md` section 3) is a separate concern and is fully
@@ -60,5 +60,5 @@ The release workflow builds and uploads **unsigned** Windows installers.
 No signing steps or signing-service secrets remain in CI; when a provider
 is chosen, the signing step slots in between the Tauri build and the
 release-asset upload, signing the NSIS installer (and ideally deep-signing
-the inner `voxply.exe`). The Ed25519 updater signing
+the inner `wavvon.exe`). The Ed25519 updater signing
 (`TAURI_SIGNING_PRIVATE_KEY`) is independent and remains active.

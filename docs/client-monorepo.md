@@ -1,10 +1,10 @@
-# Client Monorepo
+﻿# Client Monorepo
 
-Voxply's three clients — desktop ([client.md](client.md)), browser
+Wavvon's three clients — desktop ([client.md](client.md)), browser
 ([browser-client.md](browser-client.md)), and Android
 ([android-client.md](android-client.md)) — consolidate into **one
 repository** with internal workspace packages for shared code. The Rust
-**hub server** (Voxply-server: `hub/`, `identity/`, `seed/`, …) stays
+**hub server** (Wavvon-server: `hub/`, `identity/`, `seed/`, …) stays
 its own repo: it is a different deploy unit (a server binary / Docker
 image, not an app the user installs) and has its own release cadence.
 
@@ -30,11 +30,11 @@ The clients already share code, but through three fragile mechanisms,
 all of which a workspace removes:
 
 1. **Cross-repo `file:` dependencies pull a second React.** `web/utils`
-   and `web/i18n` (the `@voxply/utils` / `@voxply/i18n` packages, born in
-   desktop commit `b68a0de`) live in the **Voxply-web** repo. The
+   and `web/i18n` (the `@wavvon/utils` / `@wavvon/i18n` packages, born in
+   desktop commit `b68a0de`) live in the **Wavvon-web** repo. The
    desktop consumes them across repos:
    `desktop/desktop/package.json` has
-   `"@voxply/utils": "file:../../web/utils"`. That `file:` link drags in
+   `"@wavvon/utils": "file:../../web/utils"`. That `file:` link drags in
    `web`'s own `node_modules/react`, and Rollup bundled **two** copies of
    React into the packaged desktop build — production crashed with
    `Cannot read properties of null (reading 'useRef')`. The fix is the
@@ -46,16 +46,16 @@ all of which a workspace removes:
 
 2. **A cross-repo Vite alias requires two checkouts side by side.** The
    Android web fork reaches back into the desktop repo for UI:
-   `android/voxply-web/vite.config.ts` aliases
-   `@components` → `../voxply-desktop/src/components`,
-   `@shared/types` → `../voxply-desktop/src/types.ts`, etc. This only
+   `android/wavvon-web/vite.config.ts` aliases
+   `@components` → `../wavvon-desktop/src/components`,
+   `@shared/types` → `../wavvon-desktop/src/types.ts`, etc. This only
    resolves when the sibling checkout is present at the expected path.
 
 3. **The desktop release checks out two repos.**
    `desktop/.github/workflows/release.yml` checks out **both**
-   `Voxply/Voxply-desktop` and `Voxply/Voxply-web` (the "Checkout web
+   `Wavvon/Wavvon-desktop` and `Wavvon/Wavvon-web` (the "Checkout web
    (for i18n)" step) purely so the desktop build can resolve
-   `@voxply/i18n` from `../../web/i18n`. One repo means one checkout.
+   `@wavvon/i18n` from `../../web/i18n`. One repo means one checkout.
 
 4. **CSS is copied verbatim.** The browser client's `styles.css` is a
    hand-synced copy of the desktop's (noted in
@@ -63,7 +63,7 @@ all of which a workspace removes:
    shared package eliminates.
 
 5. **The triggering bug — invite parsing written 2–3 times.** The
-   desktop has `parseHubInput()` (handles `voxply://` deep links;
+   desktop has `parseHubInput()` (handles `wavvon://` deep links;
    `desktop/desktop/src/App.tsx:1458`). The browser client has hub-invite
    **admin** (create/revoke) but **no** URL/deep-link invite parser — it
    cannot accept an invite arriving as `#invite=<code>` or
@@ -79,22 +79,22 @@ Each client repo has a doubled inner directory, and Android carries two
 inner apps:
 
 ```
-Voxply-desktop/
+Wavvon-desktop/
 └── desktop/                 git repo root
     ├── desktop/             the app: package.json, vite.config.ts, src/
     │   └── src-tauri/       Rust shell (file I/O, voice, OS, updater)
     └── .github/workflows/   build.yml, release.yml (dual checkout)
 
-Voxply-web/
+Wavvon-web/
 └── web/                     git repo root
     ├── web/                 the app: package.json, vite.config.ts, src/
-    ├── utils/               @voxply/utils  (shared, consumed cross-repo)
-    └── i18n/                @voxply/i18n   (shared, consumed cross-repo)
+    ├── utils/               @wavvon/utils  (shared, consumed cross-repo)
+    └── i18n/                @wavvon/i18n   (shared, consumed cross-repo)
 
-Voxply-android/
+Wavvon-android/
 └── android/                 git repo root
-    ├── voxply-desktop/      a desktop-derived fork (Tauri + components)
-    └── voxply-web/          a web-derived fork (vite alias → ../voxply-desktop/src)
+    ├── wavvon-desktop/      a desktop-derived fork (Tauri + components)
+    └── wavvon-web/          a web-derived fork (vite alias → ../wavvon-desktop/src)
 ```
 
 So shared code already lives in three places (desktop's
@@ -107,14 +107,14 @@ turns those ad-hoc edges into named packages.
 ## Target layout
 
 ```
-voxply/                          (new client monorepo, repo root)
+wavvon/                          (new client monorepo, repo root)
 ├── package.json                 workspaces declaration + root scripts
 ├── pnpm-workspace.yaml          workspace globs (see tooling)
 ├── packages/
 │   ├── core/                    platform-agnostic TypeScript
 │   ├── ui/                      shared React components + styles.css
 │   ├── platform/                the platform adapter INTERFACE (types only)
-│   └── i18n/                    the strings + ICU machinery (today's @voxply/i18n)
+│   └── i18n/                    the strings + ICU machinery (today's @wavvon/i18n)
 └── apps/
     ├── desktop/                 Tauri shell + src-tauri (Rust); platform impl = invoke
     ├── web/                     Vite SPA; platform impl = fetch/ws adapter
@@ -138,7 +138,7 @@ No React, no DOM-only globals, no Tauri. Pure logic shared by every
 client (and reusable by tooling):
 
 - **invite / URL parsing** — the unified successor to desktop's
-  `parseHubInput()`: parses `voxply://`, plain hostnames, and the
+  `parseHubInput()`: parses `wavvon://`, plain hostnames, and the
   invite-bearing `#invite=<code>` / `?invite=<code>` forms. Stage 1
   extracts this first (see migration).
 - **wire types** — the TypeScript twin of the hub's request/response
@@ -147,7 +147,7 @@ client (and reusable by tooling):
   (`web/utils/useReconnectBackoff.ts`); the timing policy is logic, the
   React `useEffect` wrapper can stay thin in `ui`.
 - **validation / formatting / hex** — the rest of today's
-  `@voxply/utils` (`format`, `channels`, `recentEmoji`, `hex`).
+  `@wavvon/utils` (`format`, `channels`, `recentEmoji`, `hex`).
 - **noble crypto** — the identity crypto (Ed25519 sign, Ed25519→X25519
   derive, AES-GCM, HKDF, BIP39). Used by web and the Android web layer.
   **See the wire-contract constraint below — this code is pinned to the
@@ -190,8 +190,8 @@ rather than a cross-repo one.
 
 ### `packages/i18n` — strings + ICU machinery
 
-Today's `@voxply/i18n` (`web/i18n`), moved in. The desktop's
-release-time cross-repo checkout of Voxply-web (pain #3) exists *only*
+Today's `@wavvon/i18n` (`web/i18n`), moved in. The desktop's
+release-time cross-repo checkout of Wavvon-web (pain #3) exists *only*
 to resolve this; once it is a workspace package the dual checkout
 deletes itself.
 
@@ -277,9 +277,9 @@ Android NDK build:
   an actual `pnpm --filter <app> build` so packaging regressions
   (the double-React class) surface in CI.
 - `release-desktop.yml` — the old desktop `release.yml`, but the
-  **"Checkout web (for i18n)" step is deleted**: `@voxply/i18n` is now
+  **"Checkout web (for i18n)" step is deleted**: `@wavvon/i18n` is now
   `packages/i18n` in the same checkout. One `actions/checkout`, no
-  `Voxply/Voxply-web` cross-repo fetch. The macOS universal-libopus
+  `Wavvon/Wavvon-web` cross-repo fetch. The macOS universal-libopus
   steps and the updater-manifest job (below) are unchanged.
 - `release-android.yml` — the existing on-demand Android workflow, paths
   unchanged in spirit, now reading shared UI from `packages/ui` instead
@@ -303,7 +303,7 @@ sharp edges of the move. Constraints from [packaging.md](packaging.md)
 and the [ROADMAP](../ROADMAP.md):
 
 - **Tauri updater endpoint is decoupled from the repo.** The updater
-  reads `https://releases.voxply.io/latest.json` (configured in
+  reads `https://releases.wavvon.io/latest.json` (configured in
   `tauri.conf.json`), **not** a GitHub repo URL. Moving repos does not
   touch the endpoint the installed apps poll. (Today `latest.json` is
   never published because the macOS build is broken — a separate
@@ -312,8 +312,8 @@ and the [ROADMAP](../ROADMAP.md):
   `release-desktop.yml`.
 - **Download URLs change host repo.** `release.yml` builds the asset
   download URL from `$GITHUB_REPOSITORY` — after the move, new release
-  assets live under `github.com/Voxply/voxply/releases/...` instead of
-  `.../Voxply-desktop/releases/...`. The updater is unaffected because
+  assets live under `github.com/Wavvon/wavvon/releases/...` instead of
+  `.../Wavvon-desktop/releases/...`. The updater is unaffected because
   `latest.json` carries absolute URLs that the manifest job regenerates
   at release time. **Old releases stay where they are**: leave the
   archived repos' existing GitHub Releases in place (and the repos
@@ -331,11 +331,11 @@ and the [ROADMAP](../ROADMAP.md):
   secrets. Losing it forces every user to reinstall — back it up
   out-of-band before deleting the old repo's secrets.
 - **The hub's Docker web-builder stage re-points.** The hub image bakes a
-  web-client build by checking out Voxply-web
+  web-client build by checking out Wavvon-web
   ([decisions.md](decisions.md), "Hubs may optionally self-serve the web
-  client"). That checkout target changes from `Voxply/Voxply-web` to the
+  client"). That checkout target changes from `Wavvon/Wavvon-web` to the
   monorepo (building `apps/web`). This is a **cross-repo coordination
-  point**: the Voxply-server release workflow lives in a different repo
+  point**: the Wavvon-server release workflow lives in a different repo
   and must update its checkout reference when the move lands. Flag it in
   the migration PR.
 
@@ -346,7 +346,7 @@ repo count from six to four**. Stars/visibility is a stated project goal
 (SignPath signing re-application depends on it), so this is a minor
 negative: three separate repos are three separate things to star. The
 counter is that one repo with all client code is easier for a newcomer
-to read end-to-end and contribute to, and a single "Voxply clients" repo
+to read end-to-end and contribute to, and a single "Wavvon clients" repo
 with good READMEs is a stronger first impression than three thin client
 repos. Net: small, accepted. Keep the archived repos visible (not
 deleted) so existing stars/links persist.
@@ -358,8 +358,8 @@ deleted) so existing stars/links persist.
 The TypeScript identity crypto must stay **byte-compatible with the Rust
 hub** — the Ed25519 seed format and the DM envelope wire format (see
 [e2e-encryption.md](e2e-encryption.md), [identity.md](identity.md)). The
-canonical authority is the `identity/` crate in **Voxply-server**, with
-shared test vectors (`docs/wire-format.md` in Voxply-server).
+canonical authority is the `identity/` crate in **Wavvon-server**, with
+shared test vectors (`docs/wire-format.md` in Wavvon-server).
 
 Two things the doc must state plainly:
 
@@ -372,7 +372,7 @@ Two things the doc must state plainly:
 2. **The hub staying in a separate repo means the crypto contract is a
    genuine cross-repo boundary — but it already is one today.** Desktop,
    web, and Android each reimplement the wire format and validate against
-   vectors shipped from Voxply-server; the hub does not link the client
+   vectors shipped from Wavvon-server; the hub does not link the client
    crypto and vice versa. Consolidating the clients changes a
    three-clients-versus-one-hub boundary into a one-package-versus-one-hub
    boundary, which is strictly fewer reimplementations to keep in sync.
@@ -392,7 +392,7 @@ Two things the doc must state plainly:
   `apps/desktop` changes those paths. Mitigation: the path edits are
   contained to each app's `tauri.conf.json` / `vite.config.ts` and are
   caught by the Stage-0 "tree builds" gate.
-- **Android fork reconciliation.** `voxply-desktop` and `voxply-web`
+- **Android fork reconciliation.** `wavvon-desktop` and `wavvon-web`
   forks have divergent behavior (per [ROADMAP](../ROADMAP.md):
   plaintext-group divergences, missing forum view). Collapsing to one
   `apps/android` must preserve those gaps, not silently "fix" them.
@@ -413,7 +413,7 @@ Two things the doc must state plainly:
 Ordered so each stage leaves the tree building and is independently
 reviewable. No repos move until this doc is approved.
 
-**Stage 0 — Scaffold + import.** Create the `voxply` monorepo with the
+**Stage 0 — Scaffold + import.** Create the `wavvon` monorepo with the
 root `package.json` + `pnpm-workspace.yaml` and empty `apps/` /
 `packages/`. `git subtree add` each client onto `apps/*` (history
 preserved). Wire pnpm so `pnpm install` resolves; get every app's
@@ -432,7 +432,7 @@ lands only via `packages/core` in this stage, so there is one
 implementation from day one.
 
 **Stage 2 — fold the existing shared packages into `packages/core`.**
-Move `web/utils` (`@voxply/utils`) and `web/i18n` (`@voxply/i18n`) into
+Move `web/utils` (`@wavvon/utils`) and `web/i18n` (`@wavvon/i18n`) into
 `packages/core` and `packages/i18n`. Delete the `file:../../web/utils`
 dep and the desktop Vite `dedupe: ["react","react-dom"]` band-aid — pnpm
 hoisting makes both obsolete. Move the noble crypto into `packages/core`;
@@ -446,7 +446,7 @@ ordinary workspace imports.
 
 **Stage 4 — `packages/platform` interface + Android fork collapse.**
 Define the platform interface package; have each app provide its
-concrete impl. Collapse `android/voxply-desktop` + `android/voxply-web`
+concrete impl. Collapse `android/wavvon-desktop` + `android/wavvon-web`
 into a single `apps/android` consuming `packages/ui` + `packages/core`,
 preserving its documented feature gaps. (The desktop `invoke`→`platform`
 convergence is enabled here but can land incrementally afterward.)
@@ -456,7 +456,7 @@ consolidated set (build with real bundle step; prefixed-tag release
 workflows; deleted dual checkout). Move the updater key and Android
 keystore secrets. Cut one release of each client from the monorepo to
 prove the pipeline. Update the hub's Docker web-builder checkout target
-(cross-repo PR in Voxply-server). Archive the three old client repos
+(cross-repo PR in Wavvon-server). Archive the three old client repos
 read-only (keep their releases resolving). Update
 [architecture.md](architecture.md)'s six-repo map.
 
@@ -470,5 +470,5 @@ read-only (keep their releases resolving). Update
 - Android client + keystore + on-demand CI: [android-client.md](android-client.md)
 - Repo map this changes (six → four repos): [architecture.md](architecture.md)
 - Release/updater/secrets matrix: [packaging.md](packaging.md)
-- Wire-format contract the crypto stays pinned to: [e2e-encryption.md](e2e-encryption.md), [identity.md](identity.md); `docs/wire-format.md` in Voxply-server
+- Wire-format contract the crypto stays pinned to: [e2e-encryption.md](e2e-encryption.md), [identity.md](identity.md); `docs/wire-format.md` in Wavvon-server
 - Hub self-serving the web client (Docker web-builder checkout target): [decisions.md](decisions.md)

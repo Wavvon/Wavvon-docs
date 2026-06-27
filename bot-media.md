@@ -1,6 +1,6 @@
-# Bot media capabilities
+﻿# Bot media capabilities
 
-Bots that can push audio and video into Voxply channels, enabling
+Bots that can push audio and video into Wavvon channels, enabling
 music playback, karaoke backing tracks, dance-move reference streams,
 and similar experiences — without adding media logic to the hub.
 
@@ -153,7 +153,7 @@ camera-driven feature:
 
 Add `permissions: ["camera"]` to the `WebviewWindowBuilder` config.
 The OS will prompt the user once for camera permission scoped to the
-Voxply process.
+Wavvon process.
 
 ### Web (sandboxed iframe)
 

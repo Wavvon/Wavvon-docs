@@ -1,33 +1,33 @@
-# Architecture
+﻿# Architecture
 
-Voxply is four repositories. The hub backend lives in one Rust
+Wavvon is four repositories. The hub backend lives in one Rust
 workspace; all clients live in one pnpm-workspace monorepo; the docs and
 the discovery service are each their own repo.
 
 ## The repository map
 
 ```
-Voxply              ── docs, ROADMAP.md, openapi.yaml (this repo)
-Voxply-server       ── Rust workspace: hub/, seed/, identity/, farm/,
-                       server/, voxply-store/, voxply-store-sqlite/ crates
-Voxply-client       ── pnpm + Cargo monorepo for every client:
+Wavvon              ── docs, ROADMAP.md, openapi.yaml (this repo)
+Wavvon-server       ── Rust workspace: hub/, seed/, identity/, farm/,
+                       server/, wavvon-store/, wavvon-store-sqlite/ crates
+Wavvon-client       ── pnpm + Cargo monorepo for every client:
                        apps/desktop (Tauri 2 + React), apps/web (Vite + React),
                        apps/android (Tauri mobile shell), voice/ (Rust crate),
                        packages/core|i18n|ui|platform (shared TS)
-Voxply-discovery    ── Next.js hub discovery service
+Wavvon-discovery    ── Next.js hub discovery service
 ```
 
-The clients were previously three separate repos (Voxply-desktop,
-Voxply-web, Voxply-android); they were consolidated into the single
-Voxply-client monorepo. Older docs may still reference the split repos.
+The clients were previously three separate repos (Wavvon-desktop,
+Wavvon-web, Wavvon-android); they were consolidated into the single
+Wavvon-client monorepo. Older docs may still reference the split repos.
 
-## The Voxply-server workspace
+## The Wavvon-server workspace
 
 The canonical deployment unit is **Farm → Server → Hub** (see
 [decisions.md](decisions.md), "Architecture: Farm → Server → Hub"): a
 farm is the control plane, a server is a compute node running a server
 agent, and a hub is the community space the agent spawns and manages.
-Standalone `voxply-hub` binary usage is deprecated.
+Standalone `wavvon-hub` binary usage is deprecated.
 
 ### `hub/` crate
 
@@ -41,9 +41,9 @@ A single hub. Owns:
   data retention (`retention_worker.rs`), cert maintenance
   (`cert_worker.rs`).
 
-Entry: `hub/src/main.rs` → `server.rs` (router setup), in Voxply-server.
+Entry: `hub/src/main.rs` → `server.rs` (router setup), in Wavvon-server.
 
-Key submodules (all under `hub/src/` in Voxply-server):
+Key submodules (all under `hub/src/` in Wavvon-server):
 - `auth/` — challenge-response signature auth (see [identity.md](identity.md))
 - `routes/` — every HTTP endpoint, one file per resource
 - `federation/` — hub-to-hub HTTP client + handlers
@@ -61,7 +61,7 @@ and "phase 3") and design in [farm-model.md](farm-model.md) /
 
 ### `server/` crate
 
-The server agent (`voxply-server` binary). Runs on each compute node,
+The server agent (`wavvon-server` binary). Runs on each compute node,
 reverse-connects to its farm over WebSocket (`agent.rs`), and spawns,
 monitors, and stops local hub processes on the farm's behalf
 (`hub_manager.rs`). No HTTP surface of its own.
@@ -80,47 +80,47 @@ networking, no storage. The hub consumes it directly, and it is the
 **canonical wire-format authority**: signing bytes, key encodings, and
 verification rules are defined by this crate. Non-Rust clients do not
 link it — the Tauri shells carry their own `identity.rs`
-(Voxply-client `apps/desktop` and `apps/android`) and the browser
-clients carry TypeScript implementations (Voxply-client
+(Wavvon-client `apps/desktop` and `apps/android`) and the browser
+clients carry TypeScript implementations (Wavvon-client
 `packages/core/src/identity/`) —
 so each reimplementation must match the crate byte-for-byte, validated
 against shared test vectors. A wire-format spec with test vectors is
-being added at `docs/wire-format.md` in Voxply-server.
+being added at `docs/wire-format.md` in Wavvon-server.
 
-- Lib entry: `identity/src/lib.rs` (Voxply-server)
-- Recovery phrases: `identity/src/recovery.rs` (Voxply-server)
-- PoW helpers (anti-spam, future): `identity/src/pow.rs` (Voxply-server)
+- Lib entry: `identity/src/lib.rs` (Wavvon-server)
+- Recovery phrases: `identity/src/recovery.rs` (Wavvon-server)
+- PoW helpers (anti-spam, future): `identity/src/pow.rs` (Wavvon-server)
 
-### `voxply-store/` and `voxply-store-sqlite/` crates
+### `wavvon-store/` and `wavvon-store-sqlite/` crates
 
-The database abstraction layer. `voxply-store` defines domain-split
+The database abstraction layer. `wavvon-store` defines domain-split
 traits (`AuthStore`, `UserStore`, `MessageStore`, …) collected into a
-`HubStore` super-trait plus a `StoreError` enum; `voxply-store-sqlite`
+`HubStore` super-trait plus a `StoreError` enum; `wavvon-store-sqlite`
 is the SQLite backend. The hub holds `Arc<dyn HubStore>` so backends
 can be selected at runtime (a Postgres backend is the intended
 community contribution). Rationale in [decisions.md](decisions.md)
 ("Database abstraction: trait-based store crate split") and design in
 [store-trait-design.md](store-trait-design.md).
 
-### `voice/` crate (in Voxply-client)
+### `voice/` crate (in Wavvon-client)
 
 Audio pipeline: capture → denoise (RNNoise) → encode (Opus) → transport
 → decode → playback. Used by the desktop and Android Tauri shells.
 
-- Pipeline orchestration: `voice/src/pipeline.rs` (Voxply-client)
-- Codec: `voice/src/codec.rs` (Voxply-client)
-- UDP transport: `voice/src/transport.rs` (Voxply-client)
-- Wire protocol: `voice/src/protocol.rs` (Voxply-client)
+- Pipeline orchestration: `voice/src/pipeline.rs` (Wavvon-client)
+- Codec: `voice/src/codec.rs` (Wavvon-client)
+- UDP transport: `voice/src/transport.rs` (Wavvon-client)
+- Wire protocol: `voice/src/protocol.rs` (Wavvon-client)
 
 See [voice.md](voice.md) for the full data flow.
 
-### `apps/desktop/` (in Voxply-client)
+### `apps/desktop/` (in Wavvon-client)
 
 Tauri 2 (Rust shell) + React 19 (UI). The Rust side handles file I/O,
 voice, and OS integration; the React side is everything you see.
 
-- React entry: `apps/desktop/src/main.tsx` → `App.tsx` (Voxply-client)
-- Tauri commands (Rust ↔ JS bridge): `apps/desktop/src-tauri/src/lib.rs` (Voxply-client)
+- React entry: `apps/desktop/src/main.tsx` → `App.tsx` (Wavvon-client)
+- Tauri commands (Rust ↔ JS bridge): `apps/desktop/src-tauri/src/lib.rs` (Wavvon-client)
 
 See [client.md](client.md) for the structure.
 
@@ -143,7 +143,7 @@ See [federation.md](federation.md) for the protocol and
   operator. (See [decisions.md](decisions.md).)
 - **One canonical identity implementation**: identity rules must agree
   exactly between hub and clients. The Rust `identity/` crate in
-  Voxply-server is the single source of truth for the wire format;
+  Wavvon-server is the single source of truth for the wire format;
   client reimplementations (Rust shells and TypeScript) are verified
   against it with shared test vectors rather than linking the crate.
 - **Farm → Server → Hub**: hubs are managed processes, not hand-run

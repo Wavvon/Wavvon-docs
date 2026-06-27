@@ -1,4 +1,4 @@
-# Store trait: database abstraction for the hub
+﻿# Store trait: database abstraction for the hub
 
 **Status:** designed, not built.
 
@@ -23,15 +23,15 @@ route. Abstracting the data layer behind traits gives that seam.
 
 ## 2. Crate layout
 
-Three crates in the Voxply-server workspace:
+Three crates in the Wavvon-server workspace:
 
 | Crate | Purpose | DB deps |
 |-------|---------|---------|
-| `voxply-store` | Trait definitions, `StoreError` enum, row/DTO structs | **none** |
-| `voxply-store-sqlite` | Current SQLite impl — all `sqlx::query*` calls move here | `sqlx` (sqlite feature) |
-| `voxply-store-postgres` | Future community backend | `sqlx` (postgres feature) |
+| `wavvon-store` | Trait definitions, `StoreError` enum, row/DTO structs | **none** |
+| `wavvon-store-sqlite` | Current SQLite impl — all `sqlx::query*` calls move here | `sqlx` (sqlite feature) |
+| `wavvon-store-postgres` | Future community backend | `sqlx` (postgres feature) |
 
-`voxply-store` is the contract. The hub binary depends on it and on exactly
+`wavvon-store` is the contract. The hub binary depends on it and on exactly
 one backend crate; it never names the other backends in code.
 
 ---
@@ -266,7 +266,7 @@ separate `tsvector`-based DDL. The hub never sees the schema text.
    unresolved. Out of scope for v1 (single-process only).
 
 3. **Test strategy.** Each backend needs integration tests against a real
-   engine. A shared `voxply-store-testsuite` crate of conformance tests that
+   engine. A shared `wavvon-store-testsuite` crate of conformance tests that
    each backend runs against its own engine would keep behaviour aligned — but
    needs design. CI: SQLite runs anywhere; Postgres needs a service container.
 
@@ -284,10 +284,10 @@ separate `tsvector`-based DDL. The hub never sees the schema text.
 
 No flag-day rewrite. Four steps, each leaving the hub compiling and green:
 
-1. **Create `voxply-store`** with traits, `StoreError`, and row structs.
+1. **Create `wavvon-store`** with traits, `StoreError`, and row structs.
    No implementation. Nothing depends on it yet.
 
-2. **Create `voxply-store-sqlite`**, moving the current `sqlx::query*`
+2. **Create `wavvon-store-sqlite`**, moving the current `sqlx::query*`
    bodies out of the routes and behind trait impls one domain at a time.
    The hub still works — it is a pure refactor, functionally identical.
 
@@ -295,7 +295,7 @@ No flag-day rewrite. Four steps, each leaving the hub compiling and green:
    `SqlitePool`, and rewrite handlers to call store methods. Replace the
    ad-hoc `.map_err` and string-sniffing with the `StoreError` mapping.
 
-4. **`voxply-store-postgres`** arrives independently as a community
+4. **`wavvon-store-postgres`** arrives independently as a community
    contribution, selected by config (`database_url = "postgresql://..."`
    in `hub.toml`). No hub change required.
 

@@ -1,4 +1,4 @@
-# Hub Operations
+﻿# Hub Operations
 
 Operational features for the people who *run* a hub — self-hosters and
 farm operators — rather than the people who chat on it. These are not
@@ -6,7 +6,7 @@ protocol changes a client sees; they keep a hub recoverable, observable,
 bounded in storage, and able to rotate its long-lived identity without
 breaking federation trust.
 
-Everything here lives in the **Voxply-server** hub crate
+Everything here lives in the **Wavvon-server** hub crate
 (`hub/` workspace). The CLI subcommands dispatch from `hub/src/main.rs`
 (see the `migrate` arm at `main.rs:107` for the existing pattern); the
 background jobs follow the `cert_worker` / `token_expiry` spawn pattern
@@ -24,15 +24,15 @@ update, and none change the federation wire format except the new
 
 **Status: designed, not started.**
 
-**Decision**: two CLI subcommands, `voxply-hub backup [<out-path>]` and
-`voxply-hub restore <path>`, that operate on durable state only. Backup
+**Decision**: two CLI subcommands, `wavvon-hub backup [<out-path>]` and
+`wavvon-hub restore <path>`, that operate on durable state only. Backup
 produces a single portable `.tar.gz` containing exactly three files:
 
 - `hub.db` — the SQLite database (all messages, channels, roles,
   members, certs, sessions).
 - `hub_identity.json` — the hub's Ed25519 keypair (loaded at
   `main.rs:124`).
-- `backup_meta.json` — `{ timestamp, hub_pubkey, voxply_version }`, for
+- `backup_meta.json` — `{ timestamp, hub_pubkey, wavvon_version }`, for
   identity verification on restore and operator sanity-checking.
 
 **What is deliberately *not* backed up**: voice packets and all
@@ -49,7 +49,7 @@ responsible for securing it (file permissions, encrypted volume, or
 piping the archive through their own `gpg`/`age`). The doc and the CLI
 output both state this loudly.
 
-**Restore behaviour** (`voxply-hub restore <path>`):
+**Restore behaviour** (`wavvon-hub restore <path>`):
 
 1. Extract the archive to a staging directory (never operate on live
    files mid-extraction).
@@ -77,7 +77,7 @@ downtime. A plain file copy with the hub shut down is simpler and
 correct. The WAL path stays open as a v2 if a no-downtime requirement
 materializes for farm operators.
 
-**Implementation side** (Voxply-server): new subcommand arms in
+**Implementation side** (Wavvon-server): new subcommand arms in
 `hub/src/main.rs` alongside `migrate`; the archive build/extract and
 meta-file verify also live in `hub/src/main.rs` (no separate module
 was needed). No new DB tables, no route changes.
@@ -128,7 +128,7 @@ quietly recreates the storage problem retention exists to solve. An
 operator who wants long-term retention simply leaves the setting NULL
 and takes backups (feature 1).
 
-**Implementation side** (Voxply-server): migration adding
+**Implementation side** (Wavvon-server): migration adding
 `channels.retention_days`; a new `hub/src/retention_worker.rs` spawned
 from `main.rs`; the `retention_days` field wired into the existing
 `PATCH /admin/channels/:id` handler and its response. No client change —
@@ -158,15 +158,15 @@ the dominant operator expectation for a pull-based scrape.
 
 | Metric | Type | Source |
 | --- | --- | --- |
-| `voxply_online_users` | gauge | `online_users.len()` (`state.rs:180`) |
-| `voxply_voice_participants` | gauge | sum of participants across `voice_channels` (`state.rs:167`) |
-| `voxply_active_game_sessions` | gauge | `active_game_sessions.len()` (`state.rs:201`) |
-| `voxply_active_video_channels` | gauge | `video_channels.len()` (`state.rs:204`) |
-| `voxply_messages_total` | counter | incremented when a message is stored |
-| `voxply_uptime_seconds` | gauge | `started_at.elapsed().as_secs()` (`state.rs:209`) |
-| `voxply_db_size_bytes` | gauge | `stat()` on the `hub.db` file |
+| `wavvon_online_users` | gauge | `online_users.len()` (`state.rs:180`) |
+| `wavvon_voice_participants` | gauge | sum of participants across `voice_channels` (`state.rs:167`) |
+| `wavvon_active_game_sessions` | gauge | `active_game_sessions.len()` (`state.rs:201`) |
+| `wavvon_active_video_channels` | gauge | `video_channels.len()` (`state.rs:204`) |
+| `wavvon_messages_total` | counter | incremented when a message is stored |
+| `wavvon_uptime_seconds` | gauge | `started_at.elapsed().as_secs()` (`state.rs:209`) |
+| `wavvon_db_size_bytes` | gauge | `stat()` on the `hub.db` file |
 
-The counter (`voxply_messages_total`) needs a process-lifetime
+The counter (`wavvon_messages_total`) needs a process-lifetime
 `AtomicU64` on `AppState`, bumped at the message-store path; it resets on
 restart, which is correct counter semantics (Prometheus handles counter
 resets). Everything else is read live from existing `AppState` fields,
@@ -179,7 +179,7 @@ in the `prometheus` crate now would add a registry abstraction for seven
 trivial values. We reach for the crate only once the metric set grows
 enough that hand-formatting becomes error-prone (labels, histograms).
 
-**Where it lives** (Voxply-server): a new `GET /metrics` handler in
+**Where it lives** (Wavvon-server): a new `GET /metrics` handler in
 `hub/src/server.rs`, mounted *outside* the auth middleware, reading
 `AppState` directly. No DB schema change beyond reading the file size.
 
@@ -233,7 +233,7 @@ existing primitives.
   payload while a rotation is active, so a peer making an ordinary `/info`
   call notices the rotation without a separate fetch.
 
-**CLI flow**: `voxply-hub rotate-key [--new-key-path <path>]`
+**CLI flow**: `wavvon-hub rotate-key [--new-key-path <path>]`
 
 1. Generate a new Ed25519 keypair (or load one from `--new-key-path`).
 2. Build the `HubKeyRotation` payload and sign it with the *old* key.
@@ -273,7 +273,7 @@ keeps a human in the loop who can confirm peers have re-pinned — the same
 "operator is the authority on their own hub" stance as
 [threat-model.md](threat-model.md).
 
-**Implementation side** (Voxply-server): `rotate-key` subcommand in
+**Implementation side** (Wavvon-server): `rotate-key` subcommand in
 `hub/src/main.rs`; a `hub/src/routes/key_rotation.rs` serving
 `GET /key-rotation`; the optional `rotation` field added to the `/info`
 handler; the `HubKeyRotation` sign/verify helper placed in the
@@ -289,7 +289,7 @@ alongside `hub_identity.json`.
   on `cron` + the CLI; managed-farm scheduling is a farm-console concern
   ([farm-model.md](farm-model.md)).
 - **Encrypted-at-rest backups** — v1 puts this on the operator; a
-  built-in passphrase-wrap (mirroring the client's `.voxply-backup`
+  built-in passphrase-wrap (mirroring the client's `.wavvon-backup`
   envelope in [identity-recovery.md](identity-recovery.md)) is a natural
   v2.
 - **Live (no-downtime) hot backup via SQLite WAL** — deferred until a

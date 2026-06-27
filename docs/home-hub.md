@@ -1,4 +1,4 @@
-# Home Hubs — Personal-Axis State
+﻿# Home Hubs — Personal-Axis State
 
 **Status**: design — no code yet. This doc supersedes the
 "Client connects directly to many hubs" stance in
@@ -144,7 +144,7 @@ connect to a home hub, ensures its own subkey cert is present on
 that hub. Devices that learned about a new revocation from any home
 hub re-publish it to others if missing. This makes the home hub list
 eventually consistent through the user's own devices — which is the
-same federated pattern the rest of Voxply uses (clients are the
+same federated pattern the rest of Wavvon uses (clients are the
 orchestrators, hubs are the dumb stores).
 
 ### Adding and removing hubs
@@ -274,22 +274,22 @@ Devices and friends learn about a new `HomeHubList` through:
 ## Files this will touch
 
 Pointers, not code copies — wiki convention. Paths under `hub/` live in
-Voxply-server; paths under `desktop/` live in Voxply-desktop.
+Wavvon-server; paths under `desktop/` live in Wavvon-desktop.
 
-- `hub/src/routes/identity.rs` (new, Voxply-server) — device registry,
+- `hub/src/routes/identity.rs` (new, Wavvon-server) — device registry,
   revocations, pairing endpoints, prefs blob, designation storage.
-- `hub/src/routes/home_hub_dms.rs` (new, Voxply-server) — canonical DM
+- `hub/src/routes/home_hub_dms.rs` (new, Wavvon-server) — canonical DM
   inbox endpoints distinct from the federation DM endpoints.
-- `hub/src/dm_worker.rs` (Voxply-server) — list-walking failover, plus
+- `hub/src/dm_worker.rs` (Wavvon-server) — list-walking failover, plus
   mirror-forward step for DMs accepted by any home hub.
-- `hub/src/db/migrations.rs` (Voxply-server) — `subkey_certs`,
+- `hub/src/db/migrations.rs` (Wavvon-server) — `subkey_certs`,
   `revocations`, `pairing_offers`, `prefs_blobs`,
   `home_hub_designations`, `dm_inbox_canonical`, `dm_mirror_forwards`.
-- `hub/src/federation/handlers.rs` (Voxply-server) — accept
+- `hub/src/federation/handlers.rs` (Wavvon-server) — accept
   designation refreshes from peer hubs.
-- `desktop/src-tauri/src/lib.rs` (Voxply-desktop) — home hub list
+- `desktop/src-tauri/src/lib.rs` (Wavvon-desktop) — home hub list
   setting, designation cache, write-to-all replication.
-- `desktop/src/` (Voxply-desktop) — list editor UI, divergence alert
+- `desktop/src/` (Wavvon-desktop) — list editor UI, divergence alert
   UI, per-slot status indicator.
 
 ## Consumers — what reads/writes the home hub list

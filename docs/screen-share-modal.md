@@ -1,8 +1,8 @@
-# Unified Screen Share Modal
+﻿# Unified Screen Share Modal
 
 **Status: designed, not built.** The current desktop picker uses the OS-native
 `getDisplayMedia()` overlay. This doc describes the planned replacement: a
-single Voxply-native modal that handles both source selection (with thumbnail
+single Wavvon-native modal that handles both source selection (with thumbnail
 previews) and audio/webcam settings in one step.
 
 See [screen-share.md](screen-share.md) for the shipped v1 transport and the
@@ -18,7 +18,7 @@ The current screen share flow has two sequential UI steps:
 2. **OS/browser native picker** — `navigator.mediaDevices.getDisplayMedia()` opens the platform's own overlay for source selection (screens, windows, browser tabs).
 
 Users experience these as two nested modals. The goal is to collapse them into
-a single Voxply-native modal that handles both source selection (with thumbnail
+a single Wavvon-native modal that handles both source selection (with thumbnail
 previews) and audio/webcam settings in one place.
 
 ---
@@ -27,7 +27,7 @@ previews) and audio/webcam settings in one place.
 
 Standard browser APIs (`getDisplayMedia()`) cannot enumerate capture sources
 or produce thumbnails without showing the OS picker. To display custom previews
-inside a Voxply modal, the desktop app (Tauri) must call platform APIs directly
+inside a Wavvon modal, the desktop app (Tauri) must call platform APIs directly
 via a new Tauri command.
 
 The web and Android clients cannot implement custom source enumeration — they
@@ -38,7 +38,7 @@ fall back to the system picker. The unified modal is a **desktop-only** feature.
 ## New Tauri command: `list_capture_sources`
 
 Returns a list of capturable screens and windows, each with a small thumbnail.
-Lives in `src-tauri/src/lib.rs` in Voxply-client:
+Lives in `src-tauri/src/lib.rs` in Wavvon-client:
 
 ```rust
 #[derive(serde::Serialize)]
@@ -60,7 +60,7 @@ thumbnail as PNG via the `image` crate.
 **macOS:** Use `CGWindowListCopyWindowInfo` + `CGWindowListCreateImageFromArray`
 for thumbnails.
 
-Both platforms: filter out the Voxply window itself, hidden windows, and tiny
+Both platforms: filter out the Wavvon window itself, hidden windows, and tiny
 windows (< 100px on either axis).
 
 Frontend call:

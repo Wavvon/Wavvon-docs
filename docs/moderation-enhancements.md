@@ -1,6 +1,6 @@
-# Moderation Enhancements
+﻿# Moderation Enhancements
 
-Three additions to hub moderation, all designed around Voxply's core
+Three additions to hub moderation, all designed around Wavvon's core
 constraint: **no central authority, sovereign hub operators**. The
 shipped controls (ban / mute / kick / timeout, channel ban, voice mute,
 talk power — see [future-features.md](future-features.md)) act on a
@@ -9,10 +9,10 @@ a hub *chooses* to honor, (2) a programmable allow/block gate the
 operator owns, and (3) a member-driven report queue. None introduces a
 global source of truth; each keeps the decision local to the operator.
 
-Authoritative code lives in `Voxply-server`
+Authoritative code lives in `Wavvon-server`
 (`hub/src/routes/moderation.rs`, `hub/src/banlist_worker.rs`,
-admin routes). Client surfaces live in `Voxply-desktop` (mirrored in
-`Voxply-web` and `Voxply-android`). Repo names are called out per piece
+admin routes). Client surfaces live in `Wavvon-desktop` (mirrored in
+`Wavvon-web` and `Wavvon-android`). Repo names are called out per piece
 below so the backend-engineer and frontend-engineer agents don't drift.
 
 ---
@@ -82,7 +82,7 @@ at the issuer's discretion. A published list reveals who a hub banned and
 **Alternative considered — DHT / global blocklist.** A single
 platform-wide list distributed over a DHT. Rejected on sovereignty
 grounds: a global list means *someone* controls who is banned everywhere,
-which is exactly the central authority Voxply refuses
+which is exactly the central authority Wavvon refuses
 ([threat-model.md](threat-model.md), "No central authority"). Per-hub
 opt-in subscription gives the same practical reach — popular curators
 emerge organically — without anyone holding a universal kill switch.
@@ -97,14 +97,14 @@ and keeps the positive and negative reputation channels separate.
 
 **Implementation contract:**
 
-- *Hub* (Voxply-server): publisher endpoint `GET /federation/banlist`
+- *Hub* (Wavvon-server): publisher endpoint `GET /federation/banlist`
   (unauthenticated, signature is the authority — same pattern as
   `/info` badge serving) in `hub/src/routes/moderation.rs`; the 6-hour
   sync job in `hub/src/banlist_worker.rs`; the `/auth/verify` gate
   change; migration for
   `federated_bans` and the `banlist_sources` + per-source policy +
   publish-enabled settings.
-- *Client* (Voxply-desktop, mirrored web/Android): admin UI to add/remove
+- *Client* (Wavvon-desktop, mirrored web/Android): admin UI to add/remove
   sources, set per-source policy, view synced entries, and apply local
   overrides; a soft-flag review surface in the admin area. Gate on the
   existing admin permission (`manage_users`).
@@ -140,7 +140,7 @@ which no operator chooses on purpose.
 Config lives in `hub_settings`: `moderation_webhook_url TEXT` and
 `moderation_webhook_secret TEXT`, set via `PATCH /admin/settings`. The
 hub signs each request with `HMAC-SHA256(secret, canonical_payload)` in
-an `X-Voxply-Signature` header so the external service can verify the
+an `X-Wavvon-Signature` header so the external service can verify the
 call genuinely came from the hub and wasn't replayed or forged.
 
 **Circuit breaker.** If the webhook returns 5xx on 3 consecutive requests
@@ -166,15 +166,15 @@ attachment scanning is deferred.
 
 **Implementation contract:**
 
-- *Hub* (Voxply-server): the pre-store dispatch in the message-create
+- *Hub* (Wavvon-server): the pre-store dispatch in the message-create
   path of `hub/src/routes/channels.rs` (or wherever message create lives),
   HMAC signing, the 500ms timeout, the circuit-breaker state, and the
   `PATCH /admin/settings` fields. The dispatch shape mirrors bot webhook
   dispatch ([bots.md](bots.md)) — reuse that HTTP client and signing
   helper rather than adding a second.
-- *Client* (Voxply-desktop, mirrored web/Android): an admin settings panel
+- *Client* (Wavvon-desktop, mirrored web/Android): an admin settings panel
   to set/clear the URL and secret and to see circuit-breaker state. The
-  external moderation service itself is **not** a Voxply repo — operators
+  external moderation service itself is **not** a Wavvon repo — operators
   bring their own; document the request/response contract above for them.
 
 ---
@@ -232,10 +232,10 @@ they do.
 
 **Implementation contract:**
 
-- *Hub* (Voxply-server): `POST /messages/:id/report`, the admin queue and
+- *Hub* (Wavvon-server): `POST /messages/:id/report`, the admin queue and
   review routes, and the `message_reports` migration. Review actions call
   into existing moderation handlers — no duplicate ban/delete logic.
-- *Client* (Voxply-desktop, mirrored web/Android): a "Report message"
+- *Client* (Wavvon-desktop, mirrored web/Android): a "Report message"
   item on the message context menu with a reason prompt; an admin
   "Reports" tab listing the pending queue with preview and the
   dismiss / delete / ban actions.
@@ -246,7 +246,7 @@ they do.
 
 - **Federated ban lists:** entry expiry / TTL on synced bans; transitive
   trust (honoring a source's *own* subscriptions); a curated public-list
-  directory in Voxply-discovery; signed *un-ban* receipts. Cross-hub
+  directory in Wavvon-discovery; signed *un-ban* receipts. Cross-hub
   propagation of a hub's own bans waits on portable hub-certifications.
 - **Auto-moderation webhook:** webhook-driven message *editing* (redact
   rather than block); per-channel webhook routing; chaining multiple

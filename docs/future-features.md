@@ -1,4 +1,4 @@
-# Future Features
+﻿# Future Features
 
 Design and implementation status for features beyond the initial launch.
 Each section notes what's shipped, what's partial, and what's still
@@ -11,11 +11,11 @@ canonical reference for ongoing implementation.
 ## OAuth social verification badges
 
 **What**: a user can link a third-party account (GitHub, Steam, Twitter/X, etc.)
-to their Voxply identity and receive a verified badge visible on their profile.
+to their Wavvon identity and receive a verified badge visible on their profile.
 The badge proves "this Ed25519 key belongs to the person who controls that
 external account" — social proof, not auth.
 
-**Why not auth**: using OAuth for login or recovery would make the Voxply identity
+**Why not auth**: using OAuth for login or recovery would make the Wavvon identity
 dependent on a centralized provider. Rejected as an auth path; see
 [`decisions.md`](decisions.md). Useful only as an opt-in metadata layer.
 
@@ -47,7 +47,7 @@ instantly. Without friction, a hub can be flooded by fresh keys.
 - Proof stored in the identity file. Hub verifies instantly with one
   hash check. Cannot be faked — pure math.
 
-**Status: SHIPPED.** `identity/src/pow.rs` (Voxply-server) implements
+**Status: SHIPPED.** `identity/src/pow.rs` (Wavvon-server) implements
 `compute_security_level()` and `verify_security_level()`. The hub reads
 `min_pow_level` from `hub_settings` (default `0` — no PoW required) and
 enforces it in `auth/handlers.rs`. The required level is advertised via
@@ -187,7 +187,7 @@ implementation state.
 - **Bot event polling** — `GET /bot/poll?since=N`, `DELETE
   /bot/events`, `POST /bot/send` for polling-based bots that don't use
   WS.
-- **Bot registry in Voxply-discovery** — `GET/POST /api/bots` for
+- **Bot registry in Wavvon-discovery** — `GET/POST /api/bots` for
   public bot listing and self-submission.
 - **Integration tests** — `hub/tests/bots_flow.rs` (343 lines) covers
   the main flows.
@@ -235,7 +235,7 @@ rotation is owner-pubkey-gated. Per-bot rate limits. See
 Read those — the writeup below is the *pre-decision* exploration kept
 for historical context only and may drift from the committed design.
 
-**Goal**: let one user have Voxply on multiple devices (phone + desktop)
+**Goal**: let one user have Wavvon on multiple devices (phone + desktop)
 under a single identity. Today every device generates its own keypair
 and is treated as a separate user. Pasting the recovery phrase on a
 second device replaces that device's identity with the first device's,
@@ -310,7 +310,7 @@ over-engineering. Option 4 is the wrong direction.
 ## Nested channels
 
 **Goal**: let users build an arbitrary tree of categories and channels.
-Remember Voxply channels are **unified text + voice** ([decisions.md](decisions.md)) —
+Remember Wavvon channels are **unified text + voice** ([decisions.md](decisions.md)) —
 a "channel" in the tree is one room where both chat and voice live.
 
 ```
@@ -541,7 +541,7 @@ you can see the channel you can subscribe to its active streams. No new
 permission surface. A channel with `private` access blocks subscriptions
 from non-members the same way it blocks chat reads.
 
-**Wire changes** (Voxply-server):
+**Wire changes** (Wavvon-server):
 
 ```
 // Client → Hub
@@ -607,7 +607,7 @@ or no decorations, launched on demand from the viewer panel. The `<video>`
 main app and the PiP window share stream state via Tauri's event/command
 bridge.
 
-**Implementation sketch** (Voxply-desktop, `src-tauri/`):
+**Implementation sketch** (Wavvon-desktop, `src-tauri/`):
 
 ```rust
 tauri::WindowBuilder::new(
@@ -615,7 +615,7 @@ tauri::WindowBuilder::new(
     "screen-share-pip",
     tauri::WindowUrl::App("pip.html".into()),
 )
-.title("Voxply — stream")
+.title("Wavvon — stream")
 .inner_size(320.0, 180.0)
 .min_inner_size(160.0, 90.0)
 .always_on_top(true)

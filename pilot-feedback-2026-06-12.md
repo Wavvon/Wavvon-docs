@@ -1,7 +1,7 @@
-# Pilot feedback — first real-world session (2026-06-12)
+﻿# Pilot feedback — first real-world session (2026-06-12)
 
 Source: first multi-user session on the live pilot hub
-(`voxply.videogamezone.eu`, hub v0.2.1) using the packaged desktop client
+(`wavvon.videogamezone.eu`, hub v0.2.1) using the packaged desktop client
 (v0.2.1 build). Reported by the owner after testing with two friends.
 Label convention as in [code-audit-2026-06-11.md](code-audit-2026-06-11.md):
 letter = component (D = desktop client), number = sequence, not severity.

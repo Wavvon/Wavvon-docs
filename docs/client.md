@@ -1,13 +1,13 @@
-# Desktop Client
+﻿# Desktop Client
 
 Tauri 2 + React 19 + TypeScript. Lives at `apps/desktop/` in the
-Voxply-client monorepo (shared TS in `packages/core|ui|platform|i18n`).
+Wavvon-client monorepo (shared TS in `packages/core|ui|platform|i18n`).
 Two halves:
 
-- **Rust shell** (`apps/desktop/src-tauri/` in Voxply-client) — file I/O,
+- **Rust shell** (`apps/desktop/src-tauri/` in Wavvon-client) — file I/O,
   voice, OS notifications, system tray, OS-native dialogs. Communicates
   with the UI via Tauri commands.
-- **React UI** (`apps/desktop/src/` in Voxply-client) — everything visual.
+- **React UI** (`apps/desktop/src/` in Wavvon-client) — everything visual.
 
 ## React entry
 
@@ -86,7 +86,7 @@ These do **not** sync across devices today. (See [decisions.md](decisions.md).)
 
 ## Tauri commands
 
-Defined in `apps/desktop/src-tauri/src/lib.rs` (Voxply-client). A non-exhaustive
+Defined in `apps/desktop/src-tauri/src/lib.rs` (Wavvon-client). A non-exhaustive
 list:
 
 - `load_identity` / `save_identity` — keypair persistence
@@ -219,7 +219,7 @@ future task.
 
 This is the reference client. The web client ([browser-client.md](browser-client.md))
 and Android client ([android-client.md](android-client.md)) reuse the same
-React UI and a shared platform layer (`packages/platform` in Voxply-client),
+React UI and a shared platform layer (`packages/platform` in Wavvon-client),
 swapping only the transport/storage adapter. All three now ship voice —
 desktop and Android over UDP via the `voice/` crate, web over the hub's
 WebSocket relay (see [voice.md](voice.md)).

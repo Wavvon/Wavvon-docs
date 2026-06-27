@@ -1,6 +1,6 @@
-# Changelog
+﻿# Changelog
 
-All notable changes to Voxply are documented here.
+All notable changes to Wavvon are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/). `v0.x.y`:
 minor bumps signal breaking wire-protocol changes; patch bumps are compatible.
@@ -13,7 +13,7 @@ minor bumps signal breaking wire-protocol changes; patch bumps are compatible.
 - Cross-platform packaging: NSIS installer (Windows), universal DMG (macOS), AppImage (Linux)
 - Auto-update via `tauri-plugin-updater` with Ed25519-signed update payloads
 - GitHub Actions CI: build-check on PR, release workflow publishes Docker images and static binaries on tag
-- Hub and farm Docker images on `ghcr.io/voxply/hub` and `ghcr.io/voxply/farm`; `docker-compose.yml` and `docker-compose.farm.yml` for self-hosters
+- Hub and farm Docker images on `ghcr.io/wavvon/hub` and `ghcr.io/wavvon/farm`; `docker-compose.yml` and `docker-compose.farm.yml` for self-hosters
 - E2E encrypted 1:1 DMs: AES-256-GCM with X25519 key agreement and Ed25519-signed envelopes
 - Screen share: hub-relayed WebM chunks, source picker, viewer panel, optional webcam
 - Hub discovery layer 3: signed public hub profiles (`GET/PUT /profile/:pubkey`)
@@ -24,7 +24,7 @@ minor bumps signal breaking wire-protocol changes; patch bumps are compatible.
 - Hub moderation: bans, mutes, channel bans, voice mutes
 - In-hub games via iframe manifests
 - Hub alliances for cross-hub channel sharing
-- Observability: structured JSON logging (`VOXPLY_LOG_FORMAT=json`), per-request `X-Request-ID` header, `GET /metrics` endpoint, optional OpenTelemetry OTLP trace export (`VOXPLY_OTLP_ENDPOINT`)
+- Observability: structured JSON logging (`WAVVON_LOG_FORMAT=json`), per-request `X-Request-ID` header, `GET /metrics` endpoint, optional OpenTelemetry OTLP trace export (`WAVVON_OTLP_ENDPOINT`)
 - Group DM plaintext warning shown before entering a group conversation
 - Cert bootstrap lockout warning in hub admin certifications settings
 - Recovery contact step-by-step guide in security settings

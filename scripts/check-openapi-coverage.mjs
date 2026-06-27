@@ -1,10 +1,10 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 // Compare the hub's registered axum routes against the paths documented in
 // openapi.yaml. Fails (exit 1) when a route exists in code but not in the
 // spec; spec paths with no matching route are reported as warnings (they may
 // be intentional, e.g. documented-but-gated endpoints).
 //
-// Usage: node scripts/check-openapi-coverage.mjs [path-to-Voxply-server-checkout]
+// Usage: node scripts/check-openapi-coverage.mjs [path-to-Wavvon-server-checkout]
 //   default checkout location: ../hub (local layout) or _hub (CI)
 
 import { readFileSync, existsSync } from "node:fs";
@@ -19,7 +19,7 @@ const hubRoot = hubArg
 
 if (!hubRoot || !existsSync(join(hubRoot, "hub", "src", "server.rs"))) {
   console.error(
-    `check-openapi-coverage: Voxply-server checkout not found (tried ${hubRoot ?? "../hub, _hub"})`,
+    `check-openapi-coverage: Wavvon-server checkout not found (tried ${hubRoot ?? "../hub, _hub"})`,
   );
   process.exit(2);
 }

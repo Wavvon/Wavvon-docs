@@ -1,4 +1,4 @@
-# Voxply Roadmap
+﻿# Wavvon Roadmap
 
 Tracks **what's next, what's broken, and what we'd like to build but
 haven't designed yet**. Everything else — architecture, design rationale,
@@ -17,8 +17,8 @@ The full history of shipped work lives in
     variants from `WsClientMessage`/`WsServerMessage` enums. Run `cargo check`.
   - [x] **S3** — Delete `farm/src/routes/games.rs`; deregister farm game routes.
     Run `cargo check`.
-  - [x] **S4** — Remove `GameStore` trait from `voxply-store` and its SQLite
-    implementation from `voxply-store-sqlite`. Run `cargo check`.
+  - [x] **S4** — Remove `GameStore` trait from `wavvon-store` and its SQLite
+    implementation from `wavvon-store-sqlite`. Run `cargo check`.
   - [x] **S5** — Drop the 6 game tables from `db/migrations.rs` (`hub_games`,
     `enabled_games`, `channel_games`, `game_sessions`, `game_shared_kv`,
     `game_channel_kv`); remove `HubGameRow`/`GameSessionRow` from `row_types.rs`;
@@ -40,7 +40,7 @@ The full history of shipped work lives in
     `ws-protocol.md`; remove "bot-launched game modals" from the bot
     deferred-scope known issue.
 
-- [ ] **Bot mini-apps + bot media** — generic mechanism for bots to embed
+- [x] **Bot mini-apps + bot media** — generic mechanism for bots to embed
   interactive web experiences and inject audio/video into channels.
   Design: [`bot-mini-apps.md`](bot-mini-apps.md), [`bot-media.md`](bot-media.md).
   Individual tasks below:
@@ -57,8 +57,8 @@ The full history of shipped work lives in
   - [x] **M4** — Hub: `POST /bots/{id}/screenshare/start` — register bot stream
     in `hub_streams`; `DELETE /bots/{id}/screenshare/stop`. Run `cargo test`.
   - [x] **M5** — Desktop client: open a second sandboxed `WebviewWindow` on
-    `bot_app_open`; inject `__VOXPLY_HUB__`, `__VOXPLY_TOKEN__`,
-    `__VOXPLY_CHANNEL__`, `__VOXPLY_BOT_ID__`. Render launch card in channel
+    `bot_app_open`; inject `__WAVVON_HUB__`, `__WAVVON_TOKEN__`,
+    `__WAVVON_CHANNEL__`, `__WAVVON_BOT_ID__`. Render launch card in channel
     on `bot_app_launch`. Run `cargo check` + `tsc --noEmit`.
   - [x] **M6** — Web client: render launch card on `bot_app_launch`; open
     sandboxed `<iframe>` on join; deliver token via `postMessage`. Run `tsc --noEmit`.
@@ -67,7 +67,7 @@ The full history of shipped work lives in
   - [x] **M8** — Add `requires_camera` to bot registration; add
     `bots.allow_camera` gate to `hub.toml`/settings; plumb camera permission
     into webview CSP on all three clients. Run `cargo check` + `tsc --noEmit`.
-  - [ ] **Docs** — Add `bot_app_*` WS messages to `ws-protocol.md`; add
+  - [x] **Docs** — Add `bot_app_*` WS messages to `ws-protocol.md`; add
     `/bots/{id}/voice/join`, `/bots/{id}/screenshare/start` to `openapi.yaml`;
     update bot operator guide with mini-app and media sections.
 
@@ -77,7 +77,7 @@ The full history of shipped work lives in
   First cross-internet voice test pending (pilot hub). Phase 2 (voice
   encryption) is separate.
 - [ ] **First external operator pilot (videogamezone.eu)** — hub v0.2.3 LIVE
-  at `https://voxply.videogamezone.eu`. Remaining: first cross-internet voice
+  at `https://wavvon.videogamezone.eu`. Remaining: first cross-internet voice
   test (everything shipped, just needs two humans), friend onboards +
   ownership transfer, doc-test feedback, two-operator federation test.
 - [ ] **Fix macOS desktop build: xcap 0.9.6 now compiles** — bumped from
@@ -108,11 +108,11 @@ The full history of shipped work lives in
 ## 📌 Wishlist (undesigned)
 
 - **Full PostgreSQL backend** — the store abstraction layer is shipped
-  (`voxply-store` traits + `voxply-store-sqlite` on `AnyPool`), and
-  `VOXPLY_DATABASE_URL=postgresql://…` can already connect, but a proper
+  (`wavvon-store` traits + `wavvon-store-sqlite` on `AnyPool`), and
+  `WAVVON_DATABASE_URL=postgresql://…` can already connect, but a proper
   Postgres backend still needs: Postgres-native migrations (replacing
   SQLite FTS5 virtual tables with `tsvector`/`pg_trgm`), a
-  `voxply-store-postgres` crate (or verified `AnyPool` coverage), CI
+  `wavvon-store-postgres` crate (or verified `AnyPool` coverage), CI
   service container for integration tests, and operator documentation.
   Design groundwork in [`store-trait-design.md`](docs/store-trait-design.md).
 
@@ -204,7 +204,7 @@ The full history of shipped work lives in
   through to the existing `ScreenShareViewer` component. tsc clean.
 
 - **Hub: first-user-becomes-owner bug fixed (2026-06-13)** — `assign_initial_roles`
-  now skips the auto-owner grant when `VOXPLY_OWNER_PUBKEY` is configured
+  now skips the auto-owner grant when `WAVVON_OWNER_PUBKEY` is configured
   (startup seeding already creates the correct owner row before traffic starts).
   `AppState` gains `owner_pubkey: Option<String>`; all test files updated.
 
@@ -235,10 +235,10 @@ The full history of shipped work lives in
   channels. Hub: 245/245 tests passing. Web: tsc clean.
 
 - **Client monorepo consolidation — all 5 stages complete (2026-06-13)** —
-  Voxply-desktop, Voxply-web, and Voxply-android collapsed into the single
-  Voxply-client pnpm + Cargo monorepo across 5 commits:
+  Wavvon-desktop, Wavvon-web, and Wavvon-android collapsed into the single
+  Wavvon-client pnpm + Cargo monorepo across 5 commits:
   Stage 0 (scaffold), Stage 1 (`packages/core` + unified invite parser
-  `parseHubInput`), Stage 2 (fold `@voxply/utils` + noble crypto into core),
+  `parseHubInput`), Stage 2 (fold `@wavvon/utils` + noble crypto into core),
   Stage 3 (`packages/ui` + 10 shared components + single `styles.css`),
   Stage 4 (`packages/platform` interface + android fork collapse into
   `apps/android/android`), Stage 5 (CI consolidated — `build.yml` with
@@ -248,18 +248,18 @@ The full history of shipped work lives in
   eliminated, dual-checkout release eliminated.
 
 - **Hub optionally self-serves the web client (2026-06-13)** — new
-  `VOXPLY_WEB_CLIENT_DIR` setting (env var + hub.toml). When set, the hub
+  `WAVVON_WEB_CLIENT_DIR` setting (env var + hub.toml). When set, the hub
   serves a pre-built SPA at `/` via tower-http `ServeDir` with a custom
   fallback handler: unmatched paths with `Accept: text/html` get `index.html`
   (SPA deep links work); unmatched paths without `Accept: text/html` get a
   plain 404 (API error semantics preserved). index.html is cached at startup
-  with `<script>window.__VOXPLY_HOME_HUB__=window.location.origin;</script>`
+  with `<script>window.__WAVVON_HOME_HUB__=window.location.origin;</script>`
   injected before `</head>` so the client defaults to its serving hub.
   --doctor and startup banner extended. The official Docker image gains a
-  `node:22-slim` web-builder stage (Voxply-web checked out to `web-client-src/`
+  `node:22-slim` web-builder stage (Wavvon-web checked out to `web-client-src/`
   in CI via the release workflow; a `web-client-src*` wildcard COPY tolerates
-  absence for local builds); `VOXPLY_WEB_CLIENT_DIR=/web-client` is the default
-  in the image. Release workflow checks out Voxply-web before `docker build`.
+  absence for local builds); `WAVVON_WEB_CLIENT_DIR=/web-client` is the default
+  in the image. Release workflow checks out Wavvon-web before `docker build`.
   7 integration tests in `hub/tests/web_client_flow.rs`; full workspace green.
   Decision + rationale in [decisions.md](docs/decisions.md).
 
@@ -278,7 +278,7 @@ The full history of shipped work lives in
   Desktop/web/android client changes needed next (see Next up above).
 
 - **H5/H6 rate-limiter trusted-proxy + IPv6 canonicalization (2026-06-12)** —
-  `rate_limit.rs` gains a `VOXPLY_TRUSTED_PROXY` setting (default false). When
+  `rate_limit.rs` gains a `WAVVON_TRUSTED_PROXY` setting (default false). When
   enabled, the limiter derives the real client IP from the last
   `X-Forwarded-For` entry (the hop the proxy observed) instead of the raw socket
   address, fixing accidental hub-wide login lockout behind Caddy/nginx (H5).
@@ -300,7 +300,7 @@ The full history of shipped work lives in
   4 new tests in `hub/tests/presence_multi_session_flow.rs`; all 44 test
   suites green.
 
-- **Hub CORS layer + self-describing CLI (2026-06-11)** — `VOXPLY_CORS_ORIGINS`
+- **Hub CORS layer + self-describing CLI (2026-06-11)** — `WAVVON_CORS_ORIGINS`
   env-var (default `*`) wires a tower-http `CorsLayer` onto the main axum
   router; `--help` prints a generated env-var table, `--version` prints the
   version, `--doctor` runs pre-flight checks (port bind, TLS PEM validity,
@@ -330,11 +330,11 @@ The full history of shipped work lives in
   warning-clean.
 
 - **ContentArea.tsx ports to all forks (2026-06-11)** — web (1,157 → ~320-line
-  composition root), android/voxply-desktop (979 → ~290), android/voxply-web
+  composition root), android/wavvon-desktop (979 → ~290), android/wavvon-web
   (881 → ~280) now mirror desktop's `components/content/` shape; each fork's
   own behavior preserved (web `@platform` adapters and mention pattern,
   android invoke/hubFetch variants, missing-feature gaps kept as-is —
-  android/voxply-web has no forum so no ForumView). tsc clean in all three
+  android/wavvon-web has no forum so no ForumView). tsc clean in all three
   apps; vitest web 6/6, android 14/14.
 
 - **ws/connection.rs dispatch refactor (2026-06-11)** — introduced `ConnState`
@@ -374,7 +374,7 @@ The full history of shipped work lives in
   directory-module conversions for `dms.rs` (1,305 lines → 4 files),
   `bots.rs` (1,236 → 5 files), `alliances.rs` (1,119 → 5 files), and
   `moderation.rs` (1,016 → 5 files); no file over ~800 lines; zero route-path
-  or public-API changes. `cargo check --workspace`, `cargo test -p voxply-hub`,
+  or public-API changes. `cargo check --workspace`, `cargo test -p wavvon-hub`,
   `cargo clippy -D warnings`, and `cargo fmt --check` all clean.
 
 - **Big-file refactor wave 1 + complete API spec (2026-06-11)** — behavior-
@@ -427,11 +427,11 @@ The full history of shipped work lives in
   All with integration tests; openapi.yaml and ws-protocol.md updated to match.
 
 - **Full CI test coverage across all repos (2026-06-10)** — vitest suites now
-  gated in CI for web (6 tests), android/voxply-web (14 tests), desktop
+  gated in CI for web (6 tests), android/wavvon-web (14 tests), desktop
   (71 tests), and discovery (28 tests); web gains i18n coverage check via tsx;
   android gains `cargo fmt --check` and `cargo clippy -D warnings` gates
-  (scoped to `voxply-desktop` crate, which is all that compiles without the
-  Android NDK); 5 pre-existing clippy warnings in android/voxply-desktop fixed
+  (scoped to `wavvon-desktop` crate, which is all that compiles without the
+  Android NDK); 5 pre-existing clippy warnings in android/wavvon-desktop fixed
   outright (1 redundant import removed, 2 needless borrows, 1 useless
   conversion, 1 `#[allow(dead_code)]` on a planned-but-unused struct); hub
   cargo test was already present. Discovery vitest suite covers `listHubs`
@@ -450,7 +450,7 @@ The full history of shipped work lives in
   validation, atomic invites, SSRF DNS-rebinding, federated-ban check on farm
   tokens, upload headers), client race/cleanup fixes + error boundaries,
   android parity restored (voice events, speaking indicators), shared
-  `@voxply/utils` package consumed by desktop/web/android, wire-format spec
+  `@wavvon/utils` package consumed by desktop/web/android, wire-format spec
   with cross-client byte-level vector tests (no divergences found), CI gains
   fmt/clippy gates and SHA-pinned actions, pre-commit secret guards in all
   repos, wiki synced with code reality. Follow-up: voice refresh is now
@@ -479,7 +479,7 @@ Older entries: [`docs/shipped-log.md`](docs/shipped-log.md).
   `assign_initial_roles` (hub `auth/handlers.rs`) grants `builtin-owner` to the
   first registrant when no owner exists, contradicting the operator guide
   ("fresh hub has no owner until assigned") and undermining
-  `VOXPLY_OWNER_PUBKEY` deployments where the operator joins later: any
+  `WAVVON_OWNER_PUBKEY` deployments where the operator joins later: any
   stranger who joins first takes the hub. Found live on the videogamezone
   pilot hub (2026-06-12). Decide the intended behavior, align code + docs.
 - **demo-seed exports recovery phrases that don't recover the seeded identity (W27)** — credentials unusable for login; re-seed/screenshot logins blocked.

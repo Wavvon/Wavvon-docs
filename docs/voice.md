@@ -1,12 +1,12 @@
-# Voice
+﻿# Voice
 
 Real-time voice over Opus, with RNNoise denoise and voice activity
 detection. Two transports share one wire format and one hub fan-out:
 **UDP** for the native clients (desktop, Android) and a **WebSocket
 relay** for the browser, which cannot open raw UDP sockets. The native
 capture/encode/playback pipeline lives in the `voice/` crate in
-Voxply-client; the hub-side UDP relay and the WS relay both live in the
-`hub/` crate in Voxply-server. All four clients participate in the same
+Wavvon-client; the hub-side UDP relay and the WS relay both live in the
+`hub/` crate in Wavvon-server. All four clients participate in the same
 voice channels.
 
 ## Pipeline
@@ -18,7 +18,7 @@ RNNoise denoise + VAD
    ↓
 Opus encode
    ↓
-UDP packet (hub/ crate UDP relay in Voxply-server)
+UDP packet (hub/ crate UDP relay in Wavvon-server)
    ↓
 Opus decode
    ↓
@@ -27,7 +27,7 @@ playback (cpal)
 
 ## Files
 
-All paths below are in the `voice/` crate of Voxply-client (the native
+All paths below are in the `voice/` crate of Wavvon-client (the native
 UDP pipeline used by the desktop and Android shells):
 
 | Stage              | File |
@@ -74,7 +74,7 @@ spoofed-source reflection vector. Design and rationale:
 
 Browsers cannot send raw UDP, so the hub exposes a second voice path
 alongside UDP: a `/voice/ws` WebSocket endpoint (`hub/src/routes/voice_ws.rs`
-in Voxply-server). A web client authenticates with its session token +
+in Wavvon-server). A web client authenticates with its session token +
 `channel_id`, receives a `voice_ws_ready` JSON frame carrying its assigned
 `sender_id` and the current participant list, then exchanges **binary Opus
 frames in the same wire format as UDP clients** — `[seq:u16 BE][ts:u32 BE]
@@ -88,7 +88,7 @@ and `voice_udp_socket`; `leave_voice` and `get_voice_participants` are
 `pub` so the WS handler shares the same participant bookkeeping as UDP.
 
 The web client side is `VoiceWsSession` in
-`apps/web/src/platform/voice.ts` (Voxply-client). It captures the
+`apps/web/src/platform/voice.ts` (Wavvon-client). It captures the
 microphone via `getUserMedia`, encodes/decodes with `opusscript` (a WASM
 Opus codec — there is no native Opus crate in the browser), framing at
 960 samples / 20 ms per frame at 48 kHz via a `ScriptProcessorNode`, and
@@ -96,7 +96,7 @@ plays decoded frames back. RNNoise/VAD denoise is not in the browser path;
 the WASM codec and the browser audio graph are the practical ceiling for
 v1.
 
-> Note: there's no separate "voice channel" type. Every Voxply channel
+> Note: there's no separate "voice channel" type. Every Wavvon channel
 > is both text and voice — joining voice is something a user does
 > *in* a channel, not a property of the channel itself. See
 > [decisions.md](decisions.md).

@@ -1,4 +1,4 @@
-# Voxply
+﻿# Wavvon
 
 **Built for players. Owned by no one.**
 
@@ -13,21 +13,21 @@ the middle. DMs are end-to-end encrypted; hubs only ever relay
 ciphertext. Everything is open source under AGPL-3.0.
 
 Looking for an open-source, self-hostable alternative to Discord or
-TeamSpeak? See the [feature comparison](COMPARISON.md) for how Voxply
+TeamSpeak? See the [feature comparison](COMPARISON.md) for how Wavvon
 stacks up — including its honest limitations.
 
-![Joining a Voxply hub: create an identity, join, start chatting — in seconds, with no signup](assets/join-flow.gif)
+![Joining a Wavvon hub: create an identity, join, start chatting — in seconds, with no signup](assets/join-flow.gif)
 
-![A Voxply community: unified text + voice channels, voice participants in the sidebar, live member presence](assets/screenshot-channel.png)
+![A Wavvon community: unified text + voice channels, voice participants in the sidebar, live member presence](assets/screenshot-channel.png)
 
 ## Get started
 
-- **Use Voxply** — download the
-  [desktop app](https://github.com/Voxply/Voxply-client/releases)
+- **Use Wavvon** — download the
+  [desktop app](https://github.com/Wavvon/Wavvon-client/releases)
   (Windows / macOS / Linux), or read
   [getting-started.md](docs/getting-started.md).
 - **Host a community** — run your own hub in 2 minutes with Docker:
-  see [Voxply-server](https://github.com/Voxply/Voxply-server), then
+  see [Wavvon-server](https://github.com/Wavvon/Wavvon-server), then
   the [hub operator guide](docs/hub-operator-guide.md).
 - **Build on it** — the whole protocol is plain HTTP + WebSocket,
   specified in [`openapi.yaml`](openapi.yaml) and
@@ -60,10 +60,10 @@ stacks up — including its honest limitations.
 
 | Repo | Local path | Contents |
 |---|---|---|
-| [Voxply](https://github.com/Voxply/Voxply) *(this repo)* | `docs/` | Architecture docs, ROADMAP, design decisions, API spec |
-| [Voxply-server](https://github.com/Voxply/Voxply-server) | `server/` | Hub server, farm tooling, seed server, identity crate |
-| [Voxply-client](https://github.com/Voxply/Voxply-client) | `clients/` | All clients (desktop / web / Android) + shared packages + voice crate |
-| [Voxply-discovery](https://github.com/Voxply/Voxply-discovery) | `discovery/` | Optional public hub directory |
+| [Wavvon](https://github.com/Wavvon/Wavvon) *(this repo)* | `docs/` | Architecture docs, ROADMAP, design decisions, API spec |
+| [Wavvon-server](https://github.com/Wavvon/Wavvon-server) | `server/` | Hub server, farm tooling, seed server, identity crate |
+| [Wavvon-client](https://github.com/Wavvon/Wavvon-client) | `clients/` | All clients (desktop / web / Android) + shared packages + voice crate |
+| [Wavvon-discovery](https://github.com/Wavvon/Wavvon-discovery) | `discovery/` | Optional public hub directory |
 
 ## Documentation
 

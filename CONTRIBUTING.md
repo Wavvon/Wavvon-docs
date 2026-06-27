@@ -1,7 +1,7 @@
-# Contributing to Voxply
+﻿# Contributing to Wavvon
 
 This document describes the branching model, development workflow, and
-release process used across all Voxply repositories.
+release process used across all Wavvon repositories.
 
 ---
 
@@ -86,7 +86,7 @@ You do not need to create tags manually.
 
 ### Versioning
 
-Voxply uses **semantic versioning** (`MAJOR.MINOR.PATCH`):
+Wavvon uses **semantic versioning** (`MAJOR.MINOR.PATCH`):
 
 | Change | Bump |
 |--------|------|

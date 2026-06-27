@@ -1,11 +1,11 @@
-# Performance ceiling
+﻿# Performance ceiling
 
 > Status: designed, not started. This doc covers what we expect to find
 > when we measure, what the current code makes us suspect the bottleneck
 > is, and how to attack each axis in order. No source changes happen
 > until the first round of measurements lands.
 
-Voxply's selling point is "a community runs on one box." The wishlist
+Wavvon's selling point is "a community runs on one box." The wishlist
 item this doc resolves is: *what does "one box" actually mean*? Three
 subsystems decide it — WS broadcast, search, voice relay. This doc
 designs the load tests, names the suspected ceiling for each, and
@@ -18,7 +18,7 @@ fails first.
 
 ## What the code says today
 
-All three subsystems live in the `hub/` crate of Voxply-server.
+All three subsystems live in the `hub/` crate of Wavvon-server.
 
 - **WS broadcast** — four `tokio::sync::broadcast` channels in
   `state.rs:84-102` (chat, voice events, DMs, screen share), each
@@ -70,7 +70,7 @@ Memory and file descriptors come next, but later than people assume:
 ### Load test design
 
 - **Tool**: a custom Rust harness in a new `loadtest/` workspace
-  crate (alongside `hub/`, `seed/`, `identity/` in Voxply-server).
+  crate (alongside `hub/`, `seed/`, `identity/` in Wavvon-server).
   k6 doesn't speak our auth (challenge/sign/exchange) cleanly, and
   hand-rolling 10k concurrent WS clients in tokio is straightforward
   and gives us metrics in the same process. The harness reuses the
@@ -254,7 +254,7 @@ case. Beyond 10 in one room, recommend splitting the conversation.
    community hub on a VPS, CPU is the scarce resource — SFU stays.
    Documenting this here so we don't redebate it.
 5. **Jitter buffer tuning**: client-side concern, not hub-side.
-   Defer to the `voice/` crate in Voxply-desktop. Mentioned for
+   Defer to the `voice/` crate in Wavvon-desktop. Mentioned for
    completeness; not part of this work.
 
 ## 4. Recommended implementation order
@@ -284,7 +284,7 @@ results go into [`hosting.md`](hosting.md) as a sizing guide.
   messages into a test channel, run 100 queries, assert p95 latency
   under a generous bound (say 500 ms). This catches regressions like
   "someone accidentally dropped the FTS5 index" without burning CI
-  minutes. Add it under `hub/tests/perf_search.rs` in Voxply-server
+  minutes. Add it under `hub/tests/perf_search.rs` in Wavvon-server
   and gate with `#[ignore]` so it runs only on `cargo test -- --ignored`
   in the perf CI job. Total runtime budget: 30 seconds.
 - **Not in CI**: WS broadcast and voice relay benchmarks. Both need
@@ -296,7 +296,7 @@ results go into [`hosting.md`](hosting.md) as a sizing guide.
   invoked manually (`cargo run --release -p loadtest -- ws-broadcast
   --clients 5000 --duration 60s`).
 - **Regression detection**: store benchmark JSON output in a
-  separate `Voxply-server-perf-history` repo (or a long-lived
+  separate `Wavvon-server-perf-history` repo (or a long-lived
   branch). Two consecutive releases give us a delta. We don't need
   Grafana for this — a CSV and a release-notes line is enough at
   community scale.
@@ -314,10 +314,10 @@ results go into [`hosting.md`](hosting.md) as a sizing guide.
 
 ## Files referenced
 
-- `hub/src/state.rs:84-102` (Voxply-server) — broadcast channels
-- `hub/src/main.rs:83-86` (Voxply-server) — channel capacity
-- `hub/src/main.rs:151-182` (Voxply-server) — UDP voice relay loop
-- `hub/src/routes/ws.rs:85-89, 174-235` (Voxply-server) — fan-out loop
-- `hub/src/routes/messages.rs:355-376` (Voxply-server) — search query
-- `hub/src/db/migrations.rs` (Voxply-server) — where FTS5 will be added
-- `voice/` crate in Voxply-desktop — see [voice.md](voice.md)
+- `hub/src/state.rs:84-102` (Wavvon-server) — broadcast channels
+- `hub/src/main.rs:83-86` (Wavvon-server) — channel capacity
+- `hub/src/main.rs:151-182` (Wavvon-server) — UDP voice relay loop
+- `hub/src/routes/ws.rs:85-89, 174-235` (Wavvon-server) — fan-out loop
+- `hub/src/routes/messages.rs:355-376` (Wavvon-server) — search query
+- `hub/src/db/migrations.rs` (Wavvon-server) — where FTS5 will be added
+- `voice/` crate in Wavvon-desktop — see [voice.md](voice.md)

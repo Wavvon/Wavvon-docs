@@ -1,4 +1,4 @@
-# Farm implementation — phases 1, 2 & 3
+﻿# Farm implementation — phases 1, 2 & 3
 
 Detailed design for the first three phases of [farm-model.md](farm-model.md):
 farm-level auth, hub multi-tenancy, and hub creation policy + admin
@@ -36,7 +36,7 @@ boundary right while it still affects one user.
 
 ### Farm and hub are separate binaries; the hub verifies tokens locally
 
-**Decision**: `farm/` is a new crate in Voxply-server alongside
+**Decision**: `farm/` is a new crate in Wavvon-server alongside
 `hub/`, `seed/`, `identity/`. It is its own binary. Hubs continue to
 run as their own processes (one binary, possibly multiple instances
 under one farm — see Phase 2). They communicate via HTTPS, not in-
@@ -52,7 +52,7 @@ process function calls.
   endpoint down with it is exactly the shape we don't want — auth
   outage stops every hub on the farm from accepting new sessions.
 - The federation primitive already exists (`hub/src/federation/client.rs`
-  in Voxply-server). Hub→farm is the same shape, one new endpoint.
+  in Wavvon-server). Hub→farm is the same shape, one new endpoint.
 
 **Tradeoff**: a small per-request cost for the hub to verify tokens
 against a (cached) farm pubkey. The next decision keeps that cost to
@@ -108,7 +108,7 @@ verifies session tokens.
 
 The farm has its own SQLite database (`farm.db`), separate from any
 hub's `hub.db`. Schema lives in a new
-`farm/src/db/migrations.rs` (Voxply-server).
+`farm/src/db/migrations.rs` (Wavvon-server).
 
 #### `farms` (singleton)
 
@@ -125,7 +125,7 @@ A one-row table. The farm's own metadata.
 
 The farm's Ed25519 keypair is generated on first start and stored
 alongside the DB in `farm_identity.json` — exactly the same pattern as
-`hub_identity.json` (`hub/src/main.rs:68` in Voxply-server). The
+`hub_identity.json` (`hub/src/main.rs:68` in Wavvon-server). The
 `public_key` column on this table is a cached copy for cheap reads.
 
 #### `farm_users`
@@ -142,7 +142,7 @@ has one row here.
 
 Note this table holds the *canonical* pubkey, the same resolution the
 hub does today in `resolve_canonical_identity`
-(`hub/src/auth/handlers.rs:29` in Voxply-server). That logic moves to
+(`hub/src/auth/handlers.rs:29` in Wavvon-server). That logic moves to
 the farm verbatim.
 
 #### `pending_challenges`
@@ -223,11 +223,11 @@ everything it needs in one local hash check.
 ### `GET /farm/info`
 
 Public, unauthenticated. Analogous to today's hub `GET /info`
-(`hub/src/routes/health.rs:15` in Voxply-server).
+(`hub/src/routes/health.rs:15` in Wavvon-server).
 
 ```json
 {
-  "kind": "voxply-farm",
+  "kind": "wavvon-farm",
   "version": "0.1.0",
   "name": "example farm",
   "description": "...",
@@ -248,7 +248,7 @@ Public, unauthenticated. Analogous to today's hub `GET /info`
 }
 ```
 
-The `kind: "voxply-farm"` discriminator lets a client probe a URL
+The `kind: "wavvon-farm"` discriminator lets a client probe a URL
 without knowing whether it points at a farm or a legacy hub. A legacy
 hub's `/info` does not have this field; clients use its presence to
 branch.
@@ -377,8 +377,8 @@ Three-step rollout:
    *both* the old code path (issue opaque tokens, validate them) and
    accepts the new farm-token shape. New clients can use either.
    No farm process exists yet; this is the on-ramp.
-2. **Stand up the farm process**. Operators run `voxply-farm` next to
-   the hub. The hub gets configured with `VOXPLY_FARM_URL=...`,
+2. **Stand up the farm process**. Operators run `wavvon-farm` next to
+   the hub. The hub gets configured with `WAVVON_FARM_URL=...`,
    fetches `/farm/info`, caches the pubkey. Clients are released that
    prefer farm tokens but fall back to hub tokens if the hub doesn't
    advertise farm support yet.
@@ -411,7 +411,7 @@ additive.
 
 A backend engineer implementing this should produce:
 
-- **New `farm/` crate in Voxply-server** mirroring `hub/`'s structure:
+- **New `farm/` crate in Wavvon-server** mirroring `hub/`'s structure:
   `farm/src/main.rs`, `farm/src/server.rs`, `farm/src/state.rs`,
   `farm/src/db/migrations.rs`, `farm/src/routes/{health,auth,hubs}.rs`,
   `farm/src/token.rs` (sign/verify helpers).
@@ -431,7 +431,7 @@ A backend engineer implementing this should produce:
   `cached_farm_pubkey: ArcSwap<...>`.
 - **`hub/src/routes/health.rs::info`**: add `farm_url` to the JSON
   response.
-- **Client changes** (`Voxply-desktop`, `Voxply-web`, `Voxply-android`):
+- **Client changes** (`Wavvon-desktop`, `Wavvon-web`, `Wavvon-android`):
   the hub-detection step before `/auth/challenge` fetches `/info`;
   if `farm_url` is set, all `/auth/*` calls target the farm; the
   resulting `Authorization` header is used against the hub
@@ -609,7 +609,7 @@ farm is "auth + directory + reverse proxy" and nothing else.
 
 ### What changes in `AppState`
 
-The hub's `AppState` (`hub/src/state.rs` in Voxply-server) is *not*
+The hub's `AppState` (`hub/src/state.rs` in Wavvon-server) is *not*
 modified by Phase 2 — each hub process has its own `AppState`, scoped
 to its own DB and own broadcast channels. This is the payoff of the
 process-separation decision above.
@@ -656,7 +656,7 @@ return `503 hub_unavailable` quickly on a downed hub.
   is the upstream hub's `/info` verbatim.
 - **Client changes**: the client now treats `farm.example.com/hub/<id>`
   as the hub's canonical URL. The `add_hub` flow (currently in
-  `Voxply-desktop`'s `AddHubModal`) accepts that URL shape; it fetches
+  `Wavvon-desktop`'s `AddHubModal`) accepts that URL shape; it fetches
   `/info` against the full path and proceeds as today. New UI work —
   browsing hubs on a farm — is deferred to Phase 4 (per
   farm-model.md). For Phase 2, the client treats farm-hosted hubs the
@@ -721,7 +721,7 @@ still pubkey-only (see `farm-model.md`). Phase 3 designates the
 |----------------|------|-----------------------------------------------------|
 | admin_pubkey   | TEXT | Ed25519 hex. The operator's user pubkey.            |
 
-Set on first start via a CLI flag (`voxply-farm --admin-pubkey <hex>`)
+Set on first start via a CLI flag (`wavvon-farm --admin-pubkey <hex>`)
 or by reading the file the operator pastes their recovery-phrase-
 derived pubkey into. Subsequent changes require either the existing
 admin's signature or a process restart with the flag — same shape as
@@ -924,14 +924,14 @@ The "Create a hub" action lives in **two** places in the client, both
 of which already exist as discovery surfaces today:
 
 - **Hub sidebar `+` button** (`ChannelSidebar` / hub-list area of
-  `App.tsx` in Voxply-desktop). Today the `+` button opens
+  `App.tsx` in Wavvon-desktop). Today the `+` button opens
   `AddHubModal` for joining an existing hub. Phase 3 wraps it in a
   small popover with two choices: **Join a hub** (existing flow) and
   **Create a hub** (new flow). The popover only renders the "Create"
   option when the user has at least one farm in their known-farms
   list that satisfies the eligibility rules (see Farm picker below) —
   no dead option ships.
-- **Discover page** (`DiscoverPage.tsx` in Voxply-desktop). A new
+- **Discover page** (`DiscoverPage.tsx` in Wavvon-desktop). A new
   tab/section "Host your own community" sits alongside the existing
   hub-listings grid. This is the discovery entry — for users who
   don't already know a farm.
@@ -992,7 +992,7 @@ field per entry:
 ```json
 {
   "url": "https://farm.example.com",
-  "kind": "voxply-farm",
+  "kind": "wavvon-farm",
   "name": "example farm",
   "added_at": 1748000000
 }
@@ -1097,7 +1097,7 @@ only the fields a non-member needs to decide whether to connect:
 
 ```json
 {
-  "kind": "voxply-farm-public",
+  "kind": "wavvon-farm-public",
   "name": "example farm",
   "description": "...",
   "creation_policy": "open",
@@ -1128,8 +1128,8 @@ discovery flips one flag.
 
 #### Discover page integration
 
-The existing `DiscoverPage.tsx` (Voxply-desktop) is today a list of
-hubs from the directory at `discovery.voxply.io`. Phase 3 adds a
+The existing `DiscoverPage.tsx` (Wavvon-desktop) is today a list of
+hubs from the directory at `discovery.wavvon.io`. Phase 3 adds a
 sibling tab/section: **"Host your own community"**.
 
 Two sources for the farm list rendered there:
@@ -1143,17 +1143,17 @@ Two sources for the farm list rendered there:
    **"Connect & create"**.
 
 There is **no** central farm registry. The discovery website
-(`Voxply-discovery`) gets an optional "Farms open for hub creation"
+(`Wavvon-discovery`) gets an optional "Farms open for hub creation"
 listing populated by the same self-submission flow hubs already use —
 hub-discovery.md's signed-listing primitive applies one-for-one
 (farm signs a payload with its Ed25519 key; directory verifies). The
 schema for a farm listing on the directory mirrors the hub-listing
-schema with `kind = "voxply-farm"` plus `creation_policy` and
+schema with `kind = "wavvon-farm"` plus `creation_policy` and
 `hub_count`. That listing flow is an extension of the existing
 discovery service and is **deferred to the same Phase 3 work in
-Voxply-discovery**, not part of the farm server changes. The farm
+Wavvon-discovery**, not part of the farm server changes. The farm
 server side ships in this phase; the directory-side extension ships
-when Voxply-discovery picks it up.
+when Wavvon-discovery picks it up.
 
 The Discover page's existing hub-grid is unchanged. The new section
 sits alongside it, switchable via a tab.
@@ -1162,7 +1162,7 @@ sits alongside it, switchable via a tab.
 
 Section D gave farms a self-describing public probe (`/farm/public-info`)
 and a paste-URL flow. Section E layers an **aggregator** on top: the
-`Voxply-discovery` website grows a farms listing, populated by farm
+`Wavvon-discovery` website grows a farms listing, populated by farm
 self-submission, that the client can fetch and rank by ping. This is the
 same shape as layer 2 of [hub-discovery.md](hub-discovery.md) — a
 convenience directory, not an authority. Any farm can self-host a
@@ -1177,7 +1177,7 @@ When the farm admin flips `allow_discovery_listing = true` via
 registration call against the discovery website:
 
 ```
-POST https://discovery.voxply.app/farms/register
+POST https://discovery.wavvon.app/farms/register
   body: {
     "farm_url": "https://farm.example.com",
     "farm_pubkey": "<ed25519 hex>",
@@ -1232,7 +1232,7 @@ On receipt it calls back to the farm:
 GET {farm_url}/farm/public-info
   expects:
     - HTTP 200
-    - kind == "voxply-farm-public"
+    - kind == "wavvon-farm-public"
     - allow_discovery_listing == true
     - signed envelope verifiable with the submitted farm_pubkey
 ```
@@ -1259,7 +1259,7 @@ Two paths, both safe against impersonation:
    `PATCH /farm/settings` triggers the farm to call:
 
    ```
-   DELETE https://discovery.voxply.app/farms/register
+   DELETE https://discovery.wavvon.app/farms/register
      body: {
        "farm_pubkey": "<ed25519 hex>",
        "nonce": "<random hex>",
@@ -1288,7 +1288,7 @@ A new public endpoint on the discovery website (not on the hub or farm
 binary):
 
 ```
-GET https://discovery.voxply.app/farms
+GET https://discovery.wavvon.app/farms
   optional query params:
     ?country=IT             — filter to farms declaring country = IT
     ?region=EU-West         — filter to farms in the region
@@ -1351,7 +1351,7 @@ Farm picker**:
 
 1. **Fetch the discovery list, country/region filtered first**.
    The client first attempts a filtered fetch against
-   `GET https://discovery.voxply.app/farms`:
+   `GET https://discovery.wavvon.app/farms`:
    - Desktop/mobile: use the OS locale/timezone to infer a likely
      country code (e.g. `Intl.DateTimeFormat().resolvedOptions().timeZone`
      → map to country). This is a best-effort hint, not authoritative.
@@ -1395,7 +1395,7 @@ Farm picker**:
 
 2. **Merge with connected farms**.
    The user's known-farms list (Phase 3C, `hubs.json`-shape entries
-   with `kind: "voxply-farm"`) is unioned with the discovery list,
+   with `kind: "wavvon-farm"`) is unioned with the discovery list,
    deduplicated by `farm_url`. Connected farms are tagged
    `connected: true` regardless of whether they appear in the
    discovery feed — a farm that has opted out of discovery but the
@@ -1516,7 +1516,7 @@ locality columns to the `farms` singleton:
 Registration remains push-only — the discovery website's
 acknowledgement is not persisted on the farm side.
 
-**Discovery website API additions** (in `Voxply-discovery`, not in
+**Discovery website API additions** (in `Wavvon-discovery`, not in
 this repo — contract only):
 
 | Method | Path                                          | Auth                  | Purpose                                  |
@@ -1529,9 +1529,9 @@ The discovery website owns the revalidation cron (every 6h), the
 listing DB schema, and any rate-limiting on registration. Those are
 internal to that service; this doc only fixes the wire contract.
 
-**Client additions** (Voxply-desktop, Voxply-web, Voxply-android):
+**Client additions** (Wavvon-desktop, Wavvon-web, Wavvon-android):
 
-- Local cache for `GET https://discovery.voxply.app/farms` — 15-minute
+- Local cache for `GET https://discovery.wavvon.app/farms` — 15-minute
   TTL, manual refresh button invalidates. Stored in the same client
   config area as the known-hosts list, separate key.
 - Parallel probe runner — 5s per attempt, 3 attempts per farm, median
@@ -1546,7 +1546,7 @@ internal to that service; this doc only fixes the wire contract.
   tag-chip selector sends repeated `?tag=` params.
 
 **Discovery website is a convenience, not a dependency**: when
-`discovery.voxply.app` is unreachable the picker still works against
+`discovery.wavvon.app` is unreachable the picker still works against
 the user's known-farms list, with paste-URL fallback (Section D)
 fully functional. An operator running an alternative aggregator can
 configure the client to point at a different `discovery_base_url` —
@@ -1569,7 +1569,7 @@ the API shape is the contract, not the hostname.
 `visibility`, `created_at`; Phase 3 reuses them.)
 
 **New endpoints on the farm** (all under `farm/src/routes/admin.rs`
-plus a couple of additions to existing route files in Voxply-server):
+plus a couple of additions to existing route files in Wavvon-server):
 
 | Method | Path                                  | Auth        | Purpose                              |
 |--------|---------------------------------------|-------------|--------------------------------------|
@@ -1595,12 +1595,12 @@ plus a couple of additions to existing route files in Voxply-server):
 - `member_count: integer` — count of distinct member pubkeys in the
   hub's `users` table. Computed cheaply on `/info` (cached, 60s TTL).
 
-**What the client must store locally** (Voxply-desktop, Voxply-web,
-Voxply-android):
+**What the client must store locally** (Wavvon-desktop, Wavvon-web,
+Wavvon-android):
 
 - The existing known-hosts list (today: `hubs.json`-shape) grows a
-  `kind: "voxply-hub" | "voxply-farm"` discriminator on each entry.
-  Existing entries default to `voxply-hub` on migration.
+  `kind: "wavvon-hub" | "wavvon-farm"` discriminator on each entry.
+  Existing entries default to `wavvon-hub` on migration.
 - Per-farm cached state on the client:
   ```
   FarmState {
@@ -1617,8 +1617,8 @@ Voxply-android):
 - Hub-creation modal state is transient (in-memory React state, not
   persisted) — the user fills it once.
 
-**Client UI surfaces** (Voxply-desktop is the reference; Voxply-web
-and Voxply-android mirror):
+**Client UI surfaces** (Wavvon-desktop is the reference; Wavvon-web
+and Wavvon-android mirror):
 
 - Hub sidebar `+` button popover: **Join a hub** / **Create a hub**.
 - `CreateHubModal` (new) with three steps: farm picker → form →

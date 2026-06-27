@@ -1,7 +1,7 @@
-# Farm Model (future)
+﻿# Farm Model (future)
 
-Voxply today is 1:1 — one `hub` binary (built from the `hub/` crate in
-Voxply-server) hosts exactly one hub. The **farm model** is a planned
+Wavvon today is 1:1 — one `hub` binary (built from the `hub/` crate in
+Wavvon-server) hosts exactly one hub. The **farm model** is a planned
 future layer that lets one server host many hubs.
 
 > Not built. This page captures the design so we don't paint ourselves
@@ -54,7 +54,7 @@ remains the canonical identity:
   says **where to currently route to**.
 - Friends, recovery phrase, federation — all keyed on pubkey.
 
-We will NOT add: per-farm signup with email/password, a central "Voxply
+We will NOT add: per-farm signup with email/password, a central "Wavvon
 Account" service, addresses like `name@farm.com`, farm tokens not tied
 to a user signature.
 
@@ -78,7 +78,7 @@ export/import; sessions don't survive the move.
 
 ## Discovery: four vectors, all opt-in
 
-1. **Direct URL** — friend invites, links shared anywhere. Voxply
+1. **Direct URL** — friend invites, links shared anywhere. Wavvon
    itself never ships a global directory.
 2. **Farm directory** — farm operator decides whether the farm publishes
    a `/hubs` listing.
@@ -135,7 +135,7 @@ Multi-month roadmap. Don't start without explicit direction.
 4. Client model update — connect to farms, browse hubs per farm
 5. Hub creation API + per-creator quotas
 6. Hub migration export/import
-7. `/info` enhancements + deep links (`voxply://farm/hub/...`) for
+7. `/info` enhancements + deep links (`wavvon://farm/hub/...`) for
    third-party indexers
 
 Right time to start: when the user has 2+ hubs themselves OR a real
@@ -147,4 +147,4 @@ When a discussion involves "many hubs on one machine," "server hosting
 hubs," or hub directories, this is the farm model. Don't confuse it with:
 
 - **Hub federation** (layer 3 — hubs on different machines talking)
-- **The `seed/` crate** in Voxply-server (layer 5 — cross-farm discovery)
+- **The `seed/` crate** in Wavvon-server (layer 5 — cross-farm discovery)

@@ -1,4 +1,4 @@
-# WebSocket Protocol Reference
+﻿# WebSocket Protocol Reference
 
 This is the complete wire contract for the hub's WebSocket endpoint. Together
 with [`openapi.yaml`](../openapi.yaml) (REST) it is sufficient to implement a
@@ -125,7 +125,7 @@ forwarded to the owning bot's HTTP webhook (not over WS).
 > (desktop, Android) use the UDP relay (the `udp_register_token` bind under
 > [`voice_joined`](#voice_joined)); the browser, which cannot open raw UDP,
 > uses a separate `/voice/ws` WebSocket relay (`hub/src/routes/voice_ws.rs`
-> in Voxply-server) carrying the same Opus wire format. The control-plane
+> in Wavvon-server) carrying the same Opus wire format. The control-plane
 > events here are identical regardless of which audio transport a participant
 > uses. See [voice.md](voice.md).
 
@@ -364,6 +364,37 @@ flushed afterwards in order.
 | field | type | notes |
 |---|---|---|
 | `since_seq` | integer (i64) | last sequence number the bot has processed |
+
+### Mini-apps
+
+#### `bot_app_announce`
+*Bot identity only.* Bot announces a mini-app session in a channel. The hub
+fans this to all channel subscribers as [`bot_app_launch`](#bot_app_launch).
+
+| field | type | notes |
+|---|---|---|
+| `title` | string | display name for the launch card |
+| `description` | string | one-line description shown below the title |
+| `channel_id` | string | channel to announce in |
+
+#### `bot_app_join`
+Any connection. Sent when a user clicks "Join" on a launch card. The hub
+mints a 4-hour scoped session token bound to this user, channel, and bot,
+then replies with [`bot_app_open`](#bot_app_open) targeted only at this
+connection.
+
+| field | type | notes |
+|---|---|---|
+| `bot_id` | string | public key of the bot that announced the session |
+| `channel_id` | string | channel the session was announced in |
+
+#### `bot_app_dismiss`
+*Bot identity only.* Bot closes the mini-app session. The hub fans
+[`bot_app_close`](#bot_app_close) to all channel subscribers.
+
+| field | type | notes |
+|---|---|---|
+| `channel_id` | string | channel the session is running in |
 
 ---
 
@@ -762,6 +793,42 @@ Reply to `stream_list`.
 | field | type | notes |
 |---|---|---|
 | `streams` | array of [HubStreamInfo](#hubstreaminfo) | |
+
+### Mini-apps
+
+#### `bot_app_launch`
+Broadcast to all subscribers of the channel when a bot calls
+[`bot_app_announce`](#bot_app_announce). Clients render a launch card with a
+"Join" button.
+
+| field | type | notes |
+|---|---|---|
+| `bot_id` | string | public key of the announcing bot |
+| `title` | string | |
+| `description` | string | |
+| `channel_id` | string | |
+
+#### `bot_app_open`
+*Targeted* — delivered only to the connection that sent `bot_app_join`.
+Contains the URL and a scoped session token the client passes to the webview.
+
+| field | type | notes |
+|---|---|---|
+| `bot_id` | string | |
+| `channel_id` | string | |
+| `mini_app_url` | string | URL the client should load in a sandboxed webview |
+| `session_token` | string | 4-hour token scoped to this user + channel + bot; injected as `window.__WAVVON_TOKEN__` |
+| `requires_camera` | boolean | `true` only when the bot declared `requires_camera` **and** the hub operator has enabled `bots_allow_camera`; clients gate the webview camera permission on this flag |
+
+#### `bot_app_close`
+Broadcast to all subscribers of the channel when a bot calls
+[`bot_app_dismiss`](#bot_app_dismiss). Clients close any open webview for
+this session.
+
+| field | type | notes |
+|---|---|---|
+| `bot_id` | string | |
+| `channel_id` | string | |
 
 ### Bot-only messages
 

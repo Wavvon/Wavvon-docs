@@ -1,7 +1,7 @@
-# Wire Format Specification
+﻿# Wire Format Specification
 
 Canonical byte-level reference for every signed binary envelope produced by
-the `identity` crate (`identity/src/wire.rs` in Voxply-server). This spec
+the `identity` crate (`identity/src/wire.rs` in Wavvon-server). This spec
 spans three feature areas: multi-device identity (SubkeyCert, Pairing*,
 RevocationEntry, HomeHubList), E2E encrypted DMs (EncryptedDmEnvelope,
 GroupEncryptedEnvelope, group key distribution), and identity verification
@@ -9,7 +9,7 @@ GroupEncryptedEnvelope, group key distribution), and identity verification
 
 Client implementations **must** reproduce these exact byte sequences to
 interoperate. The corresponding Rust test vectors live in
-`identity/tests/wire_vectors.rs` in Voxply-server; those tests assert the
+`identity/tests/wire_vectors.rs` in Wavvon-server; those tests assert the
 exact hex produced from the fixed inputs below — the spec and the code must
 stay in sync.
 
@@ -70,7 +70,7 @@ nonce_hex      : 0102030405060708090a0b0c
 Signed by the master key. Fields used for signature:
 
 ```
-prefix       : "voxply/home-hub-list/v1\0"   (24 bytes incl. NUL)
+prefix       : "wavvon/home-hub-list/v1\0"   (24 bytes incl. NUL)
 master_pubkey: write_str(master_pubkey_hex)
 hubs         : write_str_vec(hubs)
 issued_at    : write_u64_le(issued_at)
@@ -99,7 +99,7 @@ signature (master):
 Signed by the master key. Fields used for signature:
 
 ```
-prefix       : "voxply/subkey-cert/v1\0"   (22 bytes incl. NUL)
+prefix       : "wavvon/subkey-cert/v1\0"   (22 bytes incl. NUL)
 master_pubkey: write_str(master_pubkey_hex)
 subkey_pubkey: write_str(subkey_pubkey_hex)
 device_label : write_str(device_label)
@@ -132,7 +132,7 @@ signature (master):
 Signed by the master key. Fields used for signature:
 
 ```
-prefix       : "voxply/revocation/v1\0"   (21 bytes incl. NUL)
+prefix       : "wavvon/revocation/v1\0"   (21 bytes incl. NUL)
 master_pubkey: write_str(master_pubkey_hex)
 subkey_pubkey: write_str(subkey_pubkey_hex)
 revoked_at   : write_u64_le(revoked_at)
@@ -160,7 +160,7 @@ signature (master):
 Signed by the master key. Fields used for signature:
 
 ```
-prefix       : "voxply/prefs-blob/v1\0"   (21 bytes incl. NUL)
+prefix       : "wavvon/prefs-blob/v1\0"   (21 bytes incl. NUL)
 master_pubkey: write_str(master_pubkey_hex)
 blob_version : write_u64_le(blob_version)
 sha256_digest: SHA-256(ciphertext_bytes)   (32 bytes, raw)
@@ -191,7 +191,7 @@ signature (master):
 Signed by the master key. Fields used for signature:
 
 ```
-prefix        : "voxply/pairing-offer/v1\0"   (24 bytes incl. NUL)
+prefix        : "wavvon/pairing-offer/v1\0"   (24 bytes incl. NUL)
 master_pubkey : write_str(master_pubkey_hex)
 home_hubs     : write_str_vec(home_hubs)
 pairing_token : write_str(pairing_token)
@@ -221,7 +221,7 @@ signature (master):
 Signed by the **subkey** (new device), not the master. Fields used for signature:
 
 ```
-prefix        : "voxply/pairing-claim/v1\0"   (25 bytes incl. NUL)
+prefix        : "wavvon/pairing-claim/v1\0"   (25 bytes incl. NUL)
 pairing_token : write_str(pairing_token)
 subkey_pubkey : write_str(subkey_pubkey_hex)
 device_label  : write_str(device_label)
@@ -253,7 +253,7 @@ and an opaque `wrapped_blob_key_hex`. No separate signing bytes.
 ### DhKeyRecord
 
 ```
-prefix       : "voxply/dh-key/v1\0"   (18 bytes incl. NUL)
+prefix       : "wavvon/dh-key/v1\0"   (18 bytes incl. NUL)
 pubkey       : write_str(ed25519_pubkey_hex)
 dh_pubkey_hex: write_str(x25519_pubkey_hex)
 ```
@@ -284,7 +284,7 @@ Ed25519 identity key; the hub recomputes these bytes and verifies the
 signature before storing the envelope.
 
 ```
-prefix        : "voxply/dm-ciphertext/v1\0"   (24 bytes incl. NUL)
+prefix        : "wavvon/dm-ciphertext/v1\0"   (24 bytes incl. NUL)
 conv_id       : write_str(conv_id)
 ciphertext_hex: write_str(ciphertext_hex)
 nonce_hex     : write_str(nonce_hex)
@@ -316,7 +316,7 @@ Signing bytes for a group E2E encrypted DM (sender-key scheme). Signed
 by the sender's Ed25519 identity key.
 
 ```
-prefix            : "voxply/group-dm-ciphertext/v1\0"   (30 bytes incl. NUL)
+prefix            : "wavvon/group-dm-ciphertext/v1\0"   (30 bytes incl. NUL)
 conv_id           : write_str(conv_id)
 sender_key_version: write_str(decimal string of u32)
 iteration         : write_str(decimal string of u32)
@@ -350,7 +350,7 @@ Signing bytes for a group sender-key distribution push. Signed by the
 sender's Ed25519 identity key.
 
 ```
-prefix            : "voxply/group-key-dist/v1\0"   (25 bytes incl. NUL)
+prefix            : "wavvon/group-key-dist/v1\0"   (25 bytes incl. NUL)
 conv_id           : write_str(conv_id)
 sender_key_version: write_str(decimal string of u32)
 per recipient     : write_str(recipient_pubkey)
@@ -385,7 +385,7 @@ signature (master):
 ### PublicHubProfile
 
 ```
-prefix      : "voxply/public-hub-profile/v1\0"   (29 bytes incl. NUL)
+prefix      : "wavvon/public-hub-profile/v1\0"   (29 bytes incl. NUL)
 pubkey      : write_str(pubkey_hex)
 issued_at   : write_u64_le(issued_at)
 hub_count   : write_u32_le(len(public_hubs))
@@ -401,6 +401,6 @@ Signed by the user's Ed25519 identity key.
 ## Version bump policy
 
 The version tag is part of the signing bytes. Any change to the field layout
-**must** use a new tag (e.g. `voxply/subkey-cert/v2\0`) so old verifiers
+**must** use a new tag (e.g. `wavvon/subkey-cert/v2\0`) so old verifiers
 reject the new format cleanly. Add new vectors to
-`identity/tests/wire_vectors.rs` in Voxply-server for the new version.
+`identity/tests/wire_vectors.rs` in Wavvon-server for the new version.

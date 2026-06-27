@@ -1,4 +1,4 @@
-# Hub admin tooling — Archived
+﻿# Hub admin tooling — Archived
 
 > **Superseded: the hub web admin panel (`/admin/panel`) was removed.**
 > Hub management belongs in the desktop client; hub ownership is set at
@@ -6,7 +6,7 @@
 > [decisions.md](decisions.md) ("Hub admin panel removed — hub
 > management moves to desktop client") and
 > [admin-panel-auth.md](admin-panel-auth.md) (also archived). The
-> `voxply-hub admin` CLI and the farm console survive this removal;
+> `wavvon-hub admin` CLI and the farm console survive this removal;
 > this doc is kept for the historical design of all three surfaces.
 
 Three operator-facing administration surfaces, all sitting on top of
@@ -122,26 +122,26 @@ Each section is a thin caller of an existing route family:
 
 ### What changes on the implementation side
 
-- *Hub* (Voxply-server): `GET /admin/panel` serving the embedded HTML;
+- *Hub* (Wavvon-server): `GET /admin/panel` serving the embedded HTML;
   `GET /admin/stats` aggregate endpoint; `web_admin_token` row in
   `hub_settings` generated on first start and logged once; a
   bearer-token guard distinct from the user-session middleware; a
   `WEB_ADMIN_ALLOWED_ORIGINS` env var feeding the CORS layer; a
   token-rotation route. All other panel data uses existing admin routes.
-- *Client* (Voxply-desktop): none. The panel is served by the hub and
+- *Client* (Wavvon-desktop): none. The panel is served by the hub and
   rendered in a browser, not the Tauri client.
 
 ---
 
 ## Feature 2: Hub admin CLI
 
-Subcommands on the existing `voxply-hub` binary for shell-scriptable,
+Subcommands on the existing `wavvon-hub` binary for shell-scriptable,
 offline administration. Operates **directly on the local SQLite DB** —
 no HTTP, no running hub process required.
 
 ### Decision
 
-A `voxply-hub admin <subcommand>` tree that opens the hub's SQLite DB
+A `wavvon-hub admin <subcommand>` tree that opens the hub's SQLite DB
 directly. The DB path resolves from `DATABASE_URL`, defaulting to
 `hub.db`. Read commands query; write commands run inside a transaction.
 Because it touches the DB and not the network, it works while the hub is
@@ -150,17 +150,17 @@ stopped — the right mode for bulk fixes and offline maintenance.
 Subcommands mirror the web-panel sections:
 
 ```
-voxply-hub admin stats                         # JSON of current hub stats
-voxply-hub admin users list [--role R] [--limit N]
-voxply-hub admin users ban <master_pubkey> [--reason "..."]
-voxply-hub admin users unban <master_pubkey>
-voxply-hub admin channels list
-voxply-hub admin channels create <name> [--category <parent_id>]
-voxply-hub admin tokens list                   # active session + bot tokens
-voxply-hub admin tokens revoke <token_prefix>  # revoke by first 8 chars
-voxply-hub admin backup [--out <path>]
-voxply-hub admin restore <path>
-voxply-hub admin rotate-admin-token            # new web-panel token
+wavvon-hub admin stats                         # JSON of current hub stats
+wavvon-hub admin users list [--role R] [--limit N]
+wavvon-hub admin users ban <master_pubkey> [--reason "..."]
+wavvon-hub admin users unban <master_pubkey>
+wavvon-hub admin channels list
+wavvon-hub admin channels create <name> [--category <parent_id>]
+wavvon-hub admin tokens list                   # active session + bot tokens
+wavvon-hub admin tokens revoke <token_prefix>  # revoke by first 8 chars
+wavvon-hub admin backup [--out <path>]
+wavvon-hub admin restore <path>
+wavvon-hub admin rotate-admin-token            # new web-panel token
 ```
 
 Output is **JSON by default** (pipe-friendly, feeds `jq` and scripts);
@@ -192,8 +192,8 @@ Output is **JSON by default** (pipe-friendly, feeds `jq` and scripts);
 
 ### What changes on the implementation side
 
-- *Hub* (Voxply-server): a `clap` subcommand tree on the existing
-  `voxply-hub` binary under an `admin` module; it reuses the hub's DB
+- *Hub* (Wavvon-server): a `clap` subcommand tree on the existing
+  `wavvon-hub` binary under an `admin` module; it reuses the hub's DB
   layer (same migrations, same queries where possible) but opens its own
   short-lived `SqlitePool` instead of booting the full `AppState`.
   Backup/restore share the archive format with the web panel.
@@ -284,18 +284,18 @@ the hub's call.)
 
 ### What changes on the implementation side
 
-- *Farm* (Voxply-server, `farm/` crate): new
+- *Farm* (Wavvon-server, `farm/` crate): new
   `POST /farm/heartbeat` route in `farm/src/routes/` (verifies the hub's
   Ed25519 signature against `hubs.hub_pubkey`, upserts a
   `hub_heartbeats` row); `GET /farm/admin/console` serving the console
   data (or the data endpoints the desktop Farm Settings view consumes);
   the farm-level ban + ban-propagation endpoints that fan out to each
   hub's existing ban route.
-- *Hub* (Voxply-server, `hub/` crate): a 60-second background task that
-  POSTs `/farm/heartbeat` when `VOXPLY_FARM_URL` is set; a route that
+- *Hub* (Wavvon-server, `hub/` crate): a 60-second background task that
+  POSTs `/farm/heartbeat` when `WAVVON_FARM_URL` is set; a route that
   accepts farm-issued ban writes (an authenticated farm→hub call) if not
   already covered by the existing admin ban route.
-- *Client* (Voxply-desktop): the Farm console UI lives in the Phase 3B
+- *Client* (Wavvon-desktop): the Farm console UI lives in the Phase 3B
   Farm Settings view (`farm-impl.md`) — adds the live Hub Fleet panel
   (heartbeat-driven status), the cross-hub user search, and the
   ban-propagation approval UI. Web/Android mirror.

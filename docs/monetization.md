@@ -1,6 +1,6 @@
-# Monetization
+﻿# Monetization
 
-How Voxply sustains itself while staying free for everyone, forever.
+How Wavvon sustains itself while staying free for everyone, forever.
 
 **Current answer**: donations. No centralized revenue mechanism is built
 into the software or protocol. The approach to long-term sustainability is
@@ -44,10 +44,10 @@ entire surface.
   channel-as-place grounds. The conversation surface stays ad-free.
 - **Selling telemetry or user data** — rejected on sovereignty grounds.
 - **Missions / sponsor-funded sparks** — removed. Required a
-  Voxply-operated central service and introduced a permanent sponsor
+  Wavvon-operated central service and introduced a permanent sponsor
   relationship into the software. See [`decisions.md`](decisions.md).
 - **Project-operated farm hosting as a revenue line** — the project
-  publishes farm software; anyone can run a farm. A Voxply-operated
+  publishes farm software; anyone can run a farm. A Wavvon-operated
   commercial farm is an independent business decision, not a design
   constraint. See [`decisions.md`](decisions.md).
 - **Paid-placement in hub or gaming discovery** — distorts organic

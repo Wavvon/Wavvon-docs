@@ -1,9 +1,9 @@
-openapi: 3.0.3
+﻿openapi: 3.0.3
 info:
-  title: Voxply Hub API
+  title: Wavvon Hub API
   version: "1.0"
   description: |
-    REST + WebSocket API for a Voxply hub server. This file is the
+    REST + WebSocket API for a Wavvon hub server. This file is the
     protocol contract — implement a client in any language against
     this spec without reading Rust source.
 
@@ -3756,6 +3756,133 @@ paths:
                 type: object
                 properties:
                   count: { type: integer }
+
+  /bots/{id}/voice/join:
+    post:
+      summary: Bot joins a voice channel
+      description: >
+        Tells the hub which voice channel the bot wants to join. Returns the
+        `/voice/ws` path the bot should connect to using its bearer token and
+        `channel_id` as query parameters. The bot then streams Opus frames in
+        the same binary format as desktop/Android clients.
+      tags: [Bots]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+          description: Bot public key — must match the authenticated bot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [channel_id]
+              properties:
+                channel_id: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  voice_ws_url: { type: string, example: /voice/ws }
+                  channel_id: { type: string }
+        "403": { description: Caller is not the bot identified by {id} }
+        "404": { description: Channel not found }
+
+  /bots/{id}/voice/leave:
+    delete:
+      summary: Bot leaves a voice channel
+      description: >
+        Runs the same cleanup as a normal WebSocket voice disconnect.
+        Idempotent — calling when not in the channel is a no-op.
+      tags: [Bots]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [channel_id]
+              properties:
+                channel_id: { type: string }
+      responses:
+        "204": { description: No content }
+        "403": { description: Caller is not the bot identified by {id} }
+
+  /bots/{id}/screenshare/start:
+    post:
+      summary: Bot registers a video stream in a channel
+      description: >
+        Registers a new screen-share stream for the bot and broadcasts
+        `screen_share_started` to all channel subscribers. After this call
+        the bot pushes `screen_share_chunk` binary envelopes over its WS
+        connection using the returned `stream_id`.
+      tags: [Bots]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [channel_id]
+              properties:
+                channel_id: { type: string }
+                kind: { type: string, default: screen, description: "e.g. screen, webcam, video" }
+                mime: { type: string, default: video/webm }
+                has_audio: { type: boolean, default: false }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stream_id: { type: string }
+                  channel_id: { type: string }
+        "403": { description: Caller is not the bot identified by {id} }
+        "404": { description: Channel not found }
+
+  /bots/{id}/screenshare/stop:
+    delete:
+      summary: Bot stops a previously started video stream
+      description: >
+        Deregisters the stream and broadcasts `screen_share_stopped` to all
+        channel subscribers. Notifies any cross-channel subscribers that their
+        subscription ended. Idempotent — safe to call if the stream is already
+        gone.
+      tags: [Bots]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [channel_id, stream_id]
+              properties:
+                channel_id: { type: string }
+                stream_id: { type: string }
+      responses:
+        "204": { description: No content — idempotent if stream already gone }
+        "403": { description: Caller is not the bot identified by {id} }
 
   # ── Group DM membership / sender keys ─────────────────────────────────────
 

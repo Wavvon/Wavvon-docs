@@ -1,6 +1,6 @@
-# Hub Operator Guide
+﻿# Hub Operator Guide
 
-Practical reference for **operating** a Voxply hub that's already running:
+Practical reference for **operating** a Wavvon hub that's already running:
 configuration, ownership, backup/restore, upgrades, hardening, and
 observability. For how to **deploy** one in the first place (Docker
 Compose + Caddy, Docker behind an existing proxy, bare binary + systemd,
@@ -16,7 +16,7 @@ The hub reads configuration from three sources, in priority order (highest last)
 
 1. **Built-in defaults** — sensible values that work out of the box.
 2. **`hub.toml`** — a TOML file in the working directory. Copy `hub.toml.example` (shipped with the binary) and edit it. The file is optional; missing it is fine.
-3. **`VOXPLY_*` environment variables** — override anything in the file. Useful for Docker / Kubernetes where env injection is the norm.
+3. **`WAVVON_*` environment variables** — override anything in the file. Useful for Docker / Kubernetes where env injection is the norm.
 
 ### hub.toml quick reference
 
@@ -24,13 +24,13 @@ The hub reads configuration from three sources, in priority order (highest last)
 http_port       = 3000           # HTTP / WebSocket port
 voice_udp_port  = 3001           # Voice UDP relay port
 
-# tls_cert = "/etc/voxply/hub.crt"   # enable HTTPS (both must be set)
-# tls_key  = "/etc/voxply/hub.key"
+# tls_cert = "/etc/wavvon/hub.crt"   # enable HTTPS (both must be set)
+# tls_key  = "/etc/wavvon/hub.key"
 
 owner_pubkey    = "<64-hex>"     # hub owner identity (set before first boot)
 # farm_url      = "https://farm.example.com"
 
-discovery_url   = "https://discovery.voxply.io"
+discovery_url   = "https://discovery.wavvon.io"
 # template_url  = "https://example.com/template.json"
 # bootstrap_token = ""
 
@@ -38,7 +38,7 @@ log_format      = "text"         # "text" or "json"
 # otlp_endpoint = "http://localhost:4317"
 ```
 
-Every option also has a `VOXPLY_<OPTION_NAME>` env var equivalent (e.g. `VOXPLY_HTTP_PORT`, `VOXPLY_TLS_CERT`). `voxply-hub --help` prints the full table generated directly from the binary — treat it as authoritative.
+Every option also has a `WAVVON_<OPTION_NAME>` env var equivalent (e.g. `WAVVON_HTTP_PORT`, `WAVVON_TLS_CERT`). `wavvon-hub --help` prints the full table generated directly from the binary — treat it as authoritative.
 
 The hub binds to `0.0.0.0` on both ports. Data files (`hub.db`, `hub_identity.json`) are written to the process working directory; set `WorkingDirectory=` in your service unit to control where they land.
 
@@ -49,7 +49,7 @@ The REST API ships with CORS fully open (`*`) by default. This is safe: every pr
 To restrict origins (tightly-controlled deployments only):
 
 ```
-VOXPLY_CORS_ORIGINS=https://app.example.com,https://dashboard.example.com
+WAVVON_CORS_ORIGINS=https://app.example.com,https://dashboard.example.com
 ```
 
 If you restrict origins, add the serving origin of any browser client (including a hub that self-serves the web client) to the list. WebSocket connections (`/ws`) are not subject to CORS.
@@ -68,12 +68,12 @@ owner_pubkey = "<your-64-char-ed25519-pubkey>"
 
 **After first boot (CLI):**
 ```bash
-voxply-hub admin users set-owner <pubkey>
+wavvon-hub admin users set-owner <pubkey>
 ```
 
 **After first boot (web panel):**  
 Visit `http://your-server:3000/admin/panel` → Ownership tab.  
-Activate the panel first: `voxply-hub admin rotate-admin-token`
+Activate the panel first: `wavvon-hub admin rotate-admin-token`
 
 Your public key is shown in the desktop client's identity / profile panel.
 
@@ -84,8 +84,8 @@ Your public key is shown in the desktop client's identity / profile panel.
 On an empty database, the hub runs all migrations automatically.
 
 To pre-configure a hub for unattended deployment, set `template_url` in `hub.toml`
-(or `VOXPLY_TEMPLATE_URL`) to a JSON bootstrap URL and `bootstrap_token`
-(or `VOXPLY_BOOTSTRAP_TOKEN`) to authenticate against it. The hub fetches
+(or `WAVVON_TEMPLATE_URL`) to a JSON bootstrap URL and `bootstrap_token`
+(or `WAVVON_BOOTSTRAP_TOKEN`) to authenticate against it. The hub fetches
 the template on first run and creates channels, roles, and settings from it.
 See [hub-creation-wizard.md](hub-creation-wizard.md) for the template schema.
 
@@ -121,8 +121,8 @@ Or stop the hub and copy both files directly.
 Also available via the CLI subcommand:
 
 ```bash
-voxply-hub backup --out /backup/hub.tar.gz
-voxply-hub restore --from /backup/hub.tar.gz
+wavvon-hub backup --out /backup/hub.tar.gz
+wavvon-hub restore --from /backup/hub.tar.gz
 ```
 
 ---
@@ -133,7 +133,7 @@ voxply-hub restore --from /backup/hub.tar.gz
 2. Replace the binary with the new version.
 3. Start the hub. New migrations run automatically on startup.
 
-Voxply uses additive migrations only — there are no destructive schema
+Wavvon uses additive migrations only — there are no destructive schema
 changes in minor/patch upgrades. If a migration fails (e.g., disk full),
 the hub exits and the database is left untouched.
 
@@ -141,9 +141,9 @@ the hub exits and the database is left untouched.
 
 ## Basic hardening checklist
 
-- [ ] **TLS**: terminate TLS at the hub (via `VOXPLY_TLS_CERT` / `VOXPLY_TLS_KEY`)
+- [ ] **TLS**: terminate TLS at the hub (via `WAVVON_TLS_CERT` / `WAVVON_TLS_KEY`)
   or at a reverse proxy (nginx/Caddy). Never expose HTTP to the public internet.
-- [ ] **Firewall**: allow only ports 443 (HTTPS) and `VOXPLY_VOICE_UDP_PORT`
+- [ ] **Firewall**: allow only ports 443 (HTTPS) and `WAVVON_VOICE_UDP_PORT`
   (UDP). No SSH from the internet.
 - [ ] **Service user**: run the hub as a dedicated non-root user.
   `hub_identity.json` must be readable only by that user (`chmod 600`).
@@ -187,16 +187,16 @@ Returns:
 
 ```bash
 # Create an invitation link (bypasses approval gate)
-voxply-hub admin invite --expires 24h
+wavvon-hub admin invite --expires 24h
 
 # Revoke a session by token
-voxply-hub admin revoke-session <token>
+wavvon-hub admin revoke-session <token>
 
 # Promote a user to Owner
-voxply-hub admin grant-role <pubkey> builtin-owner
+wavvon-hub admin grant-role <pubkey> builtin-owner
 
 # Key rotation (updates hub_identity.json and publishes /key-rotation)
-voxply-hub rotate-key
+wavvon-hub rotate-key
 ```
 
 For the full admin CLI reference, see [hub-admin-panel.md](hub-admin-panel.md).

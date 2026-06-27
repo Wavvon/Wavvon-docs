@@ -1,15 +1,15 @@
-# Identity & Auth
+﻿# Identity & Auth
 
-Voxply has no accounts and no passwords. Identity is an Ed25519 keypair
+Wavvon has no accounts and no passwords. Identity is an Ed25519 keypair
 held by the device. Everything else (membership, permissions, history)
 hangs off the public key.
 
 ## Where identity lives
 
-- **Generation**: `identity/src/lib.rs` in Voxply-server (Ed25519 + BIP39 phrase)
-- **Recovery phrase**: `identity/src/recovery.rs` in Voxply-server (24 words)
+- **Generation**: `identity/src/lib.rs` in Wavvon-server (Ed25519 + BIP39 phrase)
+- **Recovery phrase**: `identity/src/recovery.rs` in Wavvon-server (24 words)
 - **Storage on the desktop client**: a JSON file in Tauri's app-data dir,
-  written by the Rust side in `desktop/src-tauri/src/lib.rs` in Voxply-desktop.
+  written by the Rust side in `desktop/src-tauri/src/lib.rs` in Wavvon-desktop.
 
 The recovery phrase **is** the secret — entering it on a device replaces
 that device's identity. There is currently one identity per device.
@@ -25,14 +25,14 @@ Challenge-response, signature-based:
 5. Hub verifies and issues a session token.
 
 Code path: `hub/src/auth/handlers.rs` and
-`hub/src/auth/middleware.rs` (both in Voxply-server).
+`hub/src/auth/middleware.rs` (both in Wavvon-server).
 
 ## Authorization (after auth)
 
 A user's pubkey is matched to their hub-local membership row, which
 carries their roles. Roles bundle permissions; see
-`hub/src/permissions.rs` in Voxply-server for the permission set and
-`hub/src/routes/roles.rs` in Voxply-server for role CRUD.
+`hub/src/permissions.rs` in Wavvon-server for the permission set and
+`hub/src/routes/roles.rs` in Wavvon-server for role CRUD.
 
 Common permissions: `manage_hub`, `manage_channels`, `manage_roles`,
 `manage_users`, `send_messages`, `attach_files`, etc.
@@ -42,7 +42,7 @@ Common permissions: `manage_hub`, `manage_channels`, `manage_roles`,
 Same primitive, different actor: each hub also has its own Ed25519
 keypair. When Hub A talks to Hub B, A signs requests as itself; B
 verifies. See `hub/src/federation/client.rs` and
-`hub/src/federation/handlers.rs` (both in Voxply-server).
+`hub/src/federation/handlers.rs` (both in Wavvon-server).
 
 ## Recovery flow
 
@@ -65,6 +65,6 @@ secret. We chose to ship the simple model first. See [decisions.md](decisions.md
 
 ## Anti-spam (future, not shipped)
 
-Proof-of-work knobs live in `identity/src/pow.rs` in Voxply-server. Idea: a
+Proof-of-work knobs live in `identity/src/pow.rs` in Wavvon-server. Idea: a
 hub admin sets a PoW level for joins / messages. Real solution still
 deferred — see ROADMAP.

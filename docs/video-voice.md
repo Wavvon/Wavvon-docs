@@ -1,4 +1,4 @@
-# Video in Voice Channels
+﻿# Video in Voice Channels
 
 Real-time webcam video alongside the existing UDP voice pipeline. Participants
 who enable their webcam establish WebRTC peer connections with each other; the
@@ -74,7 +74,7 @@ audio pipeline via the existing `voice_participant_speaking` WS events.
 
 **Decision**: v1 ships mesh-only. Hub operators running large events (concerts,
 conferences) can deploy a compatible SFU (mediasoup, LiveKit, Pion) and set
-`VOXPLY_SFU_URL` in their hub env. Hub advertises `sfu_url` in `GET /info`;
+`WAVVON_SFU_URL` in their hub env. Hub advertises `sfu_url` in `GET /info`;
 clients detect it and switch transport automatically. SFU integration is
 **not built in v1** — the hook is designed-in so it can be added without
 client changes.
@@ -175,7 +175,7 @@ channel member who is in voice may enable video.
 { "sfu_url": null }
 ```
 
-Populated from `VOXPLY_SFU_URL` env var. `null` = mesh mode (default).
+Populated from `WAVVON_SFU_URL` env var. `null` = mesh mode (default).
 
 ---
 

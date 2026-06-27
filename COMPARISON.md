@@ -1,13 +1,13 @@
-# Voxply — Feature Comparison
+﻿# Wavvon — Feature Comparison
 
-How Voxply compares to other voice/text chat platforms, feature by
+How Wavvon compares to other voice/text chat platforms, feature by
 feature. Kept factual and up to date as features land.
 
 ---
 
 ## At a glance
 
-| Feature | **Voxply** | Discord | Slack | Matrix / Element | TeamSpeak | Mumble |
+| Feature | **Wavvon** | Discord | Slack | Matrix / Element | TeamSpeak | Mumble |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|
 | **Open source** | ✅ fully | ❌ | ❌ | ✅ | ❌ (server) | ✅ |
 | **Self-hostable** | ✅ | ❌ | ⚠️ enterprise only | ✅ | ✅ | ✅ |
@@ -33,7 +33,7 @@ feature. Kept factual and up to date as features land.
 
 ---
 
-## Where Voxply stands out
+## Where Wavvon stands out
 
 **Identity without accounts**
 Your identity is a cryptographic keypair — no email, no password, no central service. Lose the recovery phrase and nobody can help you; keep it safe and nobody can take your identity away from you.

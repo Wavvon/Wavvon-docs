@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="1024" height="1024">
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="1024" height="1024">
   <!--
-    Voxply — rounded sunburst mark
+    Wavvon — rounded sunburst mark
     6 triangles (flat-top hex R=36, push=4) with blur+threshold rounding.
     stdDeviation=3.5 gives ~3-4 unit corner radius on a 100-unit canvas.
   -->

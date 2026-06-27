@@ -1,8 +1,8 @@
-# Missions (removed)
+﻿# Missions (removed)
 
 > **This feature has been removed.** The missions system, spark balance,
-> cosmetic catalog, and all related code in Voxply-desktop and
-> Voxply-discovery have been deleted. See the decision in
+> cosmetic catalog, and all related code in Wavvon-desktop and
+> Wavvon-discovery have been deleted. See the decision in
 > [`decisions.md`](decisions.md) — "Missions, sparks, and cosmetic catalog
 > removed". This document is kept as a historical record only.
 
@@ -24,7 +24,7 @@ removed.
 
 ## Mission service
 
-Part of **Voxply-discovery** (`discovery/`) — missions API routes live
+Part of **Wavvon-discovery** (`discovery/`) — missions API routes live
 alongside the hub and bot discovery endpoints. No separate deployment
 needed. Like a hub it has its own **Ed25519 signing
 keypair**; the public half is published at `GET /pubkey` (the same
@@ -75,7 +75,7 @@ hour triggers a re-fetch.
       "title": "Read our blog post and answer a quiz",
       "description": "Visit the linked page and complete a short quiz.",
       "reward_sparks": 100,
-      "attestation_url": "https://missions.voxply.app/attest/m-abc123",
+      "attestation_url": "https://missions.wavvon.app/attest/m-abc123",
       "expires_at": 1718086400,
       "tags": ["quiz", "reading"],
       "max_completions_per_user": 1
@@ -128,7 +128,7 @@ Claiming requires a SHA-256 proof-of-work whose **difficulty scales with
 `reward_sparks`** — a 100-spark mission costs more CPU than a 10-spark one.
 This makes high-value farming disproportionately expensive. Reuse
 `compute_security_level()` / `verify_security_level()` from
-`identity/src/pow.rs` (Voxply-server) rather than inventing a second PoW.
+`identity/src/pow.rs` (Wavvon-server) rather than inventing a second PoW.
 
 ### Layer 2 — rate limits and identity signals
 
@@ -199,7 +199,7 @@ community hub thus shows flair without ever touching billing.
 
 ---
 
-## Data model (Voxply-missions service)
+## Data model (Wavvon-missions service)
 
 ```
 missions(id, sponsor_id, title, description, reward_sparks,
@@ -229,11 +229,11 @@ Layer 2 without storing addresses in the clear.
 
 | Piece | Repo |
 |---|---|
-| Mission service, all REST routes, signing key, DB, anti-fraud | Voxply-discovery (`src/app/api/missions/`, `src/lib/missions-*.ts`) |
-| PoW primitive reused for Layer 1 | `identity/src/pow.rs` in Voxply-server |
-| Missions panel, system-browser launch, claim + PoW, balance merge | Voxply-desktop / Voxply-web / Voxply-android |
+| Mission service, all REST routes, signing key, DB, anti-fraud | Wavvon-discovery (`src/app/api/missions/`, `src/lib/missions-*.ts`) |
+| PoW primitive reused for Layer 1 | `identity/src/pow.rs` in Wavvon-server |
+| Missions panel, system-browser launch, claim + PoW, balance merge | Wavvon-desktop / Wavvon-web / Wavvon-android |
 | `MISSIONS_ENABLED` flag + flair rendering | client repos |
-| Prefs-blob spark cache | home hub list (`home-hub.md`; Voxply-server identity) |
+| Prefs-blob spark cache | home hub list (`home-hub.md`; Wavvon-server identity) |
 
 ---
 

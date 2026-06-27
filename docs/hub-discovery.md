@@ -1,4 +1,4 @@
-# Hub Discovery
+﻿# Hub Discovery
 
 How users find hubs, and how hub operators get their communities in front
 of people. Three complementary layers — each useful alone, powerful
@@ -10,7 +10,7 @@ together.
 
 | Layer | Mechanism | Who it serves |
 |---|---|---|
-| 1. Deep links | `voxply://` URI scheme + manual address entry | "I have a link or an address" |
+| 1. Deep links | `wavvon://` URI scheme + manual address entry | "I have a link or an address" |
 | 2. Directory | Website + API the client fetches from | "Show me what's out there" |
 | 3. Social graph | Signed public hub profiles on user pages | "Where are my friends?" |
 
@@ -23,12 +23,12 @@ follow.
 
 ### URI scheme
 
-The Voxply client registers a `voxply://` custom URI scheme with the OS
+The Wavvon client registers a `wavvon://` custom URI scheme with the OS
 via Tauri's deep-link plugin. Two forms:
 
 ```
-voxply://join/<host>              # public hub — no invite required
-voxply://join/<host>/<invite>     # private hub — invite code pre-filled
+wavvon://join/<host>              # public hub — no invite required
+wavvon://join/<host>/<invite>     # private hub — invite code pre-filled
 ```
 
 `<host>` is `hostname` or `hostname:port`. HTTPS is assumed; HTTP is
@@ -36,14 +36,14 @@ tried as a fallback for local/dev hosts.
 
 Examples:
 ```
-voxply://join/hub.example.com
-voxply://join/hub.example.com:8080/xK9pQ3r
+wavvon://join/hub.example.com
+wavvon://join/hub.example.com:8080/xK9pQ3r
 ```
 
 ### Manual address entry
 
 The "Add hub" dialog in the client grows a second input path: type or
-paste a hostname (or a full `voxply://` URL). The client resolves it the
+paste a hostname (or a full `wavvon://` URL). The client resolves it the
 same way as a deep link.
 
 ### Join preview flow
@@ -62,7 +62,7 @@ and wherever a hub listing is rendered.
 ### Share button (hub admin)
 
 Hub settings → Overview gains a **Share this hub** button. It generates
-the correct `voxply://join/<host>` URL (with or without an active invite
+the correct `wavvon://join/<host>` URL (with or without an active invite
 code the admin picks) and copies it to the clipboard. Optionally renders
 a QR code for in-person sharing.
 
@@ -72,7 +72,7 @@ a QR code for in-person sharing.
 
 ### Separate repository
 
-The directory lives in a separate repo (`Voxply-discovery`, a Next.js
+The directory lives in a separate repo (`Wavvon-discovery`, a Next.js
 project). Rationale: it is a web service with its own deployment
 lifecycle (deploy a CSS fix without touching the desktop or hub
 releases), its own CI/CD (Vercel / Cloudflare Pages), and a different
@@ -85,10 +85,10 @@ A public-facing web application. Key pages:
 
 - **`/`** — browseable, searchable hub listings (tag, language, name).
 - **`/hub/<pubkey>`** — individual hub page with full listing, "Open in
-  Voxply" button (the `voxply://` deep link), and a web-visible preview
+  Wavvon" button (the `wavvon://` deep link), and a web-visible preview
   for users without the client.
 - **`/submit`** — hub operators submit or update their listing.
-- **`/about`** — what Voxply is, download links.
+- **`/about`** — what Wavvon is, download links.
 
 The same listing data is served as a JSON API (see endpoints below) so
 the desktop client can embed the directory natively.
@@ -165,7 +165,7 @@ The hub's private key never leaves the server.
 ### Anti-spam
 
 - Submissions require solving a PoW puzzle (same SHA-256 primitive
-  already in `identity/src/pow.rs` in Voxply-server). Level TBD — high
+  already in `identity/src/pow.rs` in Wavvon-server). Level TBD — high
   enough to deter bulk fake listings, low enough that a single legit
   submission takes under a second.
 - The directory service re-verifies (`/info` scrape) listings on a
@@ -234,7 +234,7 @@ defaults to the official instance). Shows:
 - Clicking a card → hub preview modal (same component as Layer 1 join
   flow) → Join button
 
-The configured directory URL defaults to the official Voxply instance
+The configured directory URL defaults to the official Wavvon instance
 but can be pointed at any self-hosted directory.
 
 ---
@@ -294,9 +294,9 @@ client verify the list was produced by the user, not the hub operator.
 ## Implementation order
 
 1. **Layer 1: deep links + address entry + hub preview card** — pure
-   client work, no new service. Adds `voxply://` registration, reworks
+   client work, no new service. Adds `wavvon://` registration, reworks
    the "Add hub" dialog, adds the Share button to hub admin.
-2. **Layer 2: directory API + website** — in the `Voxply-discovery`
+2. **Layer 2: directory API + website** — in the `Wavvon-discovery`
    repo. Parallel work: hub-side signing endpoint + Tauri command +
    "Submit to directory" UI.
 3. **Layer 2: client Discover tab** — wires the directory API into the
@@ -308,7 +308,7 @@ client verify the list was produced by the user, not the hub operator.
 
 ## Open questions
 
-- **Official directory URL** — `discovery.voxply.io`? Needs a domain.
+- **Official directory URL** — `discovery.wavvon.io`? Needs a domain.
 - **PoW level for submissions** — balance against "legit submission
   should be instant". Start at level 10 (under 1 second), raise if
   spammed.
@@ -317,6 +317,6 @@ client verify the list was produced by the user, not the hub operator.
 - **Hub-initiated delisting** — if a hub goes private after listing,
   should the `/info` scrape automatically remove it? Probably yes if
   `invite_only` flips to true and no invite code is stored.
-- **Tech stack for `Voxply-discovery`** — Next.js (TypeScript, SSR,
+- **Tech stack for `Wavvon-discovery`** — Next.js (TypeScript, SSR,
   easy Vercel deploy) is what the repo ships with, a natural fit given
   the desktop client is already TypeScript/React.

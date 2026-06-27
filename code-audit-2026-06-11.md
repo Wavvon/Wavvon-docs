@@ -1,4 +1,4 @@
-# Code Audit — 2026-06-11
+﻿# Code Audit — 2026-06-11
 
 Two read-only reviews run after the screenshot work exposed a family of
 web-client bugs. Findings only; nothing was changed during the audit.
@@ -31,7 +31,7 @@ undersell the real state.
 
 ---
 
-## HUB (Voxply-server) — 21 findings
+## HUB (Wavvon-server) — 21 findings
 
 ### Correctness / security
 - **H1 [bug-now] poll + event phantom sender** — `routes/polls.rs:67-113`
@@ -115,13 +115,13 @@ undersell the real state.
   one `/federation/*` route with no caller auth — warrants a dedicated pass.
 - **H23 [security] `preview.rs` SSRF guard not proxy-aware** —
   `is_private_ip` and the link-preview fetch path key on the raw socket IP,
-  not the resolved client IP. Under `VOXPLY_TRUSTED_PROXY`, the real client
+  not the resolved client IP. Under `WAVVON_TRUSTED_PROXY`, the real client
   address should flow through the same `resolve_ip` path the rate limiter
   now uses. Surfaced while fixing H5/H6. **S-M**
 
 ---
 
-## WEB CLIENT (Voxply-web) — 25 findings
+## WEB CLIENT (Wavvon-web) — 25 findings
 
 ### WS dispatch / events
 - **W1 [bug-now] cross-channel/cross-hub message bleed** — `App.tsx:411`

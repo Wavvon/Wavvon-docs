@@ -1,13 +1,13 @@
-# Browser Client
+﻿# Browser Client
 
-A second client living at `apps/web/` in the **Voxply-client** monorepo
+A second client living at `apps/web/` in the **Wavvon-client** monorepo
 that hosts the same React UI as the desktop ([client.md](client.md)) but
 with no Tauri shell. The hub's HTTP + WebSocket API is unchanged; what
 changes is the platform layer sitting between the UI and the network.
 
 > Historical note: this doc was written when the web client was its own
-> `Voxply-web` repo and voice was deferred. Both have since changed —
-> the clients consolidated into the Voxply-client monorepo (see
+> `Wavvon-web` repo and voice was deferred. Both have since changed —
+> the clients consolidated into the Wavvon-client monorepo (see
 > [client-monorepo.md](client-monorepo.md) and [decisions.md](decisions.md)),
 > and **voice now works in the browser** over the hub's WebSocket relay
 > (see "Voice" below and [voice.md](voice.md)). The shared UI and platform
@@ -21,13 +21,13 @@ browser-platform limits (system tray, native auto-update).
 
 ## Project layout
 
-The project lives at `apps/web/` in the Voxply-client monorepo, sharing
+The project lives at `apps/web/` in the Wavvon-client monorepo, sharing
 React/TypeScript/Vite versions with the other apps via the pnpm-workspace
 catalog. (Earlier this was a standalone `web/` project in a separate repo
 with versions pinned by convention; the monorepo replaced that.)
 
 ```
-web/                            (Voxply-web repo)
+web/                            (Wavvon-web repo)
 ├── index.html
 ├── package.json
 ├── vite.config.ts
@@ -47,7 +47,7 @@ web/                            (Voxply-web repo)
     │   ├── crypto.ts       DH derive, encrypt/decrypt, signing
     │   └── recovery.ts     BIP39 wrap/unwrap of the 32-byte seed
     ├── components/         shared with desktop (via cross-repo alias)
-    └── styles.css          copy of Voxply-desktop's desktop/src/styles.css
+    └── styles.css          copy of Wavvon-desktop's desktop/src/styles.css
 ```
 
 ### Sharing UI with the desktop
@@ -58,14 +58,14 @@ considered:
 | Option | Verdict |
 |---|---|
 | Copy `components/` into both trees | Drift risk; rejected |
-| npm workspace with a `voxply-ui` shared package across repos | Cleanest but adds release machinery between repos; deferred to a later refactor |
-| Vite alias + cross-repo filesystem path back to Voxply-desktop's `desktop/src/components` | Pick this for v1 |
+| npm workspace with a `wavvon-ui` shared package across repos | Cleanest but adds release machinery between repos; deferred to a later refactor |
+| Vite alias + cross-repo filesystem path back to Wavvon-desktop's `desktop/src/components` | Pick this for v1 |
 
 `web/vite.config.ts` resolves `@components` and `@shared` to the
-Voxply-desktop checkout's `desktop/src/components` and `desktop/src/...`
+Wavvon-desktop checkout's `desktop/src/components` and `desktop/src/...`
 (the path is parameterised by an env var so CI and developer machines
 can point at the right sibling checkout). No file duplication inside
-Voxply-web, no cross-repo package release machinery. The same trick
+Wavvon-web, no cross-repo package release machinery. The same trick
 covers `types.ts`, `utils/`, and the reconnect-backoff hook.
 
 CSS is a verbatim copy of `styles.css` for v1, not a fork. When the
@@ -141,7 +141,7 @@ connect WS" on load.
 
 ## Identity in the browser
 
-The desktop reads `~/.voxply/identity.json` from Rust. The browser
+The desktop reads `~/.wavvon/identity.json` from Rust. The browser
 substitutes IndexedDB and pure-TypeScript crypto.
 
 ### Libraries
@@ -150,20 +150,20 @@ substitutes IndexedDB and pure-TypeScript crypto.
 |---|---|---|
 | Ed25519 signing | `@noble/ed25519` | Audited, pure TS, no WASM. Matches the byte-level format of `ed25519-dalek` |
 | Ed25519 → X25519 conversion | `@noble/curves/ed25519` (`edwardsToMontgomeryPriv`) | The seed→scalar→clamp recipe is exposed directly; SubtleCrypto has no equivalent |
-| BIP39 recovery phrase | `bip39` | Same wordlist and entropy format as the desktop's `voxply_identity` crate |
+| BIP39 recovery phrase | `bip39` | Same wordlist and entropy format as the desktop's `wavvon_identity` crate |
 | AES-GCM + HKDF | `@noble/ciphers` + `@noble/hashes` | See §"E2E crypto" — kept consistent with the noble stack to avoid SubtleCrypto's import ceremony |
 | IndexedDB | `idb` | Tiny Promise wrapper; the raw IndexedDB API is callback hell |
 
 ### Storage schema
 
-One IndexedDB database `voxply`, one object store `identity`, one record:
+One IndexedDB database `wavvon`, one object store `identity`, one record:
 
 ```ts
 interface IdentityRecord {
   id: "main";                  // fixed key, single-record store
   seed_hex: string;            // 32-byte Ed25519 seed, hex-encoded — same format as desktop identity.json
-  security_nonce: number;      // mirrors voxply_identity::Identity::security_nonce
-  security_level: number;      // mirrors voxply_identity::Identity::security_level
+  security_nonce: number;      // mirrors wavvon_identity::Identity::security_nonce
+  security_level: number;      // mirrors wavvon_identity::Identity::security_level
 }
 ```
 
@@ -250,7 +250,7 @@ interface WsHandlers {
 }
 ```
 
-**Reconnect.** Reuse the algorithm from Voxply-desktop's
+**Reconnect.** Reuse the algorithm from Wavvon-desktop's
 `desktop/src/hooks/useReconnectBackoff.ts` — same exponential
 backoff (1s, 2s, 4s, …, cap 30s), same manual "Reconnect" button
 override. The hook itself is portable as-is; copy it via the Vite alias.
@@ -331,7 +331,7 @@ function signBytes(msg: Uint8Array, seedHex: string): string;  // hex
 ```
 
 The envelope shape matches the Rust producer in
-`apps/desktop/src-tauri/src/lib.rs` in Voxply-client (the `encrypt_dm` Tauri command);
+`apps/desktop/src-tauri/src/lib.rs` in Wavvon-client (the `encrypt_dm` Tauri command);
 the canonical signing bytes match the format defined in
 [e2e-encryption.md](e2e-encryption.md) §"Message authentication"
 (domain-separated prefix, length-prefixed strings).
@@ -362,7 +362,7 @@ Opus fan-out and hub session auth almost unchanged. See
   WASM Opus codec), framed at 960 samples / 20 ms via a
   `ScriptProcessorNode`. No RNNoise/VAD denoise in the browser path.
 - The voice client lives in `VoiceWsSession` (`apps/web/src/platform/voice.ts`
-  in Voxply-client); `App.tsx`'s join/leave/mute/deafen handlers drive it
+  in Wavvon-client); `App.tsx`'s join/leave/mute/deafen handlers drive it
   directly (the old `showVoiceNotAvailable()` stub is gone).
 - Participant lists and `🎙️ N` badges render as on desktop; the
   mute/deafen footer buttons are live while in voice.
@@ -414,7 +414,7 @@ Everything else — `getDisplayMedia`, the WebSocket frame protocol, the
 | Identity: restore from seed | yes | yes | Hex paste, byte-identical format |
 | Identity: restore from recovery phrase | yes | yes | BIP39, same wordlist |
 | Auto-update | yes | n/a | Browser reloads; hub serves new assets |
-| Deep links (`voxply://`) | yes | partial | Browser can register a protocol handler; falls back to query-string invites |
+| Deep links (`wavvon://`) | yes | partial | Browser can register a protocol handler; falls back to query-string invites |
 | System tray | yes | **no** | Browser has no tray |
 | OS notifications | yes | yes | `Notification` API; needs user permission grant |
 | Window title unread count | yes | yes | `document.title` mutation |
@@ -432,8 +432,8 @@ Everything else — `getDisplayMedia`, the WebSocket frame protocol, the
 | **Push notifications (Web Push API)** | Hub does not implement Web Push today. Designing it means a new VAPID-keyed push subscription per device, a hub-side queue keyed on the user's subscription endpoint, and a `service-worker.js` to render notifications. Defer; the in-tab `Notification` API covers the foreground case. |
 | **CSP headers from the hub** | The hub must emit `Content-Security-Policy` permissive enough to allow `connect-src` to its own origin (HTTPS + WSS) plus any alliance peers the client might federate-fetch from. Concrete header design is a follow-up; v1 hubs may run without CSP and the browser client logs a warning. |
 | **Session persistence policy** | sessionStorage by default; localStorage + TTL opt-in (see §"Auth flow"). Revisit once the farm model lands — SSO across a farm changes the default. |
-| **Distribution: hosted page vs. browser extension** | Hosted is v1, and the primary path is **hub-served**: a hub serves this client from its own origin alongside the API (`VOXPLY_WEB_CLIENT_DIR`; the official Docker image bakes a version-matched build in and serves it at `/`). This keeps the federated story consistent — there is no central voxply.app — and means visiting `https://your-hub/` lands directly in the client, defaulted to that hub. See [hosting.md](hosting.md#serving-the-web-client). A standalone static host (e.g. GitHub Pages) also works for a client that asks the user to type a hub URL. A browser extension would let us claim `voxply://` deep links and use `chrome.storage.local` instead of IndexedDB, but it's not worth the maintenance until the hosted version is stable. |
-| **Cross-origin REST and WS to other hubs** | The browser client connects to *one* hub at a time per `HubSession`. Cross-origin REST calls are now unblocked: hubs ship with CORS fully open (`*`) by default, controlled by `VOXPLY_CORS_ORIGINS`. Operators who restrict origins should add the browser client's serving origin to that list. WebSocket is not CORS-bound. See [hub-operator-guide.md](hub-operator-guide.md#cors) for the full CORS configuration details. |
+| **Distribution: hosted page vs. browser extension** | Hosted is v1, and the primary path is **hub-served**: a hub serves this client from its own origin alongside the API (`WAVVON_WEB_CLIENT_DIR`; the official Docker image bakes a version-matched build in and serves it at `/`). This keeps the federated story consistent — there is no central wavvon.app — and means visiting `https://your-hub/` lands directly in the client, defaulted to that hub. See [hosting.md](hosting.md#serving-the-web-client). A standalone static host (e.g. GitHub Pages) also works for a client that asks the user to type a hub URL. A browser extension would let us claim `wavvon://` deep links and use `chrome.storage.local` instead of IndexedDB, but it's not worth the maintenance until the hosted version is stable. |
+| **Cross-origin REST and WS to other hubs** | The browser client connects to *one* hub at a time per `HubSession`. Cross-origin REST calls are now unblocked: hubs ship with CORS fully open (`*`) by default, controlled by `WAVVON_CORS_ORIGINS`. Operators who restrict origins should add the browser client's serving origin to that list. WebSocket is not CORS-bound. See [hub-operator-guide.md](hub-operator-guide.md#cors) for the full CORS configuration details. |
 | **Mobile browsers** | Out of scope for v1. The layout assumes desktop viewport; a responsive pass is a separate project. |
 
 ---
@@ -444,7 +444,7 @@ Everything else — `getDisplayMedia`, the WebSocket frame protocol, the
 - E2E envelope format (must match byte-for-byte): [e2e-encryption.md](e2e-encryption.md)
 - Identity model and seed format: [identity.md](identity.md)
 - Voice pipeline and the WS relay the browser uses: [voice.md](voice.md)
-- Hub HTTP routes: `hub/src/routes/mod.rs` (Voxply-server)
-- Tauri commands the adapter replaces: `apps/desktop/src-tauri/src/lib.rs` (Voxply-client)
-- Shared types the browser also consumes: `packages/core` / `apps/desktop/src/types.ts` (Voxply-client)
+- Hub HTTP routes: `hub/src/routes/mod.rs` (Wavvon-server)
+- Tauri commands the adapter replaces: `apps/desktop/src-tauri/src/lib.rs` (Wavvon-client)
+- Shared types the browser also consumes: `packages/core` / `apps/desktop/src/types.ts` (Wavvon-client)
 - Monorepo migration that consolidated the repos: [client-monorepo.md](client-monorepo.md)

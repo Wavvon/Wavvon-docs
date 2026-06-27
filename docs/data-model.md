@@ -1,7 +1,7 @@
-# Data Model
+﻿# Data Model
 
 The hub uses SQLite (via sqlx). Schema migrations live in one file:
-`hub/src/db/migrations.rs` (in Voxply-server). This page is a map, not the
+`hub/src/db/migrations.rs` (in Wavvon-server). This page is a map, not the
 schema — read the migrations file for column-level detail.
 
 ## Tables by concern
@@ -21,13 +21,13 @@ schema — read the migrations file for column-level detail.
 - `reactions` — emoji × message × user
 - `upload_files` — metadata for files uploaded via
   `POST /channels/:channel_id/upload` (multipart, 25 MB cap; bytes live
-  on disk under `VOXPLY_UPLOADS_DIR`, default `./uploads/`, served back
+  on disk under `WAVVON_UPLOADS_DIR`, default `./uploads/`, served back
   at `GET /uploads/:filename`). Clients reference an upload by URL via
   the `RemoteAttachment` wire type. Channels can point at an upload as
   their banner via `channels.banner_file_id`.
 - Small attachments can also ride **inline** as a JSON column on
   `messages` (`Attachment` wire type: base64 bytes, 3 MB cap summed per
-  message — see `hub/src/routes/chat_models.rs` in Voxply-server). The
+  message — see `hub/src/routes/chat_models.rs` in Wavvon-server). The
   upload path is the one for anything bigger.
 - (mention tracking is computed from message bodies, not a separate
   table)
@@ -75,7 +75,7 @@ are added; we don't drop or rename in place.
 
 ## Querying
 
-All query code is in `hub/src/routes/*.rs` (Voxply-server) next to the
+All query code is in `hub/src/routes/*.rs` (Wavvon-server) next to the
 endpoint that owns the data. There's no separate repository layer — sqlx
 queries are written inline with `sqlx::query!`/`query_as!` macros for
 compile-time checking.

@@ -1,9 +1,9 @@
-# Hub Certifications
+﻿# Hub Certifications
 
 **Status**: design committed, not built. Anti-spam **Layer 2** — the
 reputation layer that sits on top of the proof-of-work layer
 ([future-features.md](future-features.md) "Anti-spam"). Layer 1 (PoW)
-has primitives in `identity/src/pow.rs` (Voxply-server) and is enforced
+has primitives in `identity/src/pow.rs` (Wavvon-server) and is enforced
 through the lobby ([lobby-bot-survey.md](lobby-bot-survey.md)).
 
 A **certification** is a signed statement by a hub about a user:
@@ -16,7 +16,7 @@ new everywhere even though you're trusted somewhere."
 
 ## Certifications vs. badges — one primitive, two subjects
 
-Voxply has exactly one portable-attestation primitive: an Ed25519
+Wavvon has exactly one portable-attestation primitive: an Ed25519
 signature over a canonical JSON payload, verified locally against a
 published pubkey. It already has two subjects:
 
@@ -37,7 +37,7 @@ must not be conflated: a badge says "hub A trusts hub B"; a cert says
 "hub A has hosted user U well." They share `hub/src/federation/`
 signing code and nothing else.
 
-> The shared signer lives in `hub/src/federation/` (Voxply-server) with
+> The shared signer lives in `hub/src/federation/` (Wavvon-server) with
 > a `subject_kind: "hub" | "user"` discriminant, exactly as
 > server-tags.md "Relationship to user certifications" specifies.
 
@@ -211,7 +211,7 @@ A receiving hub verifies a presented cert by:
    receiver doesn't trust is informational, not admitting.
 
 The client ships with **no built-in trust roots** — there is no
-Voxply-blessed certifier, same stance as badges. Trust is entirely the
+Wavvon-blessed certifier, same stance as badges. Trust is entirely the
 receiving hub admin's configuration.
 
 ## 6 — Hub requirements — how an admin configures "require a cert"
@@ -316,7 +316,7 @@ behavioural cost PoW alone can't impose. The two layers compose: PoW
 gates the cheap-key flood, the standing claim gates the patient-bot
 case.
 
-## 9 — Data model & route changes (all Voxply-server unless noted)
+## 9 — Data model & route changes (all Wavvon-server unless noted)
 
 **Shared signer** (`hub/src/federation/`):
 - Extend the badge signer with the `subject_kind: "user"` arm and the
@@ -371,7 +371,7 @@ store from [home-hub.md](home-hub.md)):
 - `GET /info` (`routes/health.rs`) gains `cert_requirement` (§6) so the
   client knows what to present pre-auth.
 
-**Client** (`Voxply-desktop`, mirrored `Voxply-web` / `Voxply-android`):
+**Client** (`Wavvon-desktop`, mirrored `Wavvon-web` / `Wavvon-android`):
 - `desktop/src-tauri/src/lib.rs` — store/cache the portfolio in
   `identity.json`; fetch-and-deposit on the home hub list.
 - Tauri commands: `fetch_my_cert(hub_url)`, `list_my_certs()`,
@@ -404,7 +404,7 @@ store from [home-hub.md](home-hub.md)):
   standing; a network-wide "this user is bad" list is a different, more
   dangerous primitive (censorship-prone, no due process) and is
   explicitly out of this design.
-- **Certs as a discovery / ranking signal** on `Voxply-discovery`.
+- **Certs as a discovery / ranking signal** on `Wavvon-discovery`.
   Ranking hubs by how many users they've certified invites gaming — the
   same unsolved anti-gaming problem flagged for the gaming catalog and
   monetization paid-placement. Out until ranking is designed.

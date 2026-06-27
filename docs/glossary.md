@@ -1,9 +1,9 @@
-# Glossary
+﻿# Glossary
 
-Voxply terms, alphabetized.
+Wavvon terms, alphabetized.
 
 **Alliance** — a named group of peer hubs sharing channels, reactions,
-and (future) voice/games. Voxply's differentiator. See
+and (future) voice/games. Wavvon's differentiator. See
 [alliances.md](alliances.md).
 
 **Channel** — a place in a hub. Every channel is **unified text + voice**:
@@ -15,7 +15,7 @@ channels but no messages. Channels can be shared with an alliance.
 covers federated DMs and alliance message sharing. See
 [federation.md](federation.md).
 
-**Hub** — a single Voxply server instance. One community lives in one
+**Hub** — a single Wavvon server instance. One community lives in one
 hub. Hubs are independent — no central authority.
 
 **Hub farm** (future) — one operator running many hubs on shared
@@ -43,7 +43,7 @@ Roles have priority for moderation hierarchy.
 **Three-state notifications** — per-scope notification mode: all /
 mentions only / silent. The scope is a channel, DM, or hub.
 
-**Voice (in a channel)** — Voxply has no "voice channel" type. Every
+**Voice (in a channel)** — Wavvon has no "voice channel" type. Every
 channel is both text and voice; "in voice" means a user has joined the
 real-time audio room of a channel. The hub's UDP relay (port 3001 by
 default) is an SFU-style fan-out. See [voice.md](voice.md).

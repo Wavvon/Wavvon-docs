@@ -1,6 +1,6 @@
-# Packaging & Release
+﻿# Packaging & Release
 
-How Voxply ships to end users across Windows and Linux (the current active
+How Wavvon ships to end users across Windows and Linux (the current active
 targets), and how the hub server is distributed to operators. The Tauri 2
 bundler does the heavy lifting; this doc captures what surrounds it —
 signing, updates, CI, and the secrets matrix.
@@ -9,7 +9,7 @@ macOS is **deferred** — the Apple Developer Program ($99/year) is a
 barrier for a zero-income open-source project. macOS users can build from
 source. The Android and browser clients have shipped (see
 [android-client.md](android-client.md), [browser-client.md](browser-client.md));
-all three apps now live in the Voxply-client monorepo.
+all three apps now live in the Wavvon-client monorepo.
 
 ---
 
@@ -74,7 +74,7 @@ verify. Distro packages (PPA, COPR) are out of scope for now.
 
 - Add `tauri-plugin-updater` to `Cargo.toml` and register it in
   `tauri.conf.json` under `plugins.updater`.
-- Endpoint: `https://releases.voxply.io/latest.json` (cuttable to GitHub
+- Endpoint: `https://releases.wavvon.io/latest.json` (cuttable to GitHub
   Releases API in development).
 
 ### Update manifest shape
@@ -105,7 +105,7 @@ Tauri 2 updater JSON, served from the endpoint:
 ### UX
 
 - Check on startup, non-blocking.
-- Toast on available update: "Voxply v0.x.y is available — restart to
+- Toast on available update: "Wavvon v0.x.y is available — restart to
   update."
 - Silent background download. Apply on next restart. No forced
   interruptions.
@@ -117,7 +117,7 @@ Tauri 2 updater JSON, served from the endpoint:
 Two workflows. **Describe their structure; do not write the YAML here.**
 
 Each repo carries its own workflows. The client workflows below live in
-the Voxply-client monorepo and cover all three apps (`apps/desktop`,
+the Wavvon-client monorepo and cover all three apps (`apps/desktop`,
 `apps/web`, `apps/android`) — `build.yml` is a single workflow across
 them rather than one per former repo.
 
@@ -139,7 +139,7 @@ them rather than one per former repo.
 |---|---|
 | Matrix | `windows-latest`, `ubuntu-22.04` |
 | Setup Rust + Node | as above, no Tauri targets needed |
-| Validate | `cargo check --workspace` + `tsc --noEmit` across `apps/*` (Voxply-client) |
+| Validate | `cargo check --workspace` + `tsc --noEmit` across `apps/*` (Wavvon-client) |
 | No bundling | No installers, no signing — fast PR feedback |
 
 ### Secrets matrix
@@ -157,23 +157,23 @@ macOS notarization secrets are not used today.
 
 ## 5. Hub server distribution
 
-The hub (the `hub/` crate in Voxply-server) is a separate Rust binary
+The hub (the `hub/` crate in Wavvon-server) is a separate Rust binary
 with its own release shape — no Tauri, no updater. Two artifacts per
-release, produced by Voxply-server's own CI:
+release, produced by Wavvon-server's own CI:
 
 ### Docker image
 
-- `hub/Dockerfile` in Voxply-server: multi-stage build.
+- `hub/Dockerfile` in Wavvon-server: multi-stage build.
   - Stage 1: `rust:1-slim` builds the binary.
   - Stage 2: `gcr.io/distroless/cc` runs it. Distroless = no shell,
     no package manager, tiny attack surface.
 - Exposes port `3000` (HTTP/WS) and `3001/udp` (voice).
-- Pushed to `ghcr.io/voxply/hub:<version>` and `:latest` on tag.
+- Pushed to `ghcr.io/wavvon/hub:<version>` and `:latest` on tag.
 
 ### Static binary
 
 - `cargo build --release --target x86_64-unknown-linux-musl` for a
-  portable single-file binary. Drops into `/usr/local/bin/voxply-hub` on
+  portable single-file binary. Drops into `/usr/local/bin/wavvon-hub` on
   any Linux distro without runtime deps.
 
 ### Environment
@@ -182,7 +182,7 @@ release, produced by Voxply-server's own CI:
 |---|---|---|
 | `DATABASE_URL` | `sqlite://hub.db` | SQLite path |
 | `BIND_ADDR` | `0.0.0.0:3000` | HTTP/WS listener |
-| `HUB_IDENTITY_PATH` | `~/.voxply/hub_identity.json` | Ed25519 keypair location |
+| `HUB_IDENTITY_PATH` | `~/.wavvon/hub_identity.json` | Ed25519 keypair location |
 | `VOICE_UDP_PORT` | `3001` | Voice relay UDP socket |
 
 ### Docker Compose for self-hosters
@@ -197,8 +197,8 @@ TLS terminate it in a reverse proxy (Caddy / nginx); see `hosting.md`.
 ## 6. Versioning
 
 - **Semver**. `v0.x.y` until the wire protocol stabilises.
-- **Each repo tags independently**. Voxply-server, Voxply-client (one
-  version for desktop/web/Android together), and Voxply-discovery each
+- **Each repo tags independently**. Wavvon-server, Wavvon-client (one
+  version for desktop/web/Android together), and Wavvon-discovery each
   carry their own version. Wire-compat is the contract; the openapi.yaml
   in the docs repo is the authoritative shape. Mismatched client/hub
   versions are an operator concern only when wire-compat is broken.
@@ -221,9 +221,9 @@ Fields to add when packaging lands. Described, not written:
   (`icons/icon.ico`, `icons/icon.png`).
 - `plugins.updater.pubkey` — public half of the updater signing key (already set).
 - `plugins.updater.endpoints` — array containing the
-  `releases.voxply.io/latest.json` URL.
+  `releases.wavvon.io/latest.json` URL.
 
-The `identifier` (`com.voxply.desktop`), `productName` (`Voxply`), and
+The `identifier` (`com.wavvon.desktop`), `productName` (`Wavvon`), and
 `version` already exist and don't change.
 
 ---
@@ -241,7 +241,7 @@ The `identifier` (`com.voxply.desktop`), `productName` (`Voxply`), and
 - **Hub auto-update**: Tauri updater doesn't apply to the hub binary.
   Options: `systemd` unit with `ExecStartPre` pulling a new Docker image;
   Watchtower for container hosts; or fully manual. Deferred.
-- **Windows Store / App Stores**: store sandboxing breaks `voxply://` deep
+- **Windows Store / App Stores**: store sandboxing breaks `wavvon://` deep
   links and unrestricted filesystem access. Not worth pursuing.
 - **Delta updates**: Tauri downloads the full installer each time. Acceptable
   at current binary size (tens of MB). Revisit if the binary grows significantly.

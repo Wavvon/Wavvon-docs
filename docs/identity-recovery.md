@@ -1,4 +1,4 @@
-# Identity Recovery UX
+﻿# Identity Recovery UX
 
 **Status**: design — no code yet. Builds on the shipped recovery phrase
 ([identity.md](identity.md)) and the committed multi-device + home-hub
@@ -9,7 +9,7 @@ get the same keypair. This doc designs the **two next layers** that sit
 on top of it:
 
 1. **Backup / export** — a guided export-import of the identity file
-   wrapped in a user passphrase (`.voxply-backup`). Pure client-side
+   wrapped in a user passphrase (`.wavvon-backup`). Pure client-side
    crypto + UX. No hub involvement.
 2. **Recovery contacts** — trusted users who can *vouch* for a key
    rotation to a hub's admins when the owner loses their key. Hub-side,
@@ -41,8 +41,8 @@ gone — and they only recover hub-level standing, not the key itself.
 
 ## What's in the backup
 
-The shipped identity file lives at `~/.voxply/identity.json` (written by
-`desktop/src-tauri/src/lib.rs` in Voxply-desktop). Under the multi-device
+The shipped identity file lives at `~/.wavvon/identity.json` (written by
+`desktop/src-tauri/src/lib.rs` in Wavvon-desktop). Under the multi-device
 model it holds the master seed material plus this device's subkey. A
 backup is **that file's secret material, encrypted under a user
 passphrase**, in a self-describing envelope.
@@ -63,7 +63,7 @@ history, friends, DMs. Those are not identity — they re-derive or
 re-fetch once the imported key authenticates to its hubs. A backup is an
 identity restore, not a profile snapshot.
 
-## The `.voxply-backup` file format
+## The `.wavvon-backup` file format
 
 A small JSON envelope with the ciphertext base64'd inside. JSON (not a
 raw binary blob) so the version and KDF parameters are inspectable
@@ -71,7 +71,7 @@ without decrypting, and so the format can evolve.
 
 ```
 {
-  "format":  "voxply-backup",
+  "format":  "wavvon-backup",
   "version": 1,
   "kdf": {
     "alg":         "argon2id",
@@ -92,7 +92,7 @@ without decrypting, and so the format can evolve.
 
 - **`version`** gates the whole envelope. Bump on any format change.
   Import refuses an unknown major version with a clear "this backup was
-  made by a newer Voxply" message rather than guessing.
+  made by a newer Wavvon" message rather than guessing.
 - **KDF**: Argon2id with the parameters stored in the file, so a backup
   made with stronger parameters later still decrypts on an older client
   that knows the `argon2id` alg. We store the params rather than hardcode
@@ -105,7 +105,7 @@ without decrypting, and so the format can evolve.
 - The KDF output (32 bytes) is the AES-256 key directly. No second
   derivation step.
 
-The `.voxply-backup` extension is a convenience for the OS file picker;
+The `.wavvon-backup` extension is a convenience for the OS file picker;
 the `format` field is what the importer actually checks.
 
 ## Export flow
@@ -132,7 +132,7 @@ as a secondary action, but onboarding stays non-blocking
    (free text, e.g. "laptop backup May 2026") goes into the envelope's
    `label`.
 3. **File save** — native save dialog (Tauri's dialog plugin), default
-   filename `voxply-identity-<short-fingerprint>-<date>.voxply-backup`.
+   filename `wavvon-identity-<short-fingerprint>-<date>.wavvon-backup`.
    The user picks the location. We never auto-upload anywhere — where the
    backup lives is the user's sovereignty call, consistent with
    self-hosting being the privacy answer everywhere else.
@@ -156,10 +156,10 @@ question — see the next section).
 
 **Steps**:
 
-1. **File picker** — native open dialog filtered to `.voxply-backup`.
-   Reject anything whose `format` field isn't `voxply-backup` with a
+1. **File picker** — native open dialog filtered to `.wavvon-backup`.
+   Reject anything whose `format` field isn't `wavvon-backup` with a
    clear error; reject an unknown major `version` with the
-   "made by a newer Voxply" message.
+   "made by a newer Wavvon" message.
 2. **Passphrase entry** — single field. On submit, run Argon2id with the
    file's stored params, attempt AES-GCM decrypt. A failed AEAD tag →
    "Couldn't unlock — wrong passphrase or the file is damaged." No
@@ -172,7 +172,7 @@ question — see the next section).
      device. Nothing to do." (No-op; importing your own current backup is
      harmless.)
    - **Different fingerprint**: a blocking choice — "This device already
-     has a different Voxply identity (`ab:cd:…`). Replacing it means this
+     has a different Wavvon identity (`ab:cd:…`). Replacing it means this
      device stops being that identity. Make sure that identity is backed
      up first." Two actions: **Replace** (with a second confirm that names
      both fingerprints) or **Cancel**. We never silently overwrite an
@@ -238,7 +238,7 @@ happens hub by hub, on each hub where the user wants their standing back.
 
 ## What a recovery contact is
 
-A recovery contact is **another Voxply user's master pubkey, designated
+A recovery contact is **another Wavvon user's master pubkey, designated
 by the owner on a specific hub**, marked as trusted to vouch for a key
 rotation. Properties:
 
@@ -372,7 +372,7 @@ adds no new trust assumption).
 
 ## Data model
 
-Community-axis tables, on the community hub (`hub/` in Voxply-server).
+Community-axis tables, on the community hub (`hub/` in Wavvon-server).
 These join the existing per-hub schema; they are **not** on the home hub
 list.
 
@@ -424,7 +424,7 @@ replayed against another hub where the same contact relationship exists.
 
 ## Route changes
 
-All on the community hub (`hub/src/routes/` in Voxply-server). A new
+All on the community hub (`hub/src/routes/` in Wavvon-server). A new
 `recovery.rs` route module:
 
 - `PUT /recovery/contacts` — owner sets/replaces their recovery-contact
@@ -456,7 +456,7 @@ panel can poll on mount for v1.
 
 ## Client changes
 
-Mirrored across `Voxply-desktop`, `Voxply-web`, `Voxply-android` (same
+Mirrored across `Wavvon-desktop`, `Wavvon-web`, `Wavvon-android` (same
 wire shapes, UI parity — the established pattern):
 
 - **Owner side**, Settings → Security → "Recovery contacts" (per-hub
@@ -571,25 +571,25 @@ multi-device Phase 1 (master derivation) at minimum.
 
 ## Files this will touch
 
-Pointers, not code. Paths under `desktop/` are Voxply-desktop; under
-`hub/`/`identity/` are Voxply-server; client UI mirrors to Voxply-web /
-Voxply-android.
+Pointers, not code. Paths under `desktop/` are Wavvon-desktop; under
+`hub/`/`identity/` are Wavvon-server; client UI mirrors to Wavvon-web /
+Wavvon-android.
 
-- `desktop/src-tauri/src/lib.rs` (Voxply-desktop) — backup export/import
+- `desktop/src-tauri/src/lib.rs` (Wavvon-desktop) — backup export/import
   Tauri commands: Argon2id + AES-GCM seal/open over the identity file;
   fingerprint compare for import conflict resolution. Crypto stays in
   Rust; the seed never enters the webview.
-- `desktop/src/` (Voxply-desktop) — export wizard (explainer →
+- `desktop/src/` (Wavvon-desktop) — export wizard (explainer →
   passphrase + strength meter → save dialog), import flow (file picker →
   passphrase → conflict modal), the "restore from backup" entry on the
   welcome screen, and the recovery-contact owner/contact/requester UI.
-- `hub/src/routes/recovery.rs` (new, Voxply-server) — contact designation,
+- `hub/src/routes/recovery.rs` (new, Wavvon-server) — contact designation,
   rotation request, attestation, and admin review/decide routes.
-- `hub/src/db/migrations.rs` (Voxply-server) — `recovery_settings`,
+- `hub/src/db/migrations.rs` (Wavvon-server) — `recovery_settings`,
   `recovery_contacts`, `recovery_rotation_requests`,
   `recovery_attestations`.
-- `hub/src/permissions.rs` (Voxply-server) — admin recovery routes gate on
+- `hub/src/permissions.rs` (Wavvon-server) — admin recovery routes gate on
   `manage_users`; owner-role transfer gates on the owner/successor path.
-- `identity/src/lib.rs` (Voxply-server) — the bound-bundle signing helper
+- `identity/src/lib.rs` (Wavvon-server) — the bound-bundle signing helper
   for attestations (master-key sign over `(hub_pubkey, old, new, nonce)`),
   shared so client and hub agree on the exact bytes.

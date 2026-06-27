@@ -1,4 +1,4 @@
-# Per-participant voice volume control
+﻿# Per-participant voice volume control
 
 Lets a user independently adjust the playback volume of each person in a
 voice channel — boost a quiet speaker, reduce a loud one, or mute one
@@ -22,7 +22,7 @@ new `voice_roster` WS message (delivered when the user joins voice and on
 each roster change).
 
 **Why a sender_id is needed**: the current hub relay (the UDP voice
-loop in `hub/src/main.rs`, Voxply-server) fans out signed Opus frames but the fan-out
+loop in `hub/src/main.rs`, Wavvon-server) fans out signed Opus frames but the fan-out
 copy does not carry an explicit sender identifier the receiver can act on
 without re-parsing the signature. Adding an explicit handle in the packet
 header is the clean contract.
@@ -146,7 +146,7 @@ filled when at default, partially filled when reduced, outlined when muted,
 and shows an upward indicator when boosted. Keeps the list uncluttered for
 the common case (everyone at default) while surfacing active overrides.
 
-**Applies to**: Voxply-desktop, Voxply-web, Voxply-android. Same behaviour,
+**Applies to**: Wavvon-desktop, Wavvon-web, Wavvon-android. Same behaviour,
 platform-appropriate slider implementation.
 
 ---
@@ -155,12 +155,12 @@ platform-appropriate slider implementation.
 
 | Piece | Repo / file |
 |---|---|
-| UDP packet header: add 2-byte `sender_id`; bump protocol version | `voice/src/protocol.rs` (Voxply-desktop) |
-| Fan-out: stamp each packet with the sender's `sender_id` | `hub/src/` UDP relay (Voxply-server) |
-| `voice_roster_update` WS message (send on voice join + roster change) | `hub/src/routes/ws.rs` + `chat_models.rs` (Voxply-server) |
-| Per-sender receive pipeline + gain multiplier | `voice/src/playback.rs` (Voxply-desktop) |
-| `voice_gains` prefs blob field; load/save | Voxply-desktop identity/prefs layer |
-| Volume slider UI on participant rows | Voxply-desktop / Voxply-web / Voxply-android |
+| UDP packet header: add 2-byte `sender_id`; bump protocol version | `voice/src/protocol.rs` (Wavvon-desktop) |
+| Fan-out: stamp each packet with the sender's `sender_id` | `hub/src/` UDP relay (Wavvon-server) |
+| `voice_roster_update` WS message (send on voice join + roster change) | `hub/src/routes/ws.rs` + `chat_models.rs` (Wavvon-server) |
+| Per-sender receive pipeline + gain multiplier | `voice/src/playback.rs` (Wavvon-desktop) |
+| `voice_gains` prefs blob field; load/save | Wavvon-desktop identity/prefs layer |
+| Volume slider UI on participant rows | Wavvon-desktop / Wavvon-web / Wavvon-android |
 
 ---
 

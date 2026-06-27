@@ -1,4 +1,4 @@
-# Server Tags
+﻿# Server Tags
 
 **Status**: design committed, not built. Tracked as task #98.
 
@@ -57,12 +57,12 @@ the scraped `/info` fields. This design moves the **source of truth to
 the hub** and makes it part of the signed listing:
 
 - New `hub_settings` rows (single-row config table,
-  `hub/src/db/migrations.rs` in **Voxply-server**): `self_tags` (JSON
+  `hub/src/db/migrations.rs` in **Wavvon-server**): `self_tags` (JSON
   array of normalised strings) and `nsfw` (boolean, surfaced as the
   reserved `18+` tag — kept as its own column because clients filter on
   it before rendering, see Part 3).
 - The hub's existing `GET /info` (`hub/src/routes/health.rs` in
-  **Voxply-server**) gains a `self_tags: string[]` field and an
+  **Wavvon-server**) gains a `self_tags: string[]` field and an
   `nsfw: boolean` field, alongside the `name`/`description`/`icon` it
   already returns.
 - The directory's existing signed-listing payload
@@ -166,7 +166,7 @@ domains, and cannot be lifted onto a different hub.
   invites").
 - **The viewer decides whether to *trust* the issuer.** A badge is only
   meaningful if the viewer recognises `issuer_pubkey`. The client ships
-  with **no built-in trust roots** — there is no Voxply-blessed "verified
+  with **no built-in trust roots** — there is no Wavvon-blessed "verified
   by us" badge, because that would be a central authority. Trust is
   expressed by the viewer:
   - the viewer is a member of / trusts the issuer hub, or
@@ -211,7 +211,7 @@ Mirrors the alliance push-invite mechanics already decided:
 - **User certifications** ([future-features.md](future-features.md)):
   same primitive, `subject_pubkey` is a user instead of a hub. The two
   can share one canonical-payload signer in `hub/src/federation/`
-  (Voxply-server) with a `subject_kind: "hub" | "user"` discriminant.
+  (Wavvon-server) with a `subject_kind: "hub" | "user"` discriminant.
   Designing badges first establishes that signer.
 - **Alliances** ([alliances.md](alliances.md)): a badge is *not* an
   alliance. Alliances are mutual, create shared channels, and federate
@@ -238,8 +238,8 @@ keyword is never mistaken for a third-party attestation.
   - An `18+` / NSFW hub shows the reserved indicator and is
     filtered/blurred per the client's content setting before the card
     renders.
-- **Discover tab** (`Voxply-desktop`, mirrored in `Voxply-web` /
-  `Voxply-android`): the existing tag/language filter chips now read
+- **Discover tab** (`Wavvon-desktop`, mirrored in `Wavvon-web` /
+  `Wavvon-android`): the existing tag/language filter chips now read
   the hub-authoritative self-tags via the directory's `?tag=` filter.
   Add a "trusted-badge" filter only if/when trust roots are
   user-configurable (deferred). NSFW filter toggle (default: hide).
@@ -251,12 +251,12 @@ keyword is never mistaken for a third-party attestation.
   (accept/decline). A *Grant a badge* form (target hub URL + label)
   lives here too, for issuing badges to others.
 
-No UI surfaces a Voxply-official verified mark anywhere — there is no
+No UI surfaces a Wavvon-official verified mark anywhere — there is no
 such authority.
 
 ---
 
-## Data model & route changes (all in Voxply-server unless noted)
+## Data model & route changes (all in Wavvon-server unless noted)
 
 **Hub DB** (`hub/src/db/migrations.rs`):
 - `hub_settings`: new rows `self_tags` (JSON text array), `nsfw`
@@ -284,21 +284,21 @@ such authority.
   (unauthenticated, validates payload shape + Ed25519 signature +
   `subject_pubkey == this hub`, inserts pending row).
 
-**Directory** (`Voxply-discovery`):
+**Directory** (`Wavvon-discovery`):
 - Listing scraper reads `self_tags` and `nsfw` from `/info` instead of
   taking `tags` as a free operator field on submit. Existing `?tag=`
   filter and `HubListing.tags` shape are unchanged on the wire.
 - Optional later: surface `badges` and an `nsfw` filter. Not required
   for v1.
 
-**Client** (`Voxply-desktop`, mirrored on `Voxply-web` /
-`Voxply-android`):
+**Client** (`Wavvon-desktop`, mirrored on `Wavvon-web` /
+`Wavvon-android`):
 - Hub preview card: distinct self-tag vs badge rendering + NSFW gate.
 - Hub Settings: Discovery panel tag editor + NSFW toggle; new Badges
   tab.
 - Tauri commands: `set_discovery_tags`, `grant_badge`,
   `list_pending_badges`, `accept_badge`, `decline_badge`,
-  `list_badges`, `remove_badge` (`Voxply-desktop` `src-tauri`).
+  `list_badges`, `remove_badge` (`Wavvon-desktop` `src-tauri`).
 
 ---
 

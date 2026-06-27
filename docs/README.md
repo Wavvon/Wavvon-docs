@@ -1,6 +1,6 @@
-# Voxply Docs
+﻿# Wavvon Docs
 
-A navigable map of Voxply for humans and LLMs. Optimized for **why** and
+A navigable map of Wavvon for humans and LLMs. Optimized for **why** and
 **where**, not **what** — code is authoritative for what; this wiki tells
 you the rationale and points you to the right files.
 
@@ -8,10 +8,10 @@ you the rationale and points you to the right files.
 
 If you're new, read in this order:
 
-1. [architecture.md](architecture.md) — what runs where, the four repos (hub server, the Voxply-client monorepo, docs, discovery) and the crates inside Voxply-server
+1. [architecture.md](architecture.md) — what runs where, the four repos (hub server, the Wavvon-client monorepo, docs, discovery) and the crates inside Wavvon-server
 2. [identity.md](identity.md) — keypairs, recovery, auth
 3. [federation.md](federation.md) — how hubs talk to each other
-4. [alliances.md](alliances.md) — multi-hub groups (Voxply's differentiator)
+4. [alliances.md](alliances.md) — multi-hub groups (Wavvon's differentiator)
 5. [voice.md](voice.md) — Opus + UDP relay + denoise pipeline
 6. [data-model.md](data-model.md) — DB schema map
 7. [client.md](client.md) — Tauri + React desktop client
@@ -43,7 +43,7 @@ These shipped — the doc is the design rationale behind the code (see
     - [games-sdk.md](games-sdk.md) — postMessage API reference for third-party developers
 13. [multi-device.md](multi-device.md) — master+subkey identity, QR pairing protocol
 14. [e2e-encryption.md](e2e-encryption.md) — E2E encrypted DMs: X25519 from Ed25519 seed, static ECDH + AES-GCM, signed envelopes, group sender keys
-    - [identity-recovery.md](identity-recovery.md) — recovery UX beyond the phrase: passphrase-wrapped `.voxply-backup` export/import + per-hub recovery contacts (vouch, not auto-grant)
+    - [identity-recovery.md](identity-recovery.md) — recovery UX beyond the phrase: passphrase-wrapped `.wavvon-backup` export/import + per-hub recovery contacts (vouch, not auto-grant)
     - [wire-format.md](wire-format.md) — canonical byte-level spec for all signed envelopes in the identity crate (multi-device + E2E DM + identity verification); test vectors for client implementors
 15. [server-tags.md](server-tags.md) — self-tags (discovery keywords) + portable signed hub badges
     - [hub-certifications.md](hub-certifications.md) — anti-spam Layer 2: hub-signs-user reputation certs, portable PoW credit
@@ -51,17 +51,17 @@ These shipped — the doc is the design rationale behind the code (see
 16. [browser-client.md](browser-client.md) — second client (no Tauri), platform adapter, IndexedDB identity
 17. [android-client.md](android-client.md) — Tauri 2 Android wrapper around the browser platform layer, side-loaded APK
     - [install-android.md](install-android.md) — end-user guide: enable unknown sources, download APK, Play Protect warning
-    - [client-monorepo.md](client-monorepo.md) — **shipped (2026-06-13)**: the three client repos were consolidated into the one pnpm-workspace Voxply-client monorepo (`packages/core|ui|platform|i18n` + `apps/*`); staged migration, git-subtree history preservation, CI/release/updater cutover. Hub server stays separate. See [decisions.md](decisions.md).
+    - [client-monorepo.md](client-monorepo.md) — **shipped (2026-06-13)**: the three client repos were consolidated into the one pnpm-workspace Wavvon-client monorepo (`packages/core|ui|platform|i18n` + `apps/*`); staged migration, git-subtree history preservation, CI/release/updater cutover. Hub server stays separate. See [decisions.md](decisions.md).
 18. [bots.md](bots.md) — external bot ecosystem: invite-by-pubkey, slash commands, webhook dispatch, per-hub directory
 19. [accessibility.md](accessibility.md) — keyboard navigation, ARIA / screen-reader support, i18n strategy across desktop / web / Android
 20. [forum.md](forum.md) — forum channel type: post-list variant, posts + reply threads, `create_posts`/`manage_posts` permissions, FTS search
 21. [banner-channels.md](banner-channels.md) — banner channel type: full-width image rows in the hub sidebar (decorative chrome, hub-uploaded or external URL), drag-drop ordered like regular channels
 22. [screen-share-webrtc.md](screen-share-webrtc.md) — screen share v2: WebRTC P2P, hub as SDP/ICE signaler, optional TURN, v1-relay fallback floor, multi-sharer
 23. [block-mute-ignore.md](block-mute-ignore.md) — user-level block / ignore / quiet-hours (DND): personal-axis prefs-blob state, client-side filtering, server-enforced DM block
-24. [discovery-v2.md](discovery-v2.md) — Voxply-discovery enhancements: hub uptime tracking, farm browsing, global search, anonymous aggregate analytics
+24. [discovery-v2.md](discovery-v2.md) — Wavvon-discovery enhancements: hub uptime tracking, farm browsing, global search, anonymous aggregate analytics
 25. [client-qol.md](client-qol.md) — client quality-of-life: global search, drafts, custom emojis, events, polls, thread collapse, notification grouping
-26. [store-trait-design.md](store-trait-design.md) — database abstraction: trait-based store, crate split (voxply-store / voxply-store-sqlite, voxply-store-postgres as future community contribution), migration path
-27. [custom-themes.md](custom-themes.md) — user-created skins: CSS token system, .voxplyskin file format, export/import, persistence
+26. [store-trait-design.md](store-trait-design.md) — database abstraction: trait-based store, crate split (wavvon-store / wavvon-store-sqlite, wavvon-store-postgres as future community contribution), migration path
+27. [custom-themes.md](custom-themes.md) — user-created skins: CSS token system, .wavvonskin file format, export/import, persistence
 28. [brand.md](brand.md) — motto, one-liner, logo brief and asset checklist (final logo asset still pending)
 
 ### Future direction (designed, not built)
@@ -76,7 +76,7 @@ Kept for history; superseded by recorded decisions:
 
 - [hub-admin-panel.md](hub-admin-panel.md) — **archived**: the hub web admin panel (`/admin/panel`) was removed; the admin CLI and farm console remain. See [decisions.md](decisions.md) ("Hub admin panel removed").
 - [admin-panel-auth.md](admin-panel-auth.md) — **archived**: the Ed25519+TOTP web-panel auth design was built, then reverted along with the panel itself. See [decisions.md](decisions.md).
-- [monetization.md](monetization.md) — **superseded in part**: missions, sparks, and the cosmetic catalog were removed; Voxply operates no monetization infrastructure. See [decisions.md](decisions.md) ("Missions, sparks, and cosmetic catalog removed").
+- [monetization.md](monetization.md) — **superseded in part**: missions, sparks, and the cosmetic catalog were removed; Wavvon operates no monetization infrastructure. See [decisions.md](decisions.md) ("Missions, sparks, and cosmetic catalog removed").
 
 ## Find by feature
 
@@ -168,7 +168,7 @@ Reading order is for learning the system end-to-end. This section is for
 
 - **For LLMs**: each file is self-contained and small enough to read whole.
   File:line pointers (e.g. `hub/src/routes/messages.rs:42` in
-  Voxply-server) lead to authoritative code. Don't copy code from the
+  Wavvon-server) lead to authoritative code. Don't copy code from the
   wiki — read the source.
 - **For humans**: same, but you can also follow the markdown cross-links.
 

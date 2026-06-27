@@ -1,6 +1,6 @@
-# Alliances
+﻿# Alliances
 
-Alliances are Voxply's differentiator: named groups of hubs that share
+Alliances are Wavvon's differentiator: named groups of hubs that share
 channels, reactions, and (eventually) voice and games. A hub can be in
 multiple alliances; users access alliance content through their home hub
 without joining every member hub separately.
@@ -14,7 +14,7 @@ without joining every member hub separately.
 
 ## Tables
 
-Defined in `hub/src/db/migrations.rs` (Voxply-server):
+Defined in `hub/src/db/migrations.rs` (Wavvon-server):
 
 - `alliances` — alliance id, name, creator, created_at. The `name` here
   is the **local label** this hub uses for the alliance; there is no
@@ -29,7 +29,7 @@ Defined in `hub/src/db/migrations.rs` (Voxply-server):
 
 ## Routes
 
-All in `hub/src/routes/alliances.rs` (Voxply-server):
+All in `hub/src/routes/alliances.rs` (Wavvon-server):
 
 | Route                                                | Who      | Purpose                              |
 |------------------------------------------------------|----------|--------------------------------------|

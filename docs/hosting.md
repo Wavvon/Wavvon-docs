@@ -1,7 +1,7 @@
-# Hosting a Hub
+﻿# Hosting a Hub
 
-The practical guide to **deploying** a Voxply hub (the `hub/` crate in
-Voxply-server) as a real service. This doc is organized by deployment
+The practical guide to **deploying** a Wavvon hub (the `hub/` crate in
+Wavvon-server) as a real service. This doc is organized by deployment
 *method* — pick one, follow it end to end. For *operating* a running hub
 (config reference, ownership, backups, admin CLI, monitoring) see the
 [hub-operator-guide.md](hub-operator-guide.md). For architecture, see
@@ -70,12 +70,12 @@ already there** — send the link to a friend and they're in, no install.
 ```yaml
 services:
   hub:
-    image: ghcr.io/voxply/hub:latest
+    image: ghcr.io/wavvon/hub:latest
     restart: unless-stopped
     environment:
-      VOXPLY_OWNER_PUBKEY: "<your-64-hex-pubkey>"  # set before first boot
-      # VOXPLY_CORS_ORIGINS defaults to * — correct for a public hub
-      # VOXPLY_WEB_CLIENT_DIR defaults to /web-client in the image — leave it
+      WAVVON_OWNER_PUBKEY: "<your-64-hex-pubkey>"  # set before first boot
+      # WAVVON_CORS_ORIGINS defaults to * — correct for a public hub
+      # WAVVON_WEB_CLIENT_DIR defaults to /web-client in the image — leave it
     volumes:
       - hub-data:/data
     ports:
@@ -110,7 +110,7 @@ Launch and verify:
 
 ```bash
 docker compose up -d
-docker compose exec hub /voxply-hub --doctor   # expect PASS lines
+docker compose exec hub /wavvon-hub --doctor   # expect PASS lines
 curl https://your-hub.example/health           # {"status":"ok",...}
 curl https://your-hub.example/info             # hub identity JSON
 ```
@@ -119,14 +119,14 @@ Then open `https://your-hub.example/` in a browser — the served web
 client loads and defaults its first connection to this hub.
 
 Get your owner pubkey from the desktop client's **Settings → Identity**
-(64 hex chars). Set `VOXPLY_OWNER_PUBKEY` before first boot, or assign it
+(64 hex chars). Set `WAVVON_OWNER_PUBKEY` before first boot, or assign it
 later without a restart:
-`docker compose exec hub /voxply-hub admin users set-owner <pubkey>`.
+`docker compose exec hub /wavvon-hub admin users set-owner <pubkey>`.
 Ownership detail lives in the [operator guide](hub-operator-guide.md#hub-ownership).
 
 > **Note (known issue, 2026-06):** on a fresh hub the *first* user to
 > join can silently become owner before you assign one. Set
-> `VOXPLY_OWNER_PUBKEY` and join first, or keep the hub closed until
+> `WAVVON_OWNER_PUBKEY` and join first, or keep the hub closed until
 > ownership is assigned. Tracked in ROADMAP.
 
 ---
@@ -143,19 +143,19 @@ deployed and verified on a shared OVH box (2026-06-12).
 **3001/UDP** (in `ufw` *and* any cloud-panel firewall). No public 3000.
 
 `docker-compose.yml` (lives in an unprivileged user's home, e.g.
-`~/voxply/`):
+`~/wavvon/`):
 
 ```yaml
 services:
   hub:
-    image: ghcr.io/voxply/hub:latest
-    container_name: voxply-hub
+    image: ghcr.io/wavvon/hub:latest
+    container_name: wavvon-hub
     restart: unless-stopped
     environment:
-      VOXPLY_OWNER_PUBKEY: "<your-64-hex-pubkey>"
-      VOXPLY_LOG_FORMAT: "text"
+      WAVVON_OWNER_PUBKEY: "<your-64-hex-pubkey>"
+      WAVVON_LOG_FORMAT: "text"
       # REQUIRED behind a proxy — see the warning below.
-      VOXPLY_TRUSTED_PROXY: "true"
+      WAVVON_TRUSTED_PROXY: "true"
     volumes:
       - hub-data:/data
     ports:
@@ -167,7 +167,7 @@ volumes:
   hub-data:
 ```
 
-> **`VOXPLY_TRUSTED_PROXY=true` is not optional here.** Without it the
+> **`WAVVON_TRUSTED_PROXY=true` is not optional here.** Without it the
 > rate limiter sees every request as coming from the proxy's single IP,
 > so all clients share one auth bucket and a few bad logins lock out the
 > *entire* hub. With it set, the limiter reads the real client IP from
@@ -215,12 +215,12 @@ server {
 ```bash
 sudo ln -s /etc/nginx/sites-available/your-hub /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx   # ALWAYS test before reload
-cd ~/voxply && docker compose up -d
-docker compose exec hub /voxply-hub --doctor
+cd ~/wavvon && docker compose up -d
+docker compose exec hub /wavvon-hub --doctor
 curl -s https://your-hub.example/health
 ```
 
-> **Wildcard-cert reuse**: a subdomain like `voxply.example.com` is
+> **Wildcard-cert reuse**: a subdomain like `wavvon.example.com` is
 > already covered by a `*.example.com` cert — point the vhost at the
 > existing PEM files; no new certificate is needed.
 
@@ -237,7 +237,7 @@ The baked-in web client is served at `/` here too, over the proxy's TLS —
 
 ## 3. Bare binary + systemd
 
-No Docker. Run the released `voxply-hub` binary as a native systemd
+No Docker. Run the released `wavvon-hub` binary as a native systemd
 service. Currently the published release binary is **Linux x86_64**
 (an aarch64 binary build is a known-broken item in ROADMAP; on aarch64
 use Docker or build from source).
@@ -245,30 +245,30 @@ use Docker or build from source).
 **Install** from a GitHub release:
 
 ```bash
-# Download voxply-hub-linux-x86_64 from the Voxply-server releases page,
+# Download wavvon-hub-linux-x86_64 from the Wavvon-server releases page,
 # then:
-sudo install -o root -g root -m 755 voxply-hub-linux-x86_64 \
-  /usr/local/bin/voxply-hub
-voxply-hub --version
+sudo install -o root -g root -m 755 wavvon-hub-linux-x86_64 \
+  /usr/local/bin/wavvon-hub
+wavvon-hub --version
 ```
 
 The cargo target is named `hub`; the install examples here keep the
-on-disk name `voxply-hub` for clarity.
+on-disk name `wavvon-hub` for clarity.
 
-**systemd unit** — `/etc/systemd/system/voxply-hub.service`:
+**systemd unit** — `/etc/systemd/system/wavvon-hub.service`:
 
 ```ini
 [Unit]
-Description=Voxply hub server
+Description=Wavvon hub server
 After=network.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-User=voxply
-Group=voxply
-WorkingDirectory=/var/lib/voxply
-ExecStart=/usr/local/bin/voxply-hub
+User=wavvon
+Group=wavvon
+WorkingDirectory=/var/lib/wavvon
+ExecStart=/usr/local/bin/wavvon-hub
 Restart=on-failure
 RestartSec=5
 
@@ -276,49 +276,49 @@ RestartSec=5
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/var/lib/voxply
+ReadWritePaths=/var/lib/wavvon
 PrivateTmp=true
 
 # Configuration (see the operator guide for the full env reference)
-Environment=VOXPLY_HTTP_PORT=3000
-Environment=VOXPLY_VOICE_UDP_PORT=3001
+Environment=WAVVON_HTTP_PORT=3000
+Environment=WAVVON_VOICE_UDP_PORT=3001
 # TLS at the hub — omit these if a reverse proxy terminates TLS instead:
-Environment=VOXPLY_TLS_CERT=/etc/letsencrypt/live/hub.example/fullchain.pem
-Environment=VOXPLY_TLS_KEY=/etc/letsencrypt/live/hub.example/privkey.pem
+Environment=WAVVON_TLS_CERT=/etc/letsencrypt/live/hub.example/fullchain.pem
+Environment=WAVVON_TLS_KEY=/etc/letsencrypt/live/hub.example/privkey.pem
 # Optional: serve the web client (see "Serving the web client" below)
-# Environment=VOXPLY_WEB_CLIENT_DIR=/var/lib/voxply/web-client
+# Environment=WAVVON_WEB_CLIENT_DIR=/var/lib/wavvon/web-client
 
 [Install]
 WantedBy=multi-user.target
 ```
 
 ```bash
-sudo useradd --system --home /var/lib/voxply --shell /usr/sbin/nologin voxply
-sudo mkdir -p /var/lib/voxply
-sudo chown voxply:voxply /var/lib/voxply
+sudo useradd --system --home /var/lib/wavvon --shell /usr/sbin/nologin wavvon
+sudo mkdir -p /var/lib/wavvon
+sudo chown wavvon:wavvon /var/lib/wavvon
 sudo systemctl daemon-reload
-sudo systemctl enable --now voxply-hub
-sudo systemctl status voxply-hub
-journalctl -u voxply-hub -f
+sudo systemctl enable --now wavvon-hub
+sudo systemctl status wavvon-hub
+journalctl -u wavvon-hub -f
 ```
 
 **TLS — two choices**:
 
-1. **Hub terminates TLS** (the env vars above). Point `VOXPLY_TLS_CERT` /
-   `VOXPLY_TLS_KEY` at PEM files; works with Let's Encrypt directly. Give
-   the `voxply` user read access to the cert (a `getcert` group or ACL).
+1. **Hub terminates TLS** (the env vars above). Point `WAVVON_TLS_CERT` /
+   `WAVVON_TLS_KEY` at PEM files; works with Let's Encrypt directly. Give
+   the `wavvon` user read access to the cert (a `getcert` group or ACL).
 2. **A reverse proxy terminates TLS** — drop the TLS env vars (hub serves
    plain HTTP), and put nginx/Caddy in front exactly as in
    [method 2's vhost](#2-docker-behind-an-existing-reverse-proxy)
    (proxy to `127.0.0.1:3000`, forward WebSocket upgrades, set
-   `VOXPLY_TRUSTED_PROXY=true`). Voice UDP still hits 3001 directly.
+   `WAVVON_TRUSTED_PROXY=true`). Voice UDP still hits 3001 directly.
 
-**Optional web client**: download the web-client `dist` from a Voxply-client
+**Optional web client**: download the web-client `dist` from a Wavvon-client
 release, unpack it (it must contain `index.html`), and point
-`VOXPLY_WEB_CLIENT_DIR` at that directory. See
+`WAVVON_WEB_CLIENT_DIR` at that directory. See
 [Serving the web client](#serving-the-web-client).
 
-**Self-update**: `voxply-hub update` replaces the binary in place from
+**Self-update**: `wavvon-hub update` replaces the binary in place from
 the latest GitHub release (Linux x86_64 only). Stop the service, run it,
 start the service — see [Upgrades](#upgrades-per-method).
 
@@ -329,12 +329,12 @@ start the service — see [Upgrades](#upgrades-per-method).
 For contributors, custom builds, or an arch with no published binary.
 
 ```bash
-git clone https://github.com/voxply/Voxply-server voxply-server
-cd voxply-server
-cargo build --release -p voxply-hub
-# Binary lands at target/release/voxply-hub
+git clone https://github.com/wavvon/Wavvon-server wavvon-server
+cd wavvon-server
+cargo build --release -p wavvon-hub
+# Binary lands at target/release/wavvon-hub
 sudo install -o root -g root -m 755 \
-  target/release/voxply-hub /usr/local/bin/voxply-hub
+  target/release/wavvon-hub /usr/local/bin/wavvon-hub
 ```
 
 From here, run it under [systemd as in method 3](#3-bare-binary--systemd).
@@ -342,25 +342,25 @@ TLS, firewall, and web-client options are identical — the only difference
 is where the binary came from.
 
 **Building the official Docker image** (bakes the web client in): the
-image is a multi-stage build. CI checks out the Voxply-client monorepo
+image is a multi-stage build. CI checks out the Wavvon-client monorepo
 into `web-client-src/` in the build context, and a `node:22` stage builds
 the `apps/web` SPA into `/web-client`:
 
 ```bash
-# With the web client (Voxply-client checked out into web-client-src/):
-docker build -f hub/Dockerfile -t voxply-hub:local .
+# With the web client (Wavvon-client checked out into web-client-src/):
+docker build -f hub/Dockerfile -t wavvon-hub:local .
 
 # Without web-client-src/ present, the image still builds, but /web-client
-# is EMPTY (no index.html). The image still sets VOXPLY_WEB_CLIENT_DIR=
+# is EMPTY (no index.html). The image still sets WAVVON_WEB_CLIENT_DIR=
 # /web-client, so the hub will refuse to start with a clear error about the
 # missing index.html. Run API-only by clearing the var:
-docker run -e VOXPLY_WEB_CLIENT_DIR= voxply-hub:local
+docker run -e WAVVON_WEB_CLIENT_DIR= wavvon-hub:local
 ```
 
 **Build the web-client dist standalone** (for method 3's optional serving):
 
 ```bash
-git clone https://github.com/voxply/Voxply-client && cd Voxply-client
+git clone https://github.com/wavvon/Wavvon-client && cd Wavvon-client
 pnpm install && pnpm --filter web build   # output in apps/web/dist (contains index.html)
 ```
 
@@ -369,7 +369,7 @@ pnpm install && pnpm --filter web build   # output in apps/web/dist (contains in
 ## Serving the web client
 
 A hub can host the browser client from its own origin. When
-`VOXPLY_WEB_CLIENT_DIR` points at a directory containing a built SPA
+`WAVVON_WEB_CLIENT_DIR` points at a directory containing a built SPA
 (`index.html` + assets), the hub serves it at `/`:
 
 - Unmatched paths sent with `Accept: text/html` get `index.html`, so SPA
@@ -381,8 +381,8 @@ A hub can host the browser client from its own origin. When
   flow still works for adding other hubs.
 
 The **official Docker image** (methods 1 and 2) bakes a version-matched
-build in and sets `VOXPLY_WEB_CLIENT_DIR=/web-client` by default — nothing
-to configure. To run the image API-only, set `VOXPLY_WEB_CLIENT_DIR=`
+build in and sets `WAVVON_WEB_CLIENT_DIR=/web-client` by default — nothing
+to configure. To run the image API-only, set `WAVVON_WEB_CLIENT_DIR=`
 (empty).
 
 For **bare-binary / source** installs (methods 3 and 4), serving is opt-in:
@@ -397,24 +397,24 @@ optionally self-serve the web client"); client details:
 
 ## --doctor first-aid
 
-`voxply-hub --doctor` is the first thing to run when something isn't
+`wavvon-hub --doctor` is the first thing to run when something isn't
 working. It checks port bindability, TLS file readability and PEM
 validity, working-directory write access, and the web-client directory
-(when `VOXPLY_WEB_CLIENT_DIR` is set), then exits 0 on success or 1 on any
-failure. Under Docker: `docker compose exec hub /voxply-hub --doctor`.
+(when `WAVVON_WEB_CLIENT_DIR` is set), then exits 0 on success or 1 on any
+failure. Under Docker: `docker compose exec hub /wavvon-hub --doctor`.
 
 The startup banner logs effective config before serving and warns when
 TLS is disabled and that voice UDP must be open in cloud firewalls:
 
 ```
-voxply-hub 0.2.0 starting  port=3000 (http)  voice_udp=3001  tls=disabled  cors=*
+wavvon-hub 0.2.0 starting  port=3000 (http)  voice_udp=3001  tls=disabled  cors=*
 data files: /data/hub.db  /data/hub_identity.json
 WARN  TLS is disabled — browser clients served over HTTPS cannot connect to an http:// hub ...
 INFO  Reminder: the voice UDP port 3001 must be open in any cloud firewall ...
 ```
 
-For the full config reference, run `voxply-hub --help` (it prints every
-`VOXPLY_*` var with defaults, generated from the binary) and see the
+For the full config reference, run `wavvon-hub --help` (it prints every
+`WAVVON_*` var with defaults, generated from the binary) and see the
 [operator guide's configuration section](hub-operator-guide.md#configuration).
 Don't memorize an env table here — `--help` is authoritative.
 
@@ -422,7 +422,7 @@ Don't memorize an env table here — `--help` is authoritative.
 
 ## Firewall and UDP
 
-- Open **3001/UDP** (or your `VOXPLY_VOICE_UDP_PORT`). Cloud providers
+- Open **3001/UDP** (or your `WAVVON_VOICE_UDP_PORT`). Cloud providers
   (AWS, GCP, Hetzner, OVH, …) block UDP by default and need an explicit
   security-group / control-panel rule **in addition to** any host
   firewall (`ufw`). Voice fails silently if UDP is closed.
@@ -463,10 +463,10 @@ running hub, and always copy `hub_identity.json` alongside it:
 #!/bin/sh
 # nightly cron — bare-binary example
 set -e
-DEST="/var/backups/voxply/$(date +%Y%m%d-%H%M)"; mkdir -p "$DEST"
-sqlite3 /var/lib/voxply/hub.db ".backup '$DEST/hub.db'"
-cp /var/lib/voxply/hub_identity.json "$DEST/"
-find /var/backups/voxply -maxdepth 1 -type d -mtime +30 -exec rm -rf {} +
+DEST="/var/backups/wavvon/$(date +%Y%m%d-%H%M)"; mkdir -p "$DEST"
+sqlite3 /var/lib/wavvon/hub.db ".backup '$DEST/hub.db'"
+cp /var/lib/wavvon/hub_identity.json "$DEST/"
+find /var/backups/wavvon -maxdepth 1 -type d -mtime +30 -exec rm -rf {} +
 ```
 
 Under Docker, run `.backup` inside the container or copy the identity out
@@ -477,7 +477,7 @@ docker compose exec hub sqlite3 /data/hub.db ".backup '/data/backup.db'"
 docker compose cp hub:/data/hub_identity.json ./hub_identity.backup.json
 ```
 
-The hub also has `voxply-hub backup` / `restore` subcommands that bundle
+The hub also has `wavvon-hub backup` / `restore` subcommands that bundle
 both files into one archive. Full backup/restore procedure and the
 `hub_identity.json` warning live in the
 [operator guide](hub-operator-guide.md#backup-and-restore).
@@ -492,11 +492,11 @@ down-migrations); take a backup first for a major version.
 | Method | Upgrade |
 |---|---|
 | Docker Compose (1, 2) | `docker compose pull && docker compose up -d` |
-| Bare binary (3) | `voxply-hub update` (self-update), then restart the service; or download the new binary and `install` it over the old one |
-| Source (4) | `git pull && cargo build --release -p voxply-hub`, `install` over the old binary, restart |
+| Bare binary (3) | `wavvon-hub update` (self-update), then restart the service; or download the new binary and `install` it over the old one |
+| Source (4) | `git pull && cargo build --release -p wavvon-hub`, `install` over the old binary, restart |
 
 To apply migrations explicitly without starting the server (rare):
-`voxply-hub migrate`. Upgrade-path detail:
+`wavvon-hub migrate`. Upgrade-path detail:
 [operator guide](hub-operator-guide.md#upgrade-path).
 
 ---

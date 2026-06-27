@@ -1,4 +1,4 @@
-# Whisper
+﻿# Whisper
 
 Speak to a specific set of targets — users, channels, or roles — across
 the hub without anyone else hearing, **including your own channel**.
@@ -77,7 +77,7 @@ reserves a packet-type value for it (see Decision 2). Deferred to v2.
 treats `0x00` as normal voice, so the byte is transparent to existing
 gain/mix logic. Old clients that don't recognise the bumped protocol
 version ignore the packet — the standard protocol-version gating in
-`voice/src/protocol.rs` (Voxply-desktop). The protocol version is bumped
+`voice/src/protocol.rs` (Wavvon-desktop). The protocol version is bumped
 there.
 
 The receiving client reads `packet_type`; for `0x01` it shows the
@@ -109,7 +109,7 @@ an offline or text-only user is out of scope (see
 
 ## Hub state additions
 
-In `hub/src/state.rs` (Voxply-server), alongside `voice_channels` and the
+In `hub/src/state.rs` (Wavvon-server), alongside `voice_channels` and the
 proximity `voice_zones`:
 
 ```rust
@@ -168,7 +168,7 @@ correct without re-announcing to the whole set.
 
 ## UDP relay change
 
-In the `hub/src/` UDP relay loop (Voxply-server), after the sender lookup
+In the `hub/src/` UDP relay loop (Wavvon-server), after the sender lookup
 that already produces `sender_id`:
 
 ```
@@ -184,7 +184,7 @@ else:
 client's send path is unchanged: it sends the same frame it always has,
 and the hub stamps `sender_id` and `packet_type` when relaying — exactly
 as it already stamps `sender_id` for normal voice. This keeps the whole
-client send pipeline (`voice/src/transport.rs`, Voxply-desktop) untouched;
+client send pipeline (`voice/src/transport.rs`, Wavvon-desktop) untouched;
 whisper is a routing decision the hub makes from WS state.
 
 A whisperer's frames go **only** to the whisper target set — they are not
@@ -195,7 +195,7 @@ inaudible to the channel the whisperer is sitting in.
 
 ## Client receive path
 
-In `voice/src/playback.rs` (Voxply-desktop), extending the per-sender
+In `voice/src/playback.rs` (Wavvon-desktop), extending the per-sender
 pipeline from [`voice-volume.md`](voice-volume.md):
 
 ```
@@ -262,8 +262,8 @@ come and go — resolution happens fresh each time the list is activated.
   keyup. This is the raid-commander default.
 - **Toggle whisper** — click to start, click again to stop.
 
-**Target selection UI** (Voxply-desktop, mirrored in Voxply-web /
-Voxply-android):
+**Target selection UI** (Wavvon-desktop, mirrored in Wavvon-web /
+Wavvon-android):
 
 - Right-click a user in the voice participants list -> **Whisper**.
 - Right-click a channel header -> **Whisper to channel**.
@@ -279,7 +279,7 @@ Voxply-android):
   above their channel, driven by `voice_whisper_started`/`stopped` plus
   the `0x01` packets actually arriving.
 
-**Tauri commands** (Voxply-desktop): `start_whisper(targets)` and
+**Tauri commands** (Wavvon-desktop): `start_whisper(targets)` and
 `stop_whisper()` send `voice_whisper_start` / `voice_whisper_stop` over
 the active hub WS via `send_hub_ws_raw`. No new UDP path on the client —
 the whisper distinction is entirely a hub-routing decision driven by these
@@ -291,15 +291,15 @@ WS messages.
 
 | Piece | Repo / file |
 |---|---|
-| `packet_type` byte in fan-out header; bump protocol version | `voice/src/protocol.rs` (Voxply-desktop) |
-| Read `packet_type`, tag per-sender entry, whisper-path gain | `voice/src/playback.rs` (Voxply-desktop) |
-| Stamp `0x01`/`0x00`; route whisperer frames to `whisper_targets` | `hub/src/` UDP relay (Voxply-server) |
-| `whisper_targets` + `whisper_target_defs` state | `hub/src/state.rs` (Voxply-server) |
-| `voice_whisper_start/stop` handlers; target resolution + live re-resolve on join/leave | `hub/src/routes/ws.rs` + `chat_models.rs` (Voxply-server) |
-| `voice_whisper_started/stopped` targeted delivery via `to_pubkeys` | `hub/src/routes/ws.rs` (Voxply-server) |
-| Whisper lists in the prefs blob; home hub list API | Voxply-desktop prefs layer + home hub list API (Voxply-server) |
-| Activation modes, target selector, indicators | Voxply-desktop / Voxply-web / Voxply-android |
-| `start_whisper` / `stop_whisper` Tauri commands | `desktop/src-tauri/` (Voxply-desktop) |
+| `packet_type` byte in fan-out header; bump protocol version | `voice/src/protocol.rs` (Wavvon-desktop) |
+| Read `packet_type`, tag per-sender entry, whisper-path gain | `voice/src/playback.rs` (Wavvon-desktop) |
+| Stamp `0x01`/`0x00`; route whisperer frames to `whisper_targets` | `hub/src/` UDP relay (Wavvon-server) |
+| `whisper_targets` + `whisper_target_defs` state | `hub/src/state.rs` (Wavvon-server) |
+| `voice_whisper_start/stop` handlers; target resolution + live re-resolve on join/leave | `hub/src/routes/ws.rs` + `chat_models.rs` (Wavvon-server) |
+| `voice_whisper_started/stopped` targeted delivery via `to_pubkeys` | `hub/src/routes/ws.rs` (Wavvon-server) |
+| Whisper lists in the prefs blob; home hub list API | Wavvon-desktop prefs layer + home hub list API (Wavvon-server) |
+| Activation modes, target selector, indicators | Wavvon-desktop / Wavvon-web / Wavvon-android |
+| `start_whisper` / `stop_whisper` Tauri commands | `desktop/src-tauri/` (Wavvon-desktop) |
 
 ---
 

@@ -1,4 +1,4 @@
-# Hub Creation Wizard
+﻿# Hub Creation Wizard
 
 Getting from "I want a community" to "my hub is live" today means cloning
 a repo, picking channels and roles by hand, and remembering a registration
@@ -11,9 +11,9 @@ Three pieces, each useful alone:
 
 | Piece | Where it lives | What it does |
 |---|---|---|
-| 1. Template catalog | Voxply-discovery | Signed JSON starter configs, self-submitted |
-| 2. First-run bootstrap | Voxply-server (`hub/`) | Hub applies a template on empty-DB first launch |
-| 3. Creation wizard | Voxply-discovery (`/new`) | Web flow: pick template → customise → deploy |
+| 1. Template catalog | Wavvon-discovery | Signed JSON starter configs, self-submitted |
+| 2. First-run bootstrap | Wavvon-server (`hub/`) | Hub applies a template on empty-DB first launch |
+| 3. Creation wizard | Wavvon-discovery (`/new`) | Web flow: pick template → customise → deploy |
 
 The constraint that shapes all three: **no central authority**. Templates
 are authored by their signing key, not approved by discovery; the wizard
@@ -28,7 +28,7 @@ primitive hubs, bots, games, and farms already use
 ## 1. Hub config templates catalog
 
 **Decision**: a library of Ed25519-signed JSON templates on
-Voxply-discovery. Each template describes an initial hub config —
+Wavvon-discovery. Each template describes an initial hub config —
 channels, roles + permissions, settings, welcome message, suggested bots,
 tags. Operators pick one when creating a hub. Authorship is cryptographic:
 the template is signed by its author's key, the pubkey *is* the identity,
@@ -69,7 +69,7 @@ field removed — the same scheme game manifests use. Discovery verifies it
 with `author_pubkey` on submission and re-verifies on a schedule (like hub
 and bot listings); invalid or stale templates are dropped.
 
-**Catalog API** (Voxply-discovery, Next.js):
+**Catalog API** (Wavvon-discovery, Next.js):
 
 ```
 GET    /api/templates
@@ -109,7 +109,7 @@ hint, surfaced first in the wizard) but never controls what can be
 submitted.
 
 **Alternative considered — templates hosted on the hub binary**: ship a
-handful of built-in templates compiled into `voxply-hub`. Rejected as the
+handful of built-in templates compiled into `wavvon-hub`. Rejected as the
 *catalog* model — it can't grow without a release, and a community can't
 share a setup it likes. A small built-in "blank" default stays in the
 binary as the no-network fallback; everything richer lives in the catalog.
@@ -124,20 +124,20 @@ source is configured, first launch proceeds as today (blank hub).
 
 **Triggers** (checked in order):
 
-1. `VOXPLY_BOOTSTRAP_TOKEN=<token>` — a wizard-issued token that resolves
+1. `WAVVON_BOOTSTRAP_TOKEN=<token>` — a wizard-issued token that resolves
    to a *customised* config (see below). Takes precedence.
-2. `VOXPLY_TEMPLATE_URL=<url|id>` env var — a raw template JSON URL, or a
-   discovery template ID in `voxply://templates/<id>` form.
+2. `WAVVON_TEMPLATE_URL=<url|id>` env var — a raw template JSON URL, or a
+   discovery template ID in `wavvon://templates/<id>` form.
 3. `--template <url|id>` CLI flag — same resolution as the env var.
 
 If none is set, no template is applied.
 
 **Bootstrap process** — runs inside `db::migrations::run`
-(`hub/src/db/migrations.rs` in Voxply-server), after the schema is
+(`hub/src/db/migrations.rs` in Wavvon-server), after the schema is
 created, *only if the `channels` table is empty*:
 
 1. Resolve the source to template JSON. A bare ID is resolved via
-   `GET {discovery}/api/templates/:id`; a `voxply://templates/<id>` URI
+   `GET {discovery}/api/templates/:id`; a `wavvon://templates/<id>` URI
    resolves the same way against the configured discovery URL; a full URL
    is fetched directly.
 2. Verify the author signature against `author_pubkey`. On failure, log a
@@ -155,7 +155,7 @@ created, *only if the `channels` table is empty*:
 **Idempotency**: after a successful bootstrap, a `bootstrapped_at` row is
 written to `hub_settings`. Subsequent restarts see a non-empty `channels`
 table (and the marker) and skip bootstrap entirely. Restarting with
-`VOXPLY_TEMPLATE_URL` still set is safe — it does nothing.
+`WAVVON_TEMPLATE_URL` still set is safe — it does nothing.
 
 **Bootstrap token** (the wizard handoff): when the creation wizard
 generates a deployment command, it also mints a signed 24-hour one-use
@@ -172,10 +172,10 @@ does not verify the JWT itself (it has no discovery pubkey cached); it
 simply presents the token to discovery's redeem endpoint, which owns
 validation and single-use enforcement. A reused or expired token returns
 `410 token_consumed` / `410 token_expired`, and the hub falls back to the
-embedded `VOXPLY_TEMPLATE_URL` if one was also set, else a blank hub.
+embedded `WAVVON_TEMPLATE_URL` if one was also set, else a blank hub.
 
 **Alternative considered — a separate `bootstrap` subcommand**
-(`voxply-hub bootstrap --template <id>`). Rejected: it adds a command the
+(`wavvon-hub bootstrap --template <id>`). Rejected: it adds a command the
 operator must remember and sequence correctly, and risks being run twice.
 Folding bootstrap into the empty-DB branch of the existing migration path
 means it fires exactly once, automatically, with no new operator surface.
@@ -189,7 +189,7 @@ partial-apply ambiguity if a future migration adds tables.
 
 ## 3. Hub creation wizard on discovery
 
-**Decision**: a multi-step web flow at `discovery.voxply.app/new` that
+**Decision**: a multi-step web flow at `discovery.wavvon.app/new` that
 walks an operator from zero to a live hub, ending in either a one-click
 managed-farm hub or a copy-paste deployment command. The wizard is a web
 page on discovery, not part of any client.
@@ -208,7 +208,7 @@ page on discovery, not part of any client.
      live, URL shown. The wizard calls `POST /farm/hubs` on the chosen
      farm, authenticated by the operator's keypair.
    - **Docker** — a `docker run` command with all env vars pre-filled:
-     hub name, `VOXPLY_BOOTSTRAP_TOKEN`, discovery URL, and the registration
+     hub name, `WAVVON_BOOTSTRAP_TOKEN`, discovery URL, and the registration
      opt-in flag.
    - **Binary** — the equivalent shell command for a downloaded binary.
 4. **Done** — link to the new hub URL, link to its admin panel, and a
@@ -223,7 +223,7 @@ time-boxed.
 
 **Farm integration** (managed-farm path): the wizard calls the chosen
 farm's public `POST /farm/hubs` (the Phase 2/3 hub-provisioning API in
-`farm/src/routes/` in Voxply-server), authenticated by the operator's
+`farm/src/routes/` in Wavvon-server), authenticated by the operator's
 farm session — the operator authenticates to the farm from the wizard
 first, exactly as the client's farm picker does
 ([farm-impl.md](farm-impl.md) Section C). The farm provisions the hub and
@@ -239,7 +239,7 @@ self-hosted hub can register itself on the discovery directory by calling
 [hub-discovery.md](hub-discovery.md)). Default behaviour is to *log* the
 registration command (and pre-fill it in the Docker/binary path) for the
 operator to run deliberately. Full hands-off registration is opt-in via
-`VOXPLY_DISCOVERY_AUTOREGISTER=true` — listing a hub publicly is a choice,
+`WAVVON_DISCOVERY_AUTOREGISTER=true` — listing a hub publicly is a choice,
 so the silent path is opt-in, not default. Managed-farm hubs follow the
 farm's own `allow_discovery_listing` flow instead.
 
@@ -252,7 +252,7 @@ existing in-app "Create a hub" flow ([farm-impl.md](farm-impl.md) Section
 C) covers the already-a-user-on-a-farm case and coexists with this.
 
 **Alternative considered — CLI-only setup wizard**
-(`voxply-hub setup --wizard`, interactive prompts). Valuable for server
+(`wavvon-hub setup --wizard`, interactive prompts). Valuable for server
 operators who live on the command line, but useless to managed-farm users
 who never run a binary. The two can coexist; the web wizard is the primary
 path and the CLI wizard is a stretch goal (deferred below).
@@ -263,7 +263,7 @@ path and the CLI wizard is a stretch goal (deferred below).
 
 What each repo owns. Engineers should not drift across this boundary.
 
-**Voxply-discovery** (Next.js):
+**Wavvon-discovery** (Next.js):
 - Template catalog: `/api/templates`, `/api/templates/:id`,
   `POST`/`DELETE /api/templates/register`. Signature verify on submit +
   scheduled re-validation, `featured` flag, listing DB table.
@@ -272,22 +272,22 @@ What each repo owns. Engineers should not drift across this boundary.
 - Wizard UI at `/new`: template browse/preview, customise form, deploy-path
   selector, command generation, farm-call integration, done page.
 
-**Voxply-server** (`hub/` crate):
+**Wavvon-server** (`hub/` crate):
 - Bootstrap in `hub/src/db/migrations.rs`: empty-`channels` branch,
   template resolve + signature verify, apply channels/roles/settings/
   welcome message, `bootstrapped_at` marker, token-redeem fetch.
-- Config plumbing for `VOXPLY_TEMPLATE_URL`, `VOXPLY_BOOTSTRAP_TOKEN`,
-  `VOXPLY_DISCOVERY_URL`, `VOXPLY_DISCOVERY_AUTOREGISTER` (read in
+- Config plumbing for `WAVVON_TEMPLATE_URL`, `WAVVON_BOOTSTRAP_TOKEN`,
+  `WAVVON_DISCOVERY_URL`, `WAVVON_DISCOVERY_AUTOREGISTER` (read in
   `hub/src/main.rs` / config).
 - Reuse the existing `POST /api/hubs` discovery registration for autoreg.
 
-**Voxply-server** (`farm/` crate):
+**Wavvon-server** (`farm/` crate):
 - `POST /farm/hubs` already exists (Phase 2/3); the wizard is a new
   *caller* of it. The pass-through bootstrap config on farm-spawned hubs
   reuses the Phase 3 spawn-payload path (`owner_pubkey`, name, icon) — no
   new farm route needed for the managed path.
 
-**Clients** (Voxply-desktop, Voxply-web, Voxply-android): no changes
+**Clients** (Wavvon-desktop, Wavvon-web, Wavvon-android): no changes
 required for this design — the in-app "Create a hub" flow is already
 covered in [farm-impl.md](farm-impl.md). The wizard is a separate web
 surface.
@@ -296,7 +296,7 @@ surface.
 
 ## What's deferred
 
-- **CLI setup wizard** (`voxply-hub setup --wizard`) — interactive prompts
+- **CLI setup wizard** (`wavvon-hub setup --wizard`) — interactive prompts
   for server operators. Coexists with the web wizard; lower priority
   because it doesn't serve managed-farm users.
 - **Template versioning / migration** — a template author bumps `version`;

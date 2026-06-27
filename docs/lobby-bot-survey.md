@@ -1,4 +1,4 @@
-# Lobby, Bot Challenge, and Role Questionnaire
+﻿# Lobby, Bot Challenge, and Role Questionnaire
 
 Three interlocking onboarding features. None are built yet; this is the
 design we'd start from.
@@ -16,18 +16,18 @@ The three stack as a single flow: challenge -> lobby (PoW + survey) ->
 full member or pending review.
 
 Authoritative code targets (not yet written). Paths under `hub/` live
-in Voxply-server; paths under `desktop/` live in Voxply-desktop.
+in Wavvon-server; paths under `desktop/` live in Wavvon-desktop.
 
-- `hub/src/routes/lobby.rs` (Voxply-server)
-- `hub/src/routes/challenge.rs` (Voxply-server)
-- `hub/src/routes/survey.rs` (Voxply-server)
-- `desktop/src/components/Lobby.tsx` (Voxply-desktop)
-- `desktop/src/components/BotChallenge.tsx` (Voxply-desktop)
-- `desktop/src/components/Survey.tsx` (Voxply-desktop)
+- `hub/src/routes/lobby.rs` (Wavvon-server)
+- `hub/src/routes/challenge.rs` (Wavvon-server)
+- `hub/src/routes/survey.rs` (Wavvon-server)
+- `desktop/src/components/Lobby.tsx` (Wavvon-desktop)
+- `desktop/src/components/BotChallenge.tsx` (Wavvon-desktop)
+- `desktop/src/components/Survey.tsx` (Wavvon-desktop)
 
 Cross-references: anti-spam design space in
 [future-features.md](future-features.md); PoW primitives at
-`identity/src/pow.rs` in Voxply-server; approval flow today via
+`identity/src/pow.rs` in Wavvon-server; approval flow today via
 `users.approval_status`.
 
 ---

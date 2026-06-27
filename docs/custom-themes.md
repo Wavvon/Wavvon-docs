@@ -1,13 +1,13 @@
-# Custom Themes (User Skins)
+﻿# Custom Themes (User Skins)
 
 **Status:** designed, not built. Personal-axis, v1.
 
 > Paths in this doc predate the client monorepo. The clients now live in
-> the Voxply-client monorepo: read `Voxply-desktop/desktop/` as
-> `apps/desktop/`, `Voxply-web/web/` as `apps/web/`, and shared CSS tokens
+> the Wavvon-client monorepo: read `Wavvon-desktop/desktop/` as
+> `apps/desktop/`, `Wavvon-web/web/` as `apps/web/`, and shared CSS tokens
 > as a candidate for `packages/ui`. See [architecture.md](architecture.md).
 
-Voxply ships four built-in themes — Calm, Classic, Linear, Light — driven
+Wavvon ships four built-in themes — Calm, Classic, Linear, Light — driven
 entirely by CSS custom properties set on `[data-theme="..."]` in each
 client's `styles.css` (desktop: `apps/desktop/src/styles.css`;
 web: `apps/web/src/styles.css`). A skin is just a fifth, user-owned
@@ -21,7 +21,7 @@ token cascade that already paints the whole app.
 **Why tokens, not CSS.** The four themes prove the token set already spans
 the visible surface. Letting users override token *values* gets full
 re-skinning for free while keeping the blast radius to a known, safe list.
-Arbitrary CSS injection would let a shared `.voxplyskin` file run layout or
+Arbitrary CSS injection would let a shared `.wavvonskin` file run layout or
 `url()` exfiltration attacks — see Security below.
 
 **Why personal-axis.** A skin follows the user across hubs, like the theme
@@ -71,11 +71,11 @@ Notes:
 
 ## 2. Skin file format
 
-`.voxplyskin` is a small, self-describing JSON document:
+`.wavvonskin` is a small, self-describing JSON document:
 
 ```json
 {
-  "format": "voxply.skin",
+  "format": "wavvon.skin",
   "version": 1,
   "name": "Midnight Moss",
   "author_pubkey": "ed25519:abc123…",
@@ -106,7 +106,7 @@ Notes:
 
 ## 3. The "Custom" theme slot
 
-`THEMES` (`Voxply-desktop/desktop/src/constants.ts:175`, web equivalent)
+`THEMES` (`Wavvon-desktop/desktop/src/constants.ts:175`, web equivalent)
 gains a fifth entry with `id: "custom"`. The union type widens from
 `"calm" | "classic" | "linear" | "light"` to include `"custom"` everywhere
 it is used — `ThemePicker`, `App` state, and the persisted profile field.
@@ -155,7 +155,7 @@ Tokens only. There is no raw-CSS textarea anywhere in this UI.
 
 ## 5. Export / import
 
-**Export** serializes the active skin to `.voxplyskin` JSON and saves it.
+**Export** serializes the active skin to `.wavvonskin` JSON and saves it.
 The serialize step is identical across clients; only the save transport
 differs (see §8).
 
@@ -175,27 +175,27 @@ differs (see §8).
 ## 6. Persistence
 
 The active skin and the slot selection persist to
-`~/.voxply/appearance.json`, following the `voice.json` pattern in
-`Voxply-desktop/desktop/src-tauri/src/lib.rs` (`voice_settings_path()`,
+`~/.wavvon/appearance.json`, following the `voice.json` pattern in
+`Wavvon-desktop/desktop/src-tauri/src/lib.rs` (`voice_settings_path()`,
 ~line 640). Add `appearance_settings_path()` returning
-`.voxply/appearance.json`, plus `load_appearance` / `save_appearance`
+`.wavvon/appearance.json`, plus `load_appearance` / `save_appearance`
 Tauri commands mirroring the voice ones, with `#[serde(default)]` on every
 field so older files keep loading as the schema grows.
 
 ```json
-{ "slot": "custom", "skin": { /* .voxplyskin body */ } }
+{ "slot": "custom", "skin": { /* .wavvonskin body */ } }
 ```
 
 The theme *selection* stays where it is today — the profile field read via
 `get_profile` and applied as `dataset.theme` on startup in
-`Voxply-desktop/desktop/src/App.tsx` (~lines 1884–1893). When
+`Wavvon-desktop/desktop/src/App.tsx` (~lines 1884–1893). When
 `slot == "custom"`, startup also reads `appearance.json` and replays the
 token overrides before first paint to avoid a flash. A `[data-theme="custom"]`
 block in `styles.css` must carry neutral fallback values so the skin never
 flashes unstyled while `appearance.json` loads.
 
-**Web persistence:** `localStorage` key `voxply:appearance` via
-`Voxply-web/web/src/platform/storage.ts` (the web client has no disk access
+**Web persistence:** `localStorage` key `wavvon:appearance` via
+`Wavvon-web/web/src/platform/storage.ts` (the web client has no disk access
 via Tauri). Both clients share the same JSON shape and the same React editor
 components.
 
@@ -232,7 +232,7 @@ the rule cannot drift between platforms.
 ## 8. Cross-client parity
 
 **Identical across desktop / web / android** (shared TS): token taxonomy,
-the `.voxplyskin` schema, the validation rule (§7), the editor React
+the `.wavvonskin` schema, the validation rule (§7), the editor React
 components, the `setProperty` apply/clear logic, and the
 `[data-theme="custom"]` CSS block (kept in sync between both `styles.css`
 files).
@@ -242,8 +242,8 @@ files).
 | Client | Export | Import | Persist |
 |--------|--------|--------|---------|
 | Desktop (Tauri) | `dialog::save()` Tauri command | `dialog::open()` Tauri command | `appearance.json` via new Tauri command |
-| Web | `<a download>` Blob URL | `<input type="file">` | `localStorage` key `voxply:appearance` |
-| Android (Tauri wrapper) | Android share sheet | `ACTION_OPEN_DOCUMENT` content picker | same Tauri command path as desktop (`Voxply-android/voxply-desktop/src-tauri`) |
+| Web | `<a download>` Blob URL | `<input type="file">` | `localStorage` key `wavvon:appearance` |
+| Android (Tauri wrapper) | Android share sheet | `ACTION_OPEN_DOCUMENT` content picker | same Tauri command path as desktop (`Wavvon-android/wavvon-desktop/src-tauri`) |
 
 Engineers implement the React editor against a `platform.skins` adapter
 interface (`export(skin)`, `import() → Promise<Skin>`, `persist(slot, skin)`,
@@ -259,18 +259,18 @@ personal skin, with the user always able to opt out. That is a separate
 design: it lives on the community hub, needs operator permissions and
 federation of the token blob, and must reconcile with the personal custom slot.
 
-A **skin gallery in Voxply-discovery** is now designed — see §11.
+A **skin gallery in Wavvon-discovery** is now designed — see §11.
 
 ---
 
 ## 11. Discovery skin gallery
 
-A browsable gallery of self-submitted skins in Voxply-discovery, reusing
+A browsable gallery of self-submitted skins in Wavvon-discovery, reusing
 the same signed-listing primitive hubs, farms, bots, and games already use
 ([discovery-v2.md](discovery-v2.md)). This is where `author_pubkey`
 graduates from decorative attribution to a verified signature.
 
-**Registration.** The author signs the full `.voxplyskin` JSON bytes with
+**Registration.** The author signs the full `.wavvonskin` JSON bytes with
 their Ed25519 key — the same key used for hub federation, via the same
 `@noble/ed25519` primitive discovery already uses in
 `discovery/src/lib/verify.ts`. The `author_pubkey` field inside the skin
@@ -278,7 +278,7 @@ body must match the signing key.
 
 ```
 POST /api/skins/register
-{ "payload": "<full .voxplyskin JSON, the canonical signed bytes>",
+{ "payload": "<full .wavvonskin JSON, the canonical signed bytes>",
   "sig":     "<base64url Ed25519 signature over payload>" }
 ```
 
@@ -295,14 +295,14 @@ validate token values (§7 is client-side on import).
 | `name` | display label (≤48) |
 | `base` | built-in theme the skin extends |
 | `swatch_bg` / `swatch_surface` / `swatch_accent` | `--bg` / `--surface` / `--accent` values — so the browse list ships no full JSON per card |
-| `payload` | full `.voxplyskin` JSON, served only by the detail endpoint |
+| `payload` | full `.wavvonskin` JSON, served only by the detail endpoint |
 | `featured` | INTEGER sort hint, operator-set |
 | `listed_at` | timestamp |
 
 **Browse endpoints.** Same shape as `GET /api/hubs`:
 
 - `GET /api/skins?q=<text>&base=<theme>&page=<n>` → `{ skins: [...], total }`, each item carrying id, name, author_pubkey, base, the three swatches, featured — never the full payload.
-- `GET /api/skins/:id` → the full `.voxplyskin` body.
+- `GET /api/skins/:id` → the full `.wavvonskin` body.
 
 **Delete.** `DELETE /api/skins/register` carries a signed withdrawal;
 discovery verifies the signature against the stored `author_pubkey` and
@@ -340,13 +340,13 @@ runs client-side on import, never server-side on register.
 
 ## Cross-references
 
-- `Voxply-desktop/desktop/src/styles.css` — canonical token definitions (`[data-theme]` blocks)
-- `Voxply-desktop/desktop/src/constants.ts:175` — `THEMES` array to extend
-- `Voxply-desktop/desktop/src/components/ThemePicker.tsx` — picker component to extend
-- `Voxply-desktop/desktop/src/App.tsx:1884` — theme apply/persist on startup
-- `Voxply-desktop/desktop/src-tauri/src/lib.rs:640` — `voice_settings_path` pattern for `appearance_settings_path`
-- `Voxply-web/web/src/styles.css` — web token source (keep in sync with desktop)
-- `Voxply-web/web/src/platform/storage.ts` — web persistence layer
+- `Wavvon-desktop/desktop/src/styles.css` — canonical token definitions (`[data-theme]` blocks)
+- `Wavvon-desktop/desktop/src/constants.ts:175` — `THEMES` array to extend
+- `Wavvon-desktop/desktop/src/components/ThemePicker.tsx` — picker component to extend
+- `Wavvon-desktop/desktop/src/App.tsx:1884` — theme apply/persist on startup
+- `Wavvon-desktop/desktop/src-tauri/src/lib.rs:640` — `voice_settings_path` pattern for `appearance_settings_path`
+- `Wavvon-web/web/src/styles.css` — web token source (keep in sync with desktop)
+- `Wavvon-web/web/src/platform/storage.ts` — web persistence layer
 - [home-hub.md](home-hub.md) — personal-axis prefs blob that eventually absorbs the skin
 - [discovery-v2.md](discovery-v2.md) — signed-listing catalog pattern the skin gallery (§11) mirrors
 - [decisions.md](decisions.md) — rationale log

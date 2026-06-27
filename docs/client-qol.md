@@ -1,6 +1,6 @@
-# Client Quality-of-Life
+﻿# Client Quality-of-Life
 
-Seven features that sharpen daily use without changing Voxply's shape.
+Seven features that sharpen daily use without changing Wavvon's shape.
 Each is small in isolation; grouped here because they share the same
 constraints — federated (no global coordinator), two-axis state
 (community state on the community hub, personal state on the home hub
@@ -22,10 +22,10 @@ live**. The answers split cleanly:
 > [forum.md](forum.md) for the FTS5 pattern these features reuse, and
 > [decisions.md](decisions.md) for the two-axis principle.
 
-The hub side of all five server-touching features lives in Voxply-server
-(`hub/` crate). The client side lives in Voxply-desktop (`desktop/` React
-UI, `src-tauri/` for native notifications) and is mirrored to Voxply-web
-(`web/`) and Voxply-android (`android/`) through the shared platform
+The hub side of all five server-touching features lives in Wavvon-server
+(`hub/` crate). The client side lives in Wavvon-desktop (`desktop/` React
+UI, `src-tauri/` for native notifications) and is mirrored to Wavvon-web
+(`web/`) and Wavvon-android (`android/`) through the shared platform
 adapter.
 
 ---
@@ -34,7 +34,7 @@ adapter.
 
 **Decision**: search runs hub-side over an FTS5 index; the client
 fan-outs the query to every connected hub in parallel and merges. We
-extend the proven `posts_fts` pattern (Voxply-server `hub/src/routes/posts.rs`,
+extend the proven `posts_fts` pattern (Wavvon-server `hub/src/routes/posts.rs`,
 the forum's full-text search) from forum posts to regular channel
 messages.
 
@@ -50,7 +50,7 @@ timestamp, not by relevance score. Accepted: cross-hub relevance ranking
 would require a global coordinator, which violates the federated pillar.
 Timestamp-descending merge is predictable and good enough.
 
-**Data model** (community-axis, per hub, Voxply-server migration):
+**Data model** (community-axis, per hub, Wavvon-server migration):
 
 ```sql
 CREATE VIRTUAL TABLE messages_fts USING fts5(
@@ -64,7 +64,7 @@ CREATE VIRTUAL TABLE messages_fts USING fts5(
 No new persistent state beyond the index; it's a derived view of
 `messages`.
 
-**Wire** (Voxply-server, new route):
+**Wire** (Wavvon-server, new route):
 
 ```
 GET /search?q=<query>&limit=20&before=<ts>
@@ -77,7 +77,7 @@ through the same `can_view_channel` check the message-list route uses, so
 results never leak messages the authenticated user can't read. `before`
 paginates by `created_at` for "load more."
 
-**Client side** (Voxply-desktop `desktop/`, mirrored web/Android): a
+**Client side** (Wavvon-desktop `desktop/`, mirrored web/Android): a
 search input in the top nav. On submit it dispatches parallel
 `hubFetch("/search?q=...")` calls to all connected hubs, merges the
 result arrays, sorts by `created_at` descending, and renders a list —
@@ -104,7 +104,7 @@ peers), search within DMs, attachment-filename search, date-range filter.
 ## 2. Message drafts — **SHIPPED**
 
 **Decision**: drafts are personal working state, stored client-side in
-`localStorage` under `voxply.drafts` as a JSON map keyed by
+`localStorage` under `wavvon.drafts` as a JSON map keyed by
 `hubId/channelId` (DMs keyed by `conversationId`). No hub involvement, no
 sync.
 
@@ -124,7 +124,7 @@ protocol surface.
 
 ```json
 {
-  "voxply.drafts": {
+  "wavvon.drafts": {
     "<hubId>/<channelId>": "half-typed message…",
     "<conversationId>": "dm draft…"
   }
@@ -133,7 +133,7 @@ protocol surface.
 
 **Wire**: none.
 
-**Client side / behaviour** (Voxply-desktop, mirrored): when the user
+**Client side / behaviour** (Wavvon-desktop, mirrored): when the user
 navigates away from a channel with non-empty composer text, persist it.
 On return, pre-fill the composer. A subtle "Draft" label shows on the
 channel row in the sidebar when a draft exists. Sending clears the draft;
@@ -173,7 +173,7 @@ cacheable by a CDN. Bounded by a hard cap — 64 KB per emoji, 200 emoji
 per hub — so worst case is ~13 MB of emoji in the DB. The image route
 sets cache headers so clients cache aggressively after first fetch.
 
-**Data model** (community-axis, Voxply-server migration):
+**Data model** (community-axis, Wavvon-server migration):
 
 ```sql
 CREATE TABLE hub_emojis (
@@ -186,7 +186,7 @@ CREATE TABLE hub_emojis (
 );
 ```
 
-**Wire** (Voxply-server):
+**Wire** (Wavvon-server):
 
 ```
 GET    /emojis              -> [ { id, name, url: "/emojis/:id/image" } ]   (public)
@@ -206,7 +206,7 @@ value is either a Unicode character (today) or a hub emoji name with a
 sigil — `h:parrot` — so the client can tell the two apart and render the
 hub image for the prefixed form.
 
-**Client side** (Voxply-desktop, mirrored): on hub connect, fetch and
+**Client side** (Wavvon-desktop, mirrored): on hub connect, fetch and
 cache `GET /emojis`. The emoji picker gains a "This server" section at
 the top. The composer auto-completes `:par` -> `:parrot:` from the hub
 list. When rendering a message, replace `:name:` tokens that match a hub
@@ -222,7 +222,7 @@ Message: nice work :parrot:   ->   nice work 🦜(img)
 ```
 
 **Deferred**: animated GIF emoji, emoji categories/tags, a global emoji
-catalog on Voxply-discovery.
+catalog on Wavvon-discovery.
 
 ---
 
@@ -244,7 +244,7 @@ the timestamp (for the start reminder) and the RSVP tally.
 the structured data (RSVP + timestamp) needing server enforcement and a
 notification trigger.
 
-**Data model** (community-axis, Voxply-server migration):
+**Data model** (community-axis, Wavvon-server migration):
 
 ```sql
 CREATE TABLE hub_events (
@@ -269,7 +269,7 @@ CREATE TABLE event_rsvps (
 New permission `create_events`, seeded for `@everyone` by default (same
 seeding pattern as `create_posts` in the forum migration).
 
-**Wire** (Voxply-server):
+**Wire** (Wavvon-server):
 
 ```
 POST   /events                 (requires send_messages in the channel)
@@ -285,10 +285,10 @@ WS:    event_created { channel_id, event_id }   (same shape as post_created)
 On create, the hub also writes a normal `messages` row into the channel
 that embeds the event card, so the event appears inline in the timeline.
 
-**Client side** (Voxply-desktop, mirrored): event cards render as a
+**Client side** (Wavvon-desktop, mirrored): event cards render as a
 distinct message type in the channel. An "Events" button in the channel
 sidebar opens a mini-calendar of upcoming events with RSVP counts. The
-desktop notification system (Voxply-desktop `src-tauri/`) fires a reminder
+desktop notification system (Wavvon-desktop `src-tauri/`) fires a reminder
 15 minutes before `starts_at`.
 
 **Connection to proximity voice**: for a concert or meetup, the creator
@@ -329,7 +329,7 @@ vote), so v1 polls are not anonymous. Accepted for v1 — anonymity needs a
 blind-tally scheme and is deferred. The hub knowing who voted is the same
 trust the user already extends for messages.
 
-**Data model** (community-axis, Voxply-server migration):
+**Data model** (community-axis, Wavvon-server migration):
 
 ```sql
 CREATE TABLE polls (
@@ -350,7 +350,7 @@ CREATE TABLE poll_votes (
 );
 ```
 
-**Wire** (Voxply-server):
+**Wire** (Wavvon-server):
 
 ```
 POST   /channels/:id/polls     { question, options, ends_at?, max_choices? }  (send_messages)
@@ -365,7 +365,7 @@ upserts the voter's `poll_votes` row (re-voting replaces, respecting
 `max_choices`) and broadcasts `poll_vote_updated` so every client's bar
 chart updates live.
 
-**Client side** (Voxply-desktop, mirrored): poll cards show the question,
+**Client side** (Wavvon-desktop, mirrored): poll cards show the question,
 a bar per option (% filled), the user's selection if they've voted, and a
 vote button. After voting or on each `poll_vote_updated`, bars animate to
 new totals. Past `ends_at`, the card shows final results and disables
@@ -406,7 +406,7 @@ is maintained in the same code paths that already insert and soft-delete
 messages, and a periodic reconcile can correct drift if it ever appears.
 The alternative (counting replies on every render) is too expensive.
 
-**Data model** (community-axis, Voxply-server migration):
+**Data model** (community-axis, Wavvon-server migration):
 
 ```sql
 ALTER TABLE messages ADD COLUMN reply_count INTEGER NOT NULL DEFAULT 0;
@@ -418,7 +418,7 @@ chip reflects visible replies). Threading already exists via `reply_to`
 on `messages` ([data-model.md](data-model.md)); this only adds the
 counter. Collapse state is client-local (localStorage, per channel).
 
-**Wire** (Voxply-server): no new route — reuse the message-list route
+**Wire** (Wavvon-server): no new route — reuse the message-list route
 with a thread filter:
 
 ```
@@ -427,7 +427,7 @@ GET /channels/:id/messages?thread_root=:msg_id   -> the flat reply list
 
 `reply_count` rides along on existing message payloads.
 
-**Client side** (Voxply-desktop, mirrored): a message with
+**Client side** (Wavvon-desktop, mirrored): a message with
 `reply_count > 0` shows a "N replies" chip. Clicking it fetches the
 thread and renders it as an indented sub-list under the root; clicking
 again collapses. A "Jump to thread" button on any reply scrolls to and
@@ -443,7 +443,7 @@ alice: anyone hitting the v3 build error?
 alice: anyone hitting the v3 build error?
    💬 3 replies  ▾                 (expanded)
      bob:  yeah, missing env var
-     carol: set VOXPLY_FARM_URL
+     carol: set WAVVON_FARM_URL
      bob:  that fixed it, thanks
 ```
 
@@ -458,7 +458,7 @@ search.
 **Decision**: batch OS notifications per hub with a 3-second debounce, so
 a burst of messages produces one toast instead of ten. A single message
 with nothing buffered fires immediately. Entirely client-local — the
-debounce lives in the Tauri notification helper (Voxply-desktop
+debounce lives in the Tauri notification helper (Wavvon-desktop
 `src-tauri/src/lib.rs`).
 
 **Alternative considered**: hub-side notification coalescing. Rejected —
@@ -476,7 +476,7 @@ buffers in the notification helper.
 
 **Wire**: none — client-side only, no hub changes.
 
-**Client side / behaviour** (Voxply-desktop `src-tauri/`): maintain a
+**Client side / behaviour** (Wavvon-desktop `src-tauri/`): maintain a
 per-hub pending buffer with a 3-second debounce. While messages arrive,
 hold them; after 3 seconds of quiet, fire one toast — e.g.
 **"Acme Hub — 5 new messages in #general, #gaming."** If the burst spans

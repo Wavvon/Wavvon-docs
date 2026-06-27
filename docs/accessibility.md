@@ -1,6 +1,6 @@
-# Accessibility & Internationalization
+﻿# Accessibility & Internationalization
 
-Voxply's three clients (desktop, web, Android) share a React UI but
+Wavvon's three clients (desktop, web, Android) share a React UI but
 target different input surfaces. This doc defines the keyboard, screen
 reader, and localization strategy for all three. Scope is the React UI
 only — the Rust shell and the hub APIs are unaffected.
@@ -121,7 +121,7 @@ to maintain WCAG 2.1 contrast 3:1 against its background.
 
 ## 2. Screen reader support
 
-Voxply runs inside a Tauri webview on desktop and a normal browser on
+Wavvon runs inside a Tauri webview on desktop and a normal browser on
 web/Android. All three expose the DOM accessibility tree to platform
 screen readers. We design once for the DOM tree; the host webview does
 the bridging.
@@ -226,7 +226,7 @@ Picked over Lingui and a custom solution.
   formatting alone justify a library.
 
 Same library in all three clients. Catalogs live in the shared workspace
-package `packages/i18n` in the Voxply-client monorepo; desktop, web, and
+package `packages/i18n` in the Wavvon-client monorepo; desktop, web, and
 Android all consume it as a workspace dependency.
 
 ### String catalog layout
@@ -244,7 +244,7 @@ Flat keys, dot-namespaced by feature, ICU MessageFormat values:
 
 ```json
 {
-  "app.title": "Voxply",
+  "app.title": "Wavvon",
   "hub.add.button": "Add a hub",
   "channel.unread.aria": "{count, plural, one {# unread message} other {# unread messages}}",
   "voice.joined.aria": "Joined voice in {channel} with {count, plural, one {# participant} other {# participants}}",

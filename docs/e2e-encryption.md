@@ -1,7 +1,7 @@
-# End-to-End Encrypted Direct Messages
+﻿# End-to-End Encrypted Direct Messages
 
 DMs today are plaintext in the hub's SQLite (`dm_messages.content`,
-`hub/src/db/migrations.rs:432-443` in Voxply-server). The hub operator
+`hub/src/db/migrations.rs:432-443` in Wavvon-server). The hub operator
 can read every conversation. This doc designs E2E encryption that lets
 hubs **store and relay** without **decrypt**. v1 covers 1:1 text DMs
 and their attachments only.
@@ -27,13 +27,13 @@ mix networks) and not pursued in v1.
 ## Key material
 
 Each user already has an Ed25519 **identity key** for signing
-(`identity/src/lib.rs:23-127` in Voxply-server). For E2E we add an
+(`identity/src/lib.rs:23-127` in Wavvon-server). For E2E we add an
 **X25519 DH key** for key agreement, deterministically derived from the
 same seed — no new key storage.
 
 | Key | Curve | Use | Storage |
 |---|---|---|---|
-| `identity_key` | Ed25519 | Sign messages, certs, profiles | `~/.voxply/identity.json` (existing) |
+| `identity_key` | Ed25519 | Sign messages, certs, profiles | `~/.wavvon/identity.json` (existing) |
 | `dh_key` | X25519 | ECDH for message encryption | Derived on demand from identity seed |
 
 ### Derivation
@@ -66,7 +66,7 @@ New endpoint on each home hub:
 ```
 PUT /identity/:pubkey/dh-key
     body: { dh_pubkey_hex, signature_hex }
-    signature signs: "voxply/dh-key/v1\0" + pubkey + dh_pubkey
+    signature signs: "wavvon/dh-key/v1\0" + pubkey + dh_pubkey
 → 200 | 401 (auth) | 400 (sig mismatch)
 
 GET /identity/:pubkey/dh-key
@@ -81,7 +81,7 @@ relying client re-verifies. Storage is a new `dh_keys` row keyed by
 `home_hub_designations`.
 
 The signing pattern follows the existing wire types in
-`identity/src/wire.rs:32-66` (Voxply-server) — domain-separated prefix,
+`identity/src/wire.rs:32-66` (Wavvon-server) — domain-separated prefix,
 length-prefixed strings, identity-key signature.
 
 ---
@@ -94,7 +94,7 @@ For Alice → Bob in conversation `conv_id`:
 |---|---|
 | 1 | Alice fetches Bob's published DH pubkey from his home hub (or cache) |
 | 2 | `shared = X25519(alice_dh_priv, bob_dh_pub)` |
-| 3 | `key = HKDF-SHA256(shared, salt=conv_id, info="voxply/dm-key/v1")` |
+| 3 | `key = HKDF-SHA256(shared, salt=conv_id, info="wavvon/dm-key/v1")` |
 | 4 | `nonce = random(12)` |
 | 5 | `ct = AES-256-GCM(key, nonce, plaintext_json)` where `plaintext_json` is `{ content, attachments? }` |
 | 6 | `sig = Ed25519.sign(identity_key, canonical_bytes)` (see §"Message authentication") |
@@ -130,10 +130,10 @@ plaintexts after a key compromise. The Ed25519 signature on the envelope
 binds the ciphertext to Alice's identity key, which the hub does not have.
 
 **Canonical bytes** (domain-separated, length-prefixed, matches the
-pattern in `identity/src/wire.rs` in Voxply-server):
+pattern in `identity/src/wire.rs` in Wavvon-server):
 
 ```
-"voxply/dm-ciphertext/v1\0"
+"wavvon/dm-ciphertext/v1\0"
 || len_prefixed(conv_id)
 || len_prefixed(ciphertext_hex)
 || len_prefixed(nonce_hex)
@@ -177,7 +177,7 @@ size.
 
 Each sender tracks `(chain_key: [u8; 32], iteration: u32, version: u32)`
 per `(conv_id, sender_pubkey)` in a local file
-`~/.voxply/group_sender_keys.json`:
+`~/.wavvon/group_sender_keys.json`:
 
 ```json
 {
@@ -202,8 +202,8 @@ sent with the current `chain_key` generation.
 Before encrypting message N:
 
 ```
-msg_key[N]        = HKDF-SHA256(chain_key, salt=N.to_be_bytes(), info="voxply/group-msg/v1")
-chain_key[N+1]    = HKDF-SHA256(chain_key, salt=N.to_be_bytes(), info="voxply/group-chain/v1")
+msg_key[N]        = HKDF-SHA256(chain_key, salt=N.to_be_bytes(), info="wavvon/group-msg/v1")
+chain_key[N+1]    = HKDF-SHA256(chain_key, salt=N.to_be_bytes(), info="wavvon/group-chain/v1")
 nonce[N]          = N.to_be_bytes() zero-padded to 12 bytes
 ciphertext[N]     = AES-256-GCM(msg_key[N], nonce[N], plaintext_json)
 ```
@@ -223,7 +223,7 @@ When sender Alice distributes her chain key to recipient Bob:
 
 ```
 shared   = X25519(alice_dh_priv, bob_dh_pub)           // same as 1:1 ECDH
-wrap_key = HKDF-SHA256(shared, salt=conv_id, info="voxply/group-key-dist/v1")
+wrap_key = HKDF-SHA256(shared, salt=conv_id, info="wavvon/group-key-dist/v1")
 nonce    = random(12)
 wrapped  = AES-256-GCM(wrap_key, nonce, chain_key[32] || iteration[4 BE])
 ```
@@ -258,7 +258,7 @@ SubkeyCert, PairingOffer, PairingClaim, RevocationEntry, HomeHubList) see
 **Group message envelope** (Ed25519 over):
 
 ```
-"voxply/group-dm-ciphertext/v1\0"
+"wavvon/group-dm-ciphertext/v1\0"
 || len_prefixed(conv_id)
 || len_prefixed(sender_key_version as decimal string)
 || len_prefixed(iteration as decimal string)
@@ -269,7 +269,7 @@ SubkeyCert, PairingOffer, PairingClaim, RevocationEntry, HomeHubList) see
 **Key distribution** (Ed25519 over):
 
 ```
-"voxply/group-key-dist/v1\0"
+"wavvon/group-key-dist/v1\0"
 || len_prefixed(conv_id)
 || len_prefixed(sender_key_version as decimal string)
 || for each recipient sorted by recipient_pubkey:
@@ -352,7 +352,7 @@ holds `EncryptedDmEnvelope`; when `is_group_encrypted=1` it holds
 | `fetch_group_sender_keys(conv_id)` Tauri command | same |
 | `encrypt_group_dm(conv_id, content)` Tauri command | same |
 | `decrypt_group_dm(conv_id, envelope)` Tauri command | same |
-| Local chain-key state file `~/.voxply/group_sender_keys.json` | managed by Tauri commands |
+| Local chain-key state file `~/.wavvon/group_sender_keys.json` | managed by Tauri commands |
 | Group DM send path uses `encrypt_group_dm` | `desktop/src/App.tsx` |
 | `get_dm_messages` decrypts group envelopes inline | `desktop/src-tauri/src/lib.rs` |
 | Group DM banner replaced by lock icon once all keys are available | `desktop/src/components/ContentArea.tsx` |
@@ -376,7 +376,7 @@ holds `EncryptedDmEnvelope`; when `is_group_encrypted=1` it holds
 
 The hub is **storage and relay**. No key material lives on the hub.
 
-All hub-side paths below live in Voxply-server.
+All hub-side paths below live in Wavvon-server.
 
 | Change | File | Note |
 |---|---|---|
@@ -404,17 +404,17 @@ indexed" in the search UI.
 
 | Change | Where |
 |---|---|
-| `Identity::dh_keypair() -> X25519KeyPair` | `identity/src/lib.rs` in Voxply-server (extends the existing `Identity`) |
-| Tauri command `publish_dh_key` | `desktop/src-tauri` in Voxply-desktop — runs on first launch post-upgrade, or after identity creation |
+| `Identity::dh_keypair() -> X25519KeyPair` | `identity/src/lib.rs` in Wavvon-server (extends the existing `Identity`) |
+| Tauri command `publish_dh_key` | `desktop/src-tauri` in Wavvon-desktop — runs on first launch post-upgrade, or after identity creation |
 | Tauri command `fetch_dh_key(pubkey, hub_url)` | with a local cache, 24 h TTL, evict on signature-verify failure |
-| DM send path: encrypt when recipient DH key is known | `desktop/src/...` in Voxply-desktop, DM send handler |
+| DM send path: encrypt when recipient DH key is known | `desktop/src/...` in Wavvon-desktop, DM send handler |
 | DM send path: warn-then-send-plaintext otherwise | UI banner: "Recipient hasn't published an encryption key — this message will not be encrypted." User confirms or cancels |
 | DM receive path: detect `is_encrypted`, decrypt locally | same handler that processes `dm_messages` and the `DmEvent::Message` WS stream |
 | Lock-icon UI | Per-message indicator. Closed lock = E2E. Open lock = plaintext. Tooltip explains. Mixed conversations are allowed |
 | Group DM banner | "Group DMs are not encrypted yet." Always shown above a group conversation; removed when v2 ships |
 
 The DH keypair is derived on demand, not stored. The Ed25519 seed in
-`~/.voxply/identity.json` is the only secret on disk; that file already
+`~/.wavvon/identity.json` is the only secret on disk; that file already
 needs to be protected.
 
 ---
@@ -455,7 +455,7 @@ table.
 
 | Question | Working answer |
 |---|---|
-| **Identity regeneration** — user wipes and regenerates their identity; the new DH key can't decrypt old messages encrypted to the old key. | Keep old DH private keys in `~/.voxply/old_dh_keys.json` for decryption only. Never publish or encrypt with old keys. Eviction policy TBD (probably never — they're 32 bytes each). |
+| **Identity regeneration** — user wipes and regenerates their identity; the new DH key can't decrypt old messages encrypted to the old key. | Keep old DH private keys in `~/.wavvon/old_dh_keys.json` for decryption only. Never publish or encrypt with old keys. Eviction policy TBD (probably never — they're 32 bytes each). |
 | **Multi-device** — Alice has two devices with different subkeys (`SubkeyCert`). Which DH key does Bob encrypt to? | Always the **master** seed's DH derivation. Master is the same across all of Alice's paired devices; subkeys do not derive their own DH keys. This matches the "two-axis state" rule — DH key is personal-axis, anchored to the master. |
 | **Subkey-only devices** — what if a device was paired and only holds a subkey, not the master? | It receives the master's DH private key wrapped in the `PairingComplete` payload (the existing `wrapped_blob_key_hex` slot is the natural carrier; add a sibling `wrapped_dh_seed_hex` next to it). Document in `multi-device.md` cross-link. |
 | **DH key rotation** for forward secrecy without a full ratchet | Out of scope for v1. v2 is the ratchet. A "rotate DH key" command that pushes a new key + signature would orphan past-messages on every recipient — not worth the half-measure. |
@@ -476,10 +476,10 @@ table.
 
 ## Cross-references
 
-- Identity model and Ed25519 seed: `identity/src/lib.rs:23-127` (Voxply-server)
-- Existing signed wire types (signing pattern this doc reuses): `identity/src/wire.rs:32-191` (Voxply-server)
-- Current plaintext DM storage and federation path: `hub/src/routes/dms.rs` (Voxply-server)
-- DM schema: `hub/src/db/migrations.rs:432-471` (Voxply-server)
+- Identity model and Ed25519 seed: `identity/src/lib.rs:23-127` (Wavvon-server)
+- Existing signed wire types (signing pattern this doc reuses): `identity/src/wire.rs:32-191` (Wavvon-server)
+- Current plaintext DM storage and federation path: `hub/src/routes/dms.rs` (Wavvon-server)
+- DM schema: `hub/src/db/migrations.rs:432-471` (Wavvon-server)
 - Multi-device / master + subkey: [multi-device.md](multi-device.md)
 - Home hub list (where DH keys are replicated): [home-hub.md](home-hub.md)
 - Threat model (the broader view this doc slots into): [threat-model.md](threat-model.md)

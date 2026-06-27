@@ -1,7 +1,7 @@
-# Block / Mute / Ignore — User-Level Controls
+﻿# Block / Mute / Ignore — User-Level Controls
 
 **Status**: design — partial code exists (`blocked_users.json`,
-`load_blocked_users`/`save_blocked_users` in Voxply-desktop). This doc
+`load_blocked_users`/`save_blocked_users` in Wavvon-desktop). This doc
 designs the full system and the migration of the existing per-device
 list onto personal-axis storage.
 
@@ -243,12 +243,12 @@ changes.
 | `GET /identity/dm-blocks` | Read it back (for a freshly-paired device to reconcile). |
 
 DM ingestion (`hub/src/routes/dms.rs` and the federation inbound handler
-in `hub/src/federation/handlers.rs`, both Voxply-server) gains a
+in `hub/src/federation/handlers.rs`, both Wavvon-server) gains a
 block-set check before store-and-push. Nothing else on the wire changes.
 
 ## Client UI
 
-All three are mirrored across Voxply-desktop, Voxply-web, Voxply-android
+All three are mirrored across Wavvon-desktop, Wavvon-web, Wavvon-android
 — same prefs-blob shapes, same surfaces.
 
 ### Where to block / ignore

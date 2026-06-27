@@ -1,7 +1,7 @@
-# WebAuthn / Passkey Authentication
+﻿# WebAuthn / Passkey Authentication
 
-Today Voxply generates an Ed25519 keypair from a random seed, stores
-the seed in `localStorage` (web) or `~/.voxply/identity.json`
+Today Wavvon generates an Ed25519 keypair from a random seed, stores
+the seed in `localStorage` (web) or `~/.wavvon/identity.json`
 (desktop/android), and uses session tokens to authenticate with hubs.
 This works but has pain points across all clients:
 
@@ -84,7 +84,7 @@ Client                          Hub
   |<- { session_token } ---------|
 ```
 
-Session tokens are the same bearer tokens Voxply already uses — no
+Session tokens are the same bearer tokens Wavvon already uses — no
 downstream changes to WS auth, `hubFetch`, or route guards.
 
 ---
@@ -160,8 +160,8 @@ pub struct AppState {
 }
 ```
 
-`rp_id` = hub's public domain (e.g. `voxply.videogamezone.eu`).
-On `localhost` it is `"localhost"`. Configurable via `VOXPLY_PUBLIC_URL`.
+`rp_id` = hub's public domain (e.g. `wavvon.videogamezone.eu`).
+On `localhost` it is `"localhost"`. Configurable via `WAVVON_PUBLIC_URL`.
 
 ---
 
@@ -174,7 +174,7 @@ directly.
 
 **New package:**
 ```
-pnpm --filter voxply-web add @simplewebauthn/browser
+pnpm --filter wavvon-web add @simplewebauthn/browser
 ```
 
 **New platform module (`apps/web/src/platform/webauthn.ts`):**
@@ -193,7 +193,7 @@ export async function startAssertion(options: PublicKeyCredentialRequestOptionsJ
 
 **Identity key — interaction with the multi-device subkey model**
 
-Voxply's identity model (see [`multi-device.md`](multi-device.md))
+Wavvon's identity model (see [`multi-device.md`](multi-device.md))
 has two layers:
 
 - **Master key** — cold, only signs subkey certs and revocations.
@@ -231,7 +231,7 @@ once PRF is universal.
 > passkey, so the master key is the same on any device where the user
 > signs in with that Bitwarden account — giving cross-device master
 > access without typing a phrase. Subkeys remain device-specific.
-> Voxply's code is identical either way — the browser routes
+> Wavvon's code is identical either way — the browser routes
 > `navigator.credentials` to whichever provider is configured.
 
 ---
@@ -265,7 +265,7 @@ platform shim that drives the local authenticator instead of
 `navigator.credentials.get`.
 
 For **identity key storage** on desktop, the existing
-`~/.voxply/identity.json` can stay as-is for now. The WebAuthn
+`~/.wavvon/identity.json` can stay as-is for now. The WebAuthn
 layer replaces the *authentication ceremony* (proving to the hub
 that you own the key), not the key storage itself. A follow-up can
 move the identity file into the OS keychain (`keyring` crate on
@@ -281,7 +281,7 @@ API (`androidx.credentials`).
 **Tauri Android plugin pattern:**
 
 ```kotlin
-// apps/android/android/src/main/java/eu/voxply/WebAuthnPlugin.kt
+// apps/android/android/src/main/java/eu/wavvon/WebAuthnPlugin.kt
 @TauriPlugin
 class WebAuthnPlugin(private val activity: Activity) : Plugin(activity) {
 
@@ -363,7 +363,7 @@ Under **Settings → Account**:
 | Client | Today | v1 with WebAuthn | Future (PRF) |
 |---|---|---|---|
 | Web | Master seed + subkey in `localStorage` | Subkey AES-wrapped in `localStorage`; master derived on demand from phrase | Master from PRF (enclave); subkey AES-wrapped in `localStorage` |
-| Desktop | `~/.voxply/identity.json` plaintext (master + subkey) | Same file; WebAuthn changes auth ceremony only | Master from PRF via webview shim; subkey in `keyring` |
+| Desktop | `~/.wavvon/identity.json` plaintext (master + subkey) | Same file; WebAuthn changes auth ceremony only | Master from PRF via webview shim; subkey in `keyring` |
 | Android | Plaintext file | Subkey in `EncryptedSharedPreferences` | Master from PRF via Credential Manager (Android 14+) |
 
 ### Cross-client master key via Bitwarden PRF
@@ -372,7 +372,7 @@ When a user stores their passkey in Bitwarden (or 1Password), the PRF
 output is **deterministic across all devices and clients**:
 
 ```
-PRF(passkey_private_key, "voxply-master/v1") → same 32-byte master seed
+PRF(passkey_private_key, "wavvon-master/v1") → same 32-byte master seed
   on Chrome (web)    → Bitwarden browser extension provides PRF
   on Android         → Bitwarden Android via Credential Manager
   on Desktop         → Bitwarden browser extension in webview shim
@@ -391,7 +391,7 @@ Constraints:
   master (same as today), or defer pairing until they upgrade.
 - Desktop Tauri needs a webview shim or native plugin to reach the
   Bitwarden browser extension for PRF.
-- The PRF label (`"voxply-master/v1"`) is a versioned protocol
+- The PRF label (`"wavvon-master/v1"`) is a versioned protocol
   constant — must be identical across all clients and never changed
   (a different label derives a different master key).
 
@@ -411,7 +411,7 @@ authenticate with the passkey on any client.
 ## HTTPS requirement
 
 WebAuthn is blocked on plain HTTP except `localhost`. The pilot hub
-(`voxply.videogamezone.eu`) terminates TLS at Cloudflare — it works.
+(`wavvon.videogamezone.eu`) terminates TLS at Cloudflare — it works.
 Any hub that wants passkeys needs TLS; add a note to `hosting.md`
 and a startup warning when `webauthn_enabled = true` but TLS is off.
 
@@ -435,8 +435,8 @@ and a startup warning when `webauthn_enabled = true` but TLS is off.
 
 ## Open questions
 
-- Should `rp_id` be derived from `VOXPLY_PUBLIC_URL` automatically,
-  or always require an explicit `VOXPLY_WEBAUTHN_RP_ID` setting?
+- Should `rp_id` be derived from `WAVVON_PUBLIC_URL` automatically,
+  or always require an explicit `WAVVON_WEBAUTHN_RP_ID` setting?
   (Reverse-proxy deployments may have a different public hostname.)
 - Device token TTL: 30 days default — should this be per-hub
   operator configurable, or fixed?

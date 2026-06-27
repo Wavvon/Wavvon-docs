@@ -1,4 +1,4 @@
-# Design Decisions — Archive
+﻿# Design Decisions — Archive
 
 Older entries relocated verbatim from [decisions.md](decisions.md) to keep
 that file small enough to read whole (the wiki rule is ~200 lines per
@@ -12,7 +12,7 @@ Newest entries first, continuing the order from decisions.md.
 
 ## Discovery v2: server-side uptime probing, separate farm catalog, fan-out search, catalog-only analytics
 
-**Decision**: four Voxply-discovery enhancements, all extending the
+**Decision**: four Wavvon-discovery enhancements, all extending the
 existing Next.js + `better-sqlite3` + `@noble/ed25519` stack with no new
 infrastructure. (1) **Hub uptime** — discovery probes each hub's public
 `GET /info` every 15 min from the server, stores results in `hub_pings`,
@@ -59,14 +59,14 @@ already maintains.
 ## Hub creation: self-submitted signed templates + empty-DB bootstrap, not a curated catalog or a separate command
 
 **Decision**: hub config templates are Ed25519-signed JSON documents
-self-submitted to Voxply-discovery (`POST /api/templates/register`),
+self-submitted to Wavvon-discovery (`POST /api/templates/register`),
 authored by their signing key with no discovery account — the same
 signed-listing primitive hubs, bots, games, and farms already use. A hub
 applies a template on first launch from the empty-`channels` branch of
-`db::migrations::run`, triggered by `VOXPLY_BOOTSTRAP_TOKEN` (wizard-
-customised config) or `VOXPLY_TEMPLATE_URL` (raw defaults), and never
+`db::migrations::run`, triggered by `WAVVON_BOOTSTRAP_TOKEN` (wizard-
+customised config) or `WAVVON_TEMPLATE_URL` (raw defaults), and never
 again (a `bootstrapped_at` marker makes it idempotent). The web wizard at
-`discovery.voxply.app/new` ties them together and emits either a one-click
+`discovery.wavvon.app/new` ties them together and emits either a one-click
 managed-farm hub or a pre-filled Docker/binary command. Full design in
 [hub-creation-wizard.md](hub-creation-wizard.md).
 
@@ -77,7 +77,7 @@ managed-farm hub or a pre-filled Docker/binary command. Full design in
   authority deciding what a hub can start as, breaking the open
   self-submission rule every other catalog follows. A `featured` flag
   stays as a display hint, never a gate.
-- **A separate `voxply-hub bootstrap` subcommand.** Rejected: it adds a
+- **A separate `wavvon-hub bootstrap` subcommand.** Rejected: it adds a
   command the operator must remember and sequence, and risks double-runs.
   Folding bootstrap into the empty-DB migration branch fires it exactly
   once, automatically.
@@ -89,7 +89,7 @@ managed-farm hub or a pre-filled Docker/binary command. Full design in
 - **Silent auto-registration with the directory.** Rejected as default:
   listing a hub publicly is a choice, so the default logs/pre-fills the
   registration command and full hands-off registration is opt-in via
-  `VOXPLY_DISCOVERY_AUTOREGISTER=true`.
+  `WAVVON_DISCOVERY_AUTOREGISTER=true`.
 
 **Tradeoff**: templates are one-shot at first launch and advisory, not
 binding — there is no story for re-applying an updated template to a hub
@@ -107,7 +107,7 @@ mixes credentials across the two axes. The **web admin panel** at
 `{hub-url}/admin` is gated by a `web_admin_token` — a 32-byte hex value
 generated on first start, stored in `hub_settings`, printed once to the
 log — carried as `Authorization: Bearer <token>`, and entirely separate
-from user session tokens. The **admin CLI** (`voxply-hub admin ...`)
+from user session tokens. The **admin CLI** (`wavvon-hub admin ...`)
 operates directly on the local SQLite DB with no HTTP and no running
 hub, gated by filesystem access alone. The **farm console** is the
 farm-axis sibling, gated by the farm admin's keypair session
@@ -148,17 +148,17 @@ widen) so a hub on a public IP doesn't expose `/admin` by accident.
 
 **What changes on the implementation side**:
 
-- *Hub* (Voxply-server): `GET /admin/panel` (embedded HTML),
+- *Hub* (Wavvon-server): `GET /admin/panel` (embedded HTML),
   `GET /admin/stats`, a `web_admin_token` row + once-only log line, a
   bearer guard distinct from the session middleware, a
   `WEB_ADMIN_ALLOWED_ORIGINS` CORS gate, token rotation; a
-  `voxply-hub admin` clap subcommand tree opening its own short-lived
+  `wavvon-hub admin` clap subcommand tree opening its own short-lived
   `SqlitePool`; a 60s heartbeat task POSTing `/farm/heartbeat` when
-  `VOXPLY_FARM_URL` is set.
-- *Farm* (Voxply-server `farm/`): `POST /farm/heartbeat` (verifies hub
+  `WAVVON_FARM_URL` is set.
+- *Farm* (Wavvon-server `farm/`): `POST /farm/heartbeat` (verifies hub
   Ed25519 sig, upserts `hub_heartbeats`), `GET /farm/admin/console`,
   farm-level ban + propagation fan-out to each hub's ban route.
-- *Client* (Voxply-desktop, mirrored web/Android): no change for the web
+- *Client* (Wavvon-desktop, mirrored web/Android): no change for the web
   panel (browser-served); the farm console UI extends the Phase 3B Farm
   Settings view with a heartbeat-driven Hub Fleet panel, cross-hub user
   search, and ban-propagation approval.
@@ -183,7 +183,7 @@ reporter hidden from non-admins, no public report count. Full design in
 
 - **DHT / global blocklist** instead of per-hub opt-in subscription.
   Rejected: a universal list means someone owns a platform-wide kill
-  switch — the central authority Voxply refuses
+  switch — the central authority Wavvon refuses
   ([`threat-model.md`](threat-model.md)). Opt-in subscription gives the
   same reach (popular curators emerge) with no global coordination.
 - **Reusing the badge/cert primitive for ban signals.** Rejected: badges
@@ -217,7 +217,7 @@ explicit opt-in on both ends.
 
 **What changes on the implementation side**:
 
-- *Hub* (Voxply-server): `GET /federation/banlist` publisher + 6-hour
+- *Hub* (Wavvon-server): `GET /federation/banlist` publisher + 6-hour
   sync job + `/auth/verify` gate in `hub/src/routes/federation.rs`; the
   pre-store webhook dispatch (reusing the bot webhook HTTP/signing helper,
   [`bots.md`](bots.md)) in the message-create path; `POST
@@ -226,13 +226,13 @@ explicit opt-in on both ends.
   for `federated_bans`, `message_reports`, and the new `hub_settings`
   columns (`banlist_sources` + per-source policy, `moderation_webhook_url`,
   `moderation_webhook_secret`). Admin routes gate on `manage_users`.
-- *Client* (Voxply-desktop, mirrored web/Android): ban-list source +
+- *Client* (Wavvon-desktop, mirrored web/Android): ban-list source +
   override admin UI and soft-flag review surface; webhook settings panel
   with circuit-breaker state; "Report message" context-menu action and an
   admin "Reports" queue tab.
 
 **What's deferred**: ban-entry TTL, transitive source trust, a curated
-public-list directory in Voxply-discovery, signed un-ban receipts;
+public-list directory in Wavvon-discovery, signed un-ban receipts;
 webhook message-editing, per-channel routing, multi-service chaining,
 attachment-content scanning; anonymous reporting, report-time content
 snapshots, reporter-reputation auto-escalation, cross-hub reporting.
@@ -240,7 +240,7 @@ snapshots, reporter-reputation auto-escalation, cross-hub reporting.
 ## Identity recovery: passphrase-wrapped backup file + social recovery as vouch-not-grant
 
 **Decision**: the two recovery layers above the shipped phrase are (a) a
-client-side **`.voxply-backup`** export — the identity seed sealed with
+client-side **`.wavvon-backup`** export — the identity seed sealed with
 Argon2id + AES-256-GCM under a user passphrase, saved to a
 user-chosen location, with a self-describing JSON envelope (`version`,
 KDF params, nonce) — and (b) **recovery contacts**: per-hub,
@@ -302,19 +302,19 @@ phrase-paste-replaces semantics in [`identity.md`](identity.md).
 
 **What changes on the implementation side**:
 
-- *Client* (`Voxply-desktop`, mirrored web/Android): backup export/import
+- *Client* (`Wavvon-desktop`, mirrored web/Android): backup export/import
   Tauri commands in `desktop/src-tauri/src/lib.rs` (Argon2id + AES-GCM in
   Rust; seed never enters the webview); export wizard, import + conflict
   modal, "restore from backup" welcome-screen entry; recovery-contact
   owner/contact/requester UI and an admin "Recovery requests" tab.
-- *Hub* (Voxply-server): new `hub/src/routes/recovery.rs`
+- *Hub* (Wavvon-server): new `hub/src/routes/recovery.rs`
   (`PUT/GET/DELETE /recovery/contacts`, `POST /recovery/rotation-request`,
   `GET /recovery/rotation-request/:id`, `POST .../attest`,
   `GET /admin/recovery/requests`, `POST .../decide`); migrations for
   `recovery_settings`, `recovery_contacts`,
   `recovery_rotation_requests`, `recovery_attestations`; admin routes gate
   on `manage_users`.
-- *Identity crate* (Voxply-server, `identity/src/lib.rs`): the shared
+- *Identity crate* (Wavvon-server, `identity/src/lib.rs`): the shared
   bound-bundle signing helper — master-key sign over
   `(hub_pubkey, old_pubkey, new_pubkey, nonce)` — so client and hub agree
   on the exact bytes an attestation covers.
@@ -383,14 +383,14 @@ design's job, not block's.
 
 **What changes on the implementation side**:
 
-- *Storage* (Voxply-server home-hub prefs blob, per
+- *Storage* (Wavvon-server home-hub prefs blob, per
   [`home-hub.md`](home-hub.md)): `blocks`, `ignores`, `dnd` fields
   inside the encrypted blob. New plaintext DM-block set with
   `PUT/GET /identity/dm-blocks` routes.
 - *Hub DM ingestion* (`hub/src/routes/dms.rs` and
-  `hub/src/federation/handlers.rs`, Voxply-server): block-set check
+  `hub/src/federation/handlers.rs`, Wavvon-server): block-set check
   before store-and-push; success-shaped response when blocked.
-- *Client* (Voxply-desktop, mirrored web/Android): migrate
+- *Client* (Wavvon-desktop, mirrored web/Android): migrate
   `blocked_users.json` / `load_blocked_users` / `save_blocked_users` to
   read the blob when home hubs exist, local file as legacy fallback;
   context-menu / profile-card / DM-header block+ignore actions;
@@ -444,13 +444,13 @@ per-device DND overrides.
 - *Issuing-hub routes*: `GET /certs/me`, `POST /admin/certs/issue`, `POST /admin/certs/revoke`, deferred `GET /certs/revocations`; periodic issuance sweep.
 - *Home-hub routes*: `GET /identity/:master/certs`, `PUT /identity/:master/certs`.
 - *Receiving-hub auth* (`hub/src/auth/{handlers,middleware}.rs`): `/auth/verify` accepts `certifications[]`; `cert_mode` verification can skip lobby / accept carried `pow_level`. `GET /info` (`routes/health.rs`) gains `cert_requirement`.
-- *Client* (`Voxply-desktop`, mirrored web/Android): portfolio cache in `identity.json`; Tauri `fetch_my_cert`, `list_my_certs`, `present_certs_for`; Settings "Reputation" view, Add-Hub requirement hint + auto-attach, admin Hub Settings → "Certifications" tab.
+- *Client* (`Wavvon-desktop`, mirrored web/Android): portfolio cache in `identity.json`; Tauri `fetch_my_cert`, `list_my_certs`, `present_certs_for`; Settings "Reputation" view, Add-Hub requirement hint + auto-attach, admin Hub Settings → "Certifications" tab.
 
 **What's deferred**: web of trust / transitivity; the polled issuer revoke-check endpoint; cross-farm cert relay; negative reputation / shared ban lists; certs as a discovery/ranking signal; capability certs as actual grants (advisory only in v1); per-device cert presentation policy.
 
 ## Gaming Tier 2: chat-WS envelope family, in-memory state + opt-in snapshot, hub-local scope
 
-**Decision**: Tier 2 party multiplayer (≤20 players) piggybacks the existing chat WebSocket with a `game_*` envelope family rather than opening a dedicated socket per session. Session state is in-memory on the hub by default (matches the 10–30 min ephemeral party-game shape) with an opt-in DB snapshot via `voxply:game:snapshot` for longer matches. Alliance/cross-farm scope is deferred to Tier 3. Full design in [`gaming.md`](gaming.md) — Tier 2 section.
+**Decision**: Tier 2 party multiplayer (≤20 players) piggybacks the existing chat WebSocket with a `game_*` envelope family rather than opening a dedicated socket per session. Session state is in-memory on the hub by default (matches the 10–30 min ephemeral party-game shape) with an opt-in DB snapshot via `wavvon:game:snapshot` for longer matches. Alliance/cross-farm scope is deferred to Tier 3. Full design in [`gaming.md`](gaming.md) — Tier 2 section.
 
 **Alternatives considered**:
 
@@ -458,7 +458,7 @@ per-device DND overrides.
 - **DB-first session state** — rejected as the default: most party games end in under 30 min and writing every move to SQLite adds I/O for no benefit; in-memory is correct and opt-in snapshot covers the long-game case.
 - **Alliance scope in Tier 2** — deferred: the host/joining-hub relay is the same shape as federated DMs and cross-farm play; deferring to Tier 3 where that infrastructure is designed is the right cut.
 
-**What changes on the implementation side**: in-memory `GameSession` map in hub `AppState`; `game_sessions` and `game_shared_kv` DB tables (opt-in snapshot + shared KV); `game_*` WS envelope family (`game_session_created`, `game_state_update`, `game_player_joined/left`, `game_ended`); 6 new routes in `hub/src/routes/games.rs`; `multiplayer` capability in the admin grant model (Tier 1 pattern extended); Tier 2 SDK additions (`voxply:game:*` postMessage calls); Activities button and bot launch card both feed the same session path.
+**What changes on the implementation side**: in-memory `GameSession` map in hub `AppState`; `game_sessions` and `game_shared_kv` DB tables (opt-in snapshot + shared KV); `game_*` WS envelope family (`game_session_created`, `game_state_update`, `game_player_joined/left`, `game_ended`); 6 new routes in `hub/src/routes/games.rs`; `multiplayer` capability in the admin grant model (Tier 1 pattern extended); Tier 2 SDK additions (`wavvon:game:*` postMessage calls); Activities button and bot launch card both feed the same session path.
 
 **What's deferred**: cross-hub/cross-farm sessions (Tier 3), proximity voice (Tier 3), session replay, spectator mode, ranked/persistent leaderboards.
 
@@ -483,7 +483,7 @@ per-device DND overrides.
 Activities button. (a) **Registry**: URL-first install is the protocol
 primitive (paste a manifest URL / quick-install by entry URL, always
 works, no central dependency); an optional self-submitted, self-signed
-catalog on `Voxply-discovery` is a convenience browse layer on top,
+catalog on `Wavvon-discovery` is a convenience browse layer on top,
 reusing the hub/farm signed-listing primitive. No central project-hosted
 catalog gatekeeps installs. (b) **Permissions**: every game starts in
 the minimal read-only sandbox; a hub admin may grant a small closed set
@@ -542,25 +542,25 @@ the optional aggregator until ranking is designed.
 
 **What changes on the implementation side**:
 
-- *Hub* (Voxply-server `hub/`): `channel_games` table (channel-scope
+- *Hub* (Wavvon-server `hub/`): `channel_games` table (channel-scope
   set), `game_permissions` grant column on the game row,
   `GET /games` (player view), `GET/POST/DELETE /admin/games`,
   `PUT /admin/games/:id/channels`, `PUT /admin/games/:id/permissions`,
   `enabled_games` table (farm-mode enable flag). Hub-side enforcement of
   the gated SDK calls (post-as-user permission check, history scoping,
   user-list scoping) and the KV store (un-farmed hubs).
-- *Farm* (Voxply-server `farm/`, when farm games land): `games` table
+- *Farm* (Wavvon-server `farm/`, when farm games land): `games` table
   (manifest + grant), `game_kv` table (`(game_id, user_pubkey)`),
   `POST/DELETE /farm/games`, `GET /farm/games/:id`; farm-admin gating
   reusing `farms.admin_pubkey`.
-- *Discovery* (Voxply-discovery, deferred with the farm-listing work):
+- *Discovery* (Wavvon-discovery, deferred with the farm-listing work):
   `POST/DELETE /games/register`, `GET /games` — signed-listing primitive
   mirrored from the farm listing extension.
-- *Client* (Voxply-desktop, mirrored web/Android): Hub Settings → Games
+- *Client* (Wavvon-desktop, mirrored web/Android): Hub Settings → Games
   tab (inventory, install incl. catalog browse, per-channel
   enable/disable, capability grant UI), the launch-modal capability
   disclosure strip, and the five new SDK calls wired into the parent
-  `message` handler alongside `voxply:getUser`.
+  `message` handler alongside `wavvon:getUser`.
 
 **What's deferred**: Tier 2 (multiplayer instances, live events to the
 iframe, shared/global KV, synthetic game identity, matchmaking,
@@ -572,7 +572,7 @@ host.
 
 ## Monetization: missions + donations + farm hosting, no subscriptions/premium tiers
 
-**Decision**: Voxply funds itself through (1) a cosmetic-only
+**Decision**: Wavvon funds itself through (1) a cosmetic-only
 **missions** system where sponsors pay the project per attested,
 user-initiated action and users earn cosmetic-only "sparks"; (2) plain
 donations; and (3) managed **farm hosting** plans that sell operations,
@@ -590,9 +590,9 @@ in [`monetization.md`](monetization.md).
   contradicting "free for everyone, forever." It is also structurally
   unenforceable on a federated network the project does not own: a
   community hub the project doesn't operate can't be made to gate
-  features on a Voxply payment, and a fork strips the check trivially.
+  features on a Wavvon payment, and a fork strips the check trivially.
   The whole model assumes a central authority over the user's
-  experience that Voxply's sovereignty pillar refuses to have.
+  experience that Wavvon's sovereignty pillar refuses to have.
 - **Advertising in chat/voice surfaces.** Rejected on the same
   no-surveillance posture as [`threat-model.md`](threat-model.md) and
   the channel-as-place model — the conversation surface stays ad-free.
@@ -612,7 +612,7 @@ redemption plus per-pubkey limits are the first defense and a full
 anti-fraud design is deferred.
 
 **What changes on the implementation side**: a new project-operated
-**mission service** (likely a sibling repo to `Voxply-discovery`),
+**mission service** (likely a sibling repo to `Wavvon-discovery`),
 cosmetic entitlements carried client-side as master-signed blobs (same
 shape as [`home-hub.md`](home-hub.md) personal-axis state), a Missions
 panel and cosmetics rendering in the official clients gated behind a
@@ -646,7 +646,7 @@ Full design in [`farm-impl.md`](farm-impl.md) Phase 3.
 - **A separate "farm admin account" concept** (email/password or a
   farm-issued credential distinct from a user pubkey). Rejected on
   the same identity grounds as the rest of the farm model — there is
-  no Voxply account, only pubkeys. The admin is "the pubkey the
+  no Wavvon account, only pubkeys. The admin is "the pubkey the
   operator pasted into the CLI flag on first start," same trust shape
   as a hub's first-admin-is-the-operator bootstrap today.
 - **Per-hub creation policy** instead of per-farm. Rejected: hubs
@@ -661,7 +661,7 @@ Full design in [`farm-impl.md`](farm-impl.md) Phase 3.
 - **A central farm registry** to surface "farms open for hub
   creation." Rejected on the same sovereignty grounds the hub
   discovery design rejects a central hub registry. The
-  `Voxply-discovery` directory may grow an optional farm-listing
+  `Wavvon-discovery` directory may grow an optional farm-listing
   extension reusing the signed-listing primitive, but the protocol
   primitive is the URL-shared probe (`/farm/public-info`); the
   directory is one possible consumer, not the discovery mechanism.
@@ -701,7 +701,7 @@ because the body is small and the per-farm opt-in
 
 **What changes on the implementation side**:
 
-- *Farm DB* (`farm/src/db/migrations.rs` in Voxply-server):
+- *Farm DB* (`farm/src/db/migrations.rs` in Wavvon-server):
   additive ALTERs on `farms` (`creation_policy`, `max_hubs_per_user`,
   `max_hubs_total`, `allow_discovery_listing`, `admin_pubkey`) and on
   `hubs` (`suspended_at`, `suspension_reason`).
@@ -718,20 +718,20 @@ because the body is small and the per-farm opt-in
   the token's `sub` doesn't match `farms.admin_pubkey`.
 - *Hub `/info`*: gains a `member_count` field (cached, 60s TTL) used
   by the farm admin's hub list. Otherwise unchanged.
-- *Client* (`Voxply-desktop`, mirrored on `Voxply-web` and
-  `Voxply-android`): new `CreateHubModal` (farm picker → form →
+- *Client* (`Wavvon-desktop`, mirrored on `Wavvon-web` and
+  `Wavvon-android`): new `CreateHubModal` (farm picker → form →
   result), new `FarmSettingsPage` (General / Hubs / Users tabs)
   surfaced only when the user is the farm admin. The hub-sidebar
   `+` button gains a Join/Create popover. `DiscoverPage.tsx` gains a
   "Host your own community" tab using the same picker UI plus a
   "Check a farm URL" probe input. Known-hosts local store grows a
-  `kind: "voxply-hub" | "voxply-farm"` discriminator on each entry.
+  `kind: "wavvon-hub" | "wavvon-farm"` discriminator on each entry.
 
 **What's deferred**:
 
 - True farm-level user ban (a `farm_banned_pubkeys` table) — Phase 4+.
-- Discovery-service-side farm listing (`Voxply-discovery` extension to
-  list farms by `kind = "voxply-farm"`) — out of scope for the farm
+- Discovery-service-side farm listing (`Wavvon-discovery` extension to
+  list farms by `kind = "wavvon-farm"`) — out of scope for the farm
   server; lands when the directory repo picks it up.
 - Per-farm `require_unique_names` enforcement on hub creation.
 - Cross-farm discovery (layer 5) — `seed/` crate work, fundamentally
@@ -741,7 +741,7 @@ because the body is small and the per-farm opt-in
 
 ## Farm model phases 1 + 2: separate `farm/` crate, signed self-describing tokens, hubs cache farm pubkey
 
-**Decision**: the farm layer ships as a new `farm/` crate in Voxply-
+**Decision**: the farm layer ships as a new `farm/` crate in Wavvon-
 server, a separate binary from `hub/`. Phase 1 (farm-level auth) is
 deployable on its own against a single hub per farm; Phase 2 (hub
 multi-tenancy) layers on top without changing the auth wire. Farm
@@ -808,7 +808,7 @@ revisit the auth boundary again.
 
 **What changes on the implementation side**:
 
-- *New crate*: `farm/` in Voxply-server, mirroring `hub/`'s structure
+- *New crate*: `farm/` in Wavvon-server, mirroring `hub/`'s structure
   (`farm/src/main.rs`, `farm/src/server.rs`, `farm/src/state.rs`,
   `farm/src/db/migrations.rs`, `farm/src/routes/{health,auth,hubs}.rs`,
   `farm/src/token.rs`).
@@ -818,7 +818,7 @@ revisit the auth boundary again.
 - *Farm routes*: `GET /farm/info`, `POST /auth/{challenge,verify,renew}`,
   `POST /farm/auth/revoke-check`, `GET/POST /farm/hubs`,
   `GET/PATCH/DELETE /farm/hubs/{hub_id}` (Phase 2).
-- *Hub changes* (`hub/` in Voxply-server): `auth/middleware.rs`
+- *Hub changes* (`hub/` in Wavvon-server): `auth/middleware.rs`
   rewrites to verify signed tokens locally;
   `cached_farm_pubkey: ArcSwap<Option<String>>` + `farm_url:
   Option<String>` added to `AppState`; `auth/handlers.rs` returns
@@ -830,7 +830,7 @@ revisit the auth boundary again.
   endpoints relocate from the hub to the farm. The hub keeps
   community-axis state (channels, messages, voice, bans, roles,
   approvals, lobby/survey).
-- *Client changes* (`Voxply-desktop`, `Voxply-web`, `Voxply-android`):
+- *Client changes* (`Wavvon-desktop`, `Wavvon-web`, `Wavvon-android`):
   before `/auth/challenge`, fetch the hub's `/info`; if `farm_url` is
   set, target auth at the farm. No new client-facing UI in Phase 1 —
   the user does not know a farm exists yet.
@@ -914,30 +914,30 @@ incentive to keep the endpoint responsive is direct.
 
 **What changes on the implementation side**:
 
-- *DB* (`hub/src/db/migrations.rs` in Voxply-server): `users` gains
+- *DB* (`hub/src/db/migrations.rs` in Wavvon-server): `users` gains
   `is_bot`, `is_bot_removed`, `bot_invite_token`,
   `bot_invite_expires`. New `bot_profiles`, `bot_commands` tables.
   `messages` gains `visible_to_pubkey` for ephemeral replies.
   `approval_status` accepts a new `'bot_pending'` value.
-- *Hub routes* (`hub/src/routes/` in Voxply-server): `POST /bots`
+- *Hub routes* (`hub/src/routes/` in Wavvon-server): `POST /bots`
   (admin invites), `POST /bots/accept-invite` (bot proves key),
   `GET /bots`, `DELETE /bots/:pubkey`, `PUT /bots/me/profile`,
   `PUT /bots/me/commands`, `GET /bots/me`. `POST /auth/verify`
   accepts `is_bot: true` and optional `bot_meta`. `POST /messages`
   accepts `visible_to_pubkey` only for bot-authored slash responses.
 - *Outbound dispatch* (`hub/src/bots/dispatch.rs`, new in
-  Voxply-server): signed `POST {webhook_url}` envelope using the
+  Wavvon-server): signed `POST {webhook_url}` envelope using the
   hub's existing federation keypair primitive
   (`hub/src/federation/client.rs`).
-- *Permissions* (`hub/src/permissions.rs` in Voxply-server): hard
+- *Permissions* (`hub/src/permissions.rs` in Wavvon-server): hard
   blocks at the kind-check level — bots cannot join voice, cannot
   send DMs, cannot participate in E2E DMs, cannot solve "not a bot"
   challenges. Per-bot rate limits at the existing middleware.
 - *Wire models*: `BotMeta`, `BotProfile`, `BotCommand`,
   `SlashInvocation`, `BotResponse`, `BotInviteToken` in
-  `hub/src/routes/bot_models.rs` (Voxply-server). New WS envelope
+  `hub/src/routes/bot_models.rs` (Wavvon-server). New WS envelope
   variants `bot_added`, `bot_removed`, `bot_profile_updated`.
-- *Client* (`Voxply-desktop`): Hub Settings → Bots tab (list, add by
+- *Client* (`Wavvon-desktop`): Hub Settings → Bots tab (list, add by
   pubkey, copy invite token, revoke). Slash-command autocomplete in
   the composer reads from a cached per-hub command list. Ephemeral
   message rendering when `visible_to_pubkey == my_pubkey`.
@@ -1096,7 +1096,7 @@ with the stored invite token. Full design in
 
 - **Replace pull with push entirely.** Push requires knowing the
   target hub's URL up front. Pull still wins when you have a
-  paste-a-link distribution channel (DM, chat outside Voxply, QR) and
+  paste-a-link distribution channel (DM, chat outside Wavvon, QR) and
   don't know which hub the receiver runs. Keeping both is additive
   and the implementation cost is one extra endpoint plus one table.
 - **Authenticated federation endpoint** (hub-to-hub signed POST, same
@@ -1138,12 +1138,12 @@ invites are built for.
 - *DB*: new `pending_alliance_invites` table (alliance_id,
   from_hub_pubkey, from_hub_url, alliance_name, message?,
   invite_token, created_at).
-- *Hub routes* (`hub/src/routes/alliances.rs` in Voxply-server):
+- *Hub routes* (`hub/src/routes/alliances.rs` in Wavvon-server):
   `POST /alliances/:id/push-invite` (admin-only, calls Hub B);
   `GET /alliances/pending-invites`,
   `POST /alliances/pending-invites/:id/accept`,
   `POST /alliances/pending-invites/:id/decline` (admin-only).
-- *Federation* (`hub/src/federation/handlers.rs` in Voxply-server):
+- *Federation* (`hub/src/federation/handlers.rs` in Wavvon-server):
   `POST /federation/alliance-invite` — unauthenticated, validates
   payload shape, inserts the pending row.
 - *Client*: Hub Settings gains an Alliance invites tab (list of
@@ -1175,8 +1175,8 @@ Actions workflows — one for release tags, one for PR validation. NSIS
 on Windows, universal DMG on macOS, AppImage (plus `.deb`/`.rpm`) on
 Linux. Auto-update goes through `tauri-plugin-updater` with a Tauri-
 generated Ed25519 keypair and an endpoint at
-`releases.voxply.io/latest.json`. The hub server ships separately as a
-Docker image (`ghcr.io/voxply/hub`) plus a static musl binary. Full
+`releases.wavvon.io/latest.json`. The hub server ships separately as a
+Docker image (`ghcr.io/wavvon/hub`) plus a static musl binary. Full
 design in [`docs/packaging.md`](packaging.md).
 
 **Alternatives considered**:
@@ -1214,7 +1214,7 @@ native tools) exists if Tauri's defaults ever stop fitting.
 - New `.github/workflows/release.yml` (tag-triggered, matrix bundle +
   GitHub Release upload) and `.github/workflows/build.yml` (PR
   validation: `cargo check` + `tsc --noEmit`).
-- New `hub/Dockerfile` in Voxply-server (multi-stage, distroless final
+- New `hub/Dockerfile` in Wavvon-server (multi-stage, distroless final
   image) and a sample `docker-compose.yml` for self-hosters.
 - `CHANGELOG.md` created at repo root, Keep a Changelog format.
 - Secrets configured in GitHub: the updater key, the Apple notarization
@@ -1225,7 +1225,7 @@ native tools) exists if Tauri's defaults ever stop fitting.
 - Hub-server auto-update (operator-driven today; revisit once farms
   exist).
 - Mobile (iOS / Android) packaging — separate signing pipelines, separate
-  store policies, sandbox conflicts with `voxply://` and voice capture.
+  store policies, sandbox conflicts with `wavvon://` and voice capture.
 - Windows Store / Mac App Store distribution — sandboxing breaks our
   deep-link + filesystem + mic-access model.
 - Delta updates — full installer download is fine at current binary
@@ -1248,7 +1248,7 @@ plaintext in v1. Full design in
 - **Double Ratchet in v1** — proper forward secrecy
   and post-compromise security from day one. Rejected for v1 only:
   thousands of LoC, a stateful key store on every client, edge cases
-  around out-of-order delivery and multi-device that the rest of Voxply
+  around out-of-order delivery and multi-device that the rest of Wavvon
   hasn't paid for yet. v2 path is preserved by carrying `dh_pubkey_hex`
   per message — the same slot the ratchet's ephemeral key occupies.
 - **A separate encryption keypair stored alongside the identity** —
@@ -1268,8 +1268,8 @@ plaintext in v1. Full design in
 
 **Tradeoff**: we accept "no forward secrecy in v1" in exchange for an
 implementation that fits in a couple hundred lines and reuses the
-existing identity seed, signing pattern (`identity/src/wire.rs:32-66` in Voxply-server),
-and DM storage path (`hub/src/routes/dms.rs:132-288` in Voxply-server).
+existing identity seed, signing pattern (`identity/src/wire.rs:32-66` in Wavvon-server),
+and DM storage path (`hub/src/routes/dms.rs:132-288` in Wavvon-server).
 The hub goes from "reads everything" to "stores opaque ciphertexts and
 verified envelopes" — a step change in trust posture — without a
 protocol rewrite. The forward-secrecy gap is real and documented; it
@@ -1303,9 +1303,9 @@ no video bytes.
 (~100 ms vs 300–500 ms), higher quality, and zero hub egress for
 media. It costs an entirely new protocol stack (peer connection
 lifecycle, ICE/STUN/TURN configuration, NAT traversal, per-viewer
-uploads on the sharer), none of which Voxply currently exercises.
+uploads on the sharer), none of which Wavvon currently exercises.
 The hub-relayed path reuses the existing typed WS envelope channel
-(`hub/src/routes/chat_models.rs` in Voxply-server, line 175), the
+(`hub/src/routes/chat_models.rs` in Wavvon-server, line 175), the
 existing subscriber broadcast logic, and the existing identity/role
 permission machinery. Net cost is a handful of new envelope variants
 plus a per-channel `ActiveShare` map. The hub egress ceiling
@@ -1326,13 +1326,13 @@ the obvious choice is the eventual one, not the first one.
 ## Hub discovery: three-layer architecture
 
 **Decision**: hub discovery is built as three composable layers — deep
-links (`voxply://` URI scheme), an opt-in directory website/API, and
+links (`wavvon://` URI scheme), an opt-in directory website/API, and
 signed public hub profiles — rather than a single central registry.
 Full design in [`docs/hub-discovery.md`](hub-discovery.md).
 
 **Key choices within the design**:
 
-- **Directory lives in a separate repo** (`Voxply-discovery`). Separate
+- **Directory lives in a separate repo** (`Wavvon-discovery`). Separate
   deployment lifecycle (web service), separate CI/CD, separate
   contributor profile. The API contract in hub-discovery.md is the
   boundary.
@@ -1358,7 +1358,7 @@ access mismatch).
 **Context**: schema already supports arbitrary nesting
 (`channels.parent_id`, `is_category`); server validates cycles and
 parent-must-be-category. The client today builds a one-level tree
-(`buildChannelTree` in `desktop/src/utils/channels.ts` in Voxply-desktop)
+(`buildChannelTree` in `desktop/src/utils/channels.ts` in Wavvon-desktop)
 and `handleDragEnd` in `App.tsx` (~line 2952) does a flat global
 `arrayMove` and POSTs to `reorder_channels`. `move_channel` exists but
 is never invoked from drag. Goal of this entry: pick the four
@@ -1455,7 +1455,7 @@ half-implementations.
 
 ### What changes on the implementation side
 
-- `desktop/src/utils/channels.ts` (Voxply-desktop): rewrite
+- `desktop/src/utils/channels.ts` (Wavvon-desktop): rewrite
   `buildChannelTree` to be fully recursive; export a sibling
   `flattenTree(tree)` that yields `{ node, depth, parentId }[]` in
   DFS order for the sortable. Also export `descendantIds(tree, id)`
@@ -1507,7 +1507,7 @@ first run. No in-channel first-use hints in this pass.
    add-hub step is recoverable. The block keeps its three sub-states
    (unrevealed / revealed / acknowledged). It does **not** gate the
    add-hub buttons — both CTAs remain enabled at all times.
-3. **Section 2 — "What Voxply is"**: the existing three bullet points
+3. **Section 2 — "What Wavvon is"**: the existing three bullet points
    (Hubs / Identity / Alliances), kept verbatim, framed as a brief
    "what you're getting into" block under a subheading.
 4. **Section 3 — "Join your first hub"**: a CTA row with two buttons:
@@ -1521,8 +1521,8 @@ first run. No in-channel first-use hints in this pass.
    an invite / running your own.
 
 **Demo hub concretely**:
-- New constant `DEMO_HUB_URL: string | null` in `desktop/src/constants.ts` (Voxply-desktop),
-  initially `null` until a Voxply-operated demo server is stood up.
+- New constant `DEMO_HUB_URL: string | null` in `desktop/src/constants.ts` (Wavvon-desktop),
+  initially `null` until a Wavvon-operated demo server is stood up.
 - The "Try a demo hub" button is conditionally rendered on
   `DEMO_HUB_URL != null`. No dead button ships.
 - Clicking it opens the same `AddHubModal` with the URL prefilled,
@@ -1578,7 +1578,7 @@ design entry — it is not part of first-run.
 **Implementation impact**:
 - *Client* (`App.tsx` ~3185–3217): reorder the children of
   `empty-state welcome` to put `<WelcomeRecoveryBlock />` first, wrap
-  the three bullet `<li>`s under a "What Voxply is" subheading, and
+  the three bullet `<li>`s under a "What Wavvon is" subheading, and
   replace the single primary button with a CTA row containing the
   primary "Add your first hub" plus a conditional secondary "Try a
   demo hub". Both buttons call `setShowAddHub(true)`; the demo
@@ -1588,7 +1588,7 @@ design entry — it is not part of first-run.
   change; the preview/confirm flow is shared.
 - *Client* (`constants.ts`): add `export const DEMO_HUB_URL: string |
   null = null;` with a comment that this flips to a real URL once a
-  Voxply demo hub is operated. The welcome screen renders the demo
+  Wavvon demo hub is operated. The welcome screen renders the demo
   CTA only when this is non-null.
 - *Client* (`WelcomeRecoveryBlock`): no behaviour change. Visual
   prominence comes from its new position in the layout, not from
@@ -1599,7 +1599,7 @@ design entry — it is not part of first-run.
 - *Server / Tauri*: nothing. First-run is entirely client-side.
 
 **Deferred**:
-- Standing up an actual Voxply-operated demo hub and setting
+- Standing up an actual Wavvon-operated demo hub and setting
   `DEMO_HUB_URL`.
 - In-channel "you're in, try a message" guidance for empty channels.
 - Identity-surfacing affordances (fingerprint, device name) on the
@@ -1959,11 +1959,11 @@ sovereignty.
 ## Three crates, not a monorepo soup
 
 **Status**: structurally superseded — the project has since been split
-into six separate repos (Voxply for docs, Voxply-server for the Rust
-workspace with `hub/`/`seed/`/`identity/` crates, Voxply-desktop for
-the desktop client and `voice/` crate, Voxply-android, Voxply-web,
-Voxply-discovery). The original rationale below still applies to the
-crate-vs-feature-flag split inside Voxply-server.
+into six separate repos (Wavvon for docs, Wavvon-server for the Rust
+workspace with `hub/`/`seed/`/`identity/` crates, Wavvon-desktop for
+the desktop client and `voice/` crate, Wavvon-android, Wavvon-web,
+Wavvon-discovery). The original rationale below still applies to the
+crate-vs-feature-flag split inside Wavvon-server.
 
 **Decision**: separate crates for the cross-cutting concerns (identity,
 voice) rather than one giant crate with feature flags. Originally
@@ -2005,7 +2005,7 @@ the message and pushes it to the recipient's hub.
 ## No proof-of-work yet
 
 **Decision**: anti-spam is in the ROADMAP, not shipped. The PoW
-primitives exist (`identity/src/pow.rs` in Voxply-server) but aren't
+primitives exist (`identity/src/pow.rs` in Wavvon-server) but aren't
 enforced.
 
 **Why**: premature spam mitigation in a private-network product would

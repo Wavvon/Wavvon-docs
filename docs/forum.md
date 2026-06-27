@@ -1,4 +1,4 @@
-# Forum channel type
+﻿# Forum channel type
 
 **Status**: design committed. Not built. Federation deferred to v2.
 
@@ -44,7 +44,7 @@ attached to the same `channels` entity — no parallel hierarchy.
 
 ## 1. Data model
 
-All in `hub/src/db/migrations.rs` (Voxply-server). Conventions per
+All in `hub/src/db/migrations.rs` (Wavvon-server). Conventions per
 [data-model.md](data-model.md): TEXT ids (UUID), INTEGER unix-second
 timestamps, TEXT hex pubkeys, additive `CREATE TABLE IF NOT EXISTS` /
 `ALTER TABLE`, no drops/renames.
@@ -151,7 +151,7 @@ tombstoned rows. See section 7.
 
 ## 2. Hub routes
 
-All under `hub/src/routes/posts.rs` (new, Voxply-server). Permission
+All under `hub/src/routes/posts.rs` (new, Wavvon-server). Permission
 gates per section 5. Every route first checks the channel exists, is
 not a category, and is `channel_type='forum'`; a `text` channel returns
 `409 not_a_forum`.
@@ -183,7 +183,7 @@ here, same check as message posting.
 
 ## 3. Wire models
 
-In `hub/src/routes/post_models.rs` (new, Voxply-server). The client
+In `hub/src/routes/post_models.rs` (new, Wavvon-server). The client
 mirrors these as TS types.
 
 ```
@@ -217,7 +217,7 @@ nulled, author preserved for the "[deleted by …]" affordance only when
 the viewer has `manage_posts`; otherwise author is also nulled.
 
 WS envelope variants (additive to the existing typed channel in
-`hub/src/routes/chat_models.rs`, Voxply-server): `post_created`,
+`hub/src/routes/chat_models.rs`, Wavvon-server): `post_created`,
 `post_updated`, `post_deleted`, `reply_created`, `reply_updated`,
 `reply_deleted`. Payloads carry `channel_id` + `post_id` so clients can
 update list/detail views and unread state without a refetch.
@@ -226,8 +226,8 @@ update list/detail views and unread state without a refetch.
 
 ## 4. Client UI
 
-Desktop (`Voxply-desktop`); mirrored on `Voxply-web` and
-`Voxply-android` with the same wire shapes. Per
+Desktop (`Wavvon-desktop`); mirrored on `Wavvon-web` and
+`Wavvon-android` with the same wire shapes. Per
 [decisions.md](decisions.md), state stays in `App.tsx`; these are pure
 prop-fed components.
 
@@ -272,7 +272,7 @@ Tauri commands (thin pass-throughs): `forum_list_posts`,
 ## 5. Permissions
 
 Reuse the existing permission machinery in `hub/src/permissions.rs`
-(Voxply-server). `manage_games` is unrelated and is **not** reused — it
+(Wavvon-server). `manage_games` is unrelated and is **not** reused — it
 gates the game catalog, not content moderation.
 
 - **Read** a forum channel: same channel-visibility check as a text
@@ -296,7 +296,7 @@ gates the game catalog, not content moderation.
 
 Two new permissions, both following the existing `manage_*` / verb
 naming. They register in `hub/src/permissions.rs` and surface in the
-role editor (`Voxply-desktop`) with no new UI mechanism.
+role editor (`Wavvon-desktop`) with no new UI mechanism.
 
 ---
 

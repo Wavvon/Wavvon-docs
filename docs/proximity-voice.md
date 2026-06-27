@@ -1,4 +1,4 @@
-# Proximity Voice
+﻿# Proximity Voice
 
 A platform-level feature that attenuates each speaker's volume based on
 their distance from the listener in a shared coordinate space. Volume fades
@@ -170,7 +170,7 @@ message shape, the sender's membership and auth_mode, and fans out
 
 ## Hub state
 
-In `hub/src/state.rs` (Voxply-server), alongside the existing
+In `hub/src/state.rs` (Wavvon-server), alongside the existing
 `voice_channels` and `game_sessions` maps:
 
 ```
@@ -217,21 +217,21 @@ Calls the game sends to the parent (`window.parent.postMessage`):
 ```js
 // Create a voice zone at session start (typically called once, by the host)
 window.parent.postMessage({
-  type: "voxply:createVoiceZone",
+  type: "wavvon:createVoiceZone",
   reqId: 10,
   attenuation: { model: "linear", max_radius: 200 },
   coordinate_system: "2d"   // default
 }, "*");
-// → { type: "voxply:voiceZoneCreated", reqId: 10, data: { zone_id } }
+// → { type: "wavvon:voiceZoneCreated", reqId: 10, data: { zone_id } }
 
 // Update position each game tick
 window.parent.postMessage({
-  type: "voxply:setVoicePosition",
+  type: "wavvon:setVoicePosition",
   reqId: 11,
   position: { x: 120, y: 340 },
   zone_id: "auto"            // "auto" = the session's zone
 }, "*");
-// → { type: "voxply:ok", reqId: 11 }
+// → { type: "wavvon:ok", reqId: 11 }
 ```
 
 `"zone_id": "auto"` resolves to the zone bound to the current game session
@@ -243,7 +243,7 @@ Event the parent delivers to the game (so the game can mirror positions of
 other players in its own world state):
 
 ```js
-// { type: "voxply:voicePositionUpdated", data: { pubkey, position } }
+// { type: "wavvon:voicePositionUpdated", data: { pubkey, position } }
 ```
 
 ---
@@ -268,7 +268,7 @@ pipeline does not change.
 
 ## Client-side receive logic
 
-In `voice/src/playback.rs` (Voxply-desktop), extending the per-sender
+In `voice/src/playback.rs` (Wavvon-desktop), extending the per-sender
 pipeline from `voice-volume.md`:
 
 ```
@@ -296,13 +296,13 @@ is heard at full manual-gain volume.
 
 | Piece | Repo / file |
 |---|---|
-| `voice_zones` in-memory state | `hub/src/state.rs` (Voxply-server) |
-| `voice_zone_create/destroy`, `voice_position_update` WS handlers | `hub/src/routes/ws.rs` + `chat_models.rs` (Voxply-server) |
-| `manage_voice` permission | hub DB migration + roles (Voxply-server) |
-| `voice_zone_state` on voice join | WS join handler (Voxply-server) |
-| Client position map + attenuation evaluation | `voice/src/playback.rs` (Voxply-desktop) |
-| WS event handlers for zone events | client WS layer (Voxply-desktop, Voxply-web, Voxply-android) |
-| `voxply:createVoiceZone` + `voxply:setVoicePosition` SDK calls | game iframe parent handler (Voxply-desktop, Voxply-web) |
+| `voice_zones` in-memory state | `hub/src/state.rs` (Wavvon-server) |
+| `voice_zone_create/destroy`, `voice_position_update` WS handlers | `hub/src/routes/ws.rs` + `chat_models.rs` (Wavvon-server) |
+| `manage_voice` permission | hub DB migration + roles (Wavvon-server) |
+| `voice_zone_state` on voice join | WS join handler (Wavvon-server) |
+| Client position map + attenuation evaluation | `voice/src/playback.rs` (Wavvon-desktop) |
+| WS event handlers for zone events | client WS layer (Wavvon-desktop, Wavvon-web, Wavvon-android) |
+| `wavvon:createVoiceZone` + `wavvon:setVoicePosition` SDK calls | game iframe parent handler (Wavvon-desktop, Wavvon-web) |
 | `voice_zone` capability in the Tier 1/2 capability model | `gaming.md` capability table + admin UI |
 
 ---
@@ -313,7 +313,7 @@ Gaming Tier 3 (MMO + persistent shared world) will **consume** this feature
 — proximity voice in a game world is implemented by posting position
 updates from the game SDK and letting the platform handle attenuation. The
 MMO design does not need to own voice attenuation logic; it only needs to
-call `voxply:setVoicePosition` per tick. This is the whole point of making
+call `wavvon:setVoicePosition` per tick. This is the whole point of making
 proximity voice a general platform primitive: Tier 3 gets it for free when
 the time comes.
 

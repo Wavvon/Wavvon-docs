@@ -1,4 +1,4 @@
-# Bots — external bot ecosystem
+﻿# Bots — external bot ecosystem
 
 External bots are third-party processes — any language, any host —
 that connect to one or more hubs over the existing client WebSocket and
@@ -51,7 +51,7 @@ Reuses the existing challenge-response signature flow (see
    optionally merges the `bot_meta` (see section 4), and issues a
    session token carrying a `kind: 'bot'` claim.
 6. The bot opens the existing client WebSocket
-   (`hub/src/routes/ws.rs` in Voxply-server) with that token.
+   (`hub/src/routes/ws.rs` in Wavvon-server) with that token.
 
 Why reuse `users` (with `is_bot=1`) rather than a parallel `bots`
 table: the role/permission, ban/mute, channel-membership, and message
@@ -164,7 +164,7 @@ commands of the same name — the hub strips them before dispatch.
 
 1. User sends a message starting with `/`. The client posts it
    normally; the hub's message handler
-   (`hub/src/routes/messages.rs` in Voxply-server) detects the slash
+   (`hub/src/routes/messages.rs` in Wavvon-server) detects the slash
    prefix.
 2. Hub resolves `(channel_id, command_name, optional @botname)` to a
    single bot via `bot_commands` + channel membership. No match →
@@ -179,9 +179,9 @@ commands of the same name — the hub strips them before dispatch.
 
 ```
 POST {webhook_url}
-X-Voxply-Hub-Pubkey: <hex>
-X-Voxply-Signature: <ed25519 over body>
-X-Voxply-Timestamp: <unix>
+X-Wavvon-Hub-Pubkey: <hex>
+X-Wavvon-Signature: <ed25519 over body>
+X-Wavvon-Timestamp: <unix>
 
 { type: "slash_command",
   hub_url, channel_id, message_id_hint,
@@ -281,7 +281,7 @@ connection is independent:
 - Separate rate-limit budget (section 6).
 
 The bot's webhook URL may be shared across hubs or per-hub; the
-`X-Voxply-Hub-Pubkey` header lets the bot tell which hub a callback
+`X-Wavvon-Hub-Pubkey` header lets the bot tell which hub a callback
 came from. The signature header lets the bot verify the call really
 came from the hub it claims to.
 
@@ -302,7 +302,7 @@ talking to the same operator.
 
 A bot is a `users` row with roles, so it inherits the existing
 permission system ([identity.md](identity.md) →
-`hub/src/permissions.rs` in Voxply-server). A bot can be granted
+`hub/src/permissions.rs` in Wavvon-server). A bot can be granted
 `send_messages`, `manage_messages` (delete its own posts), or even
 `manage_channels` — admins decide. The pubkey-keyed permission model
 doesn't care that the actor is a bot.
@@ -312,7 +312,7 @@ doesn't care that the actor is a bot.
 Hard-coded in v1, regardless of role:
 
 - **Cannot join voice (v1).** The voice relay (`voice/` crate in
-  Voxply-desktop) currently handles only human microphone streams and
+  Wavvon-desktop) currently handles only human microphone streams and
   has no audio-injection path for bot processes. Blocked for now, not
   forever — see *What's deferred* below for the voice-bot design space
   (music playback, TTS, translation).
@@ -362,7 +362,7 @@ as the existing rate limiter. `bot_commands` gains a
 
 ## 7. Wire changes — scope for the backend engineer
 
-This is the change list, not the implementation. Repo: **Voxply-server**
+This is the change list, not the implementation. Repo: **Wavvon-server**
 unless otherwise noted.
 
 ### DB (`hub/src/db/migrations.rs`)
@@ -410,7 +410,7 @@ unless otherwise noted.
   define in `hub/src/routes/bot_models.rs` and re-export through the
   existing chat models module so the desktop client picks them up.
 
-### Client (`Voxply-desktop`)
+### Client (`Wavvon-desktop`)
 
 - Hub Settings → Bots tab: list, add (paste pubkey), copy invite
   token, revoke. UI only; no Tauri bridge changes.
@@ -530,7 +530,7 @@ required. It is the minimum viable moderation tool for hubs that don't
 run bots.
 
 Advanced logging — message content archival, pattern matching,
-cross-referencing, alerting — is left to the bot ecosystem. Voxply
+cross-referencing, alerting — is left to the bot ecosystem. Wavvon
 provides the event stream; bots provide the tooling on top of it. This
 matches the gaming philosophy: we build the platform primitive, not
 the application.
@@ -606,7 +606,7 @@ for a future rich-embed format; ignored today.
   (same rule as external bot `webhook_url` validation).
 - Rate limit: 5 messages/minute per webhook, configurable by admin.
 - Optional HMAC verification: the sender may include
-  `X-Voxply-Signature: <HMAC-SHA256 of body, keyed by the secret token>`.
+  `X-Wavvon-Signature: <HMAC-SHA256 of body, keyed by the secret token>`.
   When present, the hub verifies it and rejects mismatches. Not
   required but recommended for sensitive channels.
 
@@ -1081,6 +1081,105 @@ That is a friction tax; we accept it because it keeps the trust
 boundary clean — every hub admin makes an explicit decision about
 every bot.
 
+## §17 — Mini-apps
+
+A bot can embed an interactive web experience inside any channel. The bot
+hosts a standard web page (HTML + JS + CSS); the hub handles auth and
+sandboxing.
+
+### Flow
+
+1. **Bot announces** — bot sends `bot_app_announce` with a `title`,
+   `description`, and `channel_id`. The hub fans `bot_app_launch` to all
+   channel subscribers; clients render a launch card with a "Join" button.
+2. **User joins** — user clicks "Join"; client sends `bot_app_join` with the
+   `bot_id` and `channel_id`. The hub mints a **4-hour scoped session token**
+   bound to this user + channel + bot, then delivers `bot_app_open` *only*
+   to that connection.
+3. **Client opens webview** — client loads `mini_app_url` in a sandboxed
+   webview (desktop/Android: `WebviewWindow`; web: `<iframe sandbox>`). Four
+   globals are injected before the page loads:
+   - `window.__WAVVON_HUB__` — hub origin URL
+   - `window.__WAVVON_TOKEN__` — the scoped session token
+   - `window.__WAVVON_CHANNEL__` — channel id
+   - `window.__WAVVON_BOT_ID__` — bot public key
+4. **Mini-app connects** — the page connects to the hub WS with its token and
+   exchanges messages via the normal WS surface (only channel-scoped events
+   for its channel; admin endpoints are blocked by the scoped token).
+5. **Bot closes** — bot sends `bot_app_dismiss`; hub fans `bot_app_close` to
+   all subscribers; clients close open webviews.
+
+### Camera access
+
+A bot that needs webcam access (e.g. ML inference, AR filters) registers with
+`requires_camera: true` at invite time (`POST /bots`). The hub only grants
+camera to the webview when **both** conditions are met:
+- The bot declared `requires_camera: true`
+- The hub operator has set `bots_allow_camera = true` in `hub.toml`
+
+The `bot_app_open` message carries a `requires_camera` boolean; clients gate
+the webview `allow-camera` / `permissions: ["camera"]` on this flag. If the
+operator has not enabled camera access, the flag is `false` and the webview
+never sees the camera permission prompt.
+
+### Bot registration
+
+Set `mini_app_url` in the `POST /bots` invite body. Update it any time via
+`PUT /bots/me/profile`.
+
+### Scoped token limits
+
+The 4-hour session token minted on `bot_app_join` is:
+- Bound to the user's identity (same pubkey as their normal session)
+- Scoped to the bot's channel — cross-channel events are not delivered
+- Blocked from admin endpoints (`/admin/*`, `PUT /bots/*`)
+- Revocable individually via `DELETE /bots/{id}/sessions/{token}` (planned)
+
+---
+
+## §18 — Voice and video bots
+
+Bots can participate in voice channels and inject video streams into the
+screen-share surface. Both paths reuse the same infrastructure as human
+clients — no new wire format.
+
+### Voice
+
+1. **Join** — `POST /bots/{id}/voice/join` with `{ channel_id }`. The hub
+   verifies the bot's bearer token and returns:
+   ```json
+   { "voice_ws_url": "/voice/ws", "channel_id": "..." }
+   ```
+2. **Connect** — bot opens `/voice/ws?token=<bot_token>&channel_id=<id>` and
+   receives a `voice_ws_ready` frame with its `sender_id` and the current
+   participant list.
+3. **Stream** — bot sends binary Opus frames at 48 kHz, 20 ms per packet,
+   in the same envelope as desktop/Android (`[seq:u16 BE][ts:u32 BE][opus…]`).
+   The hub mixes it into the channel fan-out for both UDP (desktop/Android)
+   and WS (web) participants.
+4. **Leave** — `DELETE /bots/{id}/voice/leave` with `{ channel_id }`. Triggers
+   the same cleanup as a normal WS disconnect.
+
+The bot appears in `GET /voice/participants` with `is_bot: true`.
+
+### Video (screen-share injection)
+
+1. **Start** — `POST /bots/{id}/screenshare/start` with:
+   ```json
+   { "channel_id": "...", "kind": "screen", "mime": "video/webm", "has_audio": false }
+   ```
+   The hub assigns a `stream_id`, registers the stream in `screen_shares`,
+   and broadcasts `screen_share_started` to all channel subscribers. Clients
+   render the bot's feed in the existing `ScreenShareViewer` — no client
+   changes required.
+2. **Push frames** — bot sends `screen_share_chunk` binary envelopes over its
+   WS connection using the `stream_id` returned above.
+3. **Stop** — `DELETE /bots/{id}/screenshare/stop` with `{ channel_id, stream_id }`.
+   Hub broadcasts `screen_share_stopped` and notifies cross-channel
+   subscribers.
+
+---
+
 ## What's deferred
 
 - **Bot DMs** — bots as DM participants (notifications, transactional
@@ -1102,7 +1201,7 @@ every bot.
   archival). Unlike incoming webhooks (§9) which flow inward, this
   flows hub → external. Unlike event subscriptions (§8), no persistent
   WS session is needed. Main design question: signing — hub should
-  include `X-Voxply-Signature` so the receiver can verify authenticity
+  include `X-Wavvon-Signature` so the receiver can verify authenticity
   (same header as slash dispatch). Deferred until a real use case
   pressures the design.
 - **Hub-to-hub bot federation** — a bot invited on Hub A is *not*
@@ -1112,34 +1211,6 @@ every bot.
 - **Sandboxed in-hub bot execution** — running bot code inside the
   hub process (the internal-service-account path) is already shipped;
   external bots intentionally run outside the hub for isolation.
-- **Voice bots** — music playback, TTS, live translation, and
-  recording bots are all valid use cases and explicitly wanted. The
-  blocker is the voice relay (`voice/` crate): it only handles
-  microphone capture today and has no bot audio-injection path. What
-  needs to be added: a bot-audio input channel in the relay (a bot
-  process pushes a PCM/Opus stream over a local or network socket; the
-  relay mixes it into the voice channel the same way it would a
-  human's mic). The `kind: 'bot'` session-token check at the UDP
-  handshake should become a capability gate (`can_speak_voice`) rather
-  than a hard reject. Design note: a music bot connecting to N hubs
-  simultaneously is a significant bandwidth multiplier on the relay —
-  rate-limit and admin-permission scaffolding needs to be in place
-  before enabling this.
-- **Screen-share / video bots** — a bot injecting a video stream into
-  the screen-share feature (watch-party bot, stream announcer, etc.).
-  The existing screen-share design ([screen-share.md](screen-share.md))
-  uses `getDisplayMedia` which is human-only: the client captures a
-  real display surface and sends it as `ScreenShareChunk` WS envelopes.
-  A video bot needs the inverse path: the bot process pushes
-  pre-encoded VP8/Opus WebM chunks over the WebSocket; the hub relays
-  them to channel members exactly as it does for human screen-share.
-  What needs to be added: a `ScreenShareBot` envelope variant that
-  bypasses `getDisplayMedia`, a capability gate (`can_share_screen`) on
-  bot session tokens, and hub-side validation that the pusher is a
-  bot identity (not a client trying to forge a remote display source).
-  The v2 WebRTC path in screen-share.md (P2P via hub SDP/ICE signaling)
-  could accommodate bot video injection without the chunk-relay
-  bandwidth overhead — deferred to the same v2 milestone.
 - **Bot-launched games (modal)** — a bot sending a message that
   contains a "Play" call-to-action; clicking it opens a full modal
   overlay running an HTML5 game in the Tier 1 iframe sandbox

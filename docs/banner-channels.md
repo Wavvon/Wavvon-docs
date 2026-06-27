@@ -1,4 +1,4 @@
-# Banner Channels
+﻿# Banner Channels
 
 A `channel_type = 'banner'` row that renders in the hub sidebar as a
 full-width image block instead of a clickable channel row. It carries no
@@ -12,7 +12,7 @@ as regular channels.
 ## Schema
 
 Two nullable columns added to `channels` via `ALTER TABLE` in
-`hub/src/migrations.rs` in Voxply-server:
+`hub/src/migrations.rs` in Wavvon-server:
 
 - `banner_url TEXT` — external HTTPS image URL; the hub stores the string
   only and never fetches it. The client loads it directly.
@@ -28,7 +28,7 @@ channels both columns stay NULL.
 
 ## API
 
-All in the `hub` crate of Voxply-server. No `upload_files` schema change.
+All in the `hub` crate of Wavvon-server. No `upload_files` schema change.
 
 `CreateChannelRequest` / `UpdateChannelRequest` gain:
 - `banner_url: Option<String>`

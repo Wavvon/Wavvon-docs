@@ -1,6 +1,6 @@
-# Getting Started with Voxply
+﻿# Getting Started with Wavvon
 
-Voxply is a **self-hosted community platform** built around private voice,
+Wavvon is a **self-hosted community platform** built around private voice,
 text, and gaming. Unlike typical hosted platforms, you own your server and
 your identity — no accounts, no phone numbers, just a cryptographic key pair
 that is yours forever.
@@ -9,14 +9,14 @@ that is yours forever.
 
 ## Download
 
-The Voxply desktop app is available for Windows, macOS, and Linux from the
-[Voxply releases page](https://github.com/Voxply/Voxply-client/releases).
+The Wavvon desktop app is available for Windows, macOS, and Linux from the
+[Wavvon releases page](https://github.com/Wavvon/Wavvon-client/releases).
 
 **Windows**: installers are currently **not code-signed** (signing for a
 young open-source project is in progress — the CI signing pipeline is
 already wired). SmartScreen will warn about an unrecognized app: click
 **More info → Run anyway**. Builds are reproducible from the public
-[Voxply-client](https://github.com/Voxply/Voxply-client) monorepo (which
+[Wavvon-client](https://github.com/Wavvon/Wavvon-client) monorepo (which
 holds the desktop, web, and Android apps) via GitHub Actions.
 
 **macOS / Linux**: notarization and GPG signing are planned for a future
@@ -27,7 +27,7 @@ on Linux, `chmod +x` the AppImage.
 
 ## Your identity
 
-The first time you open Voxply, it generates an **Ed25519 key pair** on your
+The first time you open Wavvon, it generates an **Ed25519 key pair** on your
 device. The public key is your permanent identity across every hub and every
 device — it never changes and is not tied to any account. The private key never
 leaves your device.
@@ -44,7 +44,7 @@ device, import the seed on a new install to recover the same key.
 
 ## Joining a hub
 
-A **hub** is a community server — the Voxply equivalent of a server or
+A **hub** is a community server — the Wavvon equivalent of a server or
 workspace. To join one you need its URL from the hub admin (e.g.
 `https://hub.example.com`).
 
@@ -66,19 +66,19 @@ See [hosting.md](hosting.md) for the full guide. In brief:
 ```bash
 # Docker (recommended)
 docker run -d -p 3000:3000 -p 3001:3001/udp \
-  -v voxply-hub-data:/data ghcr.io/voxply/hub:latest
+  -v wavvon-hub-data:/data ghcr.io/wavvon/hub:latest
 
 # Or build from source
-cargo build --release -p voxply-hub
-VOXPLY_HTTP_PORT=3000 \
-VOXPLY_VOICE_UDP_PORT=3001 \
-./target/release/voxply-hub
+cargo build --release -p wavvon-hub
+WAVVON_HTTP_PORT=3000 \
+WAVVON_VOICE_UDP_PORT=3001 \
+./target/release/wavvon-hub
 ```
 
 The hub generates its own Ed25519 identity on first run and creates an SQLite
 database (`hub.db`) in the working directory. A fresh hub has **no owner** —
-set yours via `owner_pubkey` in `hub.toml` / `VOXPLY_OWNER_PUBKEY`, or
-`voxply-hub admin users set-owner <pubkey>` after first boot (see the
+set yours via `owner_pubkey` in `hub.toml` / `WAVVON_OWNER_PUBKEY`, or
+`wavvon-hub admin users set-owner <pubkey>` after first boot (see the
 [hub operator guide](hub-operator-guide.md)).
 
 ---
@@ -100,7 +100,7 @@ set yours via `owner_pubkey` in `hub.toml` / `VOXPLY_OWNER_PUBKEY`, or
 
 ## Privacy
 
-- **No telemetry.** The desktop app and hub server send no data to Voxply HQ.
+- **No telemetry.** The desktop app and hub server send no data to Wavvon HQ.
 - **No accounts.** Your identity is a local key pair; nothing is registered
   with a central authority.
 - **E2E encryption on DMs.** 1-to-1 and group DMs are end-to-end encrypted

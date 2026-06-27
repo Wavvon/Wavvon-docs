@@ -1,7 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 80" width="900" height="240">
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 80" width="900" height="240">
   <!--
-    Voxply — horizontal lockup (dark-background variant)
-    Mark (64×64) + "voxply" wordmark. Transparent background.
+    Wavvon — horizontal lockup (dark-background variant)
+    Mark (64×64) + "wavvon" wordmark. Transparent background.
     For light backgrounds swap fill="#EBEBF5" on the text to fill="#1C1A1F".
   -->
   <defs>
@@ -31,5 +31,5 @@
     font-weight="600"
     fill="#EBEBF5"
     dominant-baseline="central"
-    letter-spacing="2">voxply</text>
+    letter-spacing="2">wavvon</text>
 </svg>

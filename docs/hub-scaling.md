@@ -1,13 +1,13 @@
-# Hub Scaling Architecture
+﻿# Hub Scaling Architecture
 
-How Voxply scales a single hub from a handful of users to one million,
+How Wavvon scales a single hub from a handful of users to one million,
 and what changes at each threshold.
 
 ---
 
 ## Current State and Its Limits
 
-A hub today is a single `voxply-hub` process with a SQLite database and
+A hub today is a single `wavvon-hub` process with a SQLite database and
 FTS5 full-text search. This is intentionally simple — it makes self-hosting
 trivial — but it has hard ceilings:
 
@@ -111,11 +111,11 @@ concurrent writers and supports read replicas for query-heavy workloads.
 
 ```toml
 # hub.toml — leave blank or omit for SQLite (default)
-database_url = "postgresql://voxply:secret@localhost/hub_prod"
+database_url = "postgresql://wavvon:secret@localhost/hub_prod"
 ```
 
 The hub detects the URL scheme at startup and initialises the correct sqlx
-pool. The migration is the same SQL (Voxply targets modern SQLite and
+pool. The migration is the same SQL (Wavvon targets modern SQLite and
 PostgreSQL syntax compatibility — no SQLite-isms in migrations).
 
 **Known incompatibilities to resolve when PostgreSQL is added:**
@@ -232,7 +232,7 @@ Options:
 | **ion-sfu** | Go | Medium | Open source, flexible |
 | **Custom (Rust)** | Rust | High | Full control; deferred |
 
-For Voxply, LiveKit is the pragmatic choice: self-hostable, has a Rust SDK,
+For Wavvon, LiveKit is the pragmatic choice: self-hostable, has a Rust SDK,
 handles routing, recording, and simulcast. The hub becomes an orchestrator that
 creates LiveKit rooms and hands out tokens — the SFU handles all media.
 

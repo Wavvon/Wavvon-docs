@@ -1,4 +1,4 @@
-# Screen Share
+﻿# Screen Share
 
 Live screen and webcam sharing inside a voice channel. Any approved
 member can share their screen (window or whole monitor) plus an
@@ -41,10 +41,10 @@ picker handles source selection — we do not roll our own.
 |---|---|---|
 | Whole monitor | `displaySurface: "monitor"` | "Entire screen" |
 | Application window | `displaySurface: "window"` | "Window" |
-| Single browser tab | `displaySurface: "browser"` | Not exposed (Voxply doesn't run in a browser context for sharing) |
+| Single browser tab | `displaySurface: "browser"` | Not exposed (Wavvon doesn't run in a browser context for sharing) |
 
 The picker is invoked once with broad constraints; the user's
-selection dictates which surface is captured. Voxply does not need
+selection dictates which surface is captured. Wavvon does not need
 to filter by source type — the OS picker already presents the right
 list per OS.
 
@@ -76,7 +76,7 @@ share view (picture-in-picture style). Disabling the webcam toggles
 the second stream off without affecting the screen share.
 
 Webcam audio is **not** captured (the user's mic is already handled
-by the voice pipeline in the `voice/` crate of Voxply-desktop). Mixing
+by the voice pipeline in the `voice/` crate of Wavvon-desktop). Mixing
 webcam mic into the screen-share audio path would double-mic the user.
 
 Webcam-only sharing (no screen) is allowed: same path, just the
@@ -117,7 +117,7 @@ before they can decode anything.
 ### Wire format
 
 Two new envelope variants on the existing typed message channel in
-`hub/src/routes/chat_models.rs` (Voxply-server) — the same enum that
+`hub/src/routes/chat_models.rs` (Wavvon-server) — the same enum that
 already carries `Subscribe` / `Unsubscribe` at
 lines 175-181 (`SubscribeAll` removed — hub auto-subscribes on connect):
 
@@ -269,7 +269,7 @@ simply produces silent audio if no driver is present, with no error.
 ### Webcam mic
 
 Not captured. The user's mic is already in the voice channel via
-the cpal pipeline (`voice/src/capture.rs` in Voxply-desktop). Capturing
+the cpal pipeline (`voice/src/capture.rs` in Wavvon-desktop). Capturing
 it twice would echo or double-mic.
 
 ### Viewer volume
@@ -285,9 +285,9 @@ client prefs.
 
 | Change | Where |
 |---|---|
-| New WS envelopes (`ScreenShareStart`/`Chunk`/`Stop` + `*Started`/`ChunkOut`/`Stopped`) | `hub/src/routes/chat_models.rs` in Voxply-server (extend the enums at line 175 and 196) |
-| Binary frame correlation (envelope ↔ next binary frame) | `hub/src/routes/ws.rs` (Voxply-server) |
-| In-memory `ActiveShare` map per channel | `hub/src/state.rs` (Voxply-server, sibling of `voice_channels`) |
+| New WS envelopes (`ScreenShareStart`/`Chunk`/`Stop` + `*Started`/`ChunkOut`/`Stopped`) | `hub/src/routes/chat_models.rs` in Wavvon-server (extend the enums at line 175 and 196) |
+| Binary frame correlation (envelope ↔ next binary frame) | `hub/src/routes/ws.rs` (Wavvon-server) |
+| In-memory `ActiveShare` map per channel | `hub/src/state.rs` (Wavvon-server, sibling of `voice_channels`) |
 | Init-chunk cache per active stream | Same map, fixed-size byte buffer per stream |
 | Permission check on `ScreenShareStart` | Reuses existing channel-membership + role check |
 | At-most-one-sharer-per-channel enforcement | Reject `ScreenShareStart` if `ActiveShare` exists; allow same sharer to add a second stream (webcam) |
@@ -312,7 +312,7 @@ channel's voice. Clicking it opens the source picker modal.
 
 ### Source picker modal
 
-> **Desktop-native modal (designed, not built):** A unified Voxply-native
+> **Desktop-native modal (designed, not built):** A unified Wavvon-native
 > source picker with thumbnail previews (bypassing the OS overlay) is designed
 > in [screen-share-modal.md](screen-share-modal.md). The current v1 picker
 > uses the OS-native `getDisplayMedia()` overlay described below.

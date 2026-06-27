@@ -1,13 +1,13 @@
-# Discovery v2
+﻿# Discovery v2
 
-Four enhancements to the Voxply-discovery service (the Next.js directory
+Four enhancements to the Wavvon-discovery service (the Next.js directory
 described in [hub-discovery.md](hub-discovery.md), Layer 2): hub uptime
 tracking, farm browsing, global search, and anonymous aggregate
 analytics. All four are wishlist items in
 [`../ROADMAP.md`](../ROADMAP.md) under "Discovery enhancements."
 
 These extend the existing stack — Next.js route handlers, `better-sqlite3`
-for storage (`discovery/src/lib/db.ts` in Voxply-discovery), and
+for storage (`discovery/src/lib/db.ts` in Wavvon-discovery), and
 `@noble/ed25519` for signed self-listings (`discovery/src/lib/verify.ts`).
 No new infrastructure, no new service.
 
@@ -53,7 +53,7 @@ one outbound request per hub per 15 minutes — trivial at the catalog's
 scale (hundreds to low thousands of hubs) — and the pruned table stays
 small.
 
-**Implementation (all in Voxply-discovery).**
+**Implementation (all in Wavvon-discovery).**
 
 - `db.ts`: add the `hub_pings` table to `migrate()` with an index on
   `(hub_pubkey, checked_at)`; add `recordPing`, `uptimePercent(pubkey)`,
@@ -126,7 +126,7 @@ one more page but reuses the entire signed-listing verification path
 `api/hubs/route.ts`). The duplication is shape-only; the security
 primitive is shared.
 
-**Implementation (all in Voxply-discovery).**
+**Implementation (all in Wavvon-discovery).**
 
 - `db.ts`: `farms` table + `listFarms`, `getFarm`, `upsertFarm`,
   `deleteFarm`, mirroring the hub helpers (JSON-encode `pricing_tiers` on
@@ -136,7 +136,7 @@ primitive is shared.
   nonce/signature/`/info`-match validation into `lib/verify.ts` so hubs
   and farms don't drift.
 - `app/farms/page.tsx` plus a `FarmCard` component.
-- Farm side (Voxply-server, `seed/` crate — the farm controller): farms
+- Farm side (Wavvon-server, `seed/` crate — the farm controller): farms
   must expose `GET /farm/info` returning at least `{ public_key, name,
   description, icon, pricing_tiers, capacity_available }`, and sign the
   registration payload with the farm key. This contract is owned by the
@@ -186,7 +186,7 @@ access to it anyway), user profiles (discovery has no user accounts), and
 hub member lists. The index covers only operator-published catalog
 metadata.
 
-**Implementation (all in Voxply-discovery).**
+**Implementation (all in Wavvon-discovery).**
 
 - `lib/search.ts`: per-catalog search functions returning the unified
   `SearchResult` shape, plus `globalSearch(q, types)` doing the
@@ -233,7 +233,7 @@ hub message data), user locations, IP addresses, and search queries
 **Alternative considered.** Per-hub stats — member counts, message
 volume, activity graphs. Rejected: this requires hubs to report private
 operational data to discovery, inverting the probe relationship and
-making discovery a data sink for what communities do. Voxply's ethos is
+making discovery a data sink for what communities do. Wavvon's ethos is
 that the project does not know what communities do with the software
 ([decisions.md](decisions.md), [threat-model.md](threat-model.md)).
 Counts of the catalog discovery itself maintains are the only data
@@ -246,7 +246,7 @@ sovereignty principle. The dashboard is intentionally a measure of the
 *registry*, not of *activity inside hubs*, and that boundary is the whole
 point.
 
-**Implementation (all in Voxply-discovery).**
+**Implementation (all in Wavvon-discovery).**
 
 - `lib/analytics.ts`: `computeAnalytics()` running the count queries
   (including the active-hub join against `hub_pings`), cached in-memory
@@ -263,7 +263,7 @@ principle), and downloadable historical datasets.
 
 ## Feature 5 — Skin gallery
 
-**Decision.** A catalog of user-submitted skins (the `.voxplyskin` files
+**Decision.** A catalog of user-submitted skins (the `.wavvonskin` files
 from [custom-themes.md](custom-themes.md) §11), self-listed with the same
 signed primitive as hubs and farms. A new `skins` table:
 
@@ -276,7 +276,7 @@ skins(
   swatch_bg       TEXT,              -- --bg
   swatch_surface  TEXT,              -- --surface
   swatch_accent   TEXT,              -- --accent
-  payload         TEXT,              -- full .voxplyskin JSON
+  payload         TEXT,              -- full .wavvonskin JSON
   featured        INTEGER DEFAULT 0,
   listed_at       TEXT
 )
@@ -286,7 +286,7 @@ The three swatch columns let the browse list render cards without shipping
 the full skin JSON per entry.
 
 `POST /api/skins/register` carries `{ payload, sig }` where `payload` is the
-full `.voxplyskin` JSON bytes and `sig` is a base64url Ed25519 signature over
+full `.wavvonskin` JSON bytes and `sig` is a base64url Ed25519 signature over
 those bytes. Discovery verifies `sig` against the `author_pubkey` inside
 `payload`, checks the ≤5-minute nonce, then upserts — mirroring
 `validateAndUpsert` in `api/hubs/route.ts`. `DELETE /api/skins/register`
@@ -313,7 +313,7 @@ one table and one page but reuses the entire signed-listing path (`verify.ts`,
 security primitive is shared. Server-side token validation was rejected because
 it would duplicate the client's allow-list and let the two drift.
 
-**Implementation (all in Voxply-discovery).**
+**Implementation (all in Wavvon-discovery).**
 
 - `db.ts`: `skins` table + `listSkins`, `getSkin`, `upsertSkin`,
   `deleteSkin`, mirroring the hub helpers.
@@ -321,7 +321,7 @@ it would duplicate the client's allow-list and let the two drift.
   shared `lib/verify.ts` validation.
 - `app/skins/page.tsx` plus a `SkinCard` component (name, truncated author
   pubkey, base, three swatches).
-- Client side (Voxply-desktop / web / android): the `platform.skins` adapter
+- Client side (Wavvon-desktop / web / android): the `platform.skins` adapter
   gains `browse(query)` and `fetchSkin(id)`; owned by the frontend-engineer
   per custom-themes.md §11.
 
@@ -349,13 +349,13 @@ an explicit curation queue, and skin version updates (re-listing a new
 
 | Piece | Repo | Owner |
 |---|---|---|
-| `hub_pings`, `farms`, `analytics_cache` tables + helpers | Voxply-discovery (`discovery/src/lib/db.ts`) | frontend-engineer |
-| Ping/prune/analytics scheduler | Voxply-discovery (`scripts/` or `api/cron/`) | frontend-engineer |
-| `/api/farms`, `/api/search`, `/api/analytics` routes + pages | Voxply-discovery (`discovery/src/app/`) | frontend-engineer |
-| Shared signed-listing validation | Voxply-discovery (`discovery/src/lib/verify.ts`) | frontend-engineer |
-| `GET /farm/info` + signed farm registration | Voxply-server (`seed/` crate) | backend-engineer |
-| `skins` table + helpers, `/api/skins` routes + page | Voxply-discovery (`discovery/src/lib/db.ts`, `discovery/src/app/`) | frontend-engineer |
-| `platform.skins` adapter (`browse`, `fetchSkin`) in clients | Voxply-desktop / Voxply-web / Voxply-android | frontend-engineer |
+| `hub_pings`, `farms`, `analytics_cache` tables + helpers | Wavvon-discovery (`discovery/src/lib/db.ts`) | frontend-engineer |
+| Ping/prune/analytics scheduler | Wavvon-discovery (`scripts/` or `api/cron/`) | frontend-engineer |
+| `/api/farms`, `/api/search`, `/api/analytics` routes + pages | Wavvon-discovery (`discovery/src/app/`) | frontend-engineer |
+| Shared signed-listing validation | Wavvon-discovery (`discovery/src/lib/verify.ts`) | frontend-engineer |
+| `GET /farm/info` + signed farm registration | Wavvon-server (`seed/` crate) | backend-engineer |
+| `skins` table + helpers, `/api/skins` routes + page | Wavvon-discovery (`discovery/src/lib/db.ts`, `discovery/src/app/`) | frontend-engineer |
+| `platform.skins` adapter (`browse`, `fetchSkin`) in clients | Wavvon-desktop / Wavvon-web / Wavvon-android | frontend-engineer |
 
 See [hub-discovery.md](hub-discovery.md) for the signed-listing primitive
 these features extend, and [farm-model.md](farm-model.md) /
