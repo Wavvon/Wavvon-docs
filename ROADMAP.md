@@ -471,8 +471,10 @@ Older entries: [`docs/shipped-log.md`](docs/shipped-log.md).
 
 ## ⚠️ Known issues
 
-- **2026-06-13 design review: web client top-10** — composer rebuilt to D5b
-  spec (in progress); item 2 fixed 2026-06-27: polls now fetched from server
+- **2026-06-13 design review: web client top-10** — item 1 fixed 2026-06-27:
+  desktop ChannelComposer rebuilt to D5b spec (composer-shell wraps input +
+  actions; "+" menu and emoji button right-aligned inside the box; send stays
+  outside — web already had this layout); item 2 fixed 2026-06-27: polls now fetched from server
   on channel switch (PollCard/PollComposer were wired but channelPolls was
   never populated); item 3 fixed 2026-06-27: all web client screens now
   wired for i18n (HubAdminPage last to land); item 4 fixed 2026-06-27
