@@ -1,4 +1,4 @@
-﻿# Missions (removed)
+# Missions (removed)
 
 > **This feature has been removed.** The missions system, spark balance,
 > cosmetic catalog, and all related code in Wavvon-desktop and

@@ -1,4 +1,4 @@
-﻿# Farm → Server → Hub Architecture
+# Farm → Server → Hub Architecture
 
 How Wavvon manages geographically distributed servers under a single farm.
 

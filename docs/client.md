@@ -1,4 +1,4 @@
-﻿# Desktop Client
+# Desktop Client
 
 Tauri 2 + React 19 + TypeScript. Lives at `apps/desktop/` in the
 Wavvon-client monorepo (shared TS in `packages/core|ui|platform|i18n`).

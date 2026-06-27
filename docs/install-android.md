@@ -1,4 +1,4 @@
-﻿# Installing Wavvon on Android
+# Installing Wavvon on Android
 
 Wavvon for Android is distributed as a sideloaded APK — there is no Play
 Store listing. You install it directly from `releases.wavvon.io`.

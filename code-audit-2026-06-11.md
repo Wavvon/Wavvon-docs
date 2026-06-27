@@ -1,4 +1,4 @@
-﻿# Code Audit — 2026-06-11
+# Code Audit — 2026-06-11
 
 Two read-only reviews run after the screenshot work exposed a family of
 web-client bugs. Findings only; nothing was changed during the audit.

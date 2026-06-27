@@ -1,4 +1,4 @@
-﻿# Hub Scaling Architecture
+# Hub Scaling Architecture
 
 How Wavvon scales a single hub from a handful of users to one million,
 and what changes at each threshold.

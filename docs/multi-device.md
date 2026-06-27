@@ -1,4 +1,4 @@
-﻿# Multi-Device Pairing
+# Multi-Device Pairing
 
 **Status**: design — no code yet. This doc covers the
 identity model and the QR pairing flow. The storage layer that holds

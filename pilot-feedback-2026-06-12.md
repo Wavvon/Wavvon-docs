@@ -1,4 +1,4 @@
-﻿# Pilot feedback — first real-world session (2026-06-12)
+# Pilot feedback — first real-world session (2026-06-12)
 
 Source: first multi-user session on the live pilot hub
 (`wavvon.videogamezone.eu`, hub v0.2.1) using the packaged desktop client

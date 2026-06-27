@@ -1,4 +1,4 @@
-﻿# Future Features
+# Future Features
 
 Design and implementation status for features beyond the initial launch.
 Each section notes what's shipped, what's partial, and what's still

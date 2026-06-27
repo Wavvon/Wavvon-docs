@@ -1,4 +1,4 @@
-﻿# Accessibility & Internationalization
+# Accessibility & Internationalization
 
 Wavvon's three clients (desktop, web, Android) share a React UI but
 target different input surfaces. This doc defines the keyboard, screen

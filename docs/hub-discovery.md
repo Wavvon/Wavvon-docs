@@ -1,4 +1,4 @@
-﻿# Hub Discovery
+# Hub Discovery
 
 How users find hubs, and how hub operators get their communities in front
 of people. Three complementary layers — each useful alone, powerful

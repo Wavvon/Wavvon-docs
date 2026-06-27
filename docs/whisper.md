@@ -1,4 +1,4 @@
-﻿# Whisper
+# Whisper
 
 Speak to a specific set of targets — users, channels, or roles — across
 the hub without anyone else hearing, **including your own channel**.

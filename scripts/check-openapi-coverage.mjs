@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env node
+#!/usr/bin/env node
 // Compare the hub's registered axum routes against the paths documented in
 // openapi.yaml. Fails (exit 1) when a route exists in code but not in the
 // spec; spec paths with no matching route are reported as warnings (they may

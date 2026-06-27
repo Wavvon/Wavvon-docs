@@ -1,4 +1,4 @@
-﻿# End-to-End Encrypted Direct Messages
+# End-to-End Encrypted Direct Messages
 
 DMs today are plaintext in the hub's SQLite (`dm_messages.content`,
 `hub/src/db/migrations.rs:432-443` in Wavvon-server). The hub operator

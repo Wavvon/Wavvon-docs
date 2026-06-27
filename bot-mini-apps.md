@@ -1,4 +1,4 @@
-﻿# Bot mini-apps
+# Bot mini-apps
 
 A generic mechanism for bots to embed interactive web experiences —
 drawing games, shared whiteboards, trivia timers, anything — directly

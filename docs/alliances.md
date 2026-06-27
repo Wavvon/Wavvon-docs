@@ -1,4 +1,4 @@
-﻿# Alliances
+# Alliances
 
 Alliances are Wavvon's differentiator: named groups of hubs that share
 channels, reactions, and (eventually) voice and games. A hub can be in

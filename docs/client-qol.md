@@ -1,4 +1,4 @@
-﻿# Client Quality-of-Life
+# Client Quality-of-Life
 
 Seven features that sharpen daily use without changing Wavvon's shape.
 Each is small in isolation; grouped here because they share the same

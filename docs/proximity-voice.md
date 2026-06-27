@@ -1,4 +1,4 @@
-﻿# Proximity Voice
+# Proximity Voice
 
 A platform-level feature that attenuates each speaker's volume based on
 their distance from the listener in a shared coordinate space. Volume fades

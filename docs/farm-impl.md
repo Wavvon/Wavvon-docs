@@ -1,4 +1,4 @@
-﻿# Farm implementation — phases 1, 2 & 3
+# Farm implementation — phases 1, 2 & 3
 
 Detailed design for the first three phases of [farm-model.md](farm-model.md):
 farm-level auth, hub multi-tenancy, and hub creation policy + admin

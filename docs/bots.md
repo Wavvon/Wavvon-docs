@@ -1,4 +1,4 @@
-﻿# Bots — external bot ecosystem
+# Bots — external bot ecosystem
 
 External bots are third-party processes — any language, any host —
 that connect to one or more hubs over the existing client WebSocket and

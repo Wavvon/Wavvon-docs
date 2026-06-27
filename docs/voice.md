@@ -1,4 +1,4 @@
-﻿# Voice
+# Voice
 
 Real-time voice over Opus, with RNNoise denoise and voice activity
 detection. Two transports share one wire format and one hub fan-out:

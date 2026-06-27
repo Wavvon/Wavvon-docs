@@ -1,4 +1,4 @@
-﻿# WebAuthn / Passkey Authentication
+# WebAuthn / Passkey Authentication
 
 Today Wavvon generates an Ed25519 keypair from a random seed, stores
 the seed in `localStorage` (web) or `~/.wavvon/identity.json`

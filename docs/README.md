@@ -1,4 +1,4 @@
-﻿# Wavvon Docs
+# Wavvon Docs
 
 A navigable map of Wavvon for humans and LLMs. Optimized for **why** and
 **where**, not **what** — code is authoritative for what; this wiki tells

@@ -1,4 +1,4 @@
-﻿# Bot media capabilities
+# Bot media capabilities
 
 Bots that can push audio and video into Wavvon channels, enabling
 music playback, karaoke backing tracks, dance-move reference streams,

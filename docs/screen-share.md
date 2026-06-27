@@ -1,4 +1,4 @@
-﻿# Screen Share
+# Screen Share
 
 Live screen and webcam sharing inside a voice channel. Any approved
 member can share their screen (window or whole monitor) plus an

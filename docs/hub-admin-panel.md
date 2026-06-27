@@ -1,4 +1,4 @@
-﻿# Hub admin tooling — Archived
+# Hub admin tooling — Archived
 
 > **Superseded: the hub web admin panel (`/admin/panel`) was removed.**
 > Hub management belongs in the desktop client; hub ownership is set at

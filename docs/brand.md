@@ -1,4 +1,4 @@
-﻿# Wavvon Brand
+# Wavvon Brand
 
 ## Motto
 

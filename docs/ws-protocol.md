@@ -1,4 +1,4 @@
-﻿# WebSocket Protocol Reference
+# WebSocket Protocol Reference
 
 This is the complete wire contract for the hub's WebSocket endpoint. Together
 with [`openapi.yaml`](../openapi.yaml) (REST) it is sufficient to implement a

@@ -1,4 +1,4 @@
-﻿# Moderation Enhancements
+# Moderation Enhancements
 
 Three additions to hub moderation, all designed around Wavvon's core
 constraint: **no central authority, sovereign hub operators**. The

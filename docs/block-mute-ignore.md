@@ -1,4 +1,4 @@
-﻿# Block / Mute / Ignore — User-Level Controls
+# Block / Mute / Ignore — User-Level Controls
 
 **Status**: design — partial code exists (`blocked_users.json`,
 `load_blocked_users`/`save_blocked_users` in Wavvon-desktop). This doc

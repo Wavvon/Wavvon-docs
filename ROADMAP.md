@@ -1,4 +1,4 @@
-﻿# Wavvon Roadmap
+# Wavvon Roadmap
 
 Tracks **what's next, what's broken, and what we'd like to build but
 haven't designed yet**. Everything else — architecture, design rationale,

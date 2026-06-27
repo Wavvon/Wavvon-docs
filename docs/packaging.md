@@ -1,4 +1,4 @@
-﻿# Packaging & Release
+# Packaging & Release
 
 How Wavvon ships to end users across Windows and Linux (the current active
 targets), and how the hub server is distributed to operators. The Tauri 2

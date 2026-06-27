@@ -1,4 +1,4 @@
-﻿# Federation
+# Federation
 
 Hubs are independent SQLite-backed servers. Federation lets them talk
 without a central authority. Two federation features ship today:

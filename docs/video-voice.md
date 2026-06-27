@@ -1,4 +1,4 @@
-﻿# Video in Voice Channels
+# Video in Voice Channels
 
 Real-time webcam video alongside the existing UDP voice pipeline. Participants
 who enable their webcam establish WebRTC peer connections with each other; the

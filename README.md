@@ -1,4 +1,4 @@
-﻿# Wavvon
+# Wavvon
 
 **Built for players. Owned by no one.**
 

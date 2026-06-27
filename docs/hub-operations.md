@@ -1,4 +1,4 @@
-﻿# Hub Operations
+# Hub Operations
 
 Operational features for the people who *run* a hub — self-hosters and
 farm operators — rather than the people who chat on it. These are not

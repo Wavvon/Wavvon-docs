@@ -1,4 +1,4 @@
-﻿# Store trait: database abstraction for the hub
+# Store trait: database abstraction for the hub
 
 **Status:** designed, not built.
 

@@ -1,4 +1,4 @@
-﻿# Hub Creation Wizard
+# Hub Creation Wizard
 
 Getting from "I want a community" to "my hub is live" today means cloning
 a repo, picking channels and roles by hand, and remembering a registration

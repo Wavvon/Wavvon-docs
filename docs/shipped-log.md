@@ -1,4 +1,4 @@
-﻿# Shipped log
+# Shipped log
 
 Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in

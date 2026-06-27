@@ -1,4 +1,4 @@
-﻿# Banner Channels
+# Banner Channels
 
 A `channel_type = 'banner'` row that renders in the hub sidebar as a
 full-width image block instead of a clickable channel row. It carries no

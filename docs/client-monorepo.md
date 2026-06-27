@@ -1,4 +1,4 @@
-﻿# Client Monorepo
+# Client Monorepo
 
 Wavvon's three clients — desktop ([client.md](client.md)), browser
 ([browser-client.md](browser-client.md)), and Android

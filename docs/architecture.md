@@ -1,4 +1,4 @@
-﻿# Architecture
+# Architecture
 
 Wavvon is four repositories. The hub backend lives in one Rust
 workspace; all clients live in one pnpm-workspace monorepo; the docs and

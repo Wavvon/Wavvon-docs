@@ -1,4 +1,4 @@
-﻿# Server Tags
+# Server Tags
 
 **Status**: design committed, not built. Tracked as task #98.
 

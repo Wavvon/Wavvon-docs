@@ -1,4 +1,4 @@
-﻿# Per-participant voice volume control
+# Per-participant voice volume control
 
 Lets a user independently adjust the playback volume of each person in a
 voice channel — boost a quiet speaker, reduce a loud one, or mute one

@@ -1,4 +1,4 @@
-﻿# Windows Code Signing (Authenticode)
+# Windows Code Signing (Authenticode)
 
 How the Wavvon desktop app (Wavvon-desktop) will eventually earn Windows'
 trust so users stop seeing SmartScreen's "Windows protected your PC" on

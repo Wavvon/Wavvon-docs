@@ -1,4 +1,4 @@
-﻿# Unified Screen Share Modal
+# Unified Screen Share Modal
 
 **Status: designed, not built.** The current desktop picker uses the OS-native
 `getDisplayMedia()` overlay. This doc describes the planned replacement: a

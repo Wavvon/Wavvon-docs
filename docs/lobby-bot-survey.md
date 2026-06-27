@@ -1,4 +1,4 @@
-﻿# Lobby, Bot Challenge, and Role Questionnaire
+# Lobby, Bot Challenge, and Role Questionnaire
 
 Three interlocking onboarding features. None are built yet; this is the
 design we'd start from.

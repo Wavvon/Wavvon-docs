@@ -1,4 +1,4 @@
-﻿# Farm Model (future)
+# Farm Model (future)
 
 Wavvon today is 1:1 — one `hub` binary (built from the `hub/` crate in
 Wavvon-server) hosts exactly one hub. The **farm model** is a planned

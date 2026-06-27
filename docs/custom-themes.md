@@ -1,4 +1,4 @@
-﻿# Custom Themes (User Skins)
+# Custom Themes (User Skins)
 
 **Status:** designed, not built. Personal-axis, v1.
 

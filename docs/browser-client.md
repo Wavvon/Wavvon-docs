@@ -1,4 +1,4 @@
-﻿# Browser Client
+# Browser Client
 
 A second client living at `apps/web/` in the **Wavvon-client** monorepo
 that hosts the same React UI as the desktop ([client.md](client.md)) but

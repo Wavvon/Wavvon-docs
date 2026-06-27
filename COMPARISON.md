@@ -1,4 +1,4 @@
-﻿# Wavvon — Feature Comparison
+# Wavvon — Feature Comparison
 
 How Wavvon compares to other voice/text chat platforms, feature by
 feature. Kept factual and up to date as features land.

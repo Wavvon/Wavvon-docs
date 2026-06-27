@@ -1,4 +1,4 @@
-﻿# Home Hubs — Personal-Axis State
+# Home Hubs — Personal-Axis State
 
 **Status**: design — no code yet. This doc supersedes the
 "Client connects directly to many hubs" stance in

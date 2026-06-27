@@ -1,4 +1,4 @@
-﻿# Performance ceiling
+# Performance ceiling
 
 > Status: designed, not started. This doc covers what we expect to find
 > when we measure, what the current code makes us suspect the bottleneck

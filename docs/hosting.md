@@ -1,4 +1,4 @@
-﻿# Hosting a Hub
+# Hosting a Hub
 
 The practical guide to **deploying** a Wavvon hub (the `hub/` crate in
 Wavvon-server) as a real service. This doc is organized by deployment

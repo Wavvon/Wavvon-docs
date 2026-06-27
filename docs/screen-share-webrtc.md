@@ -1,4 +1,4 @@
-﻿# Screen Share Tier 2 — WebRTC Migration
+# Screen Share Tier 2 — WebRTC Migration
 
 v2 of screen share. The user-visible feature is identical to v1
 ([`screen-share.md`](screen-share.md)); the transport changes from

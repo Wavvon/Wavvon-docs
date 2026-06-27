@@ -1,4 +1,4 @@
-﻿# Design Decisions
+# Design Decisions
 
 Why Wavvon is shaped the way it is. Each entry: the decision, the
 alternative we considered, and why we chose this. New decisions go at

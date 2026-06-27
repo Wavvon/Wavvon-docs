@@ -1,4 +1,4 @@
-﻿# Wire Format Specification
+# Wire Format Specification
 
 Canonical byte-level reference for every signed binary envelope produced by
 the `identity` crate (`identity/src/wire.rs` in Wavvon-server). This spec

@@ -1,4 +1,4 @@
-﻿# Identity Recovery UX
+# Identity Recovery UX
 
 **Status**: design — no code yet. Builds on the shipped recovery phrase
 ([identity.md](identity.md)) and the committed multi-device + home-hub

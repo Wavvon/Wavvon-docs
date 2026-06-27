@@ -1,4 +1,4 @@
-﻿# Data Model
+# Data Model
 
 The hub uses SQLite (via sqlx). Schema migrations live in one file:
 `hub/src/db/migrations.rs` (in Wavvon-server). This page is a map, not the

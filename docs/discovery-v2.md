@@ -1,4 +1,4 @@
-﻿# Discovery v2
+# Discovery v2
 
 Four enhancements to the Wavvon-discovery service (the Next.js directory
 described in [hub-discovery.md](hub-discovery.md), Layer 2): hub uptime

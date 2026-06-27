@@ -1,4 +1,4 @@
-﻿# Hub Operator Guide
+# Hub Operator Guide
 
 Practical reference for **operating** a Wavvon hub that's already running:
 configuration, ownership, backup/restore, upgrades, hardening, and

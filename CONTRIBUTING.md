@@ -1,4 +1,4 @@
-﻿# Contributing to Wavvon
+# Contributing to Wavvon
 
 This document describes the branching model, development workflow, and
 release process used across all Wavvon repositories.

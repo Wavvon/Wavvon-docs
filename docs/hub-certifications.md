@@ -1,4 +1,4 @@
-﻿# Hub Certifications
+# Hub Certifications
 
 **Status**: design committed, not built. Anti-spam **Layer 2** — the
 reputation layer that sits on top of the proof-of-work layer

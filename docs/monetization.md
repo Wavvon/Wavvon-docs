@@ -1,4 +1,4 @@
-﻿# Monetization
+# Monetization
 
 How Wavvon sustains itself while staying free for everyone, forever.
 

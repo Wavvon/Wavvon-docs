@@ -1,4 +1,4 @@
-﻿# Forum channel type
+# Forum channel type
 
 **Status**: design committed. Not built. Federation deferred to v2.
 

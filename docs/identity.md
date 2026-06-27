@@ -1,4 +1,4 @@
-﻿# Identity & Auth
+# Identity & Auth
 
 Wavvon has no accounts and no passwords. Identity is an Ed25519 keypair
 held by the device. Everything else (membership, permissions, history)

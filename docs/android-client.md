@@ -1,4 +1,4 @@
-﻿# Android Client
+# Android Client
 
 A third client living at `apps/android/android/` in the **Wavvon-client**
 monorepo that wraps the **browser client's** React UI and platform layer

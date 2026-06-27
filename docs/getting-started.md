@@ -1,4 +1,4 @@
-﻿# Getting Started with Wavvon
+# Getting Started with Wavvon
 
 Wavvon is a **self-hosted community platform** built around private voice,
 text, and gaming. Unlike typical hosted platforms, you own your server and

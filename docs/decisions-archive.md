@@ -1,4 +1,4 @@
-﻿# Design Decisions — Archive
+# Design Decisions — Archive
 
 Older entries relocated verbatim from [decisions.md](decisions.md) to keep
 that file small enough to read whole (the wiki rule is ~200 lines per
