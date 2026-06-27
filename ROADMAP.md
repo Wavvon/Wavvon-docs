@@ -490,7 +490,8 @@ Older entries: [`docs/shipped-log.md`](docs/shipped-log.md).
   pilot hub (2026-06-12). Decide the intended behavior, align code + docs.
 - **demo-seed exports recovery phrases that don't recover the seeded identity (W27)** — credentials unusable for login; re-seed/screenshot logins blocked.
 - Full audit with all 46 findings (file:line and effort): [`code-audit-2026-06-11.md`](code-audit-2026-06-11.md).
-  Remaining open: H9 (CORS warn — **FIXED 2026-06-27**), H11 (N+1 in get_messages), H12 (missing indexes), H13 (federated_bans index), H14 (admin list_members N+M+1), H15 (farm-token path writes), H16 (federated DM inline delivery), H17 (tantivy Mutex unwrap), H20 (chat broadcast capacity), H21 (handle_typing ban check — **FIXED 2026-06-27**), H22 (badge-offer auth), H23 (preview SSRF proxy-aware), W25 (41 orphaned web CSS classes).
+  Remaining open: H11 (N+1 in get_messages), H12 (missing indexes — partially done in hub migrations), H13 (federated_bans index — done in hub migrations), H14 (admin list_members N+M+1), H15 (farm-token path writes), H16 (federated DM inline delivery), H22 (badge-offer auth), H23 (preview SSRF proxy-aware), W25 (41 orphaned web CSS classes).
+  Fixed: H9 (CORS warn — 2026-06-27), H17 (tantivy Mutex unwrap — **FIXED 2026-06-27**), H20 (chat broadcast capacity 256→4096, lagged WS frame — **FIXED 2026-06-27**), H21 (handle_typing ban check — 2026-06-27).
 - **Windows installer unsigned** — SmartScreen warning; workaround "More info →
   Run anyway". See the code-signing blocker above.
 - **Cross-farm cert relay** — certifications work per-hub; revocations don't
