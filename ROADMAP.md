@@ -107,15 +107,6 @@ The full history of shipped work lives in
 
 ## 📌 Wishlist (undesigned)
 
-- **Full PostgreSQL backend** — the store abstraction layer is shipped
-  (`wavvon-store` traits + `wavvon-store-sqlite` on `AnyPool`), and
-  `WAVVON_DATABASE_URL=postgresql://…` can already connect, but a proper
-  Postgres backend still needs: Postgres-native migrations (replacing
-  SQLite FTS5 virtual tables with `tsvector`/`pg_trgm`), a
-  `wavvon-store-postgres` crate (or verified `AnyPool` coverage), CI
-  service container for integration tests, and operator documentation.
-  Design groundwork in [`store-trait-design.md`](docs/store-trait-design.md).
-
 - **WebAuthn / Passkey authentication + "Trust this device"** — replace
   seed-phrase identity storage with device-native authenticators (Face ID,
   Windows Hello, YubiKey) across all three clients. No passphrase, no plaintext
@@ -134,6 +125,21 @@ The full history of shipped work lives in
   [`e2e-encryption.md`](docs/e2e-encryption.md).
 
 ## 🚀 Recently shipped
+
+- **Full PostgreSQL backend (2026-06-27)** — SQLite removed from the server
+  entirely; `wavvon-store-sqlite` crate deleted and replaced by
+  `wavvon-store-postgres`. sqlx features trimmed to `postgres + runtime-tokio
+  + macros + chrono + uuid`; hub, seed, and farm all use `PgPool`/`PgPoolOptions`.
+  New `wavvon-store-postgres` crate (19 impl files) covers every `HubStore`
+  sub-trait with PostgreSQL DDL: `BOOLEAN` columns, `BIGINT` timestamps,
+  `BIGSERIAL` for audit-log, `GREATEST()` instead of `MAX()`, `EXTRACT(EPOCH
+  FROM NOW())` instead of strftime, `(created_at, id)` tuple pagination
+  replacing rowid-based pagination, and a TODO placeholder where SQLite FTS5
+  was. All 18 hub integration test files updated to create a fresh isolated
+  PostgreSQL database per test (UUID-named, migrations pre-applied) via
+  `create_test_db()` in `tests/common.rs`. CI gains a `postgres:16-alpine`
+  service container with health checks and `TEST_DATABASE_URL` wired to
+  `cargo test`.
 
 - **Web client stabilisation pass (2026-06-22/23)** —
   Welcome screen: gated on `hubs.length === 0` (removed stale
