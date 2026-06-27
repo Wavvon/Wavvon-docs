@@ -475,12 +475,7 @@ Older entries: [`docs/shipped-log.md`](docs/shipped-log.md).
   spec (in progress); polls were dead code in web; mixed-locale UI; hex-string
   identity onboarding; message-row anatomy; voice-UI contradictions. Most apply
   to desktop too. See [design-review-2026-06-13.md](design-review-2026-06-13.md).
-- **2026-06-12 pilot feedback: 10 desktop client issues (D1–D10)** — from the
-  first real multi-user session: whisper menu overflow, no camera picker,
-  broken screen-share device list, composer misalignment + "+"-menu proposal,
-  voice-channel switching UX, missing role-assignment paths, immutable banner
-  spacers, call-control sprawl, no Activity view. Details and owner proposals:
-  [pilot-feedback-2026-06-12.md](pilot-feedback-2026-06-12.md).
+- **2026-06-12 pilot feedback: desktop issues remaining (D7, D8, D10)** — D1 fixed 2026-06-27 (whisper panel portal). D7: role assignment missing from member context menu/Roles panel. D8: banner spacers immutable. D10: no Activity view (wishlist). Details: [pilot-feedback-2026-06-12.md](pilot-feedback-2026-06-12.md).
 - **First user to join a fresh hub silently becomes owner** —
   `assign_initial_roles` (hub `auth/handlers.rs`) grants `builtin-owner` to the
   first registrant when no owner exists, contradicting the operator guide
