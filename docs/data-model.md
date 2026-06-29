@@ -1,8 +1,9 @@
 # Data Model
 
-The hub uses SQLite (via sqlx). Schema migrations live in one file:
-`hub/src/db/migrations.rs` (in Wavvon-server). This page is a map, not the
-schema — read the migrations file for column-level detail.
+The hub uses PostgreSQL (via sqlx). Schema migrations run automatically at
+startup via the `store` crate (`store/src/migrations.rs` in Wavvon-server).
+This page is a map, not the schema — read the migrations file for column-level
+detail.
 
 ## Tables by concern
 

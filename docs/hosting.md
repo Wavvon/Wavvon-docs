@@ -36,11 +36,14 @@ serve API-only by default; opt into the web client explicitly.
   through an HTTP proxy.
 - TLS — terminated at the hub or at a reverse proxy. Browser clients
   served over HTTPS cannot connect to a plain-`http://` hub.
-- Disk for SQLite + inline attachments. Community-scale is modest; the DB
-  grows with message count and inline attachments (each capped at 3 MB).
+- A **PostgreSQL** database (set `WAVVON_DATABASE_URL`). The hub creates and
+  migrates the schema on first start.
+- Disk for inline attachments and the Tantivy search index. Community-scale
+  is modest; attachments are each capped at 3 MB.
 
-The hub's whole state is two files in its working directory: `hub.db`
-(SQLite) and `hub_identity.json` (the hub's Ed25519 federation key).
+The hub's persistent state is the PostgreSQL database plus
+`hub_identity.json` (the hub's Ed25519 federation key) in the working
+directory.
 
 > **Critical**: `hub_identity.json` *is* the hub's identity — whoever
 > holds it can impersonate the hub to federation peers. Back it up
@@ -408,7 +411,7 @@ TLS is disabled and that voice UDP must be open in cloud firewalls:
 
 ```
 wavvon-hub 0.2.0 starting  port=3000 (http)  voice_udp=3001  tls=disabled  cors=*
-data files: /data/hub.db  /data/hub_identity.json
+data: identity=/data/hub_identity.json  database=PostgreSQL
 WARN  TLS is disabled — browser clients served over HTTPS cannot connect to an http:// hub ...
 INFO  Reminder: the voice UDP port 3001 must be open in any cloud firewall ...
 ```
@@ -454,32 +457,33 @@ Point an uptime monitor (Uptime Kuma, Prometheus blackbox, …) at
 
 ## Backups
 
-State is two files: `hub.db` and `hub_identity.json`, in the working
-directory (`/data` in the Docker image; `WorkingDirectory=` for systemd).
-Use SQLite's `.backup` (not `cp`) so the snapshot is consistent with the
-running hub, and always copy `hub_identity.json` alongside it:
+The hub has two things to back up: the **PostgreSQL database** and
+**`hub_identity.json`** (the hub's Ed25519 federation key, in the working
+directory — `/data` in the Docker image).
+
+**Database** — use `pg_dump` while the hub is running:
 
 ```bash
 #!/bin/sh
 # nightly cron — bare-binary example
 set -e
 DEST="/var/backups/wavvon/$(date +%Y%m%d-%H%M)"; mkdir -p "$DEST"
-sqlite3 /var/lib/wavvon/hub.db ".backup '$DEST/hub.db'"
+pg_dump "$WAVVON_DATABASE_URL" -F c -f "$DEST/hub.dump"
 cp /var/lib/wavvon/hub_identity.json "$DEST/"
 find /var/backups/wavvon -maxdepth 1 -type d -mtime +30 -exec rm -rf {} +
 ```
 
-Under Docker, run `.backup` inside the container or copy the identity out
-of the volume once:
+Under Docker, run `pg_dump` against the Postgres container:
 
 ```bash
-docker compose exec hub sqlite3 /data/hub.db ".backup '/data/backup.db'"
+docker compose exec db pg_dump -U wavvon wavvon -F c -f /tmp/hub.dump
+docker compose cp db:/tmp/hub.dump ./hub.dump
 docker compose cp hub:/data/hub_identity.json ./hub_identity.backup.json
 ```
 
-The hub also has `wavvon-hub backup` / `restore` subcommands that bundle
-both files into one archive. Full backup/restore procedure and the
-`hub_identity.json` warning live in the
+The `wavvon-hub backup` / `restore` subcommands back up `hub_identity.json`
+only (the database must be backed up separately with `pg_dump`). Full
+backup/restore procedure and the `hub_identity.json` warning live in the
 [operator guide](hub-operator-guide.md#backup-and-restore).
 
 ---

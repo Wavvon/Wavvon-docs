@@ -9,7 +9,7 @@ the discovery service are each their own repo.
 ```
 Wavvon              ── docs, ROADMAP.md, openapi.yaml (this repo)
 Wavvon-server       ── Rust workspace: hub/, seed/, identity/, farm/,
-                       server/, wavvon-store/, wavvon-store-sqlite/ crates
+                       agent/, store/ crates
 Wavvon-client       ── pnpm + Cargo monorepo for every client:
                        apps/desktop (Tauri 2 + React), apps/web (Vite + React),
                        apps/android (Tauri mobile shell), voice/ (Rust crate),
@@ -34,7 +34,7 @@ Standalone `wavvon-hub` binary usage is deprecated.
 A single hub. Owns:
 - An axum HTTP+WebSocket API (port 3000 by default).
 - A UDP voice relay (port 3001 by default).
-- A SQLite database (`hub.db`).
+- A PostgreSQL database (configured via `WAVVON_DATABASE_URL`).
 - An outbox worker for federated DMs (`dm_worker.rs`).
 - A federation client for talking to other hubs.
 - Background workers: federated ban-list sync (`banlist_worker.rs`),
@@ -54,7 +54,7 @@ Key submodules (all under `hub/src/` in Wavvon-server):
 The control plane. Manages a fleet of servers and the hubs running on
 them: server registration (one-time tokens, `token.rs`), hub lifecycle
 delegation to connected server agents (`hub_manager.rs`), reverse
-proxying to hub processes (`proxy.rs`), and its own SQLite database.
+proxying to hub processes (`proxy.rs`), and its own PostgreSQL database.
 Rationale in [decisions.md](decisions.md) ("Farm model phases 1 + 2"
 and "phase 3") and design in [farm-model.md](farm-model.md) /
 [farm-impl.md](farm-impl.md).
@@ -91,14 +91,13 @@ being added at `docs/wire-format.md` in Wavvon-server.
 - Recovery phrases: `identity/src/recovery.rs` (Wavvon-server)
 - PoW helpers (anti-spam, future): `identity/src/pow.rs` (Wavvon-server)
 
-### `wavvon-store/` and `wavvon-store-sqlite/` crates
+### `store/` crate
 
-The database abstraction layer. `wavvon-store` defines domain-split
-traits (`AuthStore`, `UserStore`, `MessageStore`, …) collected into a
-`HubStore` super-trait plus a `StoreError` enum; `wavvon-store-sqlite`
-is the SQLite backend. The hub holds `Arc<dyn HubStore>` so backends
-can be selected at runtime (a Postgres backend is the intended
-community contribution). Rationale in [decisions.md](decisions.md)
+The database abstraction and PostgreSQL implementation. Defines
+domain-split traits (`AuthStore`, `UserStore`, `MessageStore`, …)
+collected into a `HubStore` super-trait plus a `StoreError` enum; the
+`PostgresStore` type is the concrete implementation. The hub holds
+`Arc<dyn HubStore>`. Rationale in [decisions.md](decisions.md)
 ("Database abstraction: trait-based store crate split") and design in
 [store-trait-design.md](store-trait-design.md).
 

@@ -1,6 +1,6 @@
 # Federation
 
-Hubs are independent SQLite-backed servers. Federation lets them talk
+Hubs are independent PostgreSQL-backed servers. Federation lets them talk
 without a central authority. Two federation features ship today:
 
 - **Federated DMs** — sender's hub → recipient's hub via an outbox
@@ -35,7 +35,7 @@ Hub B pushes via WebSocket if recipient is online
 ```
 
 Retry logic and failover live in the worker. The outbox survives
-restarts because it's a SQLite table.
+restarts because it's a database table.
 
 Routes: `hub/src/routes/dms.rs` (Wavvon-server). Models:
 `hub/src/routes/dm_models.rs` (Wavvon-server).

@@ -1,10 +1,9 @@
 # Store trait: database abstraction for the hub
 
-**Status:** designed, not built.
-
-The goal is a hub server that is agnostic to its database, so a community
-can contribute a PostgreSQL or MySQL backend without touching a single route
-handler. Today the hub is welded to SQLite.
+**Status:** shipped (2026-06-27). The `store` crate in Wavvon-server
+implements all `HubStore` sub-traits with a PostgreSQL backend
+(`PostgresStore`). SQLite was removed entirely; Postgres is now the
+canonical and only backend.
 
 ---
 
