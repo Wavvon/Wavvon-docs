@@ -133,7 +133,9 @@ The full history of shipped work lives in
   `raise_hand_requests.requested_at`, `badge_offers.created_at`,
   `hub_badges.accepted_at`, `issued_badges.issued_at/expires_at/revoked_at`)
   changed TEXT → BIGINT; handlers and response models updated to use `i64`.
-  `"chrono"` sqlx feature removed from workspace `Cargo.toml`.
+  `"chrono"` sqlx feature removed from workspace `Cargo.toml`. Final piece:
+  `iso_from_unix` (Gregorian decomposition) unified into a single `pub fn` in
+  `auth/handlers.rs`; `badges.rs` local copy deleted.
 
 - **Full PostgreSQL backend (2026-06-27)** — SQLite removed from the server
   entirely; `wavvon-store-sqlite` crate deleted and replaced by
@@ -516,10 +518,6 @@ Older entries: [`docs/shipped-log.md`](docs/shipped-log.md).
 - Full audit with all 46 findings (file:line and effort): [`code-audit-2026-06-11.md`](code-audit-2026-06-11.md).
   All 46 findings resolved. H12: `idx_messages_channel_created`, `idx_messages_reply_to`, and `idx_dm_messages_conversation_created` present in hub migrations (verified 2026-06-27). H13: `idx_federated_bans_target` present in hub migrations (verified 2026-06-27). W25 (orphaned CSS) and W27 (recovery phrase) were already fixed by the monorepo consolidation and identity refactor respectively.
   Fixed: H9 (CORS warn — 2026-06-27), H11 (get_messages N+1 → 3 bulk queries — **FIXED 2026-06-27**), H14 (list_members N+M+1 → 3 queries, LIMIT 1000 — **FIXED 2026-06-27**), H15 (farm-token auth 5 reads → 1 combined query — **FIXED 2026-06-27**), H16 (federated DM delivery background tokio::spawn — **FIXED 2026-06-27**), H17 (tantivy Mutex unwrap — **FIXED 2026-06-27**), H20 (chat broadcast capacity 256→4096, lagged WS frame — **FIXED 2026-06-27**), H21 (handle_typing ban check — 2026-06-27), H22 (badge-offer rate-limit + duplicate guard — **FIXED 2026-06-27**), H23 (preview SSRF proxy-aware + redirect IP guard — **FIXED 2026-06-27**).
-- **Timestamp hygiene minor leftovers** — `iso_from_unix()` (`badges.rs`) and
-  `unix_timestamp_iso()` (`auth/handlers.rs`) are two copies of the same
-  Gregorian-decomposition algorithm; only needed for `BadgePayload` ISO strings
-  (federation protocol); should be one function.
 - **Windows installer unsigned** — SmartScreen warning; workaround "More info →
   Run anyway". See the code-signing blocker above.
 - **Cross-farm cert relay** — certifications work per-hub; revocations don't
