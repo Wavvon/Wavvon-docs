@@ -120,6 +120,17 @@ The full history of shipped work lives in
 
 ## 🚀 Recently shipped
 
+- **Cross-farm cert revocation relay (2026-06-29)** — hub now polls every
+  remote cert issuer it knows about for revocations. A new
+  `cert_revocation_sync` table tracks the per-issuer cursor; a background
+  worker (`cert_revocation_worker`) fires 2 min after startup then every 6
+  hours: discovers all distinct `(issuer_pubkey, issuer_url)` pairs in
+  `user_certs`, calls `GET {issuer_url}/certs/revocations?since={cursor}`
+  on each, deletes the matching `user_certs` rows, and advances the cursor
+  with `GREATEST()` so it never goes backwards. Unreachable issuers are
+  silently skipped (certs retained). Five integration tests in
+  `hub/tests/cert_revocation_relay_flow.rs`.
+
 - **Farm agent WS token moved to first message frame (2026-06-29)** — token no
   longer appears in the `/ws/agent` URL and therefore in access logs. Agent now
   connects to `/ws/agent` (no query param) and sends
@@ -521,8 +532,6 @@ Older entries: [`docs/shipped-log.md`](docs/shipped-log.md).
   Fixed: H9 (CORS warn — 2026-06-27), H11 (get_messages N+1 → 3 bulk queries — **FIXED 2026-06-27**), H14 (list_members N+M+1 → 3 queries, LIMIT 1000 — **FIXED 2026-06-27**), H15 (farm-token auth 5 reads → 1 combined query — **FIXED 2026-06-27**), H16 (federated DM delivery background tokio::spawn — **FIXED 2026-06-27**), H17 (tantivy Mutex unwrap — **FIXED 2026-06-27**), H20 (chat broadcast capacity 256→4096, lagged WS frame — **FIXED 2026-06-27**), H21 (handle_typing ban check — 2026-06-27), H22 (badge-offer rate-limit + duplicate guard — **FIXED 2026-06-27**), H23 (preview SSRF proxy-aware + redirect IP guard — **FIXED 2026-06-27**).
 - **Windows installer unsigned** — SmartScreen warning; workaround "More info →
   Run anyway". See the code-signing blocker above.
-- **Cross-farm cert relay** — certifications work per-hub; revocations don't
-  propagate across farms. See [`hub-certifications.md`](docs/hub-certifications.md).
 - **Per-hub subkey revocation propagation** — revoking a multi-device subkey on
   one hub isn't known to other hubs. See [`multi-device.md`](docs/multi-device.md).
 - **Bot deferred scope** — voice/screen-share injection, bot DMs, outgoing
