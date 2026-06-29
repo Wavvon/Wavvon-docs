@@ -88,12 +88,6 @@ The full history of shipped work lives in
   (GNU ABI, incompatible with musl) with `cargo-zigbuild` (Zig provides its
   own musl headers; handles aws-lc-sys/ring C objects cleanly). x86_64 and
   Docker builds unchanged.
-## 🤔 Design questions
-
-- **Farm agent WS token in URL query string** — registration tokens appear in
-  `/ws/agent?token=…` and therefore in access logs. Moving to a header or a
-  first-message auth frame requires a coordinated server/agent protocol change.
-
 ## 🚧 Blocked
 
 - **Windows code-signing** — blocked until the project reaches meaningful
@@ -125,6 +119,13 @@ The full history of shipped work lives in
   [`e2e-encryption.md`](docs/e2e-encryption.md).
 
 ## 🚀 Recently shipped
+
+- **Farm agent WS token moved to first message frame (2026-06-29)** — token no
+  longer appears in the `/ws/agent` URL and therefore in access logs. Agent now
+  connects to `/ws/agent` (no query param) and sends
+  `{"type":"hello","version":"...","token":"<hex>"}` as its first frame; server
+  validates token there before registering the connection. Invalid or missing
+  token receives `{"type":"error","code":"auth_failed"}` and the socket closes.
 
 - **Timestamp hygiene complete (2026-06-29)** — five farm route files each
   had a private copy of `unix_now()`; consolidated into a single `pub fn
