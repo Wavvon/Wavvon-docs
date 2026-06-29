@@ -101,14 +101,6 @@ The full history of shipped work lives in
 
 ## 📌 Wishlist (undesigned)
 
-- **WebAuthn / Passkey authentication + "Trust this device"** — replace
-  seed-phrase identity storage with device-native authenticators (Face ID,
-  Windows Hello, YubiKey) across all three clients. No passphrase, no plaintext
-  key on disk, survives hub identity rotation. "Trust this device" issues a
-  long-lived device token in platform-secure storage so repeated opens skip the
-  biometric tap. Additive — existing seed flow stays as fallback.
-  Design: [`webauthn-auth.md`](docs/webauthn-auth.md). Estimate ~9 days.
-
 - **Project visibility push** — remaining: a hosted demo hub, directory listings, launch post.
   Needed both for adoption and for the code-signing re-application.
   *(2026-06-10: all six READMEs rewritten as landing pages with badges,
@@ -119,6 +111,23 @@ The full history of shipped work lives in
   [`e2e-encryption.md`](docs/e2e-encryption.md).
 
 ## 🚀 Recently shipped
+
+- **WebAuthn/passkey auth — hub server layer (2026-06-30)** — hub now supports
+  passkey registration and login via webauthn-rs 0.5 as a parallel auth path
+  alongside the existing Ed25519 challenge/verify flow. New endpoints:
+  `POST /auth/webauthn/begin` + `/finish` (register a passkey),
+  `POST /auth/webauthn/assert/begin` + `/finish` (authenticate),
+  `POST /auth/device-token/create` (mint a 30-day "Trust this device" token),
+  `POST /auth/device-token/redeem` (exchange for session token; rotates on use).
+  Credential management at `GET/PATCH/DELETE /me/credentials`; trusted device
+  management at `GET/DELETE /me/devices`. `rp_id` derived from
+  `WAVVON_PUBLIC_URL` hostname; override via `WAVVON_WEBAUTHN_RP_ID`. Device
+  token TTL configurable via `WAVVON_DEVICE_TOKEN_TTL_DAYS` (default 30).
+  New DB tables: `webauthn_credentials`, `device_tokens`. Eight integration
+  tests in `hub/tests/webauthn_flow.rs` (device token lifecycle + credential
+  management; passkey ceremony tests require a real authenticator and are noted
+  as intentionally omitted). All existing 20 test suites still compile and pass.
+  Client-side passkey flows (desktop/web/android) remain on the wishlist.
 
 - **Per-hub subkey revocation propagation (2026-06-30)** — background worker
   (`subkey_revocation_worker`) discovers all distinct `(master_pubkey,
