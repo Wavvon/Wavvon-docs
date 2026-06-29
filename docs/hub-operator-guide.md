@@ -40,7 +40,7 @@ log_format      = "text"         # "text" or "json"
 
 Every option also has a `WAVVON_<OPTION_NAME>` env var equivalent (e.g. `WAVVON_HTTP_PORT`, `WAVVON_TLS_CERT`). `wavvon-hub --help` prints the full table generated directly from the binary — treat it as authoritative.
 
-The hub binds to `0.0.0.0` on both ports. Data files (`hub.db`, `hub_identity.json`) are written to the process working directory; set `WorkingDirectory=` in your service unit to control where they land.
+The hub binds to `0.0.0.0` on both ports. `hub_identity.json` is written to the process working directory; set `WorkingDirectory=` in your service unit to control where it lands. The database is PostgreSQL — configure with `WAVVON_DATABASE_URL`.
 
 ### CORS
 
@@ -93,30 +93,29 @@ See [hub-creation-wizard.md](hub-creation-wizard.md) for the template schema.
 
 ## Backup and restore
 
-The entire hub state lives in two files:
+The hub state is split between the **PostgreSQL database** and the identity file:
 
-| File | Contents | Notes |
+| What | Contents | Notes |
 |------|----------|-------|
-| `hub.db` | All community data (messages, roles, certs, sessions, …) | SQLite; WAL mode. |
+| PostgreSQL database | All community data (messages, roles, certs, sessions, …) | Back up with `pg_dump`. |
 | `hub_identity.json` | Hub Ed25519 key pair | **Critical** — back this up off-site. Loss = hub identity loss. |
 
 **Backup procedure** (while hub is running):
 
 ```bash
-# SQLite hot backup — safe while hub is online
-sqlite3 hub.db ".backup /backup/hub-$(date +%F).db"
+# PostgreSQL dump — safe while hub is online
+pg_dump "$WAVVON_DATABASE_URL" -F c -f /backup/hub-$(date +%F).dump
 
 # Copy the identity file
 cp hub_identity.json /backup/hub_identity.json
 ```
 
-Or stop the hub and copy both files directly.
-
 **Restore procedure**:
 
 1. Stop the hub process.
-2. Copy `hub.db` and `hub_identity.json` back to the working directory.
-3. Start the hub. It resumes from the backup state.
+2. Restore the database: `pg_restore -d "$WAVVON_DATABASE_URL" /backup/hub-DATE.dump`
+3. Copy `hub_identity.json` back to the working directory.
+4. Start the hub.
 
 Also available via the CLI subcommand:
 

@@ -435,7 +435,7 @@ author sets only what they want to differ; the theme maintainer owns the rest.
 
 **Tradeoff**: `Arc<dyn HubStore>` with `#[async_trait]` adds one heap allocation (a boxed `Pin<Box<dyn Future>>`) per database call — negligible against any real IO round-trip. The `with_transaction` closure pattern is awkward when callers need to branch on intermediate results inside a transaction; those flows must be written as linear closures. Both costs are accepted: allocation is noise; transaction shape discipline is necessary regardless of the abstraction.
 
-**What's deferred**: the actual refactor — create `wavvon-store`, move the current SQLx bodies to `wavvon-store-sqlite`, update the hub to use `Arc<dyn HubStore>`, add `wavvon-store-postgres` as a community contribution. This decision records the intent and the design; implementation starts when prioritized.
+**Status**: shipped (2026-06-27). The `store` crate implements all `HubStore` sub-traits with a PostgreSQL backend. The `wavvon-store-sqlite` intermediate step was skipped; PostgreSQL landed directly as the canonical backend. SQLite was removed from the workspace entirely.
 
 ---
 

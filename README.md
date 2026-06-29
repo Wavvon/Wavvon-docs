@@ -6,8 +6,8 @@ A decentralized platform where players can hang out, talk, and play
 together. Voice chat, text messaging, federated alliances of hubs, and
 community-built games — all keypair-based identity, no central servers.
 
-Communities run their own **hubs** (a single Rust + SQLite binary) that
-federate with each other. Your identity is an Ed25519 keypair that
+Communities run their own **hubs** (a single Rust binary backed by
+PostgreSQL) that federate with each other. Your identity is an Ed25519 keypair that
 belongs to you — no accounts, no e-mail, no phone number, no company in
 the middle. DMs are end-to-end encrypted; hubs only ever relay
 ciphertext. Everything is open source under AGPL-3.0.

@@ -75,8 +75,9 @@ WAVVON_VOICE_UDP_PORT=3001 \
 ./target/release/wavvon-hub
 ```
 
-The hub generates its own Ed25519 identity on first run and creates an SQLite
-database (`hub.db`) in the working directory. A fresh hub has **no owner** —
+The hub generates its own Ed25519 identity on first run and connects to
+PostgreSQL (set `WAVVON_DATABASE_URL`; defaults to
+`postgres://postgres:postgres@localhost:5432/wavvon`). A fresh hub has **no owner** —
 set yours via `owner_pubkey` in `hub.toml` / `WAVVON_OWNER_PUBKEY`, or
 `wavvon-hub admin users set-owner <pubkey>` after first boot (see the
 [hub operator guide](hub-operator-guide.md)).
