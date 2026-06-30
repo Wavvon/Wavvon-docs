@@ -88,6 +88,110 @@ The full history of shipped work lives in
   (GNU ABI, incompatible with musl) with `cargo-zigbuild` (Zig provides its
   own musl headers; handles aws-lc-sys/ring C objects cleanly). x86_64 and
   Docker builds unchanged.
+
+- [ ] **Voice enhancements** — four sequenced improvements to the voice
+  pipeline. Design docs: [`voice-volume.md`](docs/voice-volume.md),
+  [`voice-advanced-settings.md`](docs/voice-advanced-settings.md),
+  [`proximity-voice.md`](docs/proximity-voice.md),
+  [`voice-networking-design.md`](docs/voice-networking-design.md).
+  Individual tasks below:
+  - [ ] **V1 — Per-participant volume control** — hub and desktop already
+    fully done (sender_id stamping, voice_roster_update WS message, per-sender
+    gain pipeline, UI sliders in SortableItems.tsx, set_voice_gain Tauri
+    command). Remaining: web and Android clients.
+    - [ ] **V1-W1** — `clients/apps/web/src/platform/voice.ts`: refactor
+      `VoiceWsSession` receive path — parse `sender_id` from bytes 0–1 of
+      inbound binary frames; create one `AudioContext GainNode` per sender;
+      route decoded PCM through it before playback. Add
+      `handleRosterUpdate(participants)` for `voice_roster_update` WS events
+      and `setSenderGain(pubkey, gainPct)` (clamp 0–200, persist to
+      `localStorage` key `wavvon.voice_gains`). Run `tsc --noEmit`.
+    - [ ] **V1-W2** — `clients/apps/web/src/components/ChannelSidebar.tsx`:
+      add `voiceGains?: Record<string, number>` and
+      `onSetVoiceGain?: (pk: string, gainPct: number) => void` props; render a
+      gain badge (🔇/🔉/🔊) + inline volume-popover slider (0–200 %) on each
+      voice participant row, mirroring desktop's `VoiceParticipantRow`.
+      Run `tsc --noEmit`.
+    - [ ] **V1-W3** — `clients/apps/web/src/App.tsx`: add `voiceGains` state
+      (seed from `localStorage wavvon.voice_gains`); handle
+      `voice_roster_update` hub-WS event → call
+      `voiceSession.handleRosterUpdate`; wire `onSetVoiceGain` callback →
+      update state + localStorage + `voiceSession.setSenderGain`; pass both
+      props to `ChannelSidebar`. Run `tsc --noEmit`.
+    - [ ] **V1-A1** — `clients/apps/android/src-tauri/src/voice_cmd.rs`: add
+      `set_voice_gain(public_key, gain, state)` command — mirror
+      `clients/apps/desktop/src-tauri/src/voice_cmd.rs:267–301` exactly.
+      Register in `lib.rs`. Run `cargo check`.
+    - [ ] **V1-A2** — Android `ChannelSidebar.tsx` + `App.tsx`: add the same
+      `voiceGains` / `onSetVoiceGain` props and participant-row gain UI as V1-W2/W3,
+      calling `invoke("set_voice_gain", ...)` instead of the web path.
+      Run `tsc --noEmit`.
+  - [ ] **V2 — Voice audio quality profiles** — desktop fully done
+    (AudioProfileSection component, VoiceSettings pipeline, persistence in
+    voice.json). Remaining: move component to shared packages/ui, then wire
+    web and Android.
+    - [ ] **V2-S1** — Move `clients/apps/desktop/src/components/AudioProfileSection.tsx`
+      to `clients/packages/ui/src/AudioProfileSection.tsx`; update desktop
+      import; export from `packages/ui/src/index.ts`. Run `tsc --noEmit`
+      across all apps.
+    - [ ] **V2-W1** — `clients/apps/web/src/platform/voice.ts`: accept an
+      `AudioProfileConfig` parameter in `VoiceWsSession` constructor; init
+      `OpusScript` with the correct mode (Standard → VOIP 1ch ~48kbps;
+      Music → Audio 2ch 128kbps; Custom → from config). Run `tsc --noEmit`.
+    - [ ] **V2-W2** — `clients/apps/web/src/components/SettingsPage.tsx` (or
+      equivalent): add `AudioProfileSection` from `packages/ui` to the Voice
+      tab; load/save profile state from `localStorage` key `wavvon.audio_profile`;
+      pass the resolved config to `VoiceWsSession` on voice join.
+      Run `tsc --noEmit`.
+    - [ ] **V2-A1** — `clients/apps/android/src-tauri/src/voice_cmd.rs`: add
+      `audio_profile` + all `custom_*` fields (with `#[serde(default)]`) to
+      `StoredVoiceSettings`; map to `AudioProfile` enum and pass to pipeline on
+      voice join. Run `cargo check`.
+    - [ ] **V2-A2** — Android `SettingsPage`: add `AudioProfileSection` from
+      `packages/ui` to the Voice tab; wire save via `invoke("save_voice_settings", ...)`.
+      Run `tsc --noEmit`.
+  - [ ] **V3 — Proximity voice** — position-based volume attenuation. Hub gains
+    ephemeral voice zones (WS: `VoiceZoneCreate/Destroy`, `PositionUpdate`
+    fan-out). Client applies per-sender gain attenuation from distance + zone
+    model; no hub-side audio processing. **Requires V1.** Run `cargo test` +
+    `tsc --noEmit`.
+  - [ ] **V4 — Voice encryption (Phase 2)** — encrypt the Opus stream so the
+    hub relays ciphertext only. Exact key-exchange protocol TBD; see
+    `voice-networking-design.md`. Can be tackled independently of V1–V3 once
+    the relay is stable.
+
+- [ ] **Hub creation wizard** — zero-to-live path for new operators. Three
+  pieces, each useful alone. Design: [`hub-creation-wizard.md`](docs/hub-creation-wizard.md).
+  - [ ] **HW1 — Template catalog on discovery** — signed JSON starter configs
+    self-submitted to `POST /api/templates/register` on Wavvon-discovery; browse
+    at `GET /api/templates`; `/templates` listing page. Same signed-listing
+    primitive as hubs and farms.
+  - [ ] **HW2 — First-run bootstrap in hub** — on empty-DB first launch, hub
+    fetches a template URL (from `WAVVON_TEMPLATE_URL` env/config) and applies
+    channels, categories, roles, and settings. No interactive UI required.
+    Run `cargo test`.
+  - [ ] **HW3 — Creation wizard on discovery** — `/new` web flow: pick template
+    → customise name/icon/settings → generates a ready-to-run `docker compose`
+    command (or delegates to a farm when farm browsing lands). Run `npm test`.
+
+- [ ] **Moderation enhancements** — three additions to hub moderation. Design:
+  [`moderation-enhancements.md`](docs/moderation-enhancements.md).
+  - [ ] **ME1 — Federated ban list subscription UI** — enforcement is already
+    shipped; this adds the admin surface: add/remove ban-list sources, set
+    per-source policy (hard-reject vs. soft-flag), view synced entries, apply
+    local overrides, and toggle publishing the hub's own `/federation/banlist`.
+    Run `cargo test` + `tsc --noEmit`.
+  - [ ] **ME2 — Auto-moderation webhook** — pre-store allow/block gate:
+    `PATCH /admin/settings` fields for webhook URL + HMAC secret; message-create
+    path POSTs to the operator URL (500ms timeout, fail-open, circuit breaker
+    on 3× 5xx in 60s → 10-min backoff). Admin UI shows circuit-breaker state.
+    Run `cargo test` + `tsc --noEmit`.
+  - [ ] **ME3 — Content reporting queue** — `POST /messages/:id/report`
+    (deduplicated per reporter); admin queue at `GET /admin/reports?status=pending`;
+    `POST /admin/reports/:id/review` with `dismiss | delete_message | ban_user`
+    actions. Reporter identity visible to admins only. Run `cargo test` +
+    `tsc --noEmit`.
+
 ## 🚧 Blocked
 
 - **Windows code-signing** — blocked until the project reaches meaningful
@@ -106,8 +210,6 @@ The full history of shipped work lives in
   *(2026-06-10: all six READMEs rewritten as landing pages with badges,
   cross-links, and a `docker compose` quick-start.
   2026-06-11: demo-seed tool added; real screenshots + join-flow GIF added to READMEs.)*
-## 📌 Wishlist (undesigned)
-
 - **Passkey registration from desktop** — blocked by Tauri webview RP ID mismatch; requires either a native OS WebAuthn plugin (tauri-plugin-passkey) or a hybrid approach where the desktop opens the hub URL in the system browser for the ceremony.
 
 ## 🚀 Recently shipped
