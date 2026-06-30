@@ -463,10 +463,281 @@ table.
 
 ---
 
+## 1:1 DM Encryption — v2: Double Ratchet
+
+v1 (static ECDH) is fully shipped. v2 upgrades 1:1 DMs to the **Signal Double
+Ratchet**, adding per-message forward secrecy and post-compromise recovery.
+Group DMs keep the sender-key scheme for now; group DR is a separate future
+item. v3 would add X3DH one-time prekeys for perfect forward secrecy on the
+very first message.
+
+### What v2 adds over v1
+
+| Property | v1 static ECDH | v2 Double Ratchet |
+|---|---|---|
+| Confidentiality at rest | yes | yes |
+| Forward secrecy (past msgs safe after key leak) | **no** — one static shared secret | **yes** — each ratchet step discards old keys |
+| Post-compromise security (session "heals") | no | **yes** — new DH ratchet step on next reply |
+| Out-of-order delivery | yes (stateless) | yes — bounded skipped-key cache |
+
+---
+
+### Session initialisation
+
+Both parties need each other's published static DH key (from
+`GET /identity/:pubkey/dh-key`) before sending. Alice initiates:
+
+1. Fetch `bob_static_pub`.
+2. Generate Alice's first ratchet keypair `DHs = (eph_priv, eph_pub)` — a
+   random X25519 keypair (not the identity-derived static key).
+3. Derive the initial root key from static ECDH, so the session is bound to
+   both parties' long-term identities:
+   ```
+   static_shared = X25519(alice_static_priv, bob_static_pub)
+   RK = HKDF-SHA256(ikm=static_shared, salt=conv_id_bytes, info="wavvon/dr-init/v2", len=32)
+   ```
+4. Advance the root key with Alice's first ratchet DH to get her sending chain:
+   ```
+   (RK, CKs) = KDF_RK(RK, X25519(eph_priv, bob_static_pub))
+   ```
+5. Alice's initial state: `{ RK, CKs, Ns=0, PN=0, DHs=(eph_priv, eph_pub), DHr=null, MKSKIPPED={} }`.
+6. First message carries `dh_pubkey_hex = eph_pub_hex`, `message_index=0`, `prev_count=0`.
+
+Bob receives Alice's first v2 message:
+
+1. Fetch Alice's static DH pub if not cached: `GET /identity/{alice_pubkey}/dh-key`.
+2. `static_shared = X25519(bob_static_priv, alice_static_pub)` (symmetric).
+3. `RK = HKDF-SHA256(ikm=static_shared, salt=conv_id_bytes, info="wavvon/dr-init/v2", len=32)`.
+4. Read `alice_eph_pub` from `dh_pubkey_hex` in the envelope.
+5. `(RK, CKr) = KDF_RK(RK, X25519(bob_static_priv, alice_eph_pub))` — matches Alice's `CKs`.
+6. Decrypt the message from `CKr`.
+7. Generate Bob's ratchet keypair `DHs_bob`.
+8. `(RK, CKs_bob) = KDF_RK(RK, X25519(bob_eph_priv, alice_eph_pub))` — Bob's first sending chain.
+9. Bob's initial state: `{ RK, CKs=CKs_bob, Ns=0, PN=0, DHs=DHs_bob, DHr=alice_eph_pub, CKr (advanced once), Nr=1, MKSKIPPED={} }`.
+
+---
+
+### KDF functions
+
+```
+KDF_RK(rk, dh_output):
+    out = HKDF-SHA256(ikm=dh_output, salt=rk, info="wavvon/dr-rk/v2", len=64)
+    return (new_rk = out[0..32], new_chain_key = out[32..64])
+
+KDF_CK(ck):
+    out = HKDF-SHA256(ikm=ck, salt=[], info="wavvon/dr-ck-step/v2", len=64)
+    return (msg_key = out[0..32], new_chain_key = out[32..64])
+
+derive_nonce(msg_key):
+    return HKDF-SHA256(ikm=msg_key, salt=[], info="wavvon/dr-nonce/v2", len=12)
+```
+
+The nonce is derived from the message key, not transmitted. Skipped-key cache
+stores only `msg_key`; the nonce is recomputed at decrypt time via `derive_nonce`.
+
+---
+
+### Ratchet state (per conversation)
+
+```
+DRSession {
+    rk:        [u8; 32],     // root key
+    cks:       [u8; 32],     // sending chain key (None until first send)
+    ckr:       [u8; 32],     // receiving chain key (None until first receive)
+    ns:        u32,          // messages sent in current sending chain
+    nr:        u32,          // messages received in current receiving chain
+    pn:        u32,          // messages in previous sending chain
+    dhs_priv:  [u8; 32],     // my current ratchet private key
+    dhs_pub:   [u8; 32],     // my current ratchet public key
+    dhr:       [u8; 32],     // their latest ratchet public key (None until first message received)
+    mkskipped: Map<(dhr_hex, n), msg_key_hex>,  // bounded at 1000 entries
+}
+```
+
+Persisted in `~/.wavvon/dr_sessions.json` under each `conv_id`.
+
+---
+
+### Send algorithm
+
+```
+RatchetEncrypt(state, plaintext_json):
+    (mk, new_cks) = KDF_CK(state.cks)
+    nonce = derive_nonce(mk)
+    state.cks = new_cks
+    ciphertext = AES-256-GCM(mk, nonce, plaintext_json)
+    envelope = {
+        v: 2,
+        sender_pubkey, conv_id,
+        dh_pubkey_hex: state.dhs_pub,
+        message_index: state.ns,
+        prev_count: state.pn,
+        ciphertext_hex, signature_hex   // Ed25519 over v2 signing bytes
+    }
+    state.ns += 1
+    return envelope
+```
+
+---
+
+### Receive algorithm
+
+```
+RatchetDecrypt(state, envelope, fetch_static_dh_pub):
+    (dhr, n, pn) = (envelope.dh_pubkey_hex, envelope.message_index, envelope.prev_count)
+
+    // 1. Check skipped-key cache first
+    if (dhr, n) in state.mkskipped:
+        mk = state.mkskipped.remove(dhr, n)
+        return AES-256-GCM-decrypt(mk, derive_nonce(mk), ciphertext)
+
+    // 2. New ratchet key from sender → advance DH ratchet
+    if dhr != state.dhr:
+        // Initialise receiving chain if this is the very first message
+        if state.ckr is None:
+            static_shared = X25519(my_static_priv, sender_static_pub)  // fetch if needed
+            rk0 = HKDF(static_shared, salt=conv_id, info="wavvon/dr-init/v2", len=32)
+            (state.rk, state.ckr) = KDF_RK(rk0, X25519(my_static_priv, dhr))
+            state.nr = 0
+
+        // Store any skipped messages from current receiving chain
+        SkipMessageKeys(state, pn)
+
+        // DH ratchet step
+        state.pn = state.ns
+        state.ns = 0
+        state.nr = 0
+        state.dhr = dhr
+        (state.rk, state.ckr) = KDF_RK(state.rk, X25519(state.dhs_priv, state.dhr))
+        (new_dhs_priv, new_dhs_pub) = generate_x25519_keypair()
+        (state.rk, state.cks) = KDF_RK(state.rk, X25519(new_dhs_priv, state.dhr))
+        state.dhs = (new_dhs_priv, new_dhs_pub)
+
+    // 3. Skip to message index n within current receiving chain
+    SkipMessageKeys(state, n)
+
+    // 4. Decrypt
+    (mk, new_ckr) = KDF_CK(state.ckr)
+    state.ckr = new_ckr
+    state.nr += 1
+    return AES-256-GCM-decrypt(mk, derive_nonce(mk), ciphertext)
+
+SkipMessageKeys(state, until):
+    while state.nr < until and skipped_count <= 1000:
+        (mk, new_ckr) = KDF_CK(state.ckr)
+        state.mkskipped[(state.dhr, state.nr)] = mk
+        state.ckr = new_ckr
+        state.nr += 1
+    if skipped_count > 1000: error("too many skipped messages")
+```
+
+---
+
+### v2 envelope wire format
+
+Extends `EncryptedDmEnvelope` with three new optional fields. Absent fields
+mean v1 (backward compatible).
+
+```json
+{
+    "v": 2,
+    "sender_pubkey":  "...",
+    "conv_id":        "...",
+    "dh_pubkey_hex":  "<current ratchet public key (ephemeral, rotates)>",
+    "message_index":  5,
+    "prev_count":     3,
+    "ciphertext_hex": "...",
+    "signature_hex":  "..."
+}
+```
+
+`nonce_hex` is absent for v2 — the nonce is derived from the message key via
+`derive_nonce`. The `dh_pubkey_hex` slot in v1 held the static DH key; in v2
+it holds the **current ephemeral ratchet key** and rotates on every DH ratchet
+step (typically once per reply from the other side).
+
+#### Signing bytes
+
+Domain-separated, length-prefixed, matching the pattern in `wire.rs`:
+
+```
+"wavvon/dm-ciphertext/v2\0"
+|| len_prefixed(conv_id)
+|| u32_le(message_index)
+|| u32_le(prev_count)
+|| len_prefixed(ciphertext_hex)
+|| len_prefixed(dh_pubkey_hex)
+```
+
+(No `nonce_hex` — it is derived, not transmitted.)
+
+---
+
+### Local state file
+
+`~/.wavvon/dr_sessions.json` — JSON object keyed by `conv_id`:
+
+```json
+{
+    "<conv_id>": {
+        "rk":         "<64-hex>",
+        "cks":        "<64-hex or null>",
+        "ckr":        "<64-hex or null>",
+        "ns":         0,
+        "nr":         0,
+        "pn":         0,
+        "dhs_priv":   "<64-hex>",
+        "dhs_pub":    "<64-hex>",
+        "dhr":        "<64-hex or null>",
+        "mkskipped":  { "<dhr_hex>:<index>": "<msg_key_hex>" }
+    }
+}
+```
+
+---
+
+### Hub-side changes for v2
+
+None beyond what v1 already has. The hub stores the envelope JSON in
+`ciphertext_json` with `is_encrypted = TRUE`. The only change is:
+
+- `envelope_signing_bytes()` in `dms/keys.rs` dispatches on the `v` field:
+  `v == 1` (or absent) → `dm_envelope_signing_bytes()`, `v == 2` →
+  `dr_envelope_signing_bytes()`.
+- `EncryptedDmEnvelope` gains three optional fields: `v: u8`, `message_index:
+  Option<u32>`, `prev_count: Option<u32>`.
+
+No schema change.
+
+---
+
+### Client-side changes for v2
+
+| Layer | New item |
+|---|---|
+| `identity/src/wire.rs` | `dr_envelope_signing_bytes(conv_id, message_index, prev_count, ciphertext_hex, dh_pubkey_hex)` |
+| Tauri `dm.rs` | DR session state file helpers; `init_dr_session`, `encrypt_dm_dr`, `decrypt_dm_dr` commands; `get_dm_messages` auto-decrypts `v=2` envelopes |
+| `packages/core/src/identity/crypto.ts` | `DREnvelope` type; `initDrSession`, `encryptDmDr`, `decryptDmDr` functions |
+
+---
+
+### What's deferred (v3)
+
+- **X3DH one-time prekeys** — would give perfect forward secrecy on the very
+  first message even if the recipient's static key is later compromised. Requires
+  a prekey bundle endpoint on the hub and regular client prekey uploads. The
+  current v2 init uses a 2DH (static × static + ephemeral × static); the first
+  message is only as forward-secret as the static key.
+- **Group DR** — per-sender DH ratchet chains for group DMs. Current sender-key
+  scheme already provides forward secrecy from the current chain position; group
+  DR adds post-compromise security. Complex (Messaging Layer Security territory).
+
+---
+
 ## What's deferred
 
-- Group DM encryption (v2, sender-key sketch above)
-- Forward secrecy / Double Ratchet (v2)
+- Group DM encryption — shipped (sender-key ratchet, see section above).
+- Forward secrecy / Double Ratchet (v2) — shipped (see section above).
 - Encrypted search (probably never; search becomes client-side post-decrypt if it returns at all)
 - Voice/video/screenshare encryption — those are not in DMs yet; their own design will tackle SRTP / DTLS-SRTP when the time comes
 - Encrypted typing indicators and read receipts — currently out-of-band signals; revisit if they leak useful content (typing doesn't, read receipts barely)
