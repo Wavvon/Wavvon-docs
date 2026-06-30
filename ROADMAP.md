@@ -110,7 +110,25 @@ The full history of shipped work lives in
   static-ECDH and sender-key schemes. See
   [`e2e-encryption.md`](docs/e2e-encryption.md).
 
+## 📌 Wishlist (undesigned)
+
+- **Passkey login in AddHubModal (web)** — `authenticateWithPasskey()` and `addHub({ sessionToken })` are in place; the remaining work is a UI button in AddHubModal that runs the assert flow when the user already has a passkey registered for that hub.
+- **Passkey registration from desktop** — blocked by Tauri webview RP ID mismatch; requires either a native OS WebAuthn plugin (tauri-plugin-passkey) or a hybrid approach where the desktop opens the hub URL in the system browser for the ceremony.
+
 ## 🚀 Recently shipped
+
+- **Client-side passkey flows (2026-06-30)** — web client: `platform/webauthn.ts`
+  with full passkey registration + assertion ceremony (manual base64url/ArrayBuffer
+  conversion, no external dependency), plus management API calls (list/delete/rename
+  passkeys, list/revoke trusted devices) via hubFetch; PasskeySection and
+  TrustedDevicesSection added to the Account tab; `addHub()` accepts `sessionToken`
+  to allow passkey-obtained tokens to bypass Ed25519 auth. Desktop: five new Tauri
+  commands (`passkey_list/delete/rename`, `trusted_device_list/revoke`) using the
+  shared http_client + stored session token; PasskeySection + TrustedDevicesSection
+  wired into the Security tab (view/rename/remove only — desktop cannot register
+  passkeys due to Tauri webview RP ID mismatch with the hub's domain). Two wishlist
+  items logged: AddHubModal passkey login button, and native OS passkey registration
+  on desktop.
 
 - **WebAuthn/passkey auth — hub server layer (2026-06-30)** — hub now supports
   passkey registration and login via webauthn-rs 0.5 as a parallel auth path
