@@ -112,10 +112,16 @@ The full history of shipped work lives in
 
 ## 📌 Wishlist (undesigned)
 
-- **Passkey login in AddHubModal (web)** — `authenticateWithPasskey()` and `addHub({ sessionToken })` are in place; the remaining work is a UI button in AddHubModal that runs the assert flow when the user already has a passkey registered for that hub.
 - **Passkey registration from desktop** — blocked by Tauri webview RP ID mismatch; requires either a native OS WebAuthn plugin (tauri-plugin-passkey) or a hybrid approach where the desktop opens the hub URL in the system browser for the ceremony.
 
 ## 🚀 Recently shipped
+
+- **Passkey login in AddHubModal (2026-06-30)** — "Sign in with passkey" button
+  appears in the modal when the hub is reachable, WebAuthn is supported, and the
+  user has a public key. Runs the assertion ceremony via `authenticateWithPasskey()`,
+  then passes the session token to `addHub({ sessionToken })` to skip the Ed25519
+  challenge flow. Error handling and loading state shared with the standard Connect
+  path.
 
 - **Client-side passkey flows (2026-06-30)** — web client: `platform/webauthn.ts`
   with full passkey registration + assertion ceremony (manual base64url/ArrayBuffer
