@@ -106,15 +106,23 @@ The full history of shipped work lives in
   *(2026-06-10: all six READMEs rewritten as landing pages with badges,
   cross-links, and a `docker compose` quick-start.
   2026-06-11: demo-seed tool added; real screenshots + join-flow GIF added to READMEs.)*
-- **E2E v2 — Double Ratchet** — forward secrecy upgrade from the shipped
-  static-ECDH and sender-key schemes. See
-  [`e2e-encryption.md`](docs/e2e-encryption.md).
-
 ## 📌 Wishlist (undesigned)
 
 - **Passkey registration from desktop** — blocked by Tauri webview RP ID mismatch; requires either a native OS WebAuthn plugin (tauri-plugin-passkey) or a hybrid approach where the desktop opens the hub URL in the system browser for the ceremony.
 
 ## 🚀 Recently shipped
+
+- **E2E v2 — Double Ratchet (2026-06-30)** — 1:1 DMs upgraded from static ECDH
+  to Signal Double Ratchet: per-message forward secrecy and post-compromise
+  recovery. Session init via 2DH (static × static seeds root key; ephemeral ×
+  static seeds first sending chain). KDF_RK / KDF_CK / derive_nonce via
+  HKDF-SHA256 with `wavvon/dr-*` domain strings. v2 envelope adds `v`,
+  `message_index`, `prev_count`; no `nonce_hex` (nonce derived from msg key).
+  Skipped-key cache (cap 1000) handles out-of-order delivery. Implemented in:
+  identity crate (`dr_envelope_signing_bytes`), hub models + signing dispatch,
+  Tauri `dm.rs` (`init_dr_session`, `encrypt_dm_dr`, `decrypt_dm_dr` commands),
+  TypeScript `core/crypto.ts` (`initDrSession`, `encryptDmDr`, `decryptDmDr`).
+  Group DMs keep the sender-key scheme; X3DH one-time prekeys are v3.
 
 - **Passkey login in AddHubModal (2026-06-30)** — "Sign in with passkey" button
   appears in the modal when the hub is reachable, WebAuthn is supported, and the
