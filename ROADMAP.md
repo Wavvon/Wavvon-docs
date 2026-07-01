@@ -21,23 +21,17 @@ The full history of shipped work lives in
   0.0.14 to 0.9.6 to resolve upstream E0282 error; call sites in
   `screen_share.rs` updated for new API. Verify in CI before removing from
   Known issues.
-- [ ] **Moderation enhancements** — three additions to hub moderation. Design:
+- [x] **Moderation enhancements** — shipped 2026-07-02. Design:
   [`moderation-enhancements.md`](docs/moderation-enhancements.md).
-  - [ ] **ME1 — Federated ban list subscription UI** — enforcement is already
-    shipped; this adds the admin surface: add/remove ban-list sources, set
-    per-source policy (hard-reject vs. soft-flag), view synced entries, apply
-    local overrides, and toggle publishing the hub's own `/federation/banlist`.
-    Run `cargo test` + `tsc --noEmit`.
-  - [ ] **ME2 — Auto-moderation webhook** — pre-store allow/block gate:
-    `PATCH /admin/settings` fields for webhook URL + HMAC secret; message-create
-    path POSTs to the operator URL (500ms timeout, fail-open, circuit breaker
-    on 3× 5xx in 60s → 10-min backoff). Admin UI shows circuit-breaker state.
-    Run `cargo test` + `tsc --noEmit`.
-  - [ ] **ME3 — Content reporting queue** — `POST /messages/:id/report`
-    (deduplicated per reporter); admin queue at `GET /admin/reports?status=pending`;
-    `POST /admin/reports/:id/review` with `dismiss | delete_message | ban_user`
-    actions. Reporter identity visible to admins only. Run `cargo test` +
-    `tsc --noEmit`.
+  - [x] **ME1 — Federated ban list subscription UI** — admin routes for source
+    CRUD with per-source policy (hard-reject/soft-flag), entries view, local
+    overrides, publish toggle. Web client Moderation tab.
+  - [x] **ME2 — Auto-moderation webhook** — circuit breaker (3× 5xx in 60s →
+    10-min backoff) wired in `AppState`; GET /admin/settings/moderation exposes
+    circuit state; web admin shows current URL, secret-set flag, breaker status.
+  - [x] **ME3 — Content reporting queue** — server fully shipped earlier; web
+    client adds report button on messages + admin Reports queue with
+    dismiss/delete_message/ban_user actions.
 
 ## 🚧 Blocked
 

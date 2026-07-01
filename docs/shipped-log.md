@@ -6,6 +6,14 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Moderation enhancements ME1/ME2/ME3 (2026-07-02)** — ME1: `federated_ban_sources`
+  + `federated_ban_overrides` tables; admin CRUD routes at `/admin/banlist/sources|entries|overrides`
+  and `/admin/settings/banlist`; banlist_worker reads per-source policy; auth layer
+  applies whitelist/blacklist overrides. ME2: `WebhookCircuit` in `AppState`; circuit
+  breaker on 3× 5xx in 60s → 10-min backoff; `GET /admin/settings/moderation` exposes
+  state. ME3: server was already shipped; web client adds report button on messages +
+  admin Reports queue. Web admin Moderation tab covers all three features.
+
 - **Code audit — all 46 findings resolved (2026-06-27)** — H9 CORS warn, H11
   get_messages N+1 → 3 bulk queries, H14 list_members N+M+1 → 3 queries + LIMIT
   1000, H15 farm-token auth 5 reads → 1 query, H16 federated DM delivery
