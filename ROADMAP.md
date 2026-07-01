@@ -69,8 +69,6 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
   "More info → Run anyway". See the code-signing blocker above.
 - **Bot deferred scope** — voice/screen-share injection, bot DMs, outgoing
   webhooks: no timeline. See [`future-features.md`](docs/future-features.md).
-- **Forum: reactions + attachments on posts** — not yet supported. See
-  [`forum.md`](docs/forum.md).
 
 ## 💤 Won't do
 

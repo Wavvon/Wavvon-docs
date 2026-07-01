@@ -33,6 +33,14 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   Details: [`design-review-2026-06-13.md`](design-review-2026-06-13.md) and
   [`pilot-feedback-2026-06-12.md`](pilot-feedback-2026-06-12.md).
 
+- **Forum reactions + attachments (2026-07-01)** — `post_reactions` and
+  `reply_reactions` tables added; `attachments` JSON column on `posts` and
+  `post_replies`; four new endpoints (`POST/DELETE /posts/:pid/reactions`,
+  `POST/DELETE /replies/:rid/reactions`); reactions and attachments included in
+  `PostDetail` and `ReplyView`; 6 integration tests in `forum_flow.rs`. Web client:
+  `ReactionBar` component on posts and replies, attachment list + file picker shell
+  in `ForumComposer`, Playwright E2E test suite (5 tests, mocked API).
+
 - **`cargo test --workspace` works on Windows (2026-07-01)** — two blockers
   fixed: (1) `webauthn-rs-core` depends directly on `openssl-sys`; resolved by
   adding `openssl = { version = "0.10", features = ["vendored"] }` to
