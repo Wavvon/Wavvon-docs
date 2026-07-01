@@ -21,18 +21,6 @@ The full history of shipped work lives in
   0.0.14 to 0.9.6 to resolve upstream E0282 error; call sites in
   `screen_share.rs` updated for new API. Verify in CI before removing from
   Known issues.
-- [x] **Moderation enhancements** — shipped 2026-07-02. Design:
-  [`moderation-enhancements.md`](docs/moderation-enhancements.md).
-  - [x] **ME1 — Federated ban list subscription UI** — admin routes for source
-    CRUD with per-source policy (hard-reject/soft-flag), entries view, local
-    overrides, publish toggle. Web client Moderation tab.
-  - [x] **ME2 — Auto-moderation webhook** — circuit breaker (3× 5xx in 60s →
-    10-min backoff) wired in `AppState`; GET /admin/settings/moderation exposes
-    circuit state; web admin shows current URL, secret-set flag, breaker status.
-  - [x] **ME3 — Content reporting queue** — server fully shipped earlier; web
-    client adds report button on messages + admin Reports queue with
-    dismiss/delete_message/ban_user actions.
-
 ## 🚧 Blocked
 
 - **Windows code-signing** — blocked until the project reaches meaningful
