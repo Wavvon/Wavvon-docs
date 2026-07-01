@@ -65,16 +65,15 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
 
 ## ⚠️ Known issues
 
-- **`cargo test` does not work locally on Windows (2026-07-01)** — two blockers:
-  (1) `openssl-sys` fails to compile without OpenSSL development headers; `reqwest`
-  pulls this in transitively. Fix: switch `reqwest` to `features = ["rustls-tls"]`
-  across the workspace and remove any `openssl` feature flags — no system libraries
-  needed. (2) Even after compilation, every integration test calls `create_test_db()`
-  which expects a live PostgreSQL instance at `localhost:5432`. Fix: add a
-  `docker-compose.dev.yml` at the repo root with a `postgres:16-alpine` service so
-  developers can `docker compose -f docker-compose.dev.yml up -d` before running
-  tests. Both fixes together make `cargo test --workspace` work on Windows without
-  any manual system-library setup.
+- **`cargo test` does not work locally on Windows — FIXED 2026-07-01**: two
+  blockers resolved: (1) `openssl-sys` could not compile because `webauthn-rs-core`
+  depends on it directly — fixed by adding `openssl = { version = "0.10", features =
+  ["vendored"] }` to `hub/Cargo.toml` (forces a source build via cmake + Strawberry
+  Perl; both are now installed as dev tools) and switching `wavvon-seed`'s `reqwest`
+  to `default-features = false, features = ["json", "rustls-tls"]` to eliminate the
+  residual `native-tls` dep. (2) `create_test_db()` requires a live PostgreSQL —
+  fixed by `docker-compose.dev.yml` at the repo root; run
+  `docker compose -f docker-compose.dev.yml up -d` before `cargo test --workspace`.
 
 - **2026-06-13 design review: web client top-10** — item 1 fixed 2026-06-27:
   desktop ChannelComposer rebuilt to D5b spec (composer-shell wraps input +
