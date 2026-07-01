@@ -32,11 +32,20 @@ The full history of shipped work lives in
   the final logo asset. Run `cargo tauri icon <1024x1024.png>` once the brand
   logo is ready. See [`brand.md`](docs/brand.md).
 
-## 📌 Wishlist (designed, not built)
+## 🔨 Outgoing webhooks — [`outgoing-webhooks.md`](docs/outgoing-webhooks.md)
 
-- **Outgoing webhooks** — admin registers external HTTPS URLs; hub POSTs
-  hub events to them (monitoring, alerting, archival). No bot identity or
-  WS session required. Designed: [`outgoing-webhooks.md`](docs/outgoing-webhooks.md).
+- [ ] **DB migrations** — `outgoing_webhooks`, `outgoing_webhook_subscriptions`,
+  `outgoing_webhook_deliveries` tables (`hub/src/db/migrations.rs`)
+- [ ] **Routes + models** — 8 admin routes + wire models
+  (`hub/src/outgoing_webhooks/routes.rs`, `models.rs`)
+- [ ] **Delivery worker** — HMAC-SHA256 signing, retry (4 attempts / ~6 min),
+  auto-disable after 5 consecutive failures, delivery log pruning
+  (`hub/src/outgoing_webhooks/delivery.rs`, `worker.rs`)
+- [ ] **Event dispatcher wiring** — subscribe to `bots/events.rs` broadcast;
+  filter by `outgoing_webhook_subscriptions`
+- [ ] **Admin UI** — `HubOutgoingWebhooksSection.tsx` on desktop + web;
+  `hubAdmin.ts` route functions
+- [ ] **Integration tests** — `hub/tests/outgoing_webhooks_flow.rs`
 
 ## 📌 Wishlist (undesigned)
 
@@ -55,8 +64,8 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
 
 - **Windows installer unsigned** — SmartScreen warning on first run; workaround
   "More info → Run anyway". See the code-signing blocker above.
-- **Bot deferred scope** — voice/screen-share injection, bot DMs, outgoing
-  webhooks: no timeline. See [`future-features.md`](docs/future-features.md).
+- **Bot deferred scope** — voice/screen-share injection, bot DMs: no
+  timeline. See [`future-features.md`](docs/future-features.md).
 
 ## 💤 Won't do
 
