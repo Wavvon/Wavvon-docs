@@ -4,7 +4,7 @@ Bots that can push audio and video into Wavvon channels, enabling
 music playback, karaoke backing tracks, dance-move reference streams,
 and similar experiences — without adding media logic to the hub.
 
-Companion to [`bot-mini-apps.md`](docs/bot-mini-apps.md). Mini-apps
+Companion to [`bot-mini-apps.md`](bot-mini-apps.md). Mini-apps
 handle the interactive UI layer; bot media handles the AV layer.
 
 ## Motivation
