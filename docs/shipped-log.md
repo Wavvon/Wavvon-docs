@@ -6,6 +6,15 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **`cargo test --workspace` works on Windows (2026-07-01)** — two blockers
+  fixed: (1) `webauthn-rs-core` depends directly on `openssl-sys`; resolved by
+  adding `openssl = { version = "0.10", features = ["vendored"] }` to
+  `hub/Cargo.toml` (forces a source build; requires cmake and Strawberry Perl, both
+  now installed as dev tools) and switching `wavvon-seed`'s `reqwest` to
+  `default-features = false, features = ["json", "rustls-tls"]`. (2)
+  `create_test_db()` needs a live PostgreSQL; `server/docker-compose.dev.yml` added
+  (`docker compose -f docker-compose.dev.yml up -d` before running tests).
+
 - **Remove games feature (2026-07-01)** — replaced by bots; iframe/session
   infrastructure dead weight. All 11 sub-tasks (S1–S5, D1–D3, W1, A1, Docs)
   completed: hub routes/WS/farm game handling removed; `GameStore` trait and
