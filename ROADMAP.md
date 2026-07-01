@@ -631,6 +631,17 @@ Older entries: [`docs/shipped-log.md`](docs/shipped-log.md).
 
 ## ⚠️ Known issues
 
+- **`cargo test` does not work locally on Windows (2026-07-01)** — two blockers:
+  (1) `openssl-sys` fails to compile without OpenSSL development headers; `reqwest`
+  pulls this in transitively. Fix: switch `reqwest` to `features = ["rustls-tls"]`
+  across the workspace and remove any `openssl` feature flags — no system libraries
+  needed. (2) Even after compilation, every integration test calls `create_test_db()`
+  which expects a live PostgreSQL instance at `localhost:5432`. Fix: add a
+  `docker-compose.dev.yml` at the repo root with a `postgres:16-alpine` service so
+  developers can `docker compose -f docker-compose.dev.yml up -d` before running
+  tests. Both fixes together make `cargo test --workspace` work on Windows without
+  any manual system-library setup.
+
 - **2026-06-13 design review: web client top-10** — item 1 fixed 2026-06-27:
   desktop ChannelComposer rebuilt to D5b spec (composer-shell wraps input +
   actions; "+" menu and emoji button right-aligned inside the box; send stays
