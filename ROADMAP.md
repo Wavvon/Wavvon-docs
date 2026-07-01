@@ -120,10 +120,11 @@ The full history of shipped work lives in
     2026-07-01: `computeAttenuation()` (linear/inverse_square/step/exponential),
     zone lifecycle handlers, recomputeAllProximityGains on every position update,
     WS dispatch wired in `ws.ts`. 18 vitest tests.
-  - [ ] **V4 — Voice encryption (Phase 2)** — AES-256-GCM per-packet on Opus
+  - [x] **V4 — Voice encryption (Phase 2)** — AES-256-GCM per-packet on Opus
     stream; hub relays ciphertext transparently. Key distribution via
     `VoiceKeyOffer`/`VoiceKeyReceived`/`VoiceKeyRequest` WS messages +
-    X25519 ECDH. In progress 2026-07-01.
+    X25519 ECDH. `ws_key_senders` map in AppState for targeted delivery.
+    4 integration tests in `hub/tests/voice_encryption_flow.rs`. Shipped 2026-07-01.
 
 - [x] **Hub creation wizard** — zero-to-live path for new operators. All three
   pieces shipped 2026-07-01. Design: [`hub-creation-wizard.md`](docs/hub-creation-wizard.md).
@@ -178,7 +179,7 @@ The full history of shipped work lives in
 
 ## 🚀 Recently shipped
 
-- **Voice enhancements V1–V3 + Hub creation wizard HW1–HW3 (2026-07-01)** —
+- **Voice enhancements V1–V4 + Hub creation wizard HW1–HW3 (2026-07-01)** —
   V1: per-participant volume control on web and Android (per-sender GainNode,
   ChannelSidebar slider, `wavvon.voice_gains` localStorage, Android
   `set_voice_gain` command). V2: `AudioProfileSection` moved to `packages/ui`;
@@ -187,12 +188,14 @@ The full history of shipped work lives in
   (linear, inverse_square, step, exponential), zone lifecycle tracking,
   `recomputeAllProximityGains` applies attenuation on top of manual gain;
   hub WS zone events dispatched from `ws.ts`; 4 server integration tests +
-  18 vitest tests. HW1: discovery `POST/DELETE /api/templates/register`
-  (ownership-checked, Ed25519-signed); 8 vitest tests. HW2: hub first-run
-  bootstrap (`maybe_bootstrap`, template application, `bootstrapped_at` marker);
-  4 integration tests. HW3: discovery `/new` wizard now generates
-  `docker-compose.yml` (replaces `docker run`). V4 (voice encryption key
-  distribution) in progress.
+  18 vitest tests. V4: AES-256-GCM per-packet voice encryption; hub relays
+  ciphertext transparently; `VoiceKeyOffer`/`VoiceKeyReceived`/`VoiceKeyRequest`
+  WS key distribution with X25519 ECDH wrapping; `ws_key_senders` map in
+  AppState for targeted delivery; 4 integration tests. HW1: discovery
+  `POST/DELETE /api/templates/register` (ownership-checked, Ed25519-signed);
+  8 vitest tests. HW2: hub first-run bootstrap (`maybe_bootstrap`, template
+  application, `bootstrapped_at` marker); 4 integration tests. HW3: discovery
+  `/new` wizard now generates `docker-compose.yml` (replaces `docker run`).
 
 - **E2E v2 — Double Ratchet (2026-06-30)** — 1:1 DMs upgraded from static ECDH
   to Signal Double Ratchet: per-message forward secrecy and post-compromise
