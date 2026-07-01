@@ -1200,10 +1200,8 @@ The bot appears in `GET /voice/participants` with `is_bot: true`.
   "pipe events to an external system" uses (monitoring, alerting,
   archival). Unlike incoming webhooks (§9) which flow inward, this
   flows hub → external. Unlike event subscriptions (§8), no persistent
-  WS session is needed. Main design question: signing — hub should
-  include `X-Wavvon-Signature` so the receiver can verify authenticity
-  (same header as slash dispatch). Deferred until a real use case
-  pressures the design.
+  WS session is needed. **Designed**: see
+  [outgoing-webhooks.md](outgoing-webhooks.md).
 - **Hub-to-hub bot federation** — a bot invited on Hub A is *not*
   automatically known to Hub B in an alliance. The bot operator
   invites it per hub. Federated bot identity is a possible v2 if it

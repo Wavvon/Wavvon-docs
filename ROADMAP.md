@@ -32,6 +32,12 @@ The full history of shipped work lives in
   the final logo asset. Run `cargo tauri icon <1024x1024.png>` once the brand
   logo is ready. See [`brand.md`](docs/brand.md).
 
+## 📌 Wishlist (designed, not built)
+
+- **Outgoing webhooks** — admin registers external HTTPS URLs; hub POSTs
+  hub events to them (monitoring, alerting, archival). No bot identity or
+  WS session required. Designed: [`outgoing-webhooks.md`](docs/outgoing-webhooks.md).
+
 ## 📌 Wishlist (undesigned)
 
 - **Project visibility push** — remaining: a hosted demo hub, directory listings, launch post.
