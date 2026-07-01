@@ -6,23 +6,54 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
-- **Voice enhancements V1–V4 + Hub creation wizard HW1–HW3 (2026-07-01)** —
-  V1: per-participant volume control on web and Android (per-sender GainNode,
-  ChannelSidebar slider, `wavvon.voice_gains` localStorage, Android
-  `set_voice_gain` command). V2: `AudioProfileSection` moved to `packages/ui`;
-  web SettingsPage Voice tab and Android `StoredVoiceSettings` wired.
-  V3: web client proximity voice — `computeAttenuation()` with four models
-  (linear, inverse_square, step, exponential), zone lifecycle tracking,
-  `recomputeAllProximityGains` applies attenuation on top of manual gain;
-  hub WS zone events dispatched from `ws.ts`; 4 server integration tests +
-  18 vitest tests. V4: AES-256-GCM per-packet voice encryption; hub relays
-  ciphertext transparently; `VoiceKeyOffer`/`VoiceKeyReceived`/`VoiceKeyRequest`
-  WS key distribution with X25519 ECDH wrapping; `ws_key_senders` map in
-  AppState for targeted delivery; 4 integration tests. HW1: discovery
-  `POST/DELETE /api/templates/register` (ownership-checked, Ed25519-signed);
-  8 vitest tests. HW2: hub first-run bootstrap (`maybe_bootstrap`, template
-  application, `bootstrapped_at` marker); 4 integration tests. HW3: discovery
-  `/new` wizard now generates `docker-compose.yml` (replaces `docker run`).
+- **Remove games feature (2026-07-01)** — replaced by bots; iframe/session
+  infrastructure dead weight. All 11 sub-tasks (S1–S5, D1–D3, W1, A1, Docs)
+  completed: hub routes/WS/farm game handling removed; `GameStore` trait and
+  database tables dropped; desktop/web/android client game modals and state removed;
+  docs updated (`gaming.md` and `games-sdk.md` deleted; `/games/*` removed from
+  openapi.yaml and ws-protocol.md; bot deferred-scope known issue updated).
+
+- **Bot mini-apps + bot media (2026-07-01)** — generic mechanism for bots to
+  embed interactive web experiences and inject audio/video into channels.
+  All 9 sub-tasks (M1–M8, Docs) completed: `mini_app_url` field added to bot
+  registration; `bot_app_launch`/`join`/`open`/`close` WS messages implemented;
+  hub endpoints for bot voice and screen-share (`POST/DELETE /bots/{id}/voice/*`,
+  `POST/DELETE /bots/{id}/screenshare/*`); desktop/web/android clients open
+  sandboxed webviews/iframes with injected token and hub context; camera
+  permission CSP plumbed; docs updated with WS protocol and operator guide.
+
+- **Fix the aarch64 hub binary build (2026-07-01)** — replaced
+  `aarch64-linux-gnu-gcc` (GNU ABI, incompatible with musl) with
+  `cargo-zigbuild` (Zig provides its own musl headers; handles aws-lc-sys/ring
+  C objects cleanly). x86_64 and Docker builds unchanged.
+
+- **Voice enhancements V1–V4 (2026-07-01)** — four sequenced improvements to
+  the voice pipeline. All four phases completed:
+  - **V1 — Per-participant volume control** — hub and desktop already fully done;
+    web and Android wired: per-sender `GainNode` in `voice.ts`, `ChannelSidebar`
+    gain slider, `App.tsx` wiring, Android `set_voice_gain` Tauri command +
+    `StoredVoiceSettings`. Vitest 4/4.
+  - **V2 — Voice audio quality profiles** — `AudioProfileSection` moved to
+    `packages/ui`; desktop re-exports as shim; web `SettingsPage` Voice tab
+    wired; Android `StoredVoiceSettings` extended. Workspace typecheck clean.
+  - **V3 — Proximity voice** — hub side pre-existing; server integration tests
+    (`proximity_voice_flow.rs`, 4 tests) + web client attenuation shipped:
+    `computeAttenuation()` (4 models), zone lifecycle handlers,
+    `recomputeAllProximityGains` on every position update; WS dispatch in
+    `ws.ts`. 18 vitest tests.
+  - **V4 — Voice encryption (Phase 2)** — AES-256-GCM per-packet on Opus stream;
+    hub relays ciphertext transparently; `VoiceKeyOffer`/`VoiceKeyReceived`/
+    `VoiceKeyRequest` WS key distribution with X25519 ECDH; `ws_key_senders`
+    map in AppState for targeted delivery. 4 integration tests.
+
+- **Hub creation wizard (2026-07-01)** — zero-to-live path for new operators.
+  All three pieces shipped:
+  - **HW1 — Template catalog on discovery** — `POST/DELETE /api/templates/register`
+    (Ed25519-signed, ownership-checked); 8 vitest tests.
+  - **HW2 — First-run bootstrap in hub** — `maybe_bootstrap()` fetches template
+    URL, applies channels/roles/settings/welcome message; 4 integration tests.
+  - **HW3 — Creation wizard on discovery** — `/new` web flow generates
+    `docker-compose.yml` download.
 
 - **E2E v2 — Double Ratchet (2026-06-30)** — 1:1 DMs upgraded from static ECDH
   to Signal Double Ratchet: per-message forward secrecy and post-compromise
