@@ -6,6 +6,312 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Voice enhancements V1–V4 + Hub creation wizard HW1–HW3 (2026-07-01)** —
+  V1: per-participant volume control on web and Android (per-sender GainNode,
+  ChannelSidebar slider, `wavvon.voice_gains` localStorage, Android
+  `set_voice_gain` command). V2: `AudioProfileSection` moved to `packages/ui`;
+  web SettingsPage Voice tab and Android `StoredVoiceSettings` wired.
+  V3: web client proximity voice — `computeAttenuation()` with four models
+  (linear, inverse_square, step, exponential), zone lifecycle tracking,
+  `recomputeAllProximityGains` applies attenuation on top of manual gain;
+  hub WS zone events dispatched from `ws.ts`; 4 server integration tests +
+  18 vitest tests. V4: AES-256-GCM per-packet voice encryption; hub relays
+  ciphertext transparently; `VoiceKeyOffer`/`VoiceKeyReceived`/`VoiceKeyRequest`
+  WS key distribution with X25519 ECDH wrapping; `ws_key_senders` map in
+  AppState for targeted delivery; 4 integration tests. HW1: discovery
+  `POST/DELETE /api/templates/register` (ownership-checked, Ed25519-signed);
+  8 vitest tests. HW2: hub first-run bootstrap (`maybe_bootstrap`, template
+  application, `bootstrapped_at` marker); 4 integration tests. HW3: discovery
+  `/new` wizard now generates `docker-compose.yml` (replaces `docker run`).
+
+- **E2E v2 — Double Ratchet (2026-06-30)** — 1:1 DMs upgraded from static ECDH
+  to Signal Double Ratchet: per-message forward secrecy and post-compromise
+  recovery. Session init via 2DH (static × static seeds root key; ephemeral ×
+  static seeds first sending chain). KDF_RK / KDF_CK / derive_nonce via
+  HKDF-SHA256 with `wavvon/dr-*` domain strings. v2 envelope adds `v`,
+  `message_index`, `prev_count`; no `nonce_hex` (nonce derived from msg key).
+  Skipped-key cache (cap 1000) handles out-of-order delivery. Implemented in:
+  identity crate (`dr_envelope_signing_bytes`), hub models + signing dispatch,
+  Tauri `dm.rs` (`init_dr_session`, `encrypt_dm_dr`, `decrypt_dm_dr` commands),
+  TypeScript `core/crypto.ts` (`initDrSession`, `encryptDmDr`, `decryptDmDr`).
+  Group DMs keep the sender-key scheme; X3DH one-time prekeys are v3.
+
+- **Passkey login in AddHubModal (2026-06-30)** — "Sign in with passkey" button
+  appears in the modal when the hub is reachable, WebAuthn is supported, and the
+  user has a public key. Runs the assertion ceremony via `authenticateWithPasskey()`,
+  then passes the session token to `addHub({ sessionToken })` to skip the Ed25519
+  challenge flow. Error handling and loading state shared with the standard Connect
+  path.
+
+- **Client-side passkey flows (2026-06-30)** — web client: `platform/webauthn.ts`
+  with full passkey registration + assertion ceremony (manual base64url/ArrayBuffer
+  conversion, no external dependency), plus management API calls (list/delete/rename
+  passkeys, list/revoke trusted devices) via hubFetch; PasskeySection and
+  TrustedDevicesSection added to the Account tab; `addHub()` accepts `sessionToken`
+  to allow passkey-obtained tokens to bypass Ed25519 auth. Desktop: five new Tauri
+  commands (`passkey_list/delete/rename`, `trusted_device_list/revoke`) using the
+  shared http_client + stored session token; PasskeySection + TrustedDevicesSection
+  wired into the Security tab (view/rename/remove only — desktop cannot register
+  passkeys due to Tauri webview RP ID mismatch with the hub's domain).
+
+- **WebAuthn/passkey auth — hub server layer (2026-06-30)** — hub now supports
+  passkey registration and login via webauthn-rs 0.5 as a parallel auth path
+  alongside the existing Ed25519 challenge/verify flow. New endpoints:
+  `POST /auth/webauthn/begin` + `/finish` (register a passkey),
+  `POST /auth/webauthn/assert/begin` + `/finish` (authenticate),
+  `POST /auth/device-token/create` (mint a 30-day "Trust this device" token),
+  `POST /auth/device-token/redeem` (exchange for session token; rotates on use).
+  Credential management at `GET/PATCH/DELETE /me/credentials`; trusted device
+  management at `GET/DELETE /me/devices`. `rp_id` derived from
+  `WAVVON_PUBLIC_URL` hostname; override via `WAVVON_WEBAUTHN_RP_ID`. Device
+  token TTL configurable via `WAVVON_DEVICE_TOKEN_TTL_DAYS` (default 30).
+  New DB tables: `webauthn_credentials`, `device_tokens`. Eight integration
+  tests in `hub/tests/webauthn_flow.rs`.
+
+- **Per-hub subkey revocation propagation (2026-06-30)** — background worker
+  (`subkey_revocation_worker`) discovers all distinct `(master_pubkey,
+  home_hub_url)` pairs from `subkey_certs`, polls
+  `GET /identity/{master}/revocations?since={cursor}` on each home hub every
+  6 hours, verifies the Ed25519 signature on each entry, inserts valid
+  revocations into `subkey_revocations` with `ON CONFLICT DO NOTHING`, and
+  advances the cursor with `GREATEST()`. `GET /identity/{master}/revocations`
+  endpoint gained a `?since=` query param. New `subkey_revocation_sync`
+  migration table tracks per-`(master, hub)` cursor. Five integration tests
+  in `hub/tests/subkey_revocation_relay_flow.rs`.
+
+- **Cross-farm cert revocation relay (2026-06-29)** — hub now polls every
+  remote cert issuer it knows about for revocations. A new
+  `cert_revocation_sync` table tracks the per-issuer cursor; a background
+  worker (`cert_revocation_worker`) fires 2 min after startup then every 6
+  hours: discovers all distinct `(issuer_pubkey, issuer_url)` pairs in
+  `user_certs`, calls `GET {issuer_url}/certs/revocations?since={cursor}`
+  on each, deletes the matching `user_certs` rows, and advances the cursor
+  with `GREATEST()` so it never goes backwards. Unreachable issuers are
+  silently skipped (certs retained). Five integration tests in
+  `hub/tests/cert_revocation_relay_flow.rs`.
+
+- **Farm agent WS token moved to first message frame (2026-06-29)** — token no
+  longer appears in the `/ws/agent` URL and therefore in access logs. Agent now
+  connects to `/ws/agent` (no query param) and sends
+  `{"type":"hello","version":"...","token":"<hex>"}` as its first frame; server
+  validates token there before registering the connection. Invalid or missing
+  token receives `{"type":"error","code":"auth_failed"}` and the socket closes.
+
+- **Timestamp hygiene complete (2026-06-29)** — five farm route files each
+  had a private copy of `unix_now()`; consolidated into a single `pub fn
+  unix_now()` in `wavvon-farm/src/lib.rs`. Seven hub test-migration columns
+  (`channel_voice_mutes.muted_at`, `raise_hand_requests.requested_at`,
+  `badge_offers.created_at`, `hub_badges.accepted_at`,
+  `issued_badges.issued_at/expires_at/revoked_at`) changed TEXT → BIGINT;
+  handlers and response models updated to use `i64`. `"chrono"` sqlx feature
+  removed from workspace `Cargo.toml`. `iso_from_unix` unified into a single
+  `pub fn` in `auth/handlers.rs`; `badges.rs` local copy deleted.
+
+- **Full PostgreSQL backend (2026-06-27)** — SQLite removed from the server
+  entirely; `wavvon-store-sqlite` crate deleted and replaced by
+  `wavvon-store-postgres`. sqlx features trimmed to `postgres + runtime-tokio
+  + macros + chrono + uuid`; hub, seed, and farm all use `PgPool`/`PgPoolOptions`.
+  New `wavvon-store-postgres` crate (19 impl files) covers every `HubStore`
+  sub-trait with PostgreSQL DDL. All 18 hub integration test files updated to
+  create a fresh isolated PostgreSQL database per test (UUID-named, migrations
+  pre-applied) via `create_test_db()` in `tests/common.rs`. CI gains a
+  `postgres:16-alpine` service container with health checks and `TEST_DATABASE_URL`
+  wired to `cargo test`.
+
+- **Web client stabilisation pass (2026-06-22/23)** —
+  Welcome screen gated on `hubs.length === 0`; "Hosted by [url]" link added to
+  `WelcomeScreen` and `AddHubModal` hub preview cards.
+  `CreateChannelModal` wired from all three entry points; added Banner and
+  Category types alongside Text and Forum. `ChannelSettingsModal` created —
+  pre-filled name/description edit, two-step delete confirmation; accessible via
+  gear icon and right-click context menu. WS event audit: `forum_event`, all
+  screen-share signalling, and video/whisper events wired into `ws.ts` dispatch.
+  Profile: `SettingsPage` calls `onProfileSaved` after `PATCH /me`; `App.tsx`
+  re-fetches `/me` and `/users` so display name updates immediately.
+
+- **Web client audit remainder (W5–W24) — 13 findings fixed (2026-06-14)** —
+  W5: reactions broadcast preserves `me` flag. W7: `voice_participant_speaking`
+  wired; speaking ring lights. W9: `dm_member_changed` WS event handled. W11:
+  poll event names fixed; `onPin`/`onPoll` wired. W14: events types corrected
+  (`starts_at`, `rsvp_counts`); RSVP uses POST/cancel. W15: farm unsuspend
+  uses correct endpoint. W17: pending-approval hub shows landing screen. W18:
+  alliance shared channels fetched on hub connect. W19: mention pings play audio
+  + OS notification on permission. W20: `pingHub` called on interval. W21:
+  `UserContextMenu` wired; right-click on members works. W22: group-DM
+  `group_encrypted_envelope` handled. W23: scroll position tracked; "N new
+  messages" pill wired. W24: unmounted components cleanup.
+
+- **CI build fixes (2026-06-14)** — Android: `@noble/curves` and
+  `@noble/hashes` added as direct deps, resolving Rollup import failure.
+  Desktop macOS: `xcap` bumped 0.0.14 → 0.9.6 (E0282 fixed); call sites in
+  `screen_share.rs` updated for new API. Auto-tag correctly dispatches release
+  workflows via `gh workflow run`.
+
+- **App.tsx decomposition — channel-message, alliance, WS hooks (2026-06-14)** —
+  desktop App.tsx 3,259 → ~1,450 lines; android App.tsx 993 → ~560 lines.
+  Desktop: `useChannelMessages`, `useAlliances`, `useWsHandlers` extracted.
+  Android: same three hooks; stableHandlers wired via stable setter refs.
+  pnpm typecheck clean across all three apps.
+
+- **Desktop voice/composer UI pass + web screen-share viewing (2026-06-13)** —
+  attach+poll collapsed into a "+" menu in desktop `ChannelComposer`; voice
+  control bar buttons replaced with SVG icons; joining a new voice channel now
+  implicitly leaves the current one; camera button enumerates devices on first
+  enable; screen-share source grid gains `max-height`. Web screen-share VIEWING
+  now works — `HubWebSocket` gains binary frame support and `App.tsx` wires
+  `activeScreenShares` state through to the existing `ScreenShareViewer`.
+
+- **Hub: first-user-becomes-owner bug fixed (2026-06-13)** — `assign_initial_roles`
+  now skips the auto-owner grant when `WAVVON_OWNER_PUBKEY` is configured.
+  `AppState` gains `owner_pubkey: Option<String>`.
+
+- **H4 federated-DM sender spoofing fixed (2026-06-13)** — Ed25519
+  signature verification is enforced on all three receive-federated-DM
+  paths (encrypted, group-encrypted, plaintext) in
+  `hub/src/routes/dms/messages.rs`. All hub audit findings from the
+  2026-06-11 audit are now resolved.
+
+- **Web voice via WebSocket audio relay (2026-06-13)** — browsers cannot send
+  raw UDP, so hub gains a `/voice/ws` WebSocket endpoint; web clients
+  authenticate with the session token + channel_id, receive a `voice_ws_ready`
+  JSON frame, then exchange binary Opus frames. Hub fan-out routes to both UDP
+  (desktop/android) and WS (web) participants. Web client gains `opusscript`
+  (WASM Opus encoder/decoder) and a new `VoiceWsSession` class. All four clients
+  now participate in shared voice channels.
+
+- **Client monorepo consolidation — all 5 stages complete (2026-06-13)** —
+  Wavvon-desktop, Wavvon-web, and Wavvon-android collapsed into the single
+  Wavvon-client pnpm + Cargo monorepo. Stage 0 (scaffold), Stage 1
+  (`packages/core`), Stage 2 (`@wavvon/utils` + noble crypto), Stage 3
+  (`packages/ui` + 10 shared components), Stage 4 (`packages/platform` +
+  android collapse), Stage 5 (CI consolidated — path-gated per-app jobs).
+  Double-React hazard eliminated, cross-repo Vite alias eliminated,
+  dual-checkout release eliminated.
+
+- **Hub optionally self-serves the web client (2026-06-13)** — new
+  `WAVVON_WEB_CLIENT_DIR` setting. When set, hub serves a pre-built SPA at
+  `/` via tower-http `ServeDir` with SPA deep-link fallback. `index.html`
+  cached at startup with `window.__WAVVON_HOME_HUB__` injected. Official Docker
+  image gains a `node:22-slim` web-builder stage. 7 integration tests in
+  `hub/tests/web_client_flow.rs`.
+
+- **Networked voice Phase 1 — token-gated source-address learning (2026-06-12)**
+  — hub relay no longer registers clients as 127.0.0.1. On `voice_join` the hub
+  mints a 32-byte single-use UDP register token delivered in the `voice_joined`
+  WS reply. The client sends a VXRG packet; the hub binds the real source address
+  into `voice_addr_map` and replies VXRA. Fan-out gated on `voice_addr_map`
+  membership. Five new integration tests in `hub/tests/voice_relay_flow.rs`.
+
+- **H5/H6 rate-limiter trusted-proxy + IPv6 canonicalization (2026-06-12)** —
+  `rate_limit.rs` gains `WAVVON_TRUSTED_PROXY` setting. When enabled, real
+  client IP derived from last `X-Forwarded-For` entry. All IPs canonicalized:
+  IPv4-mapped IPv6 collapses to plain IPv4; genuine IPv6 bucketed at /64 prefix.
+  6 new unit tests.
+
+- **H2/H3 presence refcount + bot_sessions per-session (2026-06-12)** —
+  `online_users` changed from `HashSet` to `HashMap<String, usize>` (refcounted).
+  `bot_sessions` changed from `HashMap<pubkey, Sender>` to
+  `HashMap<pubkey, HashMap<session_id, Sender>>`; each WS session registers
+  under its own UUID. 4 new tests in `hub/tests/presence_multi_session_flow.rs`.
+
+- **Hub CORS layer + self-describing CLI (2026-06-11)** — `WAVVON_CORS_ORIGINS`
+  env-var wires a tower-http `CorsLayer`; `--help` prints a generated env-var
+  table, `--version` prints version, `--doctor` runs pre-flight checks. Startup
+  banner logs effective port, scheme, UDP port, TLS state, CORS origins, and
+  data-file paths. Four CORS integration tests added.
+
+- **Real screenshots + join-flow GIF in READMEs; web client fixes; demo-seed tool (2026-06-11)** —
+  screenshots and join-flow GIFs added to main/desktop/web/hub READMEs; web
+  client desktop layout CSS fix, message ordering fix, onboarding improvements,
+  voice roster bootstrap via `GET /voice/participants`; demo-seed tool added.
+
+- **Web onboarding styling + voice roster bootstrap (2026-06-11)** — web
+  client onboarding screens now match the app's visual style; missing `button`,
+  `input`/`textarea`/`select` base CSS rules and utility classes added.
+  Voice roster now populated on connect via `GET /voice/participants`;
+  `voice_roster_update`, `voice_participant_joined`, and `voice_participant_left`
+  WS events handled individually.
+
+- **demo-seed tool (2026-06-11)** — new `tools/demo-seed` binary; populates a
+  fresh running hub with 8 identities, 5 channels under 4 categories, ~30
+  realistic messages, a poll, a pinned welcome message, and emoji reactions.
+  Reads `HUB_URL`; writes credentials to `demo-credentials.json`.
+
+- **ContentArea.tsx ports to all forks (2026-06-11)** — web (1,157 → ~320-line
+  composition root), android/wavvon-desktop (979 → ~290), android/wavvon-web
+  (881 → ~280) now mirror desktop's `components/content/` shape. tsc clean in
+  all three apps; vitest web 6/6, android 14/14.
+
+- **ws/connection.rs dispatch refactor (2026-06-11)** — introduced `ConnState`
+  and a `DispatchResult` enum; extracted all match-arm logic into per-domain
+  handlers under `routes/ws/handlers/`: `voice.rs`, `screen.rs`, `game.rs`,
+  `chat.rs`, `bot.rs`. `connection.rs` is now 605 lines (was 1,910). All 250+
+  tests green.
+
+- **ContentArea.tsx desktop split (2026-06-11)** — 1,383-line `ContentArea.tsx`
+  split into 9 files under `components/content/`. `ContentArea.tsx` is now 688
+  lines. Props interface and export signature unchanged. tsc clean, vitest
+  71/71, vite build succeeds.
+
+- **Signing-service removal + spec CI gate (2026-06-11)** — all signing-service
+  steps removed from desktop CI; hub CI now fails when a registered route is
+  missing from `openapi.yaml` (currently 201/201 documented).
+
+- **Desktop lib.rs module split (2026-06-11)** — 9,844-line desktop
+  `src-tauri/src/lib.rs` split into 28 domain modules; `lib.rs` is now ~350
+  lines. Zero TS-side changes required. `cargo clippy -D warnings`, `cargo fmt
+  --check`, and all 38 tests green.
+
+- **Hub route module splits wave 2 (2026-06-11)** — directory-module conversions
+  for `dms.rs` (1,305 → 4 files), `bots.rs` (1,236 → 5 files), `alliances.rs`
+  (1,119 → 5 files), `moderation.rs` (1,016 → 5 files). Zero route-path or
+  public-API changes.
+
+- **Big-file refactor wave 1 + complete API spec (2026-06-11)** — hub
+  `routes/ws.rs` (2,101 → 4 files) and `routes/games.rs` (1,617 → 6 files),
+  android Tauri `lib.rs` (5,332 → 559 + 14 domain modules), web `App.tsx`
+  (1,402 → 1,255 via extracted hooks). `openapi.yaml` now documents all 201 hub
+  routes (103 were missing), verified by `docs/scripts/check-openapi-coverage.mjs`.
+
+- **App.tsx decomposition batch 3 (2026-06-11)** — DM cluster extracted into
+  `desktop/src/hooks/useDms.ts`. App.tsx: 3,461 → 3,259 lines.
+
+- **App.tsx decomposition batch 2 (2026-06-11)** — `useHubAdmin`, `useFriends`,
+  and `useSettingsProfile` extracted into `desktop/src/hooks/`. App.tsx:
+  3,937 → 3,461 lines.
+
+- **UDP voice relay tied to WS session (2026-06-10)** — added `voice_relay_active`
+  set to `AppState`; `VoiceJoin` inserts, `leave_voice` removes; UDP receive loop
+  rejects packets from pubkeys absent from the set. Five integration tests in
+  `hub/tests/voice_relay_flow.rs`.
+
+- **Farm/seed/server/voice security sweep (2026-06-10)** — WS agent channel made
+  bounded; DB error during token lookup now closes the socket; heartbeat endpoint
+  rejects unknown hub pubkeys on DB error; proxy body capped at 32 MiB;
+  `public_key` added to `/farm/public-info`; `agent::run` survives malformed JSON;
+  voice pipeline tasks no longer panic on Opus init failure. Eight new integration
+  tests added.
+
+- **Hub wishlist quick wins (2026-06-10)** — `GET /preview` rate-limited (10/min),
+  `POST /admin/search/reindex` for operator-driven index rebuilds, `federated_bans`
+  enforced on outbound messages and DMs, dead `game_session_left` WS variant removed.
+
+- **Full CI test coverage across all repos (2026-06-10)** — vitest suites gated in
+  CI for web (6 tests), android/wavvon-web (14 tests), desktop (71 tests), and
+  discovery (28 tests); web gains i18n coverage check; android gains `cargo fmt
+  --check` and `cargo clippy -D warnings` gates.
+
+- **WebSocket protocol documented (2026-06-10)** — complete message-by-message
+  wire reference in `docs/ws-protocol.md` (34 client→server, 55 server→client
+  messages, verified against hub source).
+
+- **Workspace hardening batch (2026-06-10)** — hub security fixes (WS session
+  validation, atomic invites, SSRF DNS-rebinding, federated-ban check on farm
+  tokens, upload headers), client race/cleanup fixes + error boundaries, android
+  parity restored, shared `@wavvon/utils` package, wire-format spec with
+  cross-client byte-level vector tests, CI gains fmt/clippy gates and SHA-pinned
+  actions.
+
 - **Forum per-post read cursors (all 4 clients)** — `post_reads` table, `INSERT OR REPLACE` mark-read endpoint (`POST /channels/:cid/posts/:id/read`), `unread_reply_count` subquery on list/get; unread dot + count shown per thread row in all 4 clients. Design in [`forum.md`](forum.md).
 
 - **Custom skins discovery gallery (all 4 clients)** — `skins` table in Wavvon-discovery with Ed25519 signature verification and SHA-256 content-addressed IDs; `GET /api/skins` (search/paginate) + `POST` (publish) + `DELETE` (author-signed removal); `SkinsGallery` component with search, base filter, and "Load more" in the Appearance tab of all 4 clients. Design in [`custom-themes.md`](custom-themes.md).
