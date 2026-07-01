@@ -6,6 +6,33 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Code audit — all 46 findings resolved (2026-06-27)** — H9 CORS warn, H11
+  get_messages N+1 → 3 bulk queries, H14 list_members N+M+1 → 3 queries + LIMIT
+  1000, H15 farm-token auth 5 reads → 1 query, H16 federated DM delivery
+  background tokio::spawn, H17 tantivy Mutex unwrap, H20 chat broadcast capacity
+  256→4096, H21 handle_typing ban check, H22 badge-offer rate-limit + duplicate
+  guard, H23 preview SSRF proxy-aware + redirect IP guard. DB indexes H12/H13
+  verified present. W25/W27 already fixed by monorepo consolidation + identity
+  refactor. Full finding list: [`code-audit-2026-06-11.md`](code-audit-2026-06-11.md).
+
+- **Per-hub subkey revocation propagation (2026-06-30)** — background worker polls
+  each master key's home hub every 6 hours, verifies Ed25519 signatures, and inserts
+  new revocations into the local `subkey_revocations` table. See
+  `subkey_revocation_worker.rs`.
+
+- **First user silently becomes hub owner — fixed (2026-06-27)** — removed
+  auto-grant from `assign_initial_roles`; hub now starts ownerless and warns on
+  startup when `WAVVON_OWNER_PUBKEY` is unset. Found live on videogamezone pilot.
+
+- **Design review + pilot feedback resolved (2026-06-27)** — all 10 web client
+  design-review items and all desktop pilot-feedback items (D1–D9) fixed: composer
+  layout, poll fetch on channel switch, i18n wiring, display-name prompt, message
+  anatomy, voice control bar, emoji picker, chat column max-width, channel hash
+  glyph, WelcomeScreen browse wiring, whisper portal, camera picker, leave-voice
+  button, screen-share picker thumbnails, role submenu, banner channel editing.
+  Details: [`design-review-2026-06-13.md`](design-review-2026-06-13.md) and
+  [`pilot-feedback-2026-06-12.md`](pilot-feedback-2026-06-12.md).
+
 - **`cargo test --workspace` works on Windows (2026-07-01)** — two blockers
   fixed: (1) `webauthn-rs-core` depends directly on `openssl-sys`; resolved by
   adding `openssl = { version = "0.10", features = ["vendored"] }` to
