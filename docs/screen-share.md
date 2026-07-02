@@ -417,34 +417,18 @@ community hub.
 - **Mobile viewing**. Once the mobile client lands, MSE support is
   uneven (iOS Safari historically gated MSE behind specific
   contexts). May force the v2 WebRTC migration earlier on mobile.
-- **Max simultaneous sharers per channel**. v1 enforces one. Two
-  (e.g. presenter + camera operator) is a plausible v2 ask.
-  Decision is deferred until the use case shows up.
 - **Codec negotiation**. v1 hardcodes VP8/Opus. If we want VP9 or
   AV1, the `ScreenShareStart` envelope already carries `mime` so
   viewers can refuse incompatible streams — but we have no
   negotiation handshake. Add one if/when a second codec ships.
 - **Init-chunk cache eviction**. The hub holds an init segment per
-  active stream forever. Bounded by "one sharer per channel" and
-  cleared on `ScreenShareStop`, but a sharer who crashes without
-  sending Stop leaks the entry until the WS disconnect fires. Use
-  the existing WS disconnect handler to clean up.
+  active stream. Cleared on `ScreenShareStop`, but a sharer who
+  crashes without sending Stop leaks the entry until the WS
+  disconnect fires. Use the existing WS disconnect handler to clean up.
 - **PoW or rate-limit on `ScreenShareStart`**. Spamming starts is
   cheap. Probably fine while permissions gate sharing to members,
   revisit if abused.
-- **Multi-stream viewer**. v1 enforces one sharer per channel. A
-  future shape renders N concurrent sharers as independent movable
-  overlays inside the app — each with its own volume, webcam-over-screen
-  toggle, and drag position. Requires lifting the one-sharer cap and
-  a layout management strategy for when streams pile up.
-- **Cross-channel stream subscription**. Today a viewer must be in
-  channel X to see its share. A watch model lets a user in voice in
-  channel A subscribe to a stream in channel B without leaving. Hub-side:
-  a new `StreamSubscribe` envelope validated against `can_view_channel`
-  only (not voice membership), then the subscriber is added to that
-  stream's fan-out set. No new permission surface — reuses the existing
-  channel view check. See future-features.md for the full design.
-- **OS-level picture-in-picture**. The "Floating overlay" layout stays
-  inside the app window. True OS PiP opens a second Tauri window
-  (`always_on_top: true`, minimal decorations) that persists when the
-  main app is minimized. No hub protocol changes; viewer-side only.
+
+**Shipped since this doc was written**: multiple concurrent sharers
+per channel (no more one-sharer cap), cross-channel stream
+subscription, and OS-level picture-in-picture. See `shipped-log.md`.

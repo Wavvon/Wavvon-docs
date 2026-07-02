@@ -564,6 +564,10 @@ Typical use: CI/CD build results, uptime alerts, game score
 announcements, any "push a message into a channel from an external
 system" need that doesn't require two-way interaction.
 
+The opposite direction — hub pushes events *out* to an external URL,
+no bot identity or channel target — is **outgoing webhooks**, shipped
+separately. See [outgoing-webhooks.md](outgoing-webhooks.md).
+
 ### How it works
 
 1. Hub admin opens Hub Settings → Integrations → Incoming Webhooks,
@@ -1193,15 +1197,6 @@ The bot appears in `GET /voice/participants` with `is_bot: true`.
   hub certifications design space ([future-features.md](future-features.md)).
 - **Bot-to-bot interaction** — explicitly not designed; a bot
   receiving another bot's slash output is allowed but not encouraged.
-- **Outgoing webhooks** (no-bot event forwarding) — admin registers an
-  external HTTPS URL; hub POSTs a filtered subset of hub events to it
-  (same shapes as §8) with no reply expected and no bot identity
-  required. Lighter than running a full bot process for pure
-  "pipe events to an external system" uses (monitoring, alerting,
-  archival). Unlike incoming webhooks (§9) which flow inward, this
-  flows hub → external. Unlike event subscriptions (§8), no persistent
-  WS session is needed. **Designed**: see
-  [outgoing-webhooks.md](outgoing-webhooks.md).
 - **Hub-to-hub bot federation** — a bot invited on Hub A is *not*
   automatically known to Hub B in an alliance. The bot operator
   invites it per hub. Federated bot identity is a possible v2 if it

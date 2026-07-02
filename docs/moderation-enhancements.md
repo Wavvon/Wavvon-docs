@@ -3,8 +3,7 @@
 Three additions to hub moderation, all designed around Wavvon's core
 constraint: **no central authority, sovereign hub operators**. The
 shipped controls (ban / mute / kick / timeout, channel ban, voice mute,
-talk power — see [future-features.md](future-features.md)) act on a
-single hub by an admin's hand. These three add (1) cross-hub ban signals
+talk power) act on a single hub by an admin's hand. These three add (1) cross-hub ban signals
 a hub *chooses* to honor, (2) a programmable allow/block gate the
 operator owns, and (3) a member-driven report queue. None introduces a
 global source of truth; each keeps the decision local to the operator.
