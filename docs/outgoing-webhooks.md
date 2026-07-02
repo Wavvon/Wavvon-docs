@@ -249,6 +249,7 @@ All under `/admin/outgoing-webhooks`. Auth: `manage_hub` permission
 | `GET` | `/admin/outgoing-webhooks` | List all (no secrets, no signing keys). |
 | `PATCH` | `/admin/outgoing-webhooks/:id` | Update `url`, `display_name`, `active`. |
 | `DELETE` | `/admin/outgoing-webhooks/:id` | Delete webhook and all its rows. |
+| `GET` | `/admin/outgoing-webhooks/:id/subscriptions` | Current subscription set (for pre-filling the editor). |
 | `PUT` | `/admin/outgoing-webhooks/:id/subscriptions` | Replace subscription set atomically. |
 | `POST` | `/admin/outgoing-webhooks/:id/rotate-secret` | Generate new secret. Returns `{ secret }` (shown once). |
 | `POST` | `/admin/outgoing-webhooks/:id/enable` | Set `active = true`, reset `failure_count`. |
@@ -265,19 +266,23 @@ All under `/admin/outgoing-webhooks`. Auth: `manage_hub` permission
   (the existing HTTP client used by `federation/client.rs`), handles
   retries, writes to `outgoing_webhook_deliveries`, updates
   `failure_count`. Returns `DeliveryResult`.
-- **`worker.rs`** — listens on the same broadcast channel that
-  `hub/src/bots/events.rs` uses. On each event, queries
-  `outgoing_webhook_subscriptions` for matching webhooks, spawns
-  delivery tasks. Respects the 50 events/s internal rate cap.
+- **`worker.rs`** — `dispatch_event(...)` is called directly from
+  `publish_hub_event` (see below). On each event, queries
+  `outgoing_webhook_subscriptions` for matching webhooks and spawns a
+  delivery task per match so the caller isn't blocked on HTTP calls.
+  Respects the 50 events/s internal rate cap.
 - **`routes.rs`** — implements the 8 admin routes (§9).
 - **`models.rs`** — `OutgoingWebhook`, `WebhookSubscription`,
   `DeliveryRecord`, `WebhookEventEnvelope` structs.
 
 ### Integration with `hub/src/bots/events.rs`
 
-`events.rs` already publishes to a `tokio::sync::broadcast` channel on
-each hub event. The outgoing webhook worker subscribes to the same
-channel — no duplication of dispatch logic.
+There is no broadcast channel for hub events — `publish_hub_event`
+writes the audit log row and then directly pushes to subscribed bot WS
+sessions in a loop. The outgoing webhook worker hooks in the same way:
+`publish_hub_event` calls `outgoing_webhooks::worker::dispatch_event`
+right after the audit-log write, alongside the bot dispatch loop. No
+separate broadcast subscriber needed.
 
 ---
 

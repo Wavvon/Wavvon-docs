@@ -6,6 +6,23 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Outgoing webhooks (2026-07-02)** — admin registers external HTTPS URLs;
+  hub POSTs HMAC-SHA256-signed `hub_event` envelopes on matching events
+  (fire-and-forget, no bot identity/WS session needed). New
+  `hub/src/outgoing_webhooks/` module: 9 admin routes (added a `GET
+  .../subscriptions` read-back beyond the original 8-route spec so the UI
+  can pre-fill the subscription editor instead of blind-overwriting it),
+  delivery worker with 4-attempt retry (5s/30s/5min), auto-disable after 5
+  consecutive failures, last-200 delivery log per webhook. Dispatch hooks
+  directly into `publish_hub_event` (`bots/events.rs`) — the design doc
+  originally described a broadcast channel that doesn't exist in this
+  codebase; doc corrected to match. Web admin UI only (desktop deferred
+  per delivery-target decision): `OutgoingWebhooksSection.tsx` +
+  `EventSubscriptionEditor.tsx` (new, reusable — bots don't have an event
+  subscription UI yet) + `platform/commands/outgoingWebhooks.ts`. 13
+  integration tests in `hub/tests/outgoing_webhooks_flow.rs`. See
+  [`outgoing-webhooks.md`](outgoing-webhooks.md).
+
 - **Moderation enhancements ME1/ME2/ME3 (2026-07-02)** — ME1: `federated_ban_sources`
   + `federated_ban_overrides` tables; admin CRUD routes at `/admin/banlist/sources|entries|overrides`
   and `/admin/settings/banlist`; banlist_worker reads per-source policy; auth layer
