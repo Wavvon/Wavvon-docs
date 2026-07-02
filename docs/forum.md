@@ -320,14 +320,13 @@ What maps onto that model:
 - **Mentions** inside a post body or reply body are detected the same
   way message mentions are (computed from body text, no table). A
   mention fires notification + pin even in `mentions` mode.
-- **Granularity decision**: unread is tracked at the **channel** level,
-  not per-post, for v1. The forum row pins like any channel; opening the
-  channel (the post list) clears it. Per-post unread state (a dot on
-  individual posts you haven't opened, "new replies since you last
-  viewed") needs per-post read cursors — **deferred**. This keeps forums
-  inside the existing one-pin-per-channel model with zero new
-  notification state. `firstNotifyingMessageId`
-  ([decisions.md](decisions.md)) has no forum analogue in v1; "jump to
+- **Granularity decision (v1)**: unread was tracked at the **channel**
+  level, not per-post — the forum row pins like any channel; opening
+  the channel (the post list) clears it. **Since shipped**: per-post
+  read cursors (`post_reads` table, per-`(user, post)` state) now give
+  per-post unread dots and reply counts alongside the original
+  channel-level pin, rather than replacing it. `firstNotifyingMessageId`
+  ([decisions.md](decisions.md)) still has no forum analogue; "jump to
   first notification" is a stream affordance.
 
 No new `NotifyMode`, no new server notification state. The forum reuses
@@ -366,18 +365,15 @@ per-channel in v1, matching the current per-channel message search.
 
 ## 8. What's deferred
 
+Per-post read cursors, reactions on posts/replies, and attachments on
+posts/replies were originally scoped out of v1 below but have since
+shipped (`post_reads`, `post_reactions`, and a JSON `attachments`
+column on `posts`/`post_replies` all exist and are wired end-to-end).
+
 - **Federation**: posts/replies federating over alliance shared channels
   ([federation.md](federation.md)). v1 is local-only. The federation
   envelope would gain `post` / `post_reply` event types alongside
   `message`; designed once the local model is stable.
-- **Per-post unread / read cursors**: per-post "new" dots and "N new
-  replies since you looked." Needs per-(user, post) read state. v1
-  tracks unread at the channel level only (section 6).
-- **Reactions on posts and replies**: the `reactions` table is
-  message-keyed; extending it to posts is a follow-on, not v1.
-- **Attachments on posts/replies**: messages store attachments inline as
-  a JSON column ([data-model.md](data-model.md)); the same approach fits
-  posts but is out of scope for v1.
 - **Rich formatting beyond the existing markdown**: forums reuse the
   message markdown subset; no forum-specific rich text, no embeds.
 - **Channel type conversion** (`text` ⇄ `forum` on an existing
