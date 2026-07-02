@@ -207,31 +207,26 @@ Enforcement is server-side so API clients can't bypass it.
 
 ### Status
 
-**SHIPPED.** The `channels` table has `parent_id`/`is_category`,
+**SHIPPED (core), with three UX gaps designed in a canonical doc.** The
+`channels` table has `parent_id`/`is_category`,
 `hub/src/routes/channels.rs` enforces depth and cycle detection on
 create/move, `max_channel_depth` is a wired hub setting (DB, Tauri
 commands, and a Hub Admin → Overview control), and `ChannelSidebar.tsx`
-renders the tree recursively. What's below is still open.
+renders the tree recursively with drag-drop re-parenting.
 
-### Open implementation questions
+The three remaining UX gaps — channel permalinks (breadcrumb-path
+resolution), a deep-nesting sidebar display strategy, and channel
+permission overwrites (the net-new "cascade like a file system"
+mechanism, which was never actually implemented) — are now fully
+designed in [nested-channels-ux.md](nested-channels-ux.md). See that doc
+for the data model, enforcement, routes, and UI. Nothing further is open
+here.
 
-- **Deep-nesting display strategy** — drag-and-drop reordering/
-  re-parenting is shipped (`@dnd-kit/core` in `ChannelSidebar.tsx` on
-  desktop and web, cycle-checked against a node's own descendants).
-  What's still open: visual indentation past ~6 levels currently just
-  multiplies a fixed per-level pixel indent with no cap — needs a
-  strategy (horizontal scroll, auto-collapse, or breadcrumb-style
-  display in the sidebar).
-- **Permission override UI** — when a child explicitly grants what its
-  parent denies, that override needs a clear UI affordance so admins
-  understand what's happening.
-- **Permalinks** — today's `#general` becomes
-  `Games / LoL / Alliance / #raid-planning`. Permalink format: keep
-  the channel id only and resolve display path client-side.
-- **No migration needed** — both categories and channels can already
-  live at the root (`parent_id NULL`) or nested under a category in
-  today's schema. Existing data is unchanged; new nesting is opt-in
-  whenever an admin decides to nest something.
+> **No migration needed for the tree itself** — both categories and
+> channels can already live at the root (`parent_id NULL`) or nested
+> under a category in today's schema. The permission-overwrite work in
+> [nested-channels-ux.md](nested-channels-ux.md) adds one additive table;
+> existing data is unchanged.
 
 ### What we explicitly don't want
 

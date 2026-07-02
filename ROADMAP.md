@@ -21,6 +21,29 @@ The full history of shipped work lives in
   0.0.14 to 0.9.6 to resolve upstream E0282 error; call sites in
   `screen_share.rs` updated for new API. Verify in CI before removing from
   Known issues.
+
+## 🔨 Nested channels — UX gaps — [nested-channels-ux.md](docs/nested-channels-ux.md)
+
+Three independent gaps; §1 and §2 are client-only, §3 is net-new server + UI.
+
+Channel permalinks (§1):
+- [ ] Extend `parseHubInput` (`packages/core`) to parse a `channel`/`message` `target` from the path
+- [ ] App-level consumer: navigate to `target` after hub connect (also fixes message-permalink resolution)
+- [ ] `channelPath()` breadcrumb helper in `packages/core/src/channels.ts`
+- [ ] "Copy channel link" affordance (context menu + channel-header) and breadcrumb header
+
+Deep-nesting sidebar (§2):
+- [ ] Cap indent (`INDENT_CAP`/`STEP` + overflow marker) in `ChannelSidebar.tsx`
+- [ ] Drill-in (focus-scoped subtree + back-crumb) with `aria-level`/`aria-live` accessibility
+
+Channel permission overwrites (§3):
+- [ ] DB migration: `channel_permission_overwrites` table (additive)
+- [ ] `channel_permissions()` resolver in `hub/src/permissions.rs` (cascade, allow-wins, admin-immune)
+- [ ] Switch channel-scoped call sites (`messages.rs`, `posts.rs`, `channels.rs`, voice join)
+- [ ] Channel-list read-gating (server-side filter; empty-container suppression client-side)
+- [ ] Admin routes: GET/PUT/DELETE `/channels/:id/permissions[/:role_id]` + audit-log entries
+- [ ] Channel-settings "Permissions" tab (tri-state grid) + web platform-adapter route functions
+
 ## 🚧 Blocked
 
 - **Windows code-signing** — blocked until the project reaches meaningful
@@ -44,12 +67,6 @@ The full history of shipped work lives in
   across the hubs a single farm operator manages instead of each hub
   verifying independently. No design work started. See
   [`future-features.md`](docs/future-features.md).
-- **Nested channels — remaining UX gaps** — permalinks (breadcrumb path
-  resolution for deep channels), a visual affordance for permission
-  overrides on a child channel, and a deep-nesting display strategy
-  (indentation past ~6 levels needs horizontal scroll, auto-collapse,
-  or breadcrumbs — drag-drop reordering itself is shipped). All
-  undesigned. See [`future-features.md`](docs/future-features.md).
 - **Forum post federation across alliances** — v1 forums are hub-local
   only; posts/replies don't federate over alliance-shared channels. No
   design work started. See [`forum.md`](docs/forum.md).

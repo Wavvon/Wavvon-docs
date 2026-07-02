@@ -68,6 +68,7 @@ These shipped — the doc is the design rationale behind the code (see
 
 - [home-hub.md](home-hub.md) — personal-axis state: home hub list, replication, DM canonicalization
 - [screen-share-modal.md](screen-share-modal.md) — unified desktop screen-share picker: Tauri `list_capture_sources` command, thumbnail grid, single-modal UX replacing the current two-step OS overlay
+- [nested-channels-ux.md](nested-channels-ux.md) — nested-channel UX gaps: channel permalinks (breadcrumb resolution), deep-nesting sidebar strategy (capped indent + drill-in), and channel permission overwrites (net-new file-system-style cascade — data model, resolver, routes, UI)
 - [future-features.md](future-features.md) — anti-spam PoW, deferred bot scope, other backlog designs
 
 ### Archived designs
@@ -100,6 +101,7 @@ Reading order is for learning the system end-to-end. This section is for
 - **Banner channels (decorative image rows in sidebar)** — [banner-channels.md](banner-channels.md)
 - **Text channels & categories** — [data-model.md](data-model.md), [client.md](client.md)
 - **Drag-drop channel/category reorder, nested channels** — [client.md](client.md)
+- **Channel permalinks, deep-nesting sidebar, channel permission overwrites** — [nested-channels-ux.md](nested-channels-ux.md)
 - **Markdown, code blocks, /me actions** — [client.md](client.md)
 - **Reactions (local + federated)** — [data-model.md](data-model.md), [federation.md](federation.md)
 - **Replies / threading** — [data-model.md](data-model.md)
