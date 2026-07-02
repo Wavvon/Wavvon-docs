@@ -215,10 +215,13 @@ renders the tree recursively. What's below is still open.
 
 ### Open implementation questions
 
-- **Drag-drop with arbitrary depth** — the only forbidden move is a
-  cycle (dropping a node into one of its own descendants). Visual
-  indentation past ~6 levels needs a strategy: horizontal scroll,
-  auto-collapse, or breadcrumb-style display in the sidebar.
+- **Deep-nesting display strategy** — drag-and-drop reordering/
+  re-parenting is shipped (`@dnd-kit/core` in `ChannelSidebar.tsx` on
+  desktop and web, cycle-checked against a node's own descendants).
+  What's still open: visual indentation past ~6 levels currently just
+  multiplies a fixed per-level pixel indent with no cap — needs a
+  strategy (horizontal scroll, auto-collapse, or breadcrumb-style
+  display in the sidebar).
 - **Permission override UI** — when a child explicitly grants what its
   parent denies, that override needs a clear UI affordance so admins
   understand what's happening.

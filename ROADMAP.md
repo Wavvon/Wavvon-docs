@@ -44,6 +44,15 @@ The full history of shipped work lives in
   across the hubs a single farm operator manages instead of each hub
   verifying independently. No design work started. See
   [`future-features.md`](docs/future-features.md).
+- **Nested channels — remaining UX gaps** — permalinks (breadcrumb path
+  resolution for deep channels), a visual affordance for permission
+  overrides on a child channel, and a deep-nesting display strategy
+  (indentation past ~6 levels needs horizontal scroll, auto-collapse,
+  or breadcrumbs — drag-drop reordering itself is shipped). All
+  undesigned. See [`future-features.md`](docs/future-features.md).
+- **Forum post federation across alliances** — v1 forums are hub-local
+  only; posts/replies don't federate over alliance-shared channels. No
+  design work started. See [`forum.md`](docs/forum.md).
 
 ## 🚀 Recently shipped
 
