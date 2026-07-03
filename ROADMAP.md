@@ -87,8 +87,10 @@ visual pass (Known issues).
 - **LAN / offline mode** — mDNS discovery + no-public-TLS join story;
   "works at a LAN party" differentiator. See
   [`future-features.md`](docs/future-features.md).
-- **Personal data export (full archive)** — extend identity backup to
-  all personal-axis state. See [`future-features.md`](docs/future-features.md).
+- **Personal data export (full archive)** — **designed, ready to
+  implement**: [`data-export.md`](docs/data-export.md). Client-assembled
+  passphrase-encrypted JSON of the whole personal axis; reuses the
+  identity-backup envelope; no new hub surface.
 - **Live captions in voice** — local STT, desktop-era (too heavy for
   web). See [`future-features.md`](docs/future-features.md).
 

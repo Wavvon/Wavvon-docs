@@ -352,20 +352,14 @@ local-only, and impossible to enable accidentally on a public hub.
 
 ## Personal data export — full archive
 
-**What**: extend the existing identity backup
-(`export_identity_backup` / passphrase wrapper) to a full portable
-archive: DM history, prefs, block/mute/ignore lists, home-hub list,
-drafts, custom themes — everything on the personal axis — plus
-optionally the user's own messages per hub.
-
-**Why**: turns the data-sovereignty pillar into a visible, checkable
-feature instead of a promise. Pairs naturally with the two-axis state
-model: personal-axis state already lives on the home hub, so the
-export is mostly "fetch + bundle + encrypt".
-
-**Status**: undesigned. Open questions: format (tar of JSON?),
-re-import semantics, whether community-axis content (own messages) is
-included or linked.
+**Status: DESIGNED, not implemented.** The canonical design is
+[data-export.md](data-export.md) — client-assembled (E2E means only
+the client can produce plaintext; the export path proves the E2E
+claims), one passphrase-encrypted JSON document reusing the shipped
+Argon2id/AES-256-GCM identity-backup envelope, covering the full
+personal axis with restore-identity+prefs / read-only-DM import
+semantics. Community-axis content deliberately excluded. Awaiting
+implementation pick-up from the ROADMAP wishlist.
 
 ---
 
