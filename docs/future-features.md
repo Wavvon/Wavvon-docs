@@ -415,9 +415,18 @@ permissionless "fake" divider roles (`─── Staff ───`) just to visual
 split the role list — polluting the permission system, member counts,
 and mention search. Wavvon can do it properly: a `role_categories`
 table (id, name, color, icon, position) plus an additive
-`roles.category_id` column. Categories group roles in the role-settings
-UI and can act as section headers in the member sidebar (interacting
-with `display_separately` hoisting).
+`roles.category_id` column.
+
+**Where categories show** (decided 2026-07-03): two surfaces —
+
+1. **Role-settings UI** — roles listed grouped under their category
+   headers instead of one flat list.
+2. **User profile card** — the popover shown when clicking a member
+   (the "bio" card) groups that user's roles under category headers,
+   like Discord's role chips but sectioned.
+
+The **member sidebar is explicitly out of scope** — sidebar hoisting
+stays driven by `display_separately` on individual roles, unchanged.
 
 **Rule**: categories are **display-only containers — they carry no
 permissions**. Same container-vs-leaf sharpness as channel categories;
