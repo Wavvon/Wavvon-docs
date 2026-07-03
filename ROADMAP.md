@@ -70,10 +70,9 @@ visual pass (Known issues).
 - **Forum post federation across alliances** — v1 forums are hub-local
   only; posts/replies don't federate over alliance-shared channels. No
   design work started. See [`forum.md`](docs/forum.md).
-- **Discord server import** — **designed, ready to implement**:
-  [`discord-import.md`](docs/discord-import.md). Two-stage CLI (bot
-  export → reviewable manifest → apply on fresh hub); structure only;
-  biggest single adoption lever.
+- **Discord server import** — *in progress 2026-07-04*, implementing
+  [`discord-import.md`](docs/discord-import.md) (new `discord-import`
+  crate; role colors applied directly now that role appearance shipped).
 - **Event role-slot sign-ups + reminders** — **designed, ready to
   implement**: [`events.md`](docs/events.md). Slot claims with enforced
   capacity, reminder worker posting channel event-cards at T−N,
