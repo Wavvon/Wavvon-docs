@@ -6,7 +6,12 @@ on a fresh Wavvon hub. The goal: a community that decides to move
 doesn't have to rebuild everything by hand, which is the first
 objection every switching community raises.
 
-**Status: designed, not implemented.** ROADMAP wishlist item.
+**Status: implemented 2026-07-04** (server `a85e37f`, crate
+`crates/discord-import`), with one deviation from this doc: role
+`color` is applied directly on `apply` (role appearance shipped in hub
+`31c291b` before the importer did). **Not yet exercised live** —
+`export` against a real bot token and `apply` against a running hub
+remain to be done (unit coverage is fixture-based by design).
 
 **Scope: structure only.** No message history, no member accounts, no
 emoji in v1 (see §7).

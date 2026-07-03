@@ -62,9 +62,6 @@ issues).
 - **Forum post federation across alliances** — v1 forums are hub-local
   only; posts/replies don't federate over alliance-shared channels. No
   design work started. See [`forum.md`](docs/forum.md).
-- **Discord server import** — *in progress 2026-07-04*, implementing
-  [`discord-import.md`](docs/discord-import.md) (new `discord-import`
-  crate; role colors applied directly now that role appearance shipped).
 - **Event role-slot sign-ups + reminders** — **designed, ready to
   implement**: [`events.md`](docs/events.md). Slot claims with enforced
   capacity, reminder worker posting channel event-cards at T−N,
@@ -110,24 +107,30 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
   event list. Fix: resolve via `channel_permissions`, filter the list
   by effective `read_messages`. Rides with the event-slots work
   ([`events.md`](docs/events.md)) or sooner.
-- **2026-07-04 web UI batch: no visual pass yet** — the Permissions
-  tab, channel permalinks/breadcrumbs, and sidebar drill-in are all
-  logic-tested but not yet exercised in a running client; one
-  click-through session covers all three. Also: the channel-settings
-  gear is `isAdmin`-gated (pre-existing), so a member with only
-  `manage_roles` can't reach the Permissions tab the server would
-  allow them to use.
+- **2026-07-04 batch: no live pass yet** — the Permissions tab,
+  channel permalinks/breadcrumbs, sidebar drill-in, and role
+  categories (admin tab + profile card) are logic-tested but not yet
+  exercised in a running client — one click-through session covers all
+  of them. The Discord importer likewise needs a live run (`export`
+  with a real bot token, `apply` against a running hub). Also: the
+  channel-settings gear is `isAdmin`-gated (pre-existing), so a member
+  with only `manage_roles` can't reach the Permissions tab the server
+  would allow them to use.
 - **Role/category icon picker can store non-rendering shortcodes** —
   `EmojiPicker`'s hub-custom-emoji section returns `:name:` shortcode
   strings; server validation accepts them but they render as literal
   text, not an emoji, on badges/headers. Fix: filter the picker to
   unicode emoji for this use, or render shortcodes properly.
 - **Test harness leaks ephemeral databases** — `hub/tests` creates a
-  `wavvon_test_*` Postgres DB per test and never drops it; ~700 had
-  accumulated locally by 2026-07-04 (and the test container crashed
-  once under the load). CI is unaffected (fresh service container per
-  run). Worth a teardown or a `DROP DATABASE` sweep in
-  `common::create_test_db()`.
+  `wavvon_test_*` Postgres DB per test and never drops it; grew from
+  ~700 to ~1800 leaked DBs across 2026-07-04 alone, twice exhausting
+  the container's 64MB `/dev/shm` and crashing Postgres mid-suite. CI
+  is unaffected (fresh service container per run), but local full-suite
+  runs now reliably hit this. Escalating: fix soon — a `DROP DATABASE`
+  sweep in `common::create_test_db()` is a one-liner-ish change. Note
+  `dm_retries_when_recipient_hub_comes_online` failed 4/4 attempts in
+  the degraded-container state (listed as flaky; may be load-sensitive
+  rather than random).
 - **Windows installer unsigned** — SmartScreen warning on first run; workaround
   "More info → Run anyway". See the code-signing blocker above.
 - **Bot deferred scope** — voice/screen-share injection, bot DMs,

@@ -6,6 +6,21 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Discord server import CLI (2026-07-04)** — new
+  `crates/discord-import` workspace crate implementing
+  [`discord-import.md`](discord-import.md) (server `a85e37f`).
+  `export --guild <id>` reads structure via a read-only bot
+  (Discord API v10, 429-aware) into the neutral versioned manifest;
+  `apply --hub <url>` replays it onto a fresh hub (demo-seed-style
+  auth, fail-forward, created/skipped/warnings report with PARTIAL
+  banner). Pure fixture-tested layers (mapping, permission-bit table
+  bits 0–50, plan/topological ordering, report rendering; 29 unit
+  tests) around thin reqwest executors. Role colors applied directly
+  (role appearance had shipped by then — the doc's "once color ships"
+  clause resolved in the same day). NOT yet exercised live against a
+  real guild or running hub — fixture-only by design; live e2e is the
+  remaining step.
+
 - **Role categories + role color/icon, web client (2026-07-04)** —
   [`role-categories.md`](role-categories.md) §4, clients `a6b2d24`
   (server side shipped separately, hub `31c291b`). Types + platform
