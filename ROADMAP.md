@@ -117,6 +117,11 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
   gear is `isAdmin`-gated (pre-existing), so a member with only
   `manage_roles` can't reach the Permissions tab the server would
   allow them to use.
+- **Role/category icon picker can store non-rendering shortcodes** —
+  `EmojiPicker`'s hub-custom-emoji section returns `:name:` shortcode
+  strings; server validation accepts them but they render as literal
+  text, not an emoji, on badges/headers. Fix: filter the picker to
+  unicode emoji for this use, or render shortcodes properly.
 - **Test harness leaks ephemeral databases** — `hub/tests` creates a
   `wavvon_test_*` Postgres DB per test and never drops it; ~700 had
   accumulated locally by 2026-07-04 (and the test container crashed

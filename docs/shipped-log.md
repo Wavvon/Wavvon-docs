@@ -73,7 +73,9 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   `platform/commands/channelPermissions.ts` adapter functions,
   empty-category suppression in the sidebar for non-admins, i18n ×4
   locales, 7 unit tests. Not yet visually verified in a running client;
-  desktop/Android UI parity deferred per delivery-target decision. — admin registers external HTTPS URLs;
+  desktop/Android UI parity deferred per delivery-target decision.
+
+- **Outgoing webhooks (2026-07-02)** — admin registers external HTTPS URLs;
   hub POSTs HMAC-SHA256-signed `hub_event` envelopes on matching events
   (fire-and-forget, no bot identity/WS session needed). New
   `hub/src/outgoing_webhooks/` module: 9 admin routes (added a `GET
