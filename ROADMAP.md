@@ -74,9 +74,10 @@ issues).
   implement**: [`temp-voice-channels.md`](docs/temp-voice-channels.md).
   Spawner type + sibling temp rooms, 60s-grace GC worker, and the new
   `channel_list_changed` WS event (fixes stale sidebars generally).
-- **Soundboard** — client-side clip injection into the outgoing voice
-  stream; shares a mechanism with deferred bot audio injection. See
-  [`future-features.md`](docs/future-features.md).
+- **Soundboard + bot audio injection** — **designed, ready to
+  implement**: [`soundboard.md`](docs/soundboard.md). Clips mix
+  client-side (zero relay changes); bots join the WS voice relay as
+  real participants. Two new permissions, Opus-in-Ogg clip library.
 - **LAN / offline mode** — mDNS discovery + no-public-TLS join story;
   "works at a LAN party" differentiator. See
   [`future-features.md`](docs/future-features.md).

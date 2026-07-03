@@ -60,7 +60,10 @@ event subscriptions, and token expiry are all shipped. See that doc's
 "What's deferred" section for the authoritative list; summary:
 
 - **Voice/screen-share injection** — bots can't yet inject audio into
-  voice or video into screen-share.
+  voice or video into screen-share. The **audio half is now designed**
+  ([soundboard.md](soundboard.md) §2: bots join the existing WS voice
+  relay gated on `can_speak_voice`); video injection remains
+  undesigned.
 - **Bot DMs** — bots as DM participants. Needs a friend-graph rethink.
 - **Bot-launched game modals** — a bot message with a "Play"
   call-to-action opening a full game modal. Blocked on Tier 2
@@ -303,19 +306,15 @@ from the ROADMAP wishlist.
 
 ## Soundboard
 
-**What**: per-hub library of short audio clips members can trigger in a
-voice channel; playback is mixed into the sender's outgoing Opus stream
-client-side, so the hub relay needs no changes.
-
-**Why**: cheap, loved, and viral in gaming communities.
-
-**Fit**: shares the audio-injection mechanism with the deferred "bots
-inject audio into voice" work (see [bots.md](bots.md)) — designing one
-should design the other.
-
-**Status**: undesigned. Client-side injection point exists conceptually
-in `crates/voice` (mix before Opus encode); needs upload/storage/
-moderation rules on the hub side.
+**Status: DESIGNED, not implemented** (together with bot audio
+injection — one theme, two deliberate injection points). The canonical
+design is [soundboard.md](soundboard.md): clips mix client-side into
+the sender's own stream (zero relay changes, attribution via a
+`soundboard_played` WS event), while bots join the existing WS voice
+relay as first-class participants gated on `can_speak_voice`. New
+`use_soundboard`/`manage_soundboard` permissions slot into roles and
+channel overwrites automatically. Awaiting implementation pick-up from
+the ROADMAP wishlist.
 
 ---
 
