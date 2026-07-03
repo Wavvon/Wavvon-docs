@@ -36,13 +36,9 @@ Deep-nesting sidebar (§2):
 - [ ] Cap indent (`INDENT_CAP`/`STEP` + overflow marker) in `ChannelSidebar.tsx`
 - [ ] Drill-in (focus-scoped subtree + back-crumb) with `aria-level`/`aria-live` accessibility
 
-Channel permission overwrites (§3): *(server side shipped 2026-07-03, hub `5912459`)*
-- [x] DB migration: `channel_permission_overwrites` table (additive)
-- [x] `channel_permissions()` resolver in `hub/src/permissions.rs` (cascade, allow-wins, admin-immune)
-- [x] Switch channel-scoped call sites (`messages.rs`, `posts.rs`, `channels.rs`, WS subscribe, voice join)
-- [x] Channel-list read-gating, server-side filter (client empty-container suppression below)
-- [x] Admin routes: GET/PUT/DELETE `/channels/:id/permissions[/:role_id]` + audit-log entries
-- [ ] Channel-settings "Permissions" tab (tri-state grid) + web platform-adapter route functions + empty-container suppression — in progress
+Channel permission overwrites (§3): **shipped 2026-07-04** (hub `5912459`,
+clients `a4e1366`) — see [`shipped-log.md`](docs/shipped-log.md). Needs a
+visual pass (Known issues).
 
 ## 🚧 Blocked
 
@@ -100,6 +96,17 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
 
 ## ⚠️ Known issues
 
+- **Channel Permissions tab: no visual pass yet** — logic tested
+  (7 unit + 7 integration tests) but not exercised in a running client.
+  Also: the channel-settings gear is `isAdmin`-gated (pre-existing), so a
+  member with only `manage_roles` can't reach the tab the server would
+  allow them to use.
+- **Test harness leaks ephemeral databases** — `hub/tests` creates a
+  `wavvon_test_*` Postgres DB per test and never drops it; ~700 had
+  accumulated locally by 2026-07-04 (and the test container crashed
+  once under the load). CI is unaffected (fresh service container per
+  run). Worth a teardown or a `DROP DATABASE` sweep in
+  `common::create_test_db()`.
 - **Windows installer unsigned** — SmartScreen warning on first run; workaround
   "More info → Run anyway". See the code-signing blocker above.
 - **Bot deferred scope** — voice/screen-share injection, bot DMs,

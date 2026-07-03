@@ -6,7 +6,24 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
-- **Outgoing webhooks (2026-07-02)** — admin registers external HTTPS URLs;
+- **Channel permission overwrites (2026-07-04)** — the §3 "cascade like a
+  file system" mechanism from [`nested-channels-ux.md`](nested-channels-ux.md).
+  Server (hub `5912459`): `channel_permission_overwrites` table;
+  `channel_permissions()` resolver (root→target fold, allow-wins at same
+  level, child-over-parent, `admin` immune); channel-scoped checks in
+  messages/posts/channels, WS auto-subscribe, and voice join (gated on
+  channel-scoped `read_messages` — no voice-specific constant exists);
+  nested channel creation checks `MANAGE_CHANNELS` on the parent;
+  channel-list read-gating server-side; GET/PUT/DELETE
+  `/channels/:id/permissions[/:role_id]` with audit-log entries; 7
+  integration tests in `hub/tests/channel_permissions_flow.rs`. Client,
+  web only (clients `a4e1366`): tri-state Permissions tab
+  (`ChannelPermissionsTab.tsx`, ghost inherited values, override dots,
+  Save/Reset per role) in `ChannelSettingsModal.tsx`, three
+  `platform/commands/channelPermissions.ts` adapter functions,
+  empty-category suppression in the sidebar for non-admins, i18n ×4
+  locales, 7 unit tests. Not yet visually verified in a running client;
+  desktop/Android UI parity deferred per delivery-target decision. — admin registers external HTTPS URLs;
   hub POSTs HMAC-SHA256-signed `hub_event` envelopes on matching events
   (fire-and-forget, no bot identity/WS session needed). New
   `hub/src/outgoing_webhooks/` module: 9 admin routes (added a `GET
