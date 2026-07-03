@@ -77,8 +77,10 @@ visual pass (Known issues).
   implement**: [`events.md`](docs/events.md). Slot claims with enforced
   capacity, reminder worker posting channel event-cards at T−N,
   calendar view; includes the events read-gating fix below.
-- **Join-to-create temporary voice channels** — spawner channel creates
-  a personal room, GC'd when empty. See [`future-features.md`](docs/future-features.md).
+- **Join-to-create temporary voice channels** — **designed, ready to
+  implement**: [`temp-voice-channels.md`](docs/temp-voice-channels.md).
+  Spawner type + sibling temp rooms, 60s-grace GC worker, and the new
+  `channel_list_changed` WS event (fixes stale sidebars generally).
 - **Soundboard** — client-side clip injection into the outgoing voice
   stream; shares a mechanism with deferred bot audio injection. See
   [`future-features.md`](docs/future-features.md).

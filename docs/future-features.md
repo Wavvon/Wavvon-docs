@@ -290,19 +290,14 @@ from the ROADMAP wishlist.
 
 ## Join-to-create temporary voice channels
 
-**What**: a channel can be flagged as a *spawner*. Joining it creates a
-fresh sibling voice channel owned by the joiner (name template, e.g.
-"{user}'s room"), moves them into it, and garbage-collects the channel
-when the last person leaves.
-
-**Why**: how large communities avoid a wall of 20 static voice
-channels. Composes with the nested-channel tree (spawned rooms are
-children of the spawner's parent category) and with channel permission
-overwrites once those ship.
-
-**Status**: undesigned. Open questions: who may configure spawners,
-what the temporary owner can edit (name, user cap), cleanup on hub
-restart.
+**Status: DESIGNED, not implemented.** The canonical design is
+[temp-voice-channels.md](temp-voice-channels.md) — `channel_type =
+'spawner'` + temp rooms as ordinary channels with owner/GC columns,
+spawn-as-sibling (inherits the permission cascade), 60s empty-grace
+sweep worker, rename-only owner powers, and a new payload-free
+`channel_list_changed` WS event that also fixes the general
+stale-sidebar-on-admin-edits gap. Awaiting implementation pick-up
+from the ROADMAP wishlist.
 
 ---
 
