@@ -6,6 +6,22 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Channel permalinks (2026-07-04)** — §1 of
+  [`nested-channels-ux.md`](nested-channels-ux.md), web only (clients
+  `bed7fe3`). `parseHubInput` now returns an optional `target`
+  (`channel/{id}` / `channel/{id}/message/{id}`), fixing
+  message-permalink navigation as a side effect (the web
+  scroll-to-message handler was a no-op — now real, also used by
+  reply-jump/pinned-jump). `channelPath()` helper in `packages/core`
+  (cycle-guarded); deep-link targets carried through the add-hub flow;
+  "Copy channel link" in the channel context menu + header button
+  (no overflow-menu precedent existed, so an icon button); breadcrumb
+  header with clickable category crumbs scrolling the sidebar.
+  `packages/core` gained its own vitest script (17 new tests) — which
+  surfaced the stale `voxply/` crypto test vectors now in ROADMAP
+  Known issues. First-run zero-hub permalink carry-through
+  deliberately not wired (edge case; `AddHubModal` path only).
+
 - **Channel permission overwrites (2026-07-04)** — the §3 "cascade like a
   file system" mechanism from [`nested-channels-ux.md`](nested-channels-ux.md).
   Server (hub `5912459`): `channel_permission_overwrites` table;

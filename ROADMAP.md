@@ -26,11 +26,9 @@ The full history of shipped work lives in
 
 Three independent gaps; §1 and §2 are client-only, §3 is net-new server + UI.
 
-Channel permalinks (§1) — *in progress 2026-07-04*:
-- [ ] Extend `parseHubInput` (`packages/core`) to parse a `channel`/`message` `target` from the path
-- [ ] App-level consumer: navigate to `target` after hub connect (also fixes message-permalink resolution)
-- [ ] `channelPath()` breadcrumb helper in `packages/core/src/channels.ts`
-- [ ] "Copy channel link" affordance (context menu + channel-header) and breadcrumb header
+Channel permalinks (§1): **shipped 2026-07-04** (clients `bed7fe3`) —
+see [`shipped-log.md`](docs/shipped-log.md). Web only; first-run
+(zero-hub) permalink carry-through deliberately not wired.
 
 Deep-nesting sidebar (§2):
 - [ ] Cap indent (`INDENT_CAP`/`STEP` + overflow marker) in `ChannelSidebar.tsx`
@@ -97,6 +95,16 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
 
 ## ⚠️ Known issues
 
+- **`packages/core` crypto test vectors are stale** — found 2026-07-04
+  when `packages/core` got its first `test` script:
+  `src/identity/crypto.test.ts` still asserts pre-rename `"voxply/…"`
+  wire tags; the implementation and `wire-format.md` correctly use
+  `"wavvon/…"`. Excluded in `vitest.config.ts` with a comment.
+  Fix = regenerate the vectors against `wire-format.md`, then re-enable.
+- **Hub switch leaves the message pane empty** — `handleSwitchHub`
+  (web) never fetches history for the auto-selected default channel;
+  only `handleSelectChannel` does. Pre-existing, unrelated to
+  permalinks (deep links are unaffected).
 - **Events routes bypass channel-scoped permissions** — found 2026-07-04
   while designing event slots: `create_event` checks hub-wide
   `CREATE_EVENTS` only and `list_events` is not read-gated, so event
