@@ -73,18 +73,18 @@ Channel permission overwrites (§3):
 - **Discord server import** — reproduce a Discord server's channel tree,
   roles, and pins on a fresh hub; biggest single adoption lever. See
   [`future-features.md`](docs/future-features.md).
-- **Event / calendar channel type** — scheduled events with role-slot
-  sign-ups (tank/healer/DPS), timezone-aware, reminders. See
-  [`future-features.md`](docs/future-features.md).
+- **Event role-slot sign-ups + reminders** — events with plain RSVP
+  already shipped; the guild delta is slot claims (tank/healer/DPS),
+  reminders, calendar view. See [`future-features.md`](docs/future-features.md).
 - **Join-to-create temporary voice channels** — spawner channel creates
   a personal room, GC'd when empty. See [`future-features.md`](docs/future-features.md).
 - **Soundboard** — client-side clip injection into the outgoing voice
   stream; shares a mechanism with deferred bot audio injection. See
   [`future-features.md`](docs/future-features.md).
-- **Role categories + role color/icon** — native role grouping (kills
-  Discord's fake-divider-role hack); display-only, no permissions.
-  Roles currently have no color/icon at all. See
-  [`future-features.md`](docs/future-features.md).
+- **Role categories + role color/icon** — **designed, ready to
+  implement**: [`role-categories.md`](docs/role-categories.md).
+  Display-only grouping + color/emoji-icon on roles and categories;
+  hub-admin Roles tab and profile card surfaces.
 - **LAN / offline mode** — mDNS discovery + no-public-TLS join story;
   "works at a LAN party" differentiator. See
   [`future-features.md`](docs/future-features.md).

@@ -274,27 +274,31 @@ Federation of posts across alliances.
 
 ---
 
-## Event / calendar channel type
+## Events — role-slot sign-ups and reminders
 
-**What**: a fourth channel type (`text` / `forum` / `banner` → `event`)
-whose content is a list of scheduled events rather than a message
-stream. Each event has a title, description, start time (stored UTC,
-rendered in the viewer's timezone), and optional **role-slot sign-ups**
-— named slots with capacities (e.g. tank ×2, healer ×4, DPS ×10, or
-free-form) that members claim. Reminders fire via the existing
-WebSocket push (and later, notifications).
+**What exists** (shipped): hub-level scheduled events with plain RSVP.
+`hub/src/routes/events.rs` (create/update/delete/list, `event_rsvps`
+status counts, `CREATE_EVENTS` permission) and `EventsPanel.tsx` /
+`EventCard.tsx` / `EventComposer.tsx` on the clients.
 
-**Why**: guilds run on scheduled events — raids, scrims, tournaments —
-and Discord's native events are weak enough that Raid-Helper-style
-sign-up bots are among its most-installed bots. A native, first-class
-version is a visible differentiator for exactly Wavvon's target
-audience, and very demo-able for the visibility push.
+**What's missing — the guild delta**: plain RSVP answers "how many are
+coming"; raids need "which *roles* are covered":
 
-**Fit**: reuses the `channel_type` discriminant pattern that forums
-introduced; events are hub-local (community axis). Federation across
-alliances is out of scope for v1, same as forum posts.
+- **Role-slot sign-ups** — an event defines named slots with capacities
+  (tank ×2, healer ×4, DPS ×10, or free-form); members claim a slot,
+  the card shows fill state per slot. This is the Raid-Helper feature
+  class — among the most-installed Discord bots, so demand is proven.
+- **Reminders** — push at T−N via the existing WebSocket notification
+  path for members who RSVP'd/claimed a slot.
+- **Calendar view** — month/week rendering of the existing event list.
+  Pure client work, no new server API.
 
-**Status**: undesigned.
+**Fit**: all three extend the shipped tables/routes additively (a
+`event_slots` table + a `slot_id` on RSVPs; a reminder worker like the
+existing background workers). Events stay hub-local (community axis);
+federation out of scope.
+
+**Status**: undesigned (the delta only).
 
 ---
 
@@ -410,34 +414,12 @@ until the desktop client is back in scope.
 
 ## Role categories
 
-**What**: native grouping for roles. Discord servers routinely create
-permissionless "fake" divider roles (`─── Staff ───`) just to visually
-split the role list — polluting the permission system, member counts,
-and mention search. Wavvon can do it properly: a `role_categories`
-table (id, name, color, icon, position) plus an additive
-`roles.category_id` column.
-
-**Where categories show** (decided 2026-07-03): two surfaces —
-
-1. **Role-settings UI** — roles listed grouped under their category
-   headers instead of one flat list.
-2. **User profile card** — the popover shown when clicking a member
-   (the "bio" card) groups that user's roles under category headers,
-   like Discord's role chips but sectioned.
-
-The **member sidebar is explicitly out of scope** — sidebar hoisting
-stays driven by `display_separately` on individual roles, unchanged.
-
-**Rule**: categories are **display-only containers — they carry no
-permissions**. Same container-vs-leaf sharpness as channel categories;
-permission resolution continues to read roles only.
-
-**Prerequisite/sibling**: roles themselves currently have **no color or
-icon columns** — adding cosmetic identity (color, icon) to roles is
-part of the same design pass, since a category color that can't fall
-back to role colors is half a feature.
-
-**Status**: undesigned.
+**Status: DESIGNED, not implemented.** The canonical design is
+[role-categories.md](role-categories.md) — native role grouping
+(display-only, no permissions) plus color/emoji-icon on both roles and
+categories, surfaced in the hub-admin Roles tab and the user profile
+card. Decision entry in [decisions.md](decisions.md). Awaiting
+implementation pick-up from the ROADMAP wishlist.
 
 ---
 

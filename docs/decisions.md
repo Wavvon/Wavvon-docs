@@ -6,6 +6,39 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Role categories are display-only; role color/icon ships with them
+
+**Decision** (designed 2026-07-03, not yet implemented): roles gain
+native grouping via a `role_categories` table plus a nullable
+`roles.category_id`, and cosmetic identity (`color`, `icon` — emoji
+only in v1) on both roles and categories. Categories carry **no
+permissions** and render on exactly two surfaces: the hub-admin Roles
+tab (grouped list) and the user profile card (badges sectioned under
+category headers). The member sidebar is untouched — hoisting stays on
+`display_separately`. Full design: [role-categories.md](role-categories.md).
+
+**Why**: communities on centralized platforms fake this with
+permissionless divider roles (`─── Staff ───`), polluting the
+permission system, role pickers, and mention search. Native grouping
+removes the hack without adding a second permission axis.
+
+**Alternatives considered**:
+
+- **Categories with permissions** (roles inherit from their category) —
+  rejected: a second grouping axis competing with roles and the
+  channel-overwrite cascade ([nested-channels-ux.md](nested-channels-ux.md) §3);
+  the permission model keeps exactly one unit, the role.
+- **Sectioning the member sidebar by category** — rejected for v1: the
+  profile card is where flat role chips hurt most; re-sectioning every
+  member list on day one of a cosmetic feature is disproportionate.
+- **Icon image uploads** — rejected for v1 in favor of emoji: uploads
+  need storage, quotas, and moderation for a decoration; the TEXT
+  column upgrades to an asset-id scheme later if justified.
+
+**Tradeoff**: display-only categories can't express "everyone in this
+group of roles may…" — bulk permission tooling, if ever wanted, must
+operate on roles, not categories. Accepted; that's the point.
+
 ## Web voice via a WebSocket Opus relay, not WebRTC
 
 **Decision** (shipped 2026-06-13): the browser client joins the same voice
