@@ -6,6 +6,21 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Deep-nesting sidebar (2026-07-04)** — §2 of
+  [`nested-channels-ux.md`](nested-channels-ux.md), web only (clients
+  `2289304`). Capped indent (`min(depth,5)×12px` + `aria-hidden` depth
+  marker past the cap; true depth kept in `aria-level`); drill-in via a
+  dedicated ⤢ button on categories at depth ≥4 (button, not header
+  click — the header is a drag handle) re-rooting the sidebar with a
+  `channelPath` back-crumb, aria-live announcement, and real focus
+  movement. Cross-boundary drags while drilled-in are blocked for free
+  by the existing render-what's-visible dnd architecture. Pure helpers
+  in `channelSidebarLayout.ts` with vitest coverage. **Also fixed a
+  latent bug**: sidebar arrow-key navigation had never focused real DOM
+  elements (`channelItemRefs` was never populated) — keyboard nav works
+  for the first time. With §1 and §3 shipped this completes
+  `nested-channels-ux.md` entirely.
+
 - **Channel permalinks (2026-07-04)** — §1 of
   [`nested-channels-ux.md`](nested-channels-ux.md), web only (clients
   `bed7fe3`). `parseHubInput` now returns an optional `target`

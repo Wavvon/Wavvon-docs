@@ -22,21 +22,14 @@ The full history of shipped work lives in
   `screen_share.rs` updated for new API. Verify in CI before removing from
   Known issues.
 
-## 🔨 Nested channels — UX gaps — [nested-channels-ux.md](docs/nested-channels-ux.md)
+## 🔨 Nested channels — UX gaps: **all shipped 2026-07-04**
 
-Three independent gaps; §1 and §2 are client-only, §3 is net-new server + UI.
-
-Channel permalinks (§1): **shipped 2026-07-04** (clients `bed7fe3`) —
-see [`shipped-log.md`](docs/shipped-log.md). Web only; first-run
-(zero-hub) permalink carry-through deliberately not wired.
-
-Deep-nesting sidebar (§2) — *in progress 2026-07-04*:
-- [ ] Cap indent (`INDENT_CAP`/`STEP` + overflow marker) in `ChannelSidebar.tsx`
-- [ ] Drill-in (focus-scoped subtree + back-crumb) with `aria-level`/`aria-live` accessibility
-
-Channel permission overwrites (§3): **shipped 2026-07-04** (hub `5912459`,
-clients `a4e1366`) — see [`shipped-log.md`](docs/shipped-log.md). Needs a
-visual pass (Known issues).
+[nested-channels-ux.md](docs/nested-channels-ux.md) is fully
+implemented — §1 permalinks (clients `bed7fe3`), §2 deep-nesting
+sidebar (clients `2289304`), §3 permission overwrites (hub `5912459` +
+clients `a4e1366`). Web only; details in
+[`shipped-log.md`](docs/shipped-log.md). Needs a visual pass (Known
+issues).
 
 ## 🚧 Blocked
 
@@ -117,10 +110,12 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
   event list. Fix: resolve via `channel_permissions`, filter the list
   by effective `read_messages`. Rides with the event-slots work
   ([`events.md`](docs/events.md)) or sooner.
-- **Channel Permissions tab: no visual pass yet** — logic tested
-  (7 unit + 7 integration tests) but not exercised in a running client.
-  Also: the channel-settings gear is `isAdmin`-gated (pre-existing), so a
-  member with only `manage_roles` can't reach the tab the server would
+- **2026-07-04 web UI batch: no visual pass yet** — the Permissions
+  tab, channel permalinks/breadcrumbs, and sidebar drill-in are all
+  logic-tested but not yet exercised in a running client; one
+  click-through session covers all three. Also: the channel-settings
+  gear is `isAdmin`-gated (pre-existing), so a member with only
+  `manage_roles` can't reach the Permissions tab the server would
   allow them to use.
 - **Test harness leaks ephemeral databases** — `hub/tests` creates a
   `wavvon_test_*` Postgres DB per test and never drops it; ~700 had
