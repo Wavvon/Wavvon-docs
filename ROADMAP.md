@@ -74,9 +74,10 @@ visual pass (Known issues).
   [`discord-import.md`](docs/discord-import.md). Two-stage CLI (bot
   export → reviewable manifest → apply on fresh hub); structure only;
   biggest single adoption lever.
-- **Event role-slot sign-ups + reminders** — events with plain RSVP
-  already shipped; the guild delta is slot claims (tank/healer/DPS),
-  reminders, calendar view. See [`future-features.md`](docs/future-features.md).
+- **Event role-slot sign-ups + reminders** — **designed, ready to
+  implement**: [`events.md`](docs/events.md). Slot claims with enforced
+  capacity, reminder worker posting channel event-cards at T−N,
+  calendar view; includes the events read-gating fix below.
 - **Join-to-create temporary voice channels** — spawner channel creates
   a personal room, GC'd when empty. See [`future-features.md`](docs/future-features.md).
 - **Soundboard** — client-side clip injection into the outgoing voice
@@ -96,6 +97,13 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
 
 ## ⚠️ Known issues
 
+- **Events routes bypass channel-scoped permissions** — found 2026-07-04
+  while designing event slots: `create_event` checks hub-wide
+  `CREATE_EVENTS` only and `list_events` is not read-gated, so event
+  titles in channels hidden by permission overwrites leak into the
+  event list. Fix: resolve via `channel_permissions`, filter the list
+  by effective `read_messages`. Rides with the event-slots work
+  ([`events.md`](docs/events.md)) or sooner.
 - **Channel Permissions tab: no visual pass yet** — logic tested
   (7 unit + 7 integration tests) but not exercised in a running client.
   Also: the channel-settings gear is `isAdmin`-gated (pre-existing), so a

@@ -276,29 +276,15 @@ Federation of posts across alliances.
 
 ## Events — role-slot sign-ups and reminders
 
-**What exists** (shipped): hub-level scheduled events with plain RSVP.
-`hub/src/routes/events.rs` (create/update/delete/list, `event_rsvps`
-status counts, `CREATE_EVENTS` permission) and `EventsPanel.tsx` /
-`EventCard.tsx` / `EventComposer.tsx` on the clients.
-
-**What's missing — the guild delta**: plain RSVP answers "how many are
-coming"; raids need "which *roles* are covered":
-
-- **Role-slot sign-ups** — an event defines named slots with capacities
-  (tank ×2, healer ×4, DPS ×10, or free-form); members claim a slot,
-  the card shows fill state per slot. This is the Raid-Helper feature
-  class — among the most-installed Discord bots, so demand is proven.
-- **Reminders** — push at T−N via the existing WebSocket notification
-  path for members who RSVP'd/claimed a slot.
-- **Calendar view** — month/week rendering of the existing event list.
-  Pure client work, no new server API.
-
-**Fit**: all three extend the shipped tables/routes additively (a
-`event_slots` table + a `slot_id` on RSVPs; a reminder worker like the
-existing background workers). Events stay hub-local (community axis);
-federation out of scope.
-
-**Status**: undesigned (the delta only).
+**Status: DESIGNED, not implemented.** The canonical doc is
+[events.md](events.md) — it records the shipped baseline (events +
+RSVP) and designs the guild delta: `event_slots` with enforced
+capacities and one-claim-per-user, a `reminder_minutes` +
+idempotent-worker reminder posting an event card into the channel at
+T−N, and a client-only calendar view. Also documents the pre-existing
+gap that events routes bypass channel-scoped permissions (read-gating
+leak) — fix rides with this work. Awaiting implementation pick-up
+from the ROADMAP wishlist.
 
 ---
 
