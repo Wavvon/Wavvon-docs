@@ -26,7 +26,7 @@ The full history of shipped work lives in
 
 Three independent gaps; §1 and §2 are client-only, §3 is net-new server + UI.
 
-Channel permalinks (§1):
+Channel permalinks (§1) — *in progress 2026-07-04*:
 - [ ] Extend `parseHubInput` (`packages/core`) to parse a `channel`/`message` `target` from the path
 - [ ] App-level consumer: navigate to `target` after hub connect (also fixes message-permalink resolution)
 - [ ] `channelPath()` breadcrumb helper in `packages/core/src/channels.ts`
@@ -50,6 +50,10 @@ visual pass (Known issues).
 - **Android client icons** — placeholder solid-color PNGs in place. Waiting on
   the final logo asset. Run `cargo tauri icon <1024x1024.png>` once the brand
   logo is ready. See [`brand.md`](docs/brand.md).
+
+- [ ] **Role categories + role color/icon** — *in progress 2026-07-04*,
+  implementing [`role-categories.md`](docs/role-categories.md) (server
+  first, then web UI).
 
 ## 📌 Wishlist (undesigned)
 
@@ -78,10 +82,6 @@ visual pass (Known issues).
 - **Soundboard** — client-side clip injection into the outgoing voice
   stream; shares a mechanism with deferred bot audio injection. See
   [`future-features.md`](docs/future-features.md).
-- **Role categories + role color/icon** — **designed, ready to
-  implement**: [`role-categories.md`](docs/role-categories.md).
-  Display-only grouping + color/emoji-icon on roles and categories;
-  hub-admin Roles tab and profile card surfaces.
 - **LAN / offline mode** — mDNS discovery + no-public-TLS join story;
   "works at a LAN party" differentiator. See
   [`future-features.md`](docs/future-features.md).
