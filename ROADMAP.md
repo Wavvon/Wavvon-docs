@@ -36,13 +36,13 @@ Deep-nesting sidebar (§2):
 - [ ] Cap indent (`INDENT_CAP`/`STEP` + overflow marker) in `ChannelSidebar.tsx`
 - [ ] Drill-in (focus-scoped subtree + back-crumb) with `aria-level`/`aria-live` accessibility
 
-Channel permission overwrites (§3):
-- [ ] DB migration: `channel_permission_overwrites` table (additive)
-- [ ] `channel_permissions()` resolver in `hub/src/permissions.rs` (cascade, allow-wins, admin-immune)
-- [ ] Switch channel-scoped call sites (`messages.rs`, `posts.rs`, `channels.rs`, voice join)
-- [ ] Channel-list read-gating (server-side filter; empty-container suppression client-side)
-- [ ] Admin routes: GET/PUT/DELETE `/channels/:id/permissions[/:role_id]` + audit-log entries
-- [ ] Channel-settings "Permissions" tab (tri-state grid) + web platform-adapter route functions
+Channel permission overwrites (§3): *(server side shipped 2026-07-03, hub `5912459`)*
+- [x] DB migration: `channel_permission_overwrites` table (additive)
+- [x] `channel_permissions()` resolver in `hub/src/permissions.rs` (cascade, allow-wins, admin-immune)
+- [x] Switch channel-scoped call sites (`messages.rs`, `posts.rs`, `channels.rs`, WS subscribe, voice join)
+- [x] Channel-list read-gating, server-side filter (client empty-container suppression below)
+- [x] Admin routes: GET/PUT/DELETE `/channels/:id/permissions[/:role_id]` + audit-log entries
+- [ ] Channel-settings "Permissions" tab (tri-state grid) + web platform-adapter route functions + empty-container suppression — in progress
 
 ## 🚧 Blocked
 
