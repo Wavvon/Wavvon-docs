@@ -6,6 +6,25 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Role categories + role color/icon, web client (2026-07-04)** —
+  [`role-categories.md`](role-categories.md) §4, clients `a6b2d24`
+  (server side shipped separately, hub `31c291b`). Types + platform
+  adapter (`listRoles`/`createRole`/`updateRole`/`deleteRole`,
+  `listRoleCategories`/`createRoleCategory`/`updateRoleCategory`/
+  `deleteRoleCategory`, tri-state null-clearing payload builders with
+  vitest coverage). Hub-admin Roles tab now lists every hub role
+  (previously it rendered only the current user's own roles — a
+  pre-existing gap, not a regression) grouped under category headers,
+  with a `RoleCategoryManager` for create/rename/recolor/re-icon/
+  reorder(up-down)/delete, and per-role category dropdown + color
+  swatch + `EmojiPicker` icon controls. User profile card groups
+  `profile.roles` by category with a trailing uncategorized group;
+  role badges tint border/text via `color-mix()` against the theme's
+  own foreground (not the raw hex) to keep contrast in both themes.
+  Categories cached module-level in `UserProfileCard.tsx` keyed by hub
+  id. Member sidebar untouched per the doc's decided scope. Desktop/
+  Android parity not started — see Wishlist.
+
 - **Deep-nesting sidebar (2026-07-04)** — §2 of
   [`nested-channels-ux.md`](nested-channels-ux.md), web only (clients
   `2289304`). Capped indent (`min(depth,5)×12px` + `aria-hidden` depth

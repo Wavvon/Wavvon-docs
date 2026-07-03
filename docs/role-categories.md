@@ -6,7 +6,8 @@ both roles and their categories. Kills the "fake divider role" hack
 visually split their role lists — a hack that pollutes the permission
 system, role pickers, and mention search with permissionless roles.
 
-**Status: designed, not implemented.** ROADMAP wishlist item.
+**Status: server + web client shipped 2026-07-04** (hub `31c291b`,
+clients `a6b2d24`). Desktop/Android parity (§4, §6) not started.
 
 ---
 

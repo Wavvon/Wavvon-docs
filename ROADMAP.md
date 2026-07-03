@@ -42,12 +42,6 @@ issues).
   the final logo asset. Run `cargo tauri icon <1024x1024.png>` once the brand
   logo is ready. See [`brand.md`](docs/brand.md).
 
-- [ ] **Role categories + role color/icon** — *in progress 2026-07-04*,
-  implementing [`role-categories.md`](docs/role-categories.md).
-  Server side shipped (hub `31c291b`: migrations, category CRUD,
-  role appearance fields, 6 integration tests); web UI queued behind
-  the §2 sidebar work (same clients repo).
-
 ## 📌 Wishlist (undesigned)
 
 - **Project visibility push** — remaining: a hosted demo hub, directory listings, launch post.
@@ -56,6 +50,11 @@ issues).
   cross-links, and a `docker compose` quick-start.
   2026-06-11: demo-seed tool added; real screenshots + join-flow GIF added to READMEs.)*
 - **Passkey registration from desktop** — blocked by Tauri webview RP ID mismatch; requires either a native OS WebAuthn plugin (tauri-plugin-passkey) or a hybrid approach where the desktop opens the hub URL in the system browser for the ceremony.
+- **Role categories + role color/icon — desktop/Android parity** — web
+  client shipped 2026-07-04 (clients `a6b2d24`); port the same
+  category manager + per-role color/icon controls into desktop's and
+  Android's own `RoleEditor.tsx`/`RoleCreator.tsx` copies. See
+  [`role-categories.md`](docs/role-categories.md) §4, §6.
 - **Cross-farm hub-certification relay** — let certifications propagate
   across the hubs a single farm operator manages instead of each hub
   verifying independently. No design work started. See
