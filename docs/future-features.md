@@ -340,21 +340,13 @@ moderation rules on the hub side.
 
 ## Discord server import
 
-**What**: take a Discord server export (or a one-shot migration bot)
-and reproduce the channel tree, categories, roles, and pinned content
-on a fresh Wavvon hub. Messages/history are explicitly out of scope for
-v1 — the goal is that a community's *structure* survives the move.
-
-**Why**: every community that considers switching asks "do we have to
-rebuild everything?". Removing that objection is likely worth more for
-adoption than any single new capability, and adoption is a stated
-project goal (visibility push, code-signing re-application).
-Competitor references are fine — keep it factual.
-
-**Status**: undesigned. Open questions: input format (Discord's data
-package vs. a bot with read access), role-permission mapping (Discord
-permissions ≠ Wavvon permissions — map what's mappable, report the
-rest), identity mapping (none — members re-join as their own keypairs).
+**Status: DESIGNED, not implemented.** The canonical design is
+[discord-import.md](discord-import.md) — a two-stage CLI
+(`export` via a read-only bot → reviewable neutral manifest → `apply`
+against a fresh hub over public HTTP routes, demo-seed style).
+Structure only in v1: channel tree, roles, and channel permission
+overwrites; members, history, and emoji are reported, not imported.
+Awaiting implementation pick-up from the ROADMAP wishlist.
 
 ---
 

@@ -6,6 +6,44 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Discord import: two-stage CLI with a neutral, reviewable manifest
+
+**Decision** (designed 2026-07-04, not yet implemented): the migration
+tool is a standalone workspace CLI (`discord-import`, modeled on
+`demo-seed`) with two stages: `export` reads a guild's structure via a
+read-only **bot** the owner invites (channels, roles, permission
+overwrites — no privileged intents) and writes a neutral, versioned,
+human-editable `import-manifest.json`; `apply` replays that manifest
+onto a **fresh** hub through existing public HTTP routes only.
+Structure only in v1 — members, history, and emoji are reported as
+skipped, never silently dropped. Full design:
+[discord-import.md](discord-import.md).
+
+**Why**: "do we have to rebuild everything?" is the first objection
+every switching community raises, and structure is the cheap 90% of
+the answer. The manifest between the stages gives the operator a
+review/edit step, decouples the Discord-facing half from the
+hub-facing half, and becomes an input format other sources (Matrix,
+Slack, generators) can emit later.
+
+**Alternatives considered**:
+
+- **Single live Discord→hub pipe** — rejected: no review step, couples
+  both APIs in one process, can't run the halves on different machines.
+- **User-token scraping / data package** — rejected: user tokens
+  violate Discord ToS; the personal data package doesn't contain
+  server structure at all.
+- **DiscordChatExporter output as primary input** — rejected:
+  third-party, message-centric format; may become another manifest
+  *producer* later.
+- **Message history in v1** — rejected: imported messages have no
+  author keypair (identity is a keypair, not an account), so history
+  import is an attribution-design problem with 10× the surface.
+
+**Tradeoff**: a fresh-hub-only, fail-forward apply means no
+merge-into-existing and "wipe and re-run" as the recovery path.
+Accepted for a v1 migration tool.
+
 ## Role categories are display-only; role color/icon ships with them
 
 **Decision** (designed 2026-07-03, not yet implemented): roles gain

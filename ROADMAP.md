@@ -70,9 +70,10 @@ Channel permission overwrites (§3): *(server side shipped 2026-07-03, hub `5912
 - **Forum post federation across alliances** — v1 forums are hub-local
   only; posts/replies don't federate over alliance-shared channels. No
   design work started. See [`forum.md`](docs/forum.md).
-- **Discord server import** — reproduce a Discord server's channel tree,
-  roles, and pins on a fresh hub; biggest single adoption lever. See
-  [`future-features.md`](docs/future-features.md).
+- **Discord server import** — **designed, ready to implement**:
+  [`discord-import.md`](docs/discord-import.md). Two-stage CLI (bot
+  export → reviewable manifest → apply on fresh hub); structure only;
+  biggest single adoption lever.
 - **Event role-slot sign-ups + reminders** — events with plain RSVP
   already shipped; the guild delta is slot claims (tank/healer/DPS),
   reminders, calendar view. See [`future-features.md`](docs/future-features.md).
