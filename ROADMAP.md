@@ -30,7 +30,7 @@ Channel permalinks (§1): **shipped 2026-07-04** (clients `bed7fe3`) —
 see [`shipped-log.md`](docs/shipped-log.md). Web only; first-run
 (zero-hub) permalink carry-through deliberately not wired.
 
-Deep-nesting sidebar (§2):
+Deep-nesting sidebar (§2) — *in progress 2026-07-04*:
 - [ ] Cap indent (`INDENT_CAP`/`STEP` + overflow marker) in `ChannelSidebar.tsx`
 - [ ] Drill-in (focus-scoped subtree + back-crumb) with `aria-level`/`aria-live` accessibility
 
