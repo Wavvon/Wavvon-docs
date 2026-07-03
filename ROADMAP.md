@@ -50,8 +50,10 @@ visual pass (Known issues).
   logo is ready. See [`brand.md`](docs/brand.md).
 
 - [ ] **Role categories + role color/icon** — *in progress 2026-07-04*,
-  implementing [`role-categories.md`](docs/role-categories.md) (server
-  first, then web UI).
+  implementing [`role-categories.md`](docs/role-categories.md).
+  Server side shipped (hub `31c291b`: migrations, category CRUD,
+  role appearance fields, 6 integration tests); web UI queued behind
+  the §2 sidebar work (same clients repo).
 
 ## 📌 Wishlist (undesigned)
 
