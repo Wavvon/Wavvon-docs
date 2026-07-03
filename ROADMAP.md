@@ -70,6 +70,28 @@ Channel permission overwrites (§3):
 - **Forum post federation across alliances** — v1 forums are hub-local
   only; posts/replies don't federate over alliance-shared channels. No
   design work started. See [`forum.md`](docs/forum.md).
+- **Discord server import** — reproduce a Discord server's channel tree,
+  roles, and pins on a fresh hub; biggest single adoption lever. See
+  [`future-features.md`](docs/future-features.md).
+- **Event / calendar channel type** — scheduled events with role-slot
+  sign-ups (tank/healer/DPS), timezone-aware, reminders. See
+  [`future-features.md`](docs/future-features.md).
+- **Join-to-create temporary voice channels** — spawner channel creates
+  a personal room, GC'd when empty. See [`future-features.md`](docs/future-features.md).
+- **Soundboard** — client-side clip injection into the outgoing voice
+  stream; shares a mechanism with deferred bot audio injection. See
+  [`future-features.md`](docs/future-features.md).
+- **Role categories + role color/icon** — native role grouping (kills
+  Discord's fake-divider-role hack); display-only, no permissions.
+  Roles currently have no color/icon at all. See
+  [`future-features.md`](docs/future-features.md).
+- **LAN / offline mode** — mDNS discovery + no-public-TLS join story;
+  "works at a LAN party" differentiator. See
+  [`future-features.md`](docs/future-features.md).
+- **Personal data export (full archive)** — extend identity backup to
+  all personal-axis state. See [`future-features.md`](docs/future-features.md).
+- **Live captions in voice** — local STT, desktop-era (too heavy for
+  web). See [`future-features.md`](docs/future-features.md).
 
 ## 🚀 Recently shipped
 

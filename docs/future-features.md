@@ -274,6 +274,164 @@ Federation of posts across alliances.
 
 ---
 
+## Event / calendar channel type
+
+**What**: a fourth channel type (`text` / `forum` / `banner` → `event`)
+whose content is a list of scheduled events rather than a message
+stream. Each event has a title, description, start time (stored UTC,
+rendered in the viewer's timezone), and optional **role-slot sign-ups**
+— named slots with capacities (e.g. tank ×2, healer ×4, DPS ×10, or
+free-form) that members claim. Reminders fire via the existing
+WebSocket push (and later, notifications).
+
+**Why**: guilds run on scheduled events — raids, scrims, tournaments —
+and Discord's native events are weak enough that Raid-Helper-style
+sign-up bots are among its most-installed bots. A native, first-class
+version is a visible differentiator for exactly Wavvon's target
+audience, and very demo-able for the visibility push.
+
+**Fit**: reuses the `channel_type` discriminant pattern that forums
+introduced; events are hub-local (community axis). Federation across
+alliances is out of scope for v1, same as forum posts.
+
+**Status**: undesigned.
+
+---
+
+## Join-to-create temporary voice channels
+
+**What**: a channel can be flagged as a *spawner*. Joining it creates a
+fresh sibling voice channel owned by the joiner (name template, e.g.
+"{user}'s room"), moves them into it, and garbage-collects the channel
+when the last person leaves.
+
+**Why**: how large communities avoid a wall of 20 static voice
+channels. Composes with the nested-channel tree (spawned rooms are
+children of the spawner's parent category) and with channel permission
+overwrites once those ship.
+
+**Status**: undesigned. Open questions: who may configure spawners,
+what the temporary owner can edit (name, user cap), cleanup on hub
+restart.
+
+---
+
+## Soundboard
+
+**What**: per-hub library of short audio clips members can trigger in a
+voice channel; playback is mixed into the sender's outgoing Opus stream
+client-side, so the hub relay needs no changes.
+
+**Why**: cheap, loved, and viral in gaming communities.
+
+**Fit**: shares the audio-injection mechanism with the deferred "bots
+inject audio into voice" work (see [bots.md](bots.md)) — designing one
+should design the other.
+
+**Status**: undesigned. Client-side injection point exists conceptually
+in `crates/voice` (mix before Opus encode); needs upload/storage/
+moderation rules on the hub side.
+
+---
+
+## Discord server import
+
+**What**: take a Discord server export (or a one-shot migration bot)
+and reproduce the channel tree, categories, roles, and pinned content
+on a fresh Wavvon hub. Messages/history are explicitly out of scope for
+v1 — the goal is that a community's *structure* survives the move.
+
+**Why**: every community that considers switching asks "do we have to
+rebuild everything?". Removing that objection is likely worth more for
+adoption than any single new capability, and adoption is a stated
+project goal (visibility push, code-signing re-application).
+Competitor references are fine — keep it factual.
+
+**Status**: undesigned. Open questions: input format (Discord's data
+package vs. a bot with read access), role-permission mapping (Discord
+permissions ≠ Wavvon permissions — map what's mappable, report the
+rest), identity mapping (none — members re-join as their own keypairs).
+
+---
+
+## LAN / offline mode
+
+**What**: run a hub on a LAN with no internet: mDNS/local discovery so
+clients on the same network find it, and a join story that doesn't
+require public DNS or a CA-issued TLS cert (self-signed + fingerprint
+pinning in the invite, or plain HTTP on RFC 1918 addresses as an
+explicit operator opt-in).
+
+**Why**: Mumble's quiet superpower. "Works at a LAN party with no
+internet" is something centralized platforms structurally cannot do,
+and it makes a strong launch-post headline. The Rust hub is already
+self-contained; this is mostly a discovery + trust-bootstrap problem.
+
+**Status**: undesigned. Interacts with the threat model
+([threat-model.md](threat-model.md)) — the TLS opt-out must be loud,
+local-only, and impossible to enable accidentally on a public hub.
+
+---
+
+## Personal data export — full archive
+
+**What**: extend the existing identity backup
+(`export_identity_backup` / passphrase wrapper) to a full portable
+archive: DM history, prefs, block/mute/ignore lists, home-hub list,
+drafts, custom themes — everything on the personal axis — plus
+optionally the user's own messages per hub.
+
+**Why**: turns the data-sovereignty pillar into a visible, checkable
+feature instead of a promise. Pairs naturally with the two-axis state
+model: personal-axis state already lives on the home hub, so the
+export is mostly "fetch + bundle + encrypt".
+
+**Status**: undesigned. Open questions: format (tar of JSON?),
+re-import semantics, whether community-axis content (own messages) is
+included or linked.
+
+---
+
+## Live captions in voice
+
+**What**: client-side speech-to-text (whisper.cpp-class local models)
+rendering live captions for a voice channel.
+
+**Why**: an accessibility differentiator none of the incumbents do
+well ([accessibility.md](accessibility.md)). Running locally keeps the
+no-telemetry stance intact — audio never leaves the client for
+transcription.
+
+**Status**: undesigned, and **desktop-era** — local ML inference is too
+heavy for the web client, which is the current delivery target. Parked
+until the desktop client is back in scope.
+
+---
+
+## Role categories
+
+**What**: native grouping for roles. Discord servers routinely create
+permissionless "fake" divider roles (`─── Staff ───`) just to visually
+split the role list — polluting the permission system, member counts,
+and mention search. Wavvon can do it properly: a `role_categories`
+table (id, name, color, icon, position) plus an additive
+`roles.category_id` column. Categories group roles in the role-settings
+UI and can act as section headers in the member sidebar (interacting
+with `display_separately` hoisting).
+
+**Rule**: categories are **display-only containers — they carry no
+permissions**. Same container-vs-leaf sharpness as channel categories;
+permission resolution continues to read roles only.
+
+**Prerequisite/sibling**: roles themselves currently have **no color or
+icon columns** — adding cosmetic identity (color, icon) to roles is
+part of the same design pass, since a category color that can't fall
+back to role colors is half a feature.
+
+**Status**: undesigned.
+
+---
+
 ## Server tags — federated portable badges
 
 **Status: MOSTLY SHIPPED.** The canonical doc is
