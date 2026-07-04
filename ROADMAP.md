@@ -84,11 +84,12 @@ issues).
   fingerprint or gated-plaintext trust; `WAVVON_LAN_MODE` flag with a
   hard private-address guard (can't be exposed publicly). Server-first;
   native discovery UX deferred to client era.
-- **Personal data export (full archive)** — *export half in progress
-  2026-07-04* ([`data-export.md`](docs/data-export.md)); client-only
-  (DM route is unpaginated so one fetch = full history — no server
-  change). Web has no passphrase envelope yet, so shipping a versioned
-  web Argon2id/AES-GCM format; import/restore deferred to a follow-up.
+- **Personal data export (full archive)** — *export half SHIPPED
+  2026-07-04* (clients `542891e`, [`data-export.md`](docs/data-export.md)).
+  Two follow-ups: (1) **prefs-blob decrypt** — web has no decrypt path
+  for the hub-synced E2E prefs blob, so v1 exports a local snapshot with
+  a `gap_note`; (2) **import/restore** (§5) not built. Cross-client
+  archive compat (desktop↔web envelope) also deferred.
 - **Live captions in voice** — local STT, desktop-era (too heavy for
   web). See [`future-features.md`](docs/future-features.md).
 

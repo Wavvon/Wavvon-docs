@@ -6,6 +6,25 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Personal data export — export half (2026-07-04)** —
+  [`data-export.md`](data-export.md), web only (clients `542891e`).
+  Client-assembled passphrase-encrypted archive (no server changes —
+  the DM route is unpaginated so one fetch per conversation = complete
+  history). New `archiveCrypto.ts` ships a self-contained
+  `wavvon-archive` envelope: Argon2id (64 MiB/t=3/p=1, `@noble/hashes`)
+  → AES-256-GCM (WebCrypto); **deliberately not** byte-matched to the
+  desktop identity-backup format (cross-client compat deferred).
+  `dataExport.ts` assembles identity (incl. seed material, matching the
+  identity-backup policy), home-hub designations, device certs +
+  revocations, full per-peer DM history, active theme, and local
+  drafts; aborts on any fetch failure rather than shipping a partial
+  archive. `FullArchiveSection.tsx` settings card (passphrase +
+  plaintext-DM warning + progress). **Gap**: web has no decrypt path
+  for the hub-synced E2E prefs blob, so `prefs` is a local-only
+  snapshot with a `gap_note` in the archive — wiring the real blob
+  decrypt is a follow-up. **Import/restore deferred** (§5); only the
+  export half shipped. 83 web tests green.
+
 - **Event role-slot sign-ups + reminders, web client (2026-07-04)** —
   [`events.md`](events.md) §2-§3, clients `dea0df0` (server side
   shipped separately, hub `825b0da`). `EventComposer.tsx` gained a
