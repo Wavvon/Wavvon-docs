@@ -28,7 +28,7 @@ Everything here is **portable** (no native API) unless marked native-only.
 | Feature | Web | Desktop | Android |
 |---|:--:|:--:|:--:|
 | **Real-time media** | | | |
-| Start a screen share (outbound) | ❌ | ✅ | ? |
+| Start a screen share (outbound) | ✅ (2026-07-04) | ✅ | ? |
 | View someone's screen share | ✅ | ✅ | ? |
 | Camera / webcam video (`VideoGrid`) | ❌ | ✅ | ? |
 | Whisper (targeted voice) | ❌ | ✅ | ? |
@@ -38,7 +38,7 @@ Everything here is **portable** (no native API) unless marked native-only.
 | Global (unfocused) PTT hotkey | ➖ native | ✅ | ➖ |
 | Audio-profile applied to live session | ✅ (2026-07-04) | ✅ | ? |
 | **Identity / profile / social** | | | |
-| Avatar image upload + crop | ❌ (URL only) | ✅ | ? |
+| Avatar image upload + crop | ✅ (2026-07-04) | ✅ | ? |
 | Friends (requests/list/DM) | ❌ (button now hidden) | ✅ | ? |
 | Multi-profile + per-hub assignment | ❌ | ✅ | ? |
 | "My certifications" viewer (member) | ❌ | ✅ | ? |
@@ -157,6 +157,31 @@ exist on web.
   network paths (their fetches live in the Tauri Rust layer / their own
   platform adapters); audit for other bare `fetch`/`invoke` calls that can
   hang.
+
+### 7. Outbound screen share (web) — DONE (2026-07-04)
+
+- Web could previously only *view* shares. New `WebScreenShareSession`
+  (`platform/screenShare.ts`) captures via `getDisplayMedia` + `MediaRecorder`
+  and speaks the hub's **chunk-transport** protocol byte-for-byte with the
+  desktop sharer: `screen_share_start` (`transport:"chunks"`), then per blob
+  a `screen_share_chunk` JSON envelope followed by a raw binary frame, then
+  `screen_share_stop`. Added `HubWebSocket.sendBinary` (`platform/ws.ts`).
+  A "🖥 Share screen" header button + the existing "You're sharing" bar drive
+  it (`ChannelHeader`), with `sharing`/`shareKbps` state in `App.tsx`. The
+  existing web viewer renders it unchanged. Covered by
+  `e2e/live/15-screen-share.spec.ts` (sharer bar + second client sees the
+  panel, both on fake media). *NOT ported to WebRTC — `webrtc.ts`'s unused
+  `WebRtcSharerSession` (the `transport:"webrtc"` v2 path) still doesn't
+  interoperate with the current viewer; a follow-up could adopt it.*
+- **Camera video / whisper / hub-streams panel** remain web gaps (media
+  audit) — separate follow-ups.
+
+### 8. Avatar image upload (web) — DONE (2026-07-04)
+
+- New `components/ImagePicker.tsx` (ported from desktop) — file picker +
+  drag-drop, center-crops to a 128px JPEG data URL — added to the Settings
+  profile tab alongside the existing URL field. Saves through the existing
+  `PATCH /me` avatar. Covered by `e2e/live/14-avatar-upload.spec.ts`.
 
 ---
 
