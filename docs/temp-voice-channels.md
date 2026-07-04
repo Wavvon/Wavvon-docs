@@ -74,7 +74,15 @@ a sibling of the spawner, same depth — never violates
   (existing FK behavior). **Text in a temp room is ephemeral** — this
   is a feature (scratch space), stated in the UI hint.
 
-## 4. New WS event: `channel_list_changed`
+## 4. Channel-list-changed WS signal
+
+> **Implemented 2026-07-04 (hub `3005fc5`) — reused the existing
+> `channels_updated` event, NOT a new `channel_list_changed`.** The
+> codebase already had a hub-wide, payload-free `{"type":
+> "channels_updated"}` fired on channel create/update/reorder/delete;
+> the temp-voice work reused it for spawn/GC rather than add a second
+> overlapping event. The design intent below stands; only the name
+> differs. Clients listen for `channels_updated`.
 
 Today there is no WS signal for channel create/delete/move at all —
 admins' structural edits only appear to others on refetch. Temp
@@ -82,7 +90,7 @@ channels make this unacceptable (rooms appear and vanish constantly),
 so this design adds the missing event:
 
 ```json
-{ "type": "channel_list_changed" }
+{ "type": "channels_updated" }
 ```
 
 Deliberately **payload-free**: clients respond by refetching the

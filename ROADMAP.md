@@ -71,14 +71,17 @@ issues).
   baseline RSVP-only). Calendar view (§4) still undesigned-priority,
   client-only. The events read-gating fix (H3) already landed in the
   security pass.
-- **Join-to-create temporary voice channels** — *server in progress
-  2026-07-04* ([`temp-voice-channels.md`](docs/temp-voice-channels.md)):
-  spawner type + sibling temp rooms, 60s-grace GC worker, new
-  `channel_list_changed` WS event. Web UI queued after.
-- **Soundboard + bot audio injection** — **designed, ready to
-  implement**: [`soundboard.md`](docs/soundboard.md). Clips mix
-  client-side (zero relay changes); bots join the WS voice relay as
-  real participants. Two new permissions, Opus-in-Ogg clip library.
+- **Join-to-create temporary voice channels** — *server SHIPPED
+  2026-07-04* (hub `3005fc5`, [`temp-voice-channels.md`](docs/temp-voice-channels.md)):
+  spawner type + sibling temp rooms, 30s/60s-grace GC worker; reused the
+  existing `channels_updated` WS event (not a new one). *Web UI in
+  progress* (spawner creation, temp badge, voice-join-to-spawner
+  correctness).
+- **Soundboard + bot audio injection** — *server in progress
+  2026-07-04* ([`soundboard.md`](docs/soundboard.md)): clip library +
+  `use_soundboard`/`manage_soundboard` perms + `soundboard_played`
+  event; bot audio injection implemented-if-clean-else-deferred. Web UI
+  (voice-bar popover + admin manage) queued after.
 - **LAN / offline mode** — **designed, ready to implement**:
   [`lan-mode.md`](docs/lan-mode.md). mDNS discovery + self-signed/
   fingerprint or gated-plaintext trust; `WAVVON_LAN_MODE` flag with a

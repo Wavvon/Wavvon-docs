@@ -6,6 +6,24 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Join-to-create temporary voice channels — server (2026-07-04)** —
+  [`temp-voice-channels.md`](temp-voice-channels.md), hub `3005fc5`.
+  Additive `channels` columns (`is_temporary`, `owner_pubkey`,
+  `spawner_name_template`, `empty_since`); `channel_type = 'spawner'`
+  validated on create; voice-join against a spawner runs
+  `spawn_temp_channel()` (sibling placement under the spawner's parent,
+  `{user}` template substitution, numbered-suffix collision retry) and
+  the `voice_joined` reply carries the spawned room's id;
+  `temp_channel_worker.rs` 30s tick stamps `empty_since` and GCs rooms
+  past a 60s grace (boot-sweep via the same path); owner-rename
+  carve-out in `update_channel`. 7 integration tests. **Deviation**:
+  the doc specified a new `channel_list_changed` WS event, but the
+  codebase already had an equivalent payload-free `channels_updated`
+  event (fired on channel create/update/reorder/delete) — reused it for
+  spawn/GC rather than fragment the wire protocol. Web consumes
+  `channels_updated`, not `channel_list_changed`. Web UI (spawner
+  creation option, temp-room badge) is the next pass.
+
 - **Personal data export — export half (2026-07-04)** —
   [`data-export.md`](data-export.md), web only (clients `542891e`).
   Client-assembled passphrase-encrypted archive (no server changes —
