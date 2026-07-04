@@ -84,10 +84,11 @@ issues).
   fingerprint or gated-plaintext trust; `WAVVON_LAN_MODE` flag with a
   hard private-address guard (can't be exposed publicly). Server-first;
   native discovery UX deferred to client era.
-- **Personal data export (full archive)** — **designed, ready to
-  implement**: [`data-export.md`](docs/data-export.md). Client-assembled
-  passphrase-encrypted JSON of the whole personal axis; reuses the
-  identity-backup envelope; no new hub surface.
+- **Personal data export (full archive)** — *export half in progress
+  2026-07-04* ([`data-export.md`](docs/data-export.md)); client-only
+  (DM route is unpaginated so one fetch = full history — no server
+  change). Web has no passphrase envelope yet, so shipping a versioned
+  web Argon2id/AES-GCM format; import/restore deferred to a follow-up.
 - **Live captions in voice** — local STT, desktop-era (too heavy for
   web). See [`future-features.md`](docs/future-features.md).
 
@@ -126,9 +127,6 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
   (web) never fetches history for the auto-selected default channel;
   only `handleSelectChannel` does. Pre-existing, unrelated to
   permalinks (deep links are unaffected).
-- **Events routes bypass channel-scoped permissions** — see H3 in the
-  security audit above (confirmed + extended to `get_event`/
-  `create_event`). Fix rides with event-slots work or sooner.
 - **2026-07-04 batch: no live pass yet** — the Permissions tab,
   channel permalinks/breadcrumbs, sidebar drill-in, and role
   categories (admin tab + profile card) are logic-tested but not yet
