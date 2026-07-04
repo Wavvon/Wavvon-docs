@@ -117,6 +117,19 @@ member-facing badge already uses safely.
   for future HTML-context consumers. Overlaps the existing
   icon-shortcode known issue.
 
+## Follow-up noted during remediation
+
+- **W2 (LOW, not exploitable) — `channel.color` raw into CSS**
+  (`SortableItems.tsx:269-271`, pre-existing, not in today's commits).
+  `background: \`${channel.color}26\`` and `borderLeft: \`3px solid
+  ${channel.color}\``. A `url(...)` payload is neutralized incidentally
+  — the trailing `26` makes the `background` shorthand invalid (dropped,
+  no fetch) and `border-color` doesn't accept `url()`. Safe today, but
+  by formatting luck rather than validation; route it through
+  `safeRoleColor`/`HEX_RE` for defense-in-depth. `MessageEmbeds.tsx:15`
+  (`borderLeftColor: e.color`) is likewise safe — `border-*-color` only
+  accepts `<color>`, never `url()`.
+
 ## Verified CLEAN
 
 - Permission **fold** logic (allow-wins within level, child-over-parent,

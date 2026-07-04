@@ -107,6 +107,11 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
     (private content/ids leak); **W1** unvalidated hub `color` →
     `background: url()` beacon in admin swatches. See the audit doc for
     the rest and the fixes.
+  - **Fixed 2026-07-04**: W1 (clients `62792cb` — `safeRoleColor`
+    validator on both swatch sinks). Server-side H1–H4 + importer
+    D1–D3 fixes in progress. **W2** (LOW, not exploitable): pre-existing
+    `channel.color` raw-into-CSS in `SortableItems.tsx` — safe by
+    formatting luck, harden via `safeRoleColor` when convenient.
 - **`packages/core` crypto test vectors are stale** — found 2026-07-04
   when `packages/core` got its first `test` script:
   `src/identity/crypto.test.ts` still asserts pre-rename `"voxply/…"`
