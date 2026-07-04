@@ -6,6 +6,44 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## LAN mode: explicit flag + hard private-address guard
+
+**Decision** (designed 2026-07-04, not yet implemented): a hub runs on
+a LAN via mDNS/DNS-SD discovery (`_wavvon._tcp.local`) and one of three
+trust tiers — CA cert (today), self-signed + out-of-band fingerprint
+pinning, or gated plaintext. All non-CA paths are reachable **only**
+under an explicit `WAVVON_LAN_MODE=1` flag, and under that flag the hub
+**refuses to bind or advertise a non-private address** (loopback /
+RFC 1918 / link-local only), exiting otherwise. Ships server-first;
+native mDNS-discovery UX is deferred to the client era. Full design:
+[lan-mode.md](lan-mode.md).
+
+**Why**: "works at a LAN party with no internet" is a structural
+differentiator over centralized platforms, and the Rust hub is already
+self-contained. The dominant risk is a self-signed/plaintext hub
+accidentally exposed to the internet — the explicit flag plus the
+address guard make that structurally impossible rather than merely
+discouraged.
+
+**Alternatives considered**:
+
+- **Local CA / ACME-on-LAN** — rejected: heavy PKI, and browsers still
+  wouldn't trust the root without a manual import. Fingerprint-in-invite
+  TOFU is simpler and needs no PKI.
+- **Auto-detect LAN and relax TLS silently** — rejected outright: the
+  whole point is that relaxed trust must be a loud, explicit,
+  un-exposable opt-in, never inferred.
+- **Block the feature until the browser can do it** — rejected: the
+  browser can't do mDNS or self-signed trust and web is the delivery
+  target, but the safe *server* half stands alone and is shippable now;
+  coupling it to deferred client work would strand a useful capability.
+
+**Tradeoff**: full LAN UX (in-app nearby-hubs list, fingerprint
+pinning, QR scan) is native-client work that lands later; on web today,
+LAN works only in the plaintext tier when the web bundle is also served
+over http from the LAN. Accepted — the server capability is the
+valuable, safety-critical part.
+
 ## Discord import: two-stage CLI with a neutral, reviewable manifest
 
 **Decision** (designed 2026-07-04, not yet implemented): the migration

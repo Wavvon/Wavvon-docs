@@ -74,9 +74,11 @@ issues).
   implement**: [`soundboard.md`](docs/soundboard.md). Clips mix
   client-side (zero relay changes); bots join the WS voice relay as
   real participants. Two new permissions, Opus-in-Ogg clip library.
-- **LAN / offline mode** — mDNS discovery + no-public-TLS join story;
-  "works at a LAN party" differentiator. See
-  [`future-features.md`](docs/future-features.md).
+- **LAN / offline mode** — **designed, ready to implement**:
+  [`lan-mode.md`](docs/lan-mode.md). mDNS discovery + self-signed/
+  fingerprint or gated-plaintext trust; `WAVVON_LAN_MODE` flag with a
+  hard private-address guard (can't be exposed publicly). Server-first;
+  native discovery UX deferred to client era.
 - **Personal data export (full archive)** — **designed, ready to
   implement**: [`data-export.md`](docs/data-export.md). Client-assembled
   passphrase-encrypted JSON of the whole personal axis; reuses the

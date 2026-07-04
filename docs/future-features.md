@@ -332,20 +332,15 @@ Awaiting implementation pick-up from the ROADMAP wishlist.
 
 ## LAN / offline mode
 
-**What**: run a hub on a LAN with no internet: mDNS/local discovery so
-clients on the same network find it, and a join story that doesn't
-require public DNS or a CA-issued TLS cert (self-signed + fingerprint
-pinning in the invite, or plain HTTP on RFC 1918 addresses as an
-explicit operator opt-in).
-
-**Why**: Mumble's quiet superpower. "Works at a LAN party with no
-internet" is something centralized platforms structurally cannot do,
-and it makes a strong launch-post headline. The Rust hub is already
-self-contained; this is mostly a discovery + trust-bootstrap problem.
-
-**Status**: undesigned. Interacts with the threat model
-([threat-model.md](threat-model.md)) — the TLS opt-out must be loud,
-local-only, and impossible to enable accidentally on a public hub.
+**Status: DESIGNED, not implemented.** The canonical design is
+[lan-mode.md](lan-mode.md) — mDNS/DNS-SD discovery
+(`_wavvon._tcp.local`), three trust tiers (CA cert / self-signed +
+fingerprint pinning / gated plaintext), and the key safety invariant: a
+`WAVVON_LAN_MODE` flag with a **hard private-address guard** that makes
+a self-signed or plaintext hub structurally impossible to expose to the
+internet. Ships server-first (a safe LAN hub, reachable today by typed
+URL / plaintext web); native mDNS-discovery UX is deferred to the
+client era. Awaiting implementation pick-up from the ROADMAP wishlist.
 
 ---
 
