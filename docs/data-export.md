@@ -5,9 +5,40 @@ passphrase-encrypted archive of everything on the user's **personal
 axis**: identity, home-hub designations, prefs, devices, and decrypted
 DM history. Data sovereignty as a checkable feature, not a promise.
 
-**Status: designed, not implemented.** ROADMAP wishlist item.
+**Status: export implemented on web (v1); import deferred.** See
+"Implementation notes" below.
 
 ---
+
+## 0. Implementation notes (web, v1)
+
+- **Envelope**: the web client ships its own self-contained
+  `wavvon-archive` envelope (`apps/web/src/utils/archiveCrypto.ts`) —
+  Argon2id (64 MiB / t=3 / p=1 / 32-byte key, same parameters as
+  desktop's `identity_cmd.rs`) → AES-256-GCM via WebCrypto, with a
+  `format`/`version` header. It does **not** byte-match the desktop
+  identity-backup envelope; the two are structurally similar but
+  distinct formats. **Cross-client compatibility (desktop reading a
+  web archive, or vice versa) is deferred** — needs a shared envelope
+  spec first if ever wanted.
+- **Prefs**: the web client has no decrypt path for the hub-synced,
+  E2E-encrypted prefs blob (`identity.rs`'s `/prefs` route) — nothing
+  in `packages/core` or any web/android module implements
+  `derive_blob_key`/AES-GCM for it yet. v1's `prefs` section is a
+  *local-only* snapshot (saved hub list, active theme, ignored users,
+  voice gains, mention-ping setting) with an explicit `gap_note` field
+  in the archive itself. Wiring the real prefs-blob decrypt is a
+  follow-up.
+- **Home hubs / devices**: `home_hubs.designations` and
+  `devices.subkey_certs`/`revocations` are plaintext, signed records
+  (not E2E ciphertext) fetched read-only from the active hub's existing
+  `/identity/{pubkey}/...` routes — no new server surface. A missing
+  designation (404, e.g. a single-hub user who never configured one)
+  is an empty result, not an abort.
+- **DM attachments**: dropped from the exported message bodies (v1
+  ships identity/direction/body only) rather than embedding or
+  inventing a URL-reference scheme — see §6.
+- **Import/restore (§5) is not built.** Export only in this pass.
 
 ## 1. The architectural constraint that shapes everything
 
