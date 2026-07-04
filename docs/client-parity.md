@@ -36,17 +36,17 @@ Everything here is **portable** (no native API) unless marked native-only.
 | Mic level meter | ❌ | ✅ | ? |
 | In-app push-to-talk | ❌ | ✅ | ? |
 | Global (unfocused) PTT hotkey | ➖ native | ✅ | ➖ |
-| Audio-profile applied to live session | ⚠️ half-wired | ✅ | ? |
+| Audio-profile applied to live session | ✅ (2026-07-04) | ✅ | ? |
 | **Identity / profile / social** | | | |
 | Avatar image upload + crop | ❌ (URL only) | ✅ | ? |
-| Friends (requests/list/DM) | ❌ (dead button) | ✅ | ? |
+| Friends (requests/list/DM) | ❌ (button now hidden) | ✅ | ? |
 | Multi-profile + per-hub assignment | ❌ | ✅ | ? |
 | "My certifications" viewer (member) | ❌ | ✅ | ? |
 | Home-hub list management | ❌ (read-only) | ✅ | ? |
 | Multi-device pairing + device list/revoke | ❌ | ✅ | ? |
 | **Hub admin** | | | |
 | Assign/remove roles — right-click menu | ✅ (2026-07-04) | ✅ | ❌ **TODO** |
-| Create / delete roles + edit permissions | ❌ | ✅ | ❌ |
+| Create / delete roles + edit permissions | ✅ (2026-07-04) | ✅ | ❌ **TODO** |
 | Role appearance (color/icon) + categories | ✅ | partial | ❌ |
 | Alliances (create/join/share) + invite inbox | ❌ | ✅ | ? |
 | Onboarding lobby + survey (admin & member) | ❌ | ✅ | ? |
@@ -101,13 +101,17 @@ exist on web.
   `apps/android/src/platform/commands/roles.ts` (HTTP adapter, same as web),
   then add the Roles section to the android context menu.
 
-### 2. Create / delete hub roles (admin UI)
+### 2. Create / delete hub roles + edit permissions (admin UI)
 
-- Web and android have **no create/delete-role UI**; the platform commands
-  `createRole`/`deleteRole` exist but are unused. Desktop has it. Web/android
-  admin can only edit role appearance + categories, not add/remove roles.
-  Track adding a create/delete-role control to the web (then android) Roles
-  admin tab.
+- **Web — DONE (2026-07-04).** `apps/web/src/components/RolesSection.tsx`
+  gained a "New role" creator (name + priority + permission checkboxes +
+  hoist), a per-role expandable **Permissions** editor, and a **Delete**
+  button (non-builtin only; `builtin-owner` permissions stay locked). Uses
+  the existing `createRole`/`updateRole`/`deleteRole` commands. Covered by
+  `apps/web/e2e/live/13-role-admin.spec.ts`. *(New controls use plain
+  English, not i18n, to match desktop and avoid a 4-locale coverage gap —
+  a follow-up is to add `hub.admin.roles.*` keys across all locales.)*
+- **Android — TODO.** Port the same into `apps/android`'s `RolesSection`.
 
 ### 3. Presence status
 
@@ -122,19 +126,37 @@ exist on web.
   creation. Audit desktop/android and decide the intended management surface
   (e.g. always expose the settings gear regardless of channel type).
 
-### 5. Half-wired / dead on web (quick wins)
+### 5. Half-wired / dead on web
 
-- **Friends button is a no-op** — `ChannelSidebar.tsx:635` renders a 👥
-  button, but `App.tsx:1827` wires `onOpenFriends={() => {}}`. There is no
-  `FriendsModal`/`useFriends`/friend platform commands on web (only an
-  unused `Friend` type). Either build the friends feature or hide the button.
-- **Audio profile not applied to the live voice session** — the settings
-  UI saves an `AudioProfileConfig`, but `handleVoiceJoin` (`App.tsx:~1284`)
-  constructs `VoiceWsSession` without passing it, so the saved profile has
-  no runtime effect. Thread the config in.
+- **Audio profile now applied (FIXED 2026-07-04).** `handleVoiceJoin`
+  reads the saved `AudioProfileConfig` from `localStorage` and passes it as
+  the 5th `VoiceWsSession` arg, so the settings choice takes effect on the
+  live session.
+- **Friends button now hidden (2026-07-04).** The 👥 entry point only
+  renders when an `onOpenFriends` handler is wired; web passes none, so the
+  dead button is gone. **Still TODO:** actually build the friends feature on
+  web (modal + requests + `useFriends` + platform commands) to reach
+  desktop parity — see the social gaps above.
 - **Dead code:** `web/src/platform/webrtc.ts` `WebRtcSharerSession` is
   defined but never instantiated — the intended outbound-screen-share path
   was never wired (see the media gaps above).
+
+### 6. Client-side error handling for unreachable services (2026-07-04)
+
+- **Problem:** external network calls had no timeout, so an unreachable
+  host (mistyped hub address, down discovery service, offline skin gallery)
+  left the UI stuck on a spinner with no error.
+- **Done:** added `fetchWithTimeout` (`platform/http.ts`, 10s default,
+  respects a caller signal) that turns a timeout/network failure into a
+  clear "Could not reach {host}" / "Timed out reaching {host}" error.
+  `rawFetch` and `hubFetch` now use it (covers hub add/submit + `/info`
+  preview + health), and `DiscoverPage` (`/api/hubs`) and `SkinsGallery`
+  (`/api/skins`) call it directly. Error messages surface via each screen's
+  existing error UI.
+- **Follow-up:** apply the same timeout treatment in desktop/android
+  network paths (their fetches live in the Tauri Rust layer / their own
+  platform adapters); audit for other bare `fetch`/`invoke` calls that can
+  hang.
 
 ---
 
