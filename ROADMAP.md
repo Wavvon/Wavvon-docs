@@ -174,9 +174,9 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
     `--insecure`, non-`https` hub rejected unless loopback, `Retry-After`
     clamped; same TLS line scrubbed from `demo-seed`.
   - **W1** (color beacon) — fixed: `safeRoleColor` validator on both
-    swatch sinks. **W2** (LOW, not exploitable): pre-existing
-    `channel.color` raw-into-CSS in `SortableItems.tsx` — harden via
-    `safeRoleColor` when convenient (open).
+    swatch sinks. **W2** — FIXED 2026-07-05 (clients `46fa57e`):
+    `SortableItems.tsx` now validates `channel.color` via `safeRoleColor`
+    before the category-header `background` sink.
 - **✅ Temp voice spawners on web — FIXED 2026-07-04** (hub `1fc5aa6`)
   — the spawn-on-join logic (hub `3005fc5`) had only been added to
   `routes/ws/handlers/voice.rs` (the main-hub-WS / UDP path used by
@@ -242,13 +242,14 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
   gear is `isAdmin`-gated (pre-existing), so a member with only
   `manage_roles` can't reach the Permissions tab the server would allow
   them to use.
-- **Web mock-API e2e (`forum.spec.ts`) is broken** — found 2026-07-04.
-  Its `injectSession` helper seeds only localStorage (saved hub +
-  token), but the app now shows the identity-setup screen unless an
-  IndexedDB identity exists, so all 5 forum specs time out on the setup
-  screen. Pre-existing, unrelated to the live suite. Fix: have
-  `injectSession` also seed the IDB `wavvon/identity/main` record (the
-  live suite's saved storageState already does this correctly).
+- **✅ Web mock-API e2e (`forum.spec.ts`) repaired — FIXED 2026-07-05**
+  (clients `46fa57e`). `injectSession` now also seeds the IndexedDB
+  `wavvon/identity/main` record (the app requires it or shows the
+  identity-setup screen). Also fixed the mock route setup that surfaced once
+  the screen was bypassed: the catch-all falls back to the specific mocks
+  instead of the network, the list-posts mocks match the query string, and the
+  reaction test keys off the POST landing rather than a fetch counter. 5/5
+  green.
 - **✅ Web role appearance controls on built-in roles — FIXED 2026-07-04**
   (clients `42a3390`). `RolesSection` no longer renders the
   color/icon/category controls for `@everyone`/`Owner` (the hub rejects
