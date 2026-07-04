@@ -68,10 +68,10 @@ issues).
   `EventCard.tsx`, reminder offset picker). Calendar view (§4) still
   undesigned-priority, client-only. The events read-gating fix (H3)
   already landed in the security pass.
-- **Join-to-create temporary voice channels** — **designed, ready to
-  implement**: [`temp-voice-channels.md`](docs/temp-voice-channels.md).
-  Spawner type + sibling temp rooms, 60s-grace GC worker, and the new
-  `channel_list_changed` WS event (fixes stale sidebars generally).
+- **Join-to-create temporary voice channels** — *server in progress
+  2026-07-04* ([`temp-voice-channels.md`](docs/temp-voice-channels.md)):
+  spawner type + sibling temp rooms, 60s-grace GC worker, new
+  `channel_list_changed` WS event. Web UI queued after.
 - **Soundboard + bot audio injection** — **designed, ready to
   implement**: [`soundboard.md`](docs/soundboard.md). Clips mix
   client-side (zero relay changes); bots join the WS voice relay as
