@@ -63,11 +63,14 @@ issues).
   only; posts/replies don't federate over alliance-shared channels. No
   design work started. See [`forum.md`](docs/forum.md).
 - **Event role-slot sign-ups + reminders** — *server SHIPPED 2026-07-04*
-  (hub `825b0da`, [`events.md`](docs/events.md) §2-§3); web/desktop/
-  Android UI queued next (slot editor + claim UI in `EventComposer.tsx`/
-  `EventCard.tsx`, reminder offset picker). Calendar view (§4) still
-  undesigned-priority, client-only. The events read-gating fix (H3)
-  already landed in the security pass.
+  (hub `825b0da`, [`events.md`](docs/events.md) §2-§3); *web UI SHIPPED
+  2026-07-04* (clients `dea0df0`, `EventComposer.tsx` slot editor +
+  reminder picker, `EventCard.tsx`/new `EventSlotList.tsx`
+  claim/unclaim). Desktop/Android UI queued next (parallel
+  `EventCard.tsx`/`EventComposer.tsx` copies in those apps still show
+  baseline RSVP-only). Calendar view (§4) still undesigned-priority,
+  client-only. The events read-gating fix (H3) already landed in the
+  security pass.
 - **Join-to-create temporary voice channels** — *server in progress
   2026-07-04* ([`temp-voice-channels.md`](docs/temp-voice-channels.md)):
   spawner type + sibling temp rooms, 60s-grace GC worker, new

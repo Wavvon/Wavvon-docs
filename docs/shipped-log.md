@@ -6,6 +6,24 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Event role-slot sign-ups + reminders, web client (2026-07-04)** —
+  [`events.md`](events.md) §2-§3, clients `dea0df0` (server side
+  shipped separately, hub `825b0da`). `EventComposer.tsx` gained a
+  slot editor (add/remove name+capacity rows, folded into the create
+  payload) and a reminder offset picker (Off/15m/1h/24h); `EventCard.tsx`
+  now renders a read-only reminder line and delegates slot rows to a
+  new `EventSlotList.tsx` (claim/unclaim via `POST /events/:id/rsvp`
+  with/without `slot_id`, claimed slot bolded, claimants by short
+  pubkey, 409/404 surfaced inline). New `EventSlotEditor.tsx` keeps the
+  composer under the ~200-line convention. Platform adapter gained
+  `createEventSlot`/`updateEventSlot`/`deleteEventSlot` (not yet wired
+  to a UI — no post-creation slot-management surface exists yet).
+  Fixed a pre-existing bug where the web `HubEvent` type used `end_at`
+  while the hub's field is `ends_at` (silently dropped on create).
+  Pure slot/reminder logic (fill-state, claim/unclaim payloads,
+  reminder-offset↔minutes mapping) covered by vitest. Desktop/Android
+  UI not yet built.
+
 - **Discord server import CLI (2026-07-04)** — new
   `crates/discord-import` workspace crate implementing
   [`discord-import.md`](discord-import.md) (server `a85e37f`).

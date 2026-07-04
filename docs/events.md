@@ -6,9 +6,11 @@ the guild delta: **role-slot sign-ups**, **reminders**, and a
 **calendar view**.
 
 **Status: baseline + role-slot sign-ups + reminders SHIPPED
-server-side** (hub `825b0da`, 2026-07-04); **calendar view DESIGNED,
-not implemented** (client-only, lowest priority — see §4). Web/desktop/
-Android UI for slots + reminders is queued next; see ROADMAP.
+server-side** (hub `825b0da`, 2026-07-04); **web UI for slots +
+reminders SHIPPED** (clients, 2026-07-04, see §2's implementation note
+below); **calendar view DESIGNED, not implemented** (client-only,
+lowest priority — see §4). Desktop/Android UI for slots + reminders is
+queued next; see ROADMAP.
 
 ---
 
@@ -107,8 +109,21 @@ the ~200-line convention — then extract `EventSlotList.tsx`.
 > matches this doc's original wording ("creator or `CREATE_EVENTS`
 > holder") rather than the current event-update code path; reconciling
 > `update_event`/`delete_event` to the same channel-scoped check is a
-> reasonable follow-up but out of scope here. Web/desktop/Android UI
-> for slots is not yet built — server shapes only.
+> reasonable follow-up but out of scope here.
+>
+> **Implementation note (2026-07-04, clients `dea0df0`)**: web UI shipped.
+> `EventComposer.tsx` gained a slot editor (name + optional capacity
+> rows) and a reminder offset picker (Off/15m/1h/24h), both folded into
+> the `POST /events` payload. `EventCard.tsx` renders the reminder
+> read-only and delegates slot rows to a new `EventSlotList.tsx`
+> (claim/unclaim via `POST /events/:id/rsvp` with/without `slot_id`,
+> claimed slot bolded, claimants shown by short pubkey, 409/404 errors
+> surfaced inline). `createEventSlot`/`updateEventSlot`/
+> `deleteEventSlot` were added to `@platform` for the
+> `POST`/`PATCH`/`DELETE /events/:id/slots...` routes but aren't wired
+> to any UI yet — no post-creation slot-management surface exists
+> (composer is create-time only); that's the natural next follow-up.
+> Desktop/Android UI is not yet built — still server + web shapes only.
 
 **Exact shapes shipped:**
 
