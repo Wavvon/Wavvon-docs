@@ -891,7 +891,7 @@ Capabilities are a general mechanism. All currently defined values:
 | Capability | What it unlocks |
 |---|---|
 | `can_read_message_content` | Full body + attachments in `message.*` events |
-| `can_speak_voice` | Bot audio injection into voice relay (deferred) |
+| `can_speak_voice` | Bot audio injection into voice relay ([soundboard.md](soundboard.md) §2) |
 | `can_share_screen` | Bot video stream injection into screen-share (deferred) |
 
 The hub rejects unknown capability strings at auth time so capability

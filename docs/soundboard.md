@@ -5,7 +5,9 @@ channel**. Designed together because each constrains the other; they
 deliberately use *different* injection points, and this doc records
 why.
 
-**Status: designed, not implemented.** ROADMAP wishlist item.
+**Status: server-side implemented** (hub routes, permissions, migration,
+bot voice-join gate). Client UI (soundboard popover, manage view, `played`
+chip rendering) is not yet built — see §Client UI below.
 
 ---
 
@@ -82,6 +84,20 @@ before/while uploading. Rate-limit client-side (one clip at a time; no
 overlap with your own previous clip).
 
 ## 2. Bot audio injection
+
+**Status: implemented on the hub.** The gate lives in `voice_ws_task`
+(`hub/src/routes/voice_ws.rs`): an `is_bot=true` session (external bots —
+Ed25519 identity, normal challenge/verify session token, capabilities in
+`bot_profiles`) connecting to `/voice/ws` is checked for `can_speak_voice`
+in its capabilities plus effective channel-scoped `read_messages` before
+being registered as a relay participant; either check failing closes the
+connection without a `voice_ws_ready` frame. This is separate from the
+older self-service bot system (`/admin/bots`, token-hash auth,
+`POST /bots/{id}/voice/join`) which has no capability model and is left
+untouched. No client SDK helper (`join_voice`/`send_opus`) exists yet —
+a bot that wants to speak still has to open the `/voice/ws` connection and
+frame Opus packets itself, matching the wire format `voice.md` documents
+for the browser client.
 
 **Injection point: the existing WS voice relay.** The browser client
 already proves the pattern: authenticate, `voice_join` over WS, send
