@@ -66,7 +66,10 @@ issues).
   (hub `825b0da`, [`events.md`](docs/events.md) §2-§3); *web UI SHIPPED
   2026-07-04* (clients `dea0df0`, `EventComposer.tsx` slot editor +
   reminder picker, `EventCard.tsx`/new `EventSlotList.tsx`
-  claim/unclaim). Desktop/Android UI queued next (parallel
+  claim/unclaim). **Web create path was broken until the 2026-07-04 e2e
+  pass** — the composer never sent `channel_id` (create 400'd) and the
+  bare create-response crashed the card; both fixed (see Recently
+  shipped). Desktop/Android UI queued next (parallel
   `EventCard.tsx`/`EventComposer.tsx` copies in those apps still show
   baseline RSVP-only). Calendar view (§4) still undesigned-priority,
   client-only. The events read-gating fix (H3) already landed in the
@@ -101,6 +104,27 @@ issues).
 ## 🚀 Recently shipped
 
 Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
+
+- **Web e2e live-test suite + 2026-07-04 batch live pass** — new
+  `apps/web/e2e/live/` Playwright suite runs against a real hub (owner
+  seeded via `WAVVON_OWNER_PUBKEY`; see `e2e/live/README.md`). Covers
+  smoke (onboard/join/send), nested-channel permalinks + drill-in +
+  breadcrumbs, channel permission overwrites, role categories +
+  color/icon, event slots + reminders, temp-voice spawner (1fc5aa6
+  regression), soundboard upload/delete, and full-archive export. Bugs
+  found + fixed during the pass:
+  - **W (web): channel live-push broken for newly-created channels** —
+    the web client never sent the WS `subscribe` frame (the platform
+    `subscribeChannel` hit a non-existent HTTP route), so messages in a
+    channel created after connect never pushed live. Now sends the WS
+    frame and subscribes on channel select.
+  - **W (web): event creation fully broken** — composer never sent
+    `channel_id` (hub 400), and the bare create-response (no
+    `rsvp_counts`/`slots`) crashed `EventCard`; threaded `channel_id`
+    through and refetch after create.
+  - **W (web): modal clipped tall content** — `.modal` had no
+    `max-height`, so the channel Permissions tab's Save/actions row was
+    pushed off-screen. Added `max-height`/`overflow-y`.
 
 ## ⚠️ Known issues
 
@@ -155,15 +179,29 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
   (web) never fetches history for the auto-selected default channel;
   only `handleSelectChannel` does. Pre-existing, unrelated to
   permalinks (deep links are unaffected).
-- **2026-07-04 batch: no live pass yet** — the Permissions tab,
-  channel permalinks/breadcrumbs, sidebar drill-in, and role
-  categories (admin tab + profile card) are logic-tested but not yet
-  exercised in a running client — one click-through session covers all
-  of them. The Discord importer likewise needs a live run (`export`
-  with a real bot token, `apply` against a running hub). Also: the
-  channel-settings gear is `isAdmin`-gated (pre-existing), so a member
-  with only `manage_roles` can't reach the Permissions tab the server
-  would allow them to use.
+- **2026-07-04 batch: live pass DONE for web** (via the new
+  `e2e/live/` suite — see Recently shipped) for the Permissions tab,
+  channel permalinks/breadcrumbs, sidebar drill-in, role categories,
+  event slots, temp voice, soundboard, and data export. Still needs a
+  live run: the Discord importer (`export` with a real bot token,
+  `apply` against a running hub). Also still open: the channel-settings
+  gear is `isAdmin`-gated (pre-existing), so a member with only
+  `manage_roles` can't reach the Permissions tab the server would allow
+  them to use.
+- **Web mock-API e2e (`forum.spec.ts`) is broken** — found 2026-07-04.
+  Its `injectSession` helper seeds only localStorage (saved hub +
+  token), but the app now shows the identity-setup screen unless an
+  IndexedDB identity exists, so all 5 forum specs time out on the setup
+  screen. Pre-existing, unrelated to the live suite. Fix: have
+  `injectSession` also seed the IDB `wavvon/identity/main` record (the
+  live suite's saved storageState already does this correctly).
+- **Web role appearance controls shown on built-in roles** — found
+  2026-07-04. `RolesSection` renders the color/icon/category controls
+  for `@everyone`/`Owner`, but the hub rejects appearance PATCHes on
+  built-in roles ("Cannot modify built-in roles"), so the controls
+  silently error. Either hide them for built-in roles or allow the
+  appearance fields server-side. (The e2e role test uses a custom role
+  to sidestep this.)
 - **Role/category icon picker can store non-rendering shortcodes** —
   `EmojiPicker`'s hub-custom-emoji section returns `:name:` shortcode
   strings; server validation accepts them but they render as literal
