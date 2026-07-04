@@ -195,15 +195,12 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
   **desktop** has one to align with web's filtering. Separately, **no client
   has a create/delete-role UI** on web/android (`createRole`/`deleteRole`
   platform commands exist but are unused) — desktop only.
-- **Web profile changes don't propagate live to other clients** — found
-  2026-07-04 (e2e round 2). `PATCH /me` updates the DB but broadcasts no
-  WebSocket event, and the client has no `user_updated`/`profile_updated`
-  handler (only `member_online`/`member_offline`, which flip a boolean).
-  So a display-name/avatar change updates the *acting* client (it refetches
-  `/users`) but other connected clients keep the stale name in the member
-  list AND on all messages (author names resolve from the live `users` map)
-  until they reconnect/reload. Fix: broadcast a member-updated event and
-  handle it client-side. Same-client propagation is fine (tested).
+- **✅ Web profile changes now propagate live — FIXED 2026-07-04** (hub
+  `a23a7d9`, clients `fb97442`). `PATCH /me` now broadcasts a hub-wide
+  `member_updated` WS event carrying the fresh name/avatar; the client updates
+  the member in its `users` map in place, so display-name/avatar changes show
+  live on other clients (member list + message authors) without a reload.
+  `e2e/live/29`.
 - **Web has no presence status (away/DND/custom)** — presence is a binary
   online/offline dot driven by `member_online`/`member_offline`; there is
   no status picker. Also, a brand-new member does not appear in an
@@ -225,12 +222,11 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
   channel-scoped check, so it's a UX/visibility gap, not a security
   one). Fix: a lightweight `GET /channels/:id/my-permissions` returning
   the caller's own effective set.
-- **`packages/core` crypto test vectors are stale** — found 2026-07-04
-  when `packages/core` got its first `test` script:
-  `src/identity/crypto.test.ts` still asserts pre-rename `"voxply/…"`
-  wire tags; the implementation and `wire-format.md` correctly use
-  `"wavvon/…"`. Excluded in `vitest.config.ts` with a comment.
-  Fix = regenerate the vectors against `wire-format.md`, then re-enable.
+- **✅ `packages/core` crypto test vectors regenerated — FIXED 2026-07-04**
+  (clients `fb97442`). `src/identity/crypto.test.ts` asserted pre-rename
+  `"voxply/…"` wire tags and was excluded from the suite; regenerated the
+  DhKeyRecord + DM-envelope vectors against the canonical `wavvon-identity`
+  values and re-enabled it (now runs alongside the new `wire.test.ts`).
 - **Hub switch leaves the message pane empty** — `handleSwitchHub`
   (web) never fetches history for the auto-selected default channel;
   only `handleSelectChannel` does. Pre-existing, unrelated to
