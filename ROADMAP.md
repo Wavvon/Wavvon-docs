@@ -105,6 +105,24 @@ issues).
 
 Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
 
+- **Manual-test bug pass (2026-07-05) — batch 1** (server `4d38025`, clients
+  `33c4485`). From hands-on testing of the running hub:
+  - **Ban/kick/mute from the member right-click menu were broken** — the client
+    hit `/admin/bans`, `DELETE /admin/members/{pk}`, `/admin/members/{pk}/mute`,
+    none of which exist. Pointed them at `POST /moderation/{bans,kick,mutes}`.
+    `e2e/live/33`.
+  - **Integrations tab 405'd** — listing used `GET /admin/webhooks` and
+    regenerate used `PATCH /admin/webhooks/{id}`, but only POST/DELETE existed.
+    Added both handlers. Also fixed a pre-existing **create 500** (the INSERT
+    passed integer `1` for the BOOLEAN `active` column). `e2e/live/34`.
+  - **Theme-picker buttons unreadable in calm/light** — inherited the base
+    button's `var(--accent-text)` (dark in calm, white in light) on a surface
+    background. Set an explicit `color: var(--text)`.
+  - **"Identity backup" label shown twice** in the account tab — deduped.
+  - Remaining manual-test items (voice multi-join / stale roster, channel
+    cascade-delete, sidebar sizing, settings surfaces, sound cues, settings
+    reorg) tracked for follow-up batches.
+
 - **Multi-device pairing + home-hub write (web, 2026-07-04)** — ported the
   identity envelopes that were Rust-only into `packages/core`
   (`master`/`wire`/`ecies`, byte-for-byte pinned by the `wavvon-identity` hex
