@@ -125,6 +125,17 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
   - **W (web): modal clipped tall content** — `.modal` had no
     `max-height`, so the channel Permissions tab's Save/actions row was
     pushed off-screen. Added `max-height`/`overflow-y`.
+- **Web e2e round 2 — profile / member list / channel CRUD / roles** —
+  added `e2e/live/09..12`: profile-edit propagation, member presence,
+  channel/category/forum/banner CRUD, and role-assignment. Bug found +
+  fixed:
+  - **W (web): i18n placeholders shown literally** — 11 catalog entries
+    used i18next double-brace `{{name}}` syntax, but the client uses
+    **i18next-icu** (single-brace `{name}`), so they rendered the raw
+    `{{name}}` to users. Most visible on the channel/category right-click
+    menu (`Edit "{{name}}"` / `Delete "{{name}}"`); also user profile
+    "Joined", archive strength/progress, invite/discovery hints. Converted
+    all to single-brace in `packages/i18n/en.json`.
 
 ## ⚠️ Known issues
 
@@ -159,6 +170,35 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
   already preferred a reply-supplied id when present). Broadcasts
   `channels_updated` on spawn, matching the main-hub-WS path. Two new
   integration tests in `temp_voice_channels_flow.rs`.
+- **Web has no role-assignment UI (assign/remove a role to a member)** —
+  found 2026-07-04 (e2e round 2). The hub endpoints exist and work
+  (`PUT`/`DELETE /users/{pubkey}/roles/{role_id}`, verified by
+  `12-role-assignment.spec.ts`), and desktop uses them, but the **web**
+  client has no way to reach them: the Hub Admin → Members tab shows each
+  member's roles read-only with only Kick/Ban, the member right-click menu
+  has only Send DM / Copy key / Mute / Kick / Ban, and there is no
+  create/delete-role UI (`createRole`/`deleteRole` are exported but unused).
+  Web can edit role appearance/categories but cannot grant/revoke roles.
+- **Web profile changes don't propagate live to other clients** — found
+  2026-07-04 (e2e round 2). `PATCH /me` updates the DB but broadcasts no
+  WebSocket event, and the client has no `user_updated`/`profile_updated`
+  handler (only `member_online`/`member_offline`, which flip a boolean).
+  So a display-name/avatar change updates the *acting* client (it refetches
+  `/users`) but other connected clients keep the stale name in the member
+  list AND on all messages (author names resolve from the live `users` map)
+  until they reconnect/reload. Fix: broadcast a member-updated event and
+  handle it client-side. Same-client propagation is fine (tested).
+- **Web has no presence status (away/DND/custom)** — presence is a binary
+  online/offline dot driven by `member_online`/`member_offline`; there is
+  no status picker. Also, a brand-new member does not appear in an
+  already-loaded client's member list until that client refetches `/users`
+  (`onMemberOnline` only flips `online` on users already in the array).
+  Documented by `10-member-presence.spec.ts` (which reloads to pick up the
+  join; offline transitions of known members ARE live).
+- **Banner channels aren't manageable from the web sidebar** — a banner
+  channel renders as a bare `<li>` (just the image, or empty when no image
+  is set) with no name, no context menu, and no settings gear, so there's
+  no affordance to rename or delete it once created. Create-only on web.
 - **No member-facing "my effective channel permissions" endpoint** —
   recurring gap surfaced by the Permissions tab, the soundboard
   play-gate, and channel-scoped `use_soundboard`. The only endpoint that
