@@ -30,31 +30,33 @@ Everything here is **portable** (no native API) unless marked native-only.
 | **Real-time media** | | | |
 | Start a screen share (outbound) | ✅ (2026-07-04) | ✅ | ? |
 | View someone's screen share | ✅ | ✅ | ? |
-| Camera / webcam video (`VideoGrid`) | ❌ | ✅ | ? |
-| Whisper (targeted voice) | ❌ | ✅ | ? |
+| Camera / webcam video (`VideoGrid`) | ❌ *(WebRTC build)* | ✅ | ? |
+| Whisper (targeted voice) | ❌ *(WS build)* | ✅ | ? |
 | Hub-streams panel (cross-channel) | ❌ | ✅ | ? |
-| Mic level meter | ❌ | ✅ | ? |
-| In-app push-to-talk | ❌ | ✅ | ? |
+| Mic level meter | ✅ (2026-07-04) | ✅ | ? |
+| In-app push-to-talk | ❌ *(tracked)* | ✅ | ? |
 | Global (unfocused) PTT hotkey | ➖ native | ✅ | ➖ |
 | Audio-profile applied to live session | ✅ (2026-07-04) | ✅ | ? |
 | **Identity / profile / social** | | | |
 | Avatar image upload + crop | ✅ (2026-07-04) | ✅ | ? |
 | Friends (requests/list/remove) | ✅ (2026-07-04) | ✅ | ? |
-| Multi-profile + per-hub assignment | ❌ | ✅ | ? |
-| "My certifications" viewer (member) | ❌ | ✅ | ? |
-| Home-hub list management | ❌ (read-only) | ✅ | ? |
-| Multi-device pairing + device list/revoke | ❌ | ✅ | ? |
+| Multi-profile + per-hub assignment | ❌ *(client-only, tracked)* | ✅ | ? |
+| "My certifications" viewer (member) | ✅ (2026-07-04) | ✅ | ? |
+| Home-hub list management | ❌ read-only; write BLOCKED | ✅ | ? |
+| Multi-device pairing + device list/revoke | ❌ BLOCKED | ✅ | ? |
 | **Hub admin** | | | |
 | Assign/remove roles — right-click menu | ✅ (2026-07-04) | ✅ | ❌ **TODO** |
 | Create / delete roles + edit permissions | ✅ (2026-07-04) | ✅ | ❌ **TODO** |
 | Role appearance (color/icon) + categories | ✅ | partial | ❌ |
-| Alliances (create/join/share) + invite inbox | ❌ | ✅ | ? |
-| Onboarding lobby + survey (admin & member) | ❌ | ✅ | ? |
-| Anti-spam challenge settings + member challenge | ❌ | ✅ | ? |
-| Hub audit log | ❌ | ✅ | ? |
-| Hub icon library | ❌ | ✅ | ? |
-| Native bot admin / create / wizard | ❌ | ✅ | ? |
-| Channel bans / appearance / icon picker | ❌ | ✅ | ? |
+| Alliances (create/leave) + invite inbox | ✅ (2026-07-04) | ✅ | ? |
+| Alliance channel-sharing | ❌ *(tracked)* | ✅ | ? |
+| Onboarding: approval queue + lobby/challenge settings | ✅ (2026-07-04) | ✅ | ? |
+| Onboarding survey builder + member survey | ❌ *(tracked)* | ✅ | ? |
+| Hub audit log | ✅ (2026-07-04) | ✅ | ? |
+| Hub icon library | ✅ (2026-07-04) | ✅ | ? |
+| Native bot admin / create | ✅ (2026-07-04) | ✅ | ? |
+| Channel bans | ✅ (2026-07-04) | ✅ | ? |
+| Channel appearance / icon picker | ❌ *(tracked)* | ✅ | ? |
 | Kick / Ban / Mute — right-click menu | ✅ | ✅ | ❌ |
 | Presence status (away / DND / custom) | ❌ | ❌ | ❌ |
 | Banner-channel rename/delete from sidebar | ❌ | ? | ? |
@@ -185,6 +187,69 @@ exist on web.
   drag-drop, center-crops to a 128px JPEG data URL — added to the Settings
   profile tab alongside the existing URL field. Saves through the existing
   `PATCH /me` avatar. Covered by `e2e/live/14-avatar-upload.spec.ts`.
+
+### 9. Admin cluster (web) — DONE (2026-07-04)
+
+- **Hub audit log** (`AuditLogSection`, `GET /admin/audit-log`),
+  **native bots** (`NativeBotsSection`, `/admin/bots` create/list/delete +
+  one-time token), **hub SVG icon library** (`HubIconsSection`,
+  `/hub/icons` CRUD), **alliances** (`AlliancesSection`, list/create/leave +
+  invite inbox), **onboarding** (`OnboardingAdminSection`: approval queue
+  `/hub/pending`, lobby settings, anti-spam challenge settings), and
+  **per-channel bans** (`ChannelBansTab` in Channel Settings,
+  `/channels/{id}/bans` v2). New platform commands: `audit`, `channelBans`,
+  `hubIcons`, `nativeBots`, `alliances`, `onboardingAdmin`. Covered by
+  `e2e/live/18-admin-cluster.spec.ts`. New role-admin/section strings are
+  plain English (same i18n follow-up noted in item 2).
+
+### 10. Mic meter + my-certs (web) — DONE (2026-07-04)
+
+- **Mic level meter** — `MicLevelMeter` in Settings → Voice (client-only
+  getUserMedia + AnalyserNode). `e2e/live/17`.
+- **My certifications viewer** — `MyCertificationsSection` in Settings →
+  Account, read-only fan-out over `GET /identity/{pubkey}/certs`.
+  `e2e/live/19`.
+
+---
+
+## Remaining after the 2026-07-04 porting pass
+
+Definitive status for everything still not at parity:
+
+- **Camera video** — a real build: full-mesh **WebRTC** over the `video_*`
+  WS events (already forwarded by `web/src/platform/ws.ts`), STUN-only, no
+  SFU required. Needs a `useVideo` port (peer connections, offer/answer/ICE
+  per participant) + camera capture + a `VideoGrid`. Not HTTP. **Tracked as
+  a dedicated build** (protocol fully mapped; too large to land safely in a
+  batch).
+- **Whisper** — feasible: `voice_whisper_*` control messages over the WS,
+  target routing done server-side. Needs a whisper-target UI + send wiring
+  on `voice.ts`. **Tracked.**
+- **Hub-streams panel** — cross-channel stream discovery/subscribe UI. **Tracked.**
+- **In-app (focused) push-to-talk** — client-only and feasible via
+  `VoiceWsSession.setMuted()` + window keydown/keyup, but it wires directly
+  into the live voice-mute path, so it deserves careful, tested work rather
+  than a rushed batch. **Tracked.** (Global/unfocused PTT stays native-only.)
+- **Multi-profile + per-hub assignment** — client-only (localStorage /
+  IndexedDB; web currently stubs empty arrays). Buildable with no server
+  work. **Tracked.**
+- **Alliance channel-sharing**, **onboarding survey builder + member
+  survey**, **channel appearance / icon picker** — all HTTP-buildable
+  (routes exist); **tracked** as further UI.
+- **Home-hub list management** — read works over
+  `GET /identity/{master}/designation`, but **write is BLOCKED**: it needs
+  the `HomeHubList` canonical signing-bytes format ported to `packages/core`
+  TS (only DM/DH/ratchet signing-bytes exist today).
+- **Multi-device pairing + device list/revoke** — **BLOCKED**: the pairing
+  HTTP endpoints (`/identity/pairing/*`) and paste-code UX are ready, but the
+  `SubkeyCert` master/subkey model + its canonical signing-bytes are not
+  ported to `packages/core` (web identity is a single flat ed25519 seed).
+  Requires a crypto/identity-model port first — the same gap that blocks
+  home-hub write.
+
+**Recommended next real build:** camera video (highest user value; protocol
+mapped) as its own focused pass, then the `packages/core` `SubkeyCert` /
+`HomeHubList` signing-bytes port to unblock pairing + home-hub write.
 
 ---
 
