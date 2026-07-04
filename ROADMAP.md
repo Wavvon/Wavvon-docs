@@ -62,9 +62,12 @@ issues).
 - **Forum post federation across alliances** — v1 forums are hub-local
   only; posts/replies don't federate over alliance-shared channels. No
   design work started. See [`forum.md`](docs/forum.md).
-- **Event role-slot sign-ups + reminders** — *server in progress
-  2026-07-04* ([`events.md`](docs/events.md)); web UI queued next. The
-  events read-gating fix (H3) already landed in the security pass.
+- **Event role-slot sign-ups + reminders** — *server SHIPPED 2026-07-04*
+  (hub `825b0da`, [`events.md`](docs/events.md) §2-§3); web/desktop/
+  Android UI queued next (slot editor + claim UI in `EventComposer.tsx`/
+  `EventCard.tsx`, reminder offset picker). Calendar view (§4) still
+  undesigned-priority, client-only. The events read-gating fix (H3)
+  already landed in the security pass.
 - **Join-to-create temporary voice channels** — **designed, ready to
   implement**: [`temp-voice-channels.md`](docs/temp-voice-channels.md).
   Spawner type + sibling temp rooms, 60s-grace GC worker, and the new

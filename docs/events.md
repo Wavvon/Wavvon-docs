@@ -5,8 +5,10 @@ shipped earlier without a design doc; this doc records it and designs
 the guild delta: **role-slot sign-ups**, **reminders**, and a
 **calendar view**.
 
-**Status: baseline SHIPPED; slots/reminders/calendar DESIGNED, not
-implemented.** ROADMAP wishlist item.
+**Status: baseline + role-slot sign-ups + reminders SHIPPED
+server-side** (hub `825b0da`, 2026-07-04); **calendar view DESIGNED,
+not implemented** (client-only, lowest priority — see §4). Web/desktop/
+Android UI for slots + reminders is queued next; see ROADMAP.
 
 ---
 
@@ -25,16 +27,18 @@ implemented.** ROADMAP wishlist item.
 - Clients: `EventsPanel.tsx`, `EventCard.tsx`, `EventComposer.tsx`
   (web; desktop/android have parallel copies).
 
-> **Known gap (pre-existing, found 2026-07-04)**: the events routes
+> **Known gap — FIXED 2026-07-04 (hub `efbf17b`)**: the events routes
 > were not switched to channel-scoped permission resolution when
 > channel permission overwrites shipped
 > ([nested-channels-ux.md](nested-channels-ux.md) §3) — `create_event`
-> checks hub-wide `CREATE_EVENTS` + channel existence only, and
-> `list_events` is not read-gated, so event titles in channels hidden
-> from a user still appear in the event list. Fix alongside (or
-> before) the slots work below: `create_event` and RSVP resolve
-> through `channel_permissions`, `list_events` filters by effective
-> `read_messages` per event channel.
+> checked hub-wide `CREATE_EVENTS` + channel existence only, and
+> `list_events` wasn't read-gated, so event titles in channels hidden
+> from a user still appeared in the event list. `create_event` now
+> resolves `channel_permissions(..., channel_id)` for `CREATE_EVENTS`,
+> `list_events` filters by `channels_with_permission(READ_MESSAGES)`,
+> and `get_event` 404s (not 403) when the caller can't read the
+> channel, so an event id alone can't confirm a hidden channel's
+> existence. The slot/reminder routes below build on this gated shape.
 
 ## 2. Role-slot sign-ups
 
@@ -94,6 +98,49 @@ editor (add row: name + capacity). Claimed slot shows your name
 highlighted. No new component files needed unless EventCard outgrows
 the ~200-line convention — then extract `EventSlotList.tsx`.
 
+> **Implementation note (2026-07-04, hub `825b0da`)**: slot management
+> (`POST`/`PATCH`/`DELETE /events/:id/slots...`) authorizes on "event
+> creator OR `CREATE_EVENTS` resolved through the event's channel via
+> `channel_permissions`" — a channel-scoped check, deliberately
+> narrower than the hub-wide `ADMIN` check `update_event`/
+> `delete_event` still use today for the base event fields. This
+> matches this doc's original wording ("creator or `CREATE_EVENTS`
+> holder") rather than the current event-update code path; reconciling
+> `update_event`/`delete_event` to the same channel-scoped check is a
+> reasonable follow-up but out of scope here. Web/desktop/Android UI
+> for slots is not yet built — server shapes only.
+
+**Exact shapes shipped:**
+
+```jsonc
+// Slot object (POST/PATCH /events/:id/slots response; also each entry
+// of EventWithRsvps.slots)
+{
+  "id": "uuid",
+  "name": "Tank",
+  "capacity": 2,           // or null = unlimited
+  "position": 0,
+  "claimed": 1,
+  "claimants": ["<pubkey hex>", "..."]
+}
+
+// CreateEventRequest.slots (optional; order = position)
+{ "slots": [{ "name": "Tank", "capacity": 2 }, { "name": "Bench" }] }
+
+// POST /events/:id/slots request body
+{ "name": "Healer", "capacity": 4 }
+
+// PATCH /events/:id/slots/:slot_id request body (tri-state capacity:
+// absent = don't touch, null = clear/unlimited, number = resize)
+{ "name": "Healer (resized)", "capacity": 6 }
+
+// POST /events/:id/rsvp request body
+{ "status": "going", "slot_id": "uuid-or-omitted" }
+```
+
+`EventWithRsvps` (GET /events, GET /events/:id) gains `slots: [...]`
+alongside the existing flattened event fields and `rsvp_counts`.
+
 ## 3. Reminders
 
 One reminder per event, a fixed offset before start.
@@ -118,6 +165,21 @@ One reminder per event, a fixed offset before start.
   infrastructure, and lands in history for whoever was offline.
   Per-user pings for slot claimants ("your raid starts in 15m") are
   deferred until a personal notification system exists (see §5).
+
+> **Implementation note (2026-07-04, hub `825b0da`)**: shipped as
+> `reminder_worker.rs` (not `event_reminder_worker.rs` — matches the
+> other worker module names, all of which drop the `event`/`hub`
+> prefix already implied by the crate). `CreateEventRequest`/
+> `UpdateEventRequest` both accept `reminder_minutes` (nullable);
+> `UpdateEventRequest` uses the existing tri-state
+> absent/null/value convention (see `UpdateChannelRequest` in
+> `chat_models.rs`) so a composer can explicitly clear the reminder.
+> Any `PUT /events/:id` call that includes `reminder_minutes` at all
+> (even re-sending the same value) resets `reminder_sent_at` to NULL —
+> slightly broader than "an event edited to a later start... keeps
+> `reminder_sent_at`" above, which still holds for edits that don't
+> touch `reminder_minutes` (e.g. `starts_at`-only edits never touch
+> `reminder_sent_at`).
 
 ## 4. Calendar view
 
