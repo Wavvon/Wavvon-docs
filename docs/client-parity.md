@@ -30,8 +30,8 @@ Everything here is **portable** (no native API) unless marked native-only.
 | **Real-time media** | | | |
 | Start a screen share (outbound) | ✅ (2026-07-04) | ✅ | ? |
 | View someone's screen share | ✅ | ✅ | ? |
-| Camera / webcam video (`VideoGrid`) | ❌ *(WebRTC build)* | ✅ | ? |
-| Whisper (targeted voice) | ❌ *(WS build)* | ✅ | ? |
+| Camera / webcam video (`VideoGrid`) | ✅ (2026-07-04) | ✅ | ? |
+| Whisper (targeted voice) | ✅ (2026-07-04) | ✅ | ? |
 | Hub-streams panel (cross-channel) | ❌ | ✅ | ? |
 | Mic level meter | ✅ (2026-07-04) | ✅ | ? |
 | In-app push-to-talk | ❌ *(tracked)* | ✅ | ? |
@@ -216,15 +216,23 @@ exist on web.
 
 Definitive status for everything still not at parity:
 
-- **Camera video** — a real build: full-mesh **WebRTC** over the `video_*`
-  WS events (already forwarded by `web/src/platform/ws.ts`), STUN-only, no
-  SFU required. Needs a `useVideo` port (peer connections, offer/answer/ICE
-  per participant) + camera capture + a `VideoGrid`. Not HTTP. **Tracked as
-  a dedicated build** (protocol fully mapped; too large to land safely in a
-  batch).
-- **Whisper** — feasible: `voice_whisper_*` control messages over the WS,
-  target routing done server-side. Needs a whisper-target UI + send wiring
-  on `voice.ts`. **Tracked.**
+- **Camera video — DONE (2026-07-04).** `WebVideoSession`
+  (`platform/video.ts`) does full-mesh WebRTC over the main WS
+  (video_offer/answer/ice, STUN-only, smaller-pubkey-initiates). Created at
+  voice-join (to catch the `video_participants` roster), camera captured on
+  toggle; `VideoGrid` + a header camera button. `e2e/live/20` verifies two
+  clients exchange remote tracks. *Follow-ups: background blur, device
+  picker, active-speaker gating — desktop extras not ported.*
+- **Whisper — DONE (2026-07-04).** Web `WhisperBar` + `voice_whisper_*`
+  control, `voice.ts` now accepts 0x01 frames, and the **hub** gained
+  pubkey-based whisper routing (`whisper_target_pubkeys` +
+  `voice_ws.rs` `only_to` filter) so a web whisper actually reaches only its
+  targets. `e2e/live/21` verifies the control plane. *Follow-ups: (1)
+  **desktop→web** whisper audio still won't reach a web target (the UDP
+  relay in `main.rs` routes by SocketAddr, and web targets have a sentinel
+  addr) — needs the UDP `0x01` branch to also deliver to `voice_ws_senders`;
+  (2) role-type whisper targets route only via the UDP addr set, not the
+  pubkey set; (3) whisper-list save/load (named lists) not ported.*
 - **Hub-streams panel** — cross-channel stream discovery/subscribe UI. **Tracked.**
 - **In-app (focused) push-to-talk** — client-only and feasible via
   `VoiceWsSession.setMuted()` + window keydown/keyup, but it wires directly
