@@ -105,6 +105,15 @@ issues).
 
 Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
 
+- **Multi-device pairing + home-hub write (web, 2026-07-04)** — ported the
+  identity envelopes that were Rust-only into `packages/core`
+  (`master`/`wire`/`ecies`, byte-for-byte pinned by the `wavvon-identity` hex
+  vectors), then built the two features it unblocked: publishing a
+  master-signed home-hub list, and full device pairing (offer → claim →
+  approve → cert), device list + revoke. Auth now presents the subkey cert and
+  records the canonical pubkey, so a paired device is recognised as the same
+  user. `e2e/live/27` (home hubs) + `28` (pairing). Closes the last two web
+  parity gaps — see [`client-parity.md`](docs/client-parity.md).
 - **Web e2e live-test suite + 2026-07-04 batch live pass** — new
   `apps/web/e2e/live/` Playwright suite runs against a real hub (owner
   seeded via `WAVVON_OWNER_PUBKEY`; see `e2e/live/README.md`). Covers
@@ -262,6 +271,13 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
   backlog. **Follow-up (LOW)**: `crates/farm/tests` (`wavvon_farm_test_*`)
   and `crates/seed/tests` (`seed_test_*`) still have the same unguarded
   leak with different prefixes — same guard pattern applies.
+- **Paired-device DMs attribute to the subkey, not the canonical identity** —
+  found 2026-07-04 building pairing. The community experience (messages,
+  membership, roles, bans) is token-based and already resolves to the shared
+  canonical identity, but DM envelopes and the published DH key are signed with
+  the device's own subkey seed, so a DM sent from a paired device shows its
+  subkey as sender. Fix: sign/attribute DMs + DH key against the canonical
+  identity (or have the hub map subkey→canonical on the DM path).
 - **Windows installer unsigned** — SmartScreen warning on first run; workaround
   "More info → Run anyway". See the code-signing blocker above.
 - **Bot deferred scope** — voice/screen-share injection, bot DMs,

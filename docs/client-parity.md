@@ -42,8 +42,8 @@ Everything here is **portable** (no native API) unless marked native-only.
 | Friends (requests/list/remove) | ✅ (2026-07-04) | ✅ | ? |
 | Multi-profile + per-hub assignment | ✅ (2026-07-04) | ✅ | ? |
 | "My certifications" viewer (member) | ✅ (2026-07-04) | ✅ | ? |
-| Home-hub list management | ❌ read-only; write BLOCKED | ✅ | ? |
-| Multi-device pairing + device list/revoke | ❌ BLOCKED | ✅ | ? |
+| Home-hub list management | ✅ (2026-07-04) | ✅ | ? |
+| Multi-device pairing + device list/revoke | ✅ (2026-07-04) | ✅ | ? |
 | **Hub admin** | | | |
 | Assign/remove roles — right-click menu | ✅ (2026-07-04) | ✅ | ❌ **TODO** |
 | Create / delete roles + edit permissions | ✅ (2026-07-04) | ✅ | ❌ **TODO** |
@@ -261,21 +261,36 @@ Definitive status for everything still not at parity:
   (`GET /survey/current`, `POST /survey/submit`; the public shape has no
   `enabled` field, so App gates on `questions.length` + a dismissed set).
   `e2e/live/25`.
-- **Home-hub list management** — read works over
-  `GET /identity/{master}/designation`, but **write is BLOCKED**: it needs
-  the `HomeHubList` canonical signing-bytes format ported to `packages/core`
-  TS (only DM/DH/ratchet signing-bytes exist today).
-- **Multi-device pairing + device list/revoke** — **BLOCKED**: the pairing
-  HTTP endpoints (`/identity/pairing/*`) and paste-code UX are ready, but the
-  `SubkeyCert` master/subkey model + its canonical signing-bytes are not
-  ported to `packages/core` (web identity is a single flat ed25519 seed).
-  Requires a crypto/identity-model port first — the same gap that blocks
-  home-hub write.
+- **Identity crypto port — DONE (2026-07-04).** The blocker for both items
+  below. `packages/core/src/identity/` now has `master.ts` (HKDF master-key
+  derivation from the device seed), `wire.ts` (length-prefixed signing-bytes +
+  signed-struct builders for HomeHubList, SubkeyCert, RevocationEntry,
+  PairingOffer, PairingClaim), and `ecies.ts` (X25519 wrap/unwrap for the
+  prefs-blob key). `wire.test.ts` asserts every envelope against the canonical
+  hex vectors in `wavvon-identity`, so the port is byte-for-byte identical; a
+  new `MASTER_FROM_ENTROPY_PUB` vector pins the HKDF derivation cross-language.
+- **Home-hub list management — DONE (2026-07-04).** `HomeHubsSection`
+  (Settings → Account) reads `GET /identity/{master}/designation`, edits the
+  ordered hub list, and publishes a master-signed `HomeHubList` via
+  `POST …/designation`. `e2e/live/27`.
+- **Multi-device pairing + device list/revoke — DONE (2026-07-04).**
+  `DevicesSection` (existing device): enable multi-device (self-issue a
+  subkey-0 cert + re-auth so the hub records the master), create a signed
+  pairing offer, show a paste code, approve the new device's claim by issuing
+  a master-signed `SubkeyCert`; plus device list + revoke. Identity setup (new
+  device): paste the code, mint a fresh subkey, claim, and on approval store
+  the cert and join. Auth (`platform/commands/hubs.ts`) now presents the stored
+  cert and records the `canonical_pubkey` the hub returns, so a paired device
+  self-identifies as the shared user. `e2e/live/28` pairs a second browser
+  context and asserts the hub resolves it to the owner's canonical identity.
+  *Follow-up: DM sender attribution and the DH key are still signed with the
+  device subkey rather than mapped to the canonical identity, so DMs from a
+  paired device attribute to its subkey. The community experience (messages,
+  membership, roles, bans) is token-based and already canonical. Tracked.*
 
-**Recommended next real build:** the `packages/core` `SubkeyCert` /
-`HomeHubList` signing-bytes port — it's the one remaining blocker for both
-multi-device pairing and home-hub write, the only two feature-parity gaps
-left. Everything else in the porting pass has landed.
+**Feature parity with desktop is complete** for the web client's scope. The
+remaining refinement is canonical-identity mapping for a paired device's DMs
+and DH key (see the pairing follow-up above) — an enhancement, not a gap.
 
 ---
 
