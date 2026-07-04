@@ -62,10 +62,9 @@ issues).
 - **Forum post federation across alliances** — v1 forums are hub-local
   only; posts/replies don't federate over alliance-shared channels. No
   design work started. See [`forum.md`](docs/forum.md).
-- **Event role-slot sign-ups + reminders** — **designed, ready to
-  implement**: [`events.md`](docs/events.md). Slot claims with enforced
-  capacity, reminder worker posting channel event-cards at T−N,
-  calendar view; includes the events read-gating fix below.
+- **Event role-slot sign-ups + reminders** — *server in progress
+  2026-07-04* ([`events.md`](docs/events.md)); web UI queued next. The
+  events read-gating fix (H3) already landed in the security pass.
 - **Join-to-create temporary voice channels** — **designed, ready to
   implement**: [`temp-voice-channels.md`](docs/temp-voice-channels.md).
   Spawner type + sibling temp rooms, 60s-grace GC worker, and the new
@@ -138,16 +137,14 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
   strings; server validation accepts them but they render as literal
   text, not an emoji, on badges/headers. Fix: filter the picker to
   unicode emoji for this use, or render shortcodes properly.
-- **Test harness leaks ephemeral databases** — `hub/tests` creates a
-  `wavvon_test_*` Postgres DB per test and never drops it; grew from
-  ~700 to ~1800 leaked DBs across 2026-07-04 alone, twice exhausting
-  the container's 64MB `/dev/shm` and crashing Postgres mid-suite. CI
-  is unaffected (fresh service container per run), but local full-suite
-  runs now reliably hit this. Escalating: fix soon — a `DROP DATABASE`
-  sweep in `common::create_test_db()` is a one-liner-ish change. Note
-  `dm_retries_when_recipient_hub_comes_online` failed 4/4 attempts in
-  the degraded-container state (listed as flaky; may be load-sensitive
-  rather than random).
+- **Test harness DB leak — FIXED 2026-07-04** (hub `e203106`):
+  `create_test_db()` returns a `TestDbGuard` whose `Drop` issues
+  `DROP DATABASE … WITH (FORCE)` (via a dedicated OS thread so it fires
+  on panic too); verified 0→0 leaked DBs across back-to-back full-suite
+  runs, `/dev/shm` flat. A `db_sweep` `#[ignore]`d test clears any
+  backlog. **Follow-up (LOW)**: `crates/farm/tests` (`wavvon_farm_test_*`)
+  and `crates/seed/tests` (`seed_test_*`) still have the same unguarded
+  leak with different prefixes — same guard pattern applies.
 - **Windows installer unsigned** — SmartScreen warning on first run; workaround
   "More info → Run anyway". See the code-signing blocker above.
 - **Bot deferred scope** — voice/screen-share injection, bot DMs,
