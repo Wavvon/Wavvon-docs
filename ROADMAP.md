@@ -90,28 +90,25 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
 
 ## ⚠️ Known issues
 
-- **🔴 SECURITY — two HIGH findings, should block push** — full audit in
+- **✅ SECURITY — 2026-07-04 audit findings ALL FIXED** — full audit in
   [`security-audit-2026-07-04.md`](docs/security-audit-2026-07-04.md).
-  - **H1**: WS explicit `Subscribe` (`ws/handlers/screen.rs:25`) has no
-    read-gate — any member can subscribe to a private channel id and
-    receive its live messages/edits/typing/reactions/pins.
-  - **H2**: `put_channel_permissions` (`channel_permissions.rs:166`) has
-    no priority/self-grant guard and `admin` is in `ALL_PERMISSIONS`, so
-    a `MANAGE_ROLES`-on-channel delegate can `PUT {"allow":["admin"]}`
-    and escalate to full subtree admin.
-  - **D1** (importer, HIGH but tool-only): `discord-import` disables TLS
-    cert verification on the owner-token-bearing hub client
-    (`main.rs:154`); MITM → owner token capture. Same line to scrub from
-    `demo-seed`. Plus **D2**: `--hub` allows cleartext `http`.
-  - Medium: **H3** events + **H4** pins read paths not channel-gated
-    (private content/ids leak); **W1** unvalidated hub `color` →
-    `background: url()` beacon in admin swatches. See the audit doc for
-    the rest and the fixes.
-  - **Fixed 2026-07-04**: W1 (clients `62792cb` — `safeRoleColor`
-    validator on both swatch sinks). Server-side H1–H4 + importer
-    D1–D3 fixes in progress. **W2** (LOW, not exploitable): pre-existing
-    `channel.color` raw-into-CSS in `SortableItems.tsx` — safe by
-    formatting luck, harden via `safeRoleColor` when convenient.
+  Server fixes hub `efbf17b`, web fix clients `62792cb`. Verified by
+  hand + regression tests; no longer blocks push.
+  - **H1** (WS Subscribe read-gate) — fixed: `handle_subscribe` requires
+    channel-scoped `READ_MESSAGES` before subscribing; 2 WS integration
+    tests over real TCP.
+  - **H2** (channel-perm escalation) — fixed: priority guard +
+    unconditional `admin`-grant block + self-grant guard on PUT/DELETE;
+    `manager_cannot_grant_admin_via_overwrite` asserts 403.
+  - **H3** (events) / **H4** (pins) — fixed: read paths channel-gated
+    (`get_event` 404s to avoid existence leak); pin writes channel-scoped.
+  - **D1/D2/D3** (importer) — fixed: TLS-bypass now loopback-only behind
+    `--insecure`, non-`https` hub rejected unless loopback, `Retry-After`
+    clamped; same TLS line scrubbed from `demo-seed`.
+  - **W1** (color beacon) — fixed: `safeRoleColor` validator on both
+    swatch sinks. **W2** (LOW, not exploitable): pre-existing
+    `channel.color` raw-into-CSS in `SortableItems.tsx` — harden via
+    `safeRoleColor` when convenient (open).
 - **`packages/core` crypto test vectors are stale** — found 2026-07-04
   when `packages/core` got its first `test` script:
   `src/identity/crypto.test.ts` still asserts pre-rename `"voxply/…"`

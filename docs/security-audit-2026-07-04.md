@@ -10,6 +10,15 @@ component (H = hub/server, W = web client, D = discord-import crate).
 privilege-escalation / private-content disclosure introduced by the
 channel-permission-overwrites feature itself.
 
+> **UPDATE 2026-07-04: all findings fixed.** Server — hub `efbf17b`
+> (H1 WS read-gate, H2 priority/admin/self-grant guards, H3 events
+> gating, H4 pins gating, D1/D2/D3 importer TLS+scheme+retry, demo-seed
+> TLS scrub). Web — clients `62792cb` (W1 `safeRoleColor`). Verified by
+> hand-reading the diffs plus regression tests
+> (`manager_cannot_grant_admin_via_overwrite` → 403; WS-subscribe
+> integration tests; events/pins gating tests). Only **W2** (LOW, not
+> exploitable) remains open as a defense-in-depth hardening.
+
 ## H1 (HIGH) — WS explicit `Subscribe` bypasses channel read-gating
 
 `crates/hub/src/routes/ws/handlers/screen.rs:25`. `handle_subscribe`
