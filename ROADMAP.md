@@ -208,10 +208,10 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
   (`onMemberOnline` only flips `online` on users already in the array).
   Documented by `10-member-presence.spec.ts` (which reloads to pick up the
   join; offline transitions of known members ARE live).
-- **Banner channels aren't manageable from the web sidebar** — a banner
-  channel renders as a bare `<li>` (just the image, or empty when no image
-  is set) with no name, no context menu, and no settings gear, so there's
-  no affordance to rename or delete it once created. Create-only on web.
+- **✅ Banner channels manageable from the web sidebar — FIXED 2026-07-05**
+  (clients `47ee91f`). Admins get a management row (name + settings gear) plus
+  a right-click context menu on banner rows, so they can rename/delete like any
+  channel; members still see just the image. `e2e/live/11`.
 - **No member-facing "my effective channel permissions" endpoint** —
   recurring gap surfaced by the Permissions tab, the soundboard
   play-gate, and channel-scoped `use_soundboard`. The only endpoint that
@@ -255,11 +255,11 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
   color/icon/category controls for `@everyone`/`Owner` (the hub rejects
   appearance PATCHes on built-in roles). Permissions — a separate endpoint,
   still editable for `@everyone` — remain. `e2e/live/31`.
-- **Role/category icon picker can store non-rendering shortcodes** —
-  `EmojiPicker`'s hub-custom-emoji section returns `:name:` shortcode
-  strings; server validation accepts them but they render as literal
-  text, not an emoji, on badges/headers. Fix: filter the picker to
-  unicode emoji for this use, or render shortcodes properly.
+- **✅ Icon pickers can no longer store non-rendering shortcodes — FIXED
+  2026-07-05** (clients `47ee91f`). `EmojiPicker` gained a `unicodeOnly` prop
+  that hides the hub-custom-emoji (`:name:`) section; the role, channel,
+  category, and soundboard icon pickers pass it (the message composer still
+  offers custom emoji). `e2e/live/32`.
 - **Test harness DB leak — FIXED 2026-07-04** (hub `e203106`):
   `create_test_db()` returns a `TestDbGuard` whose `Drop` issues
   `DROP DATABASE … WITH (FORCE)` (via a dedicated OS thread so it fires
