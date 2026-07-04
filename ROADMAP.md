@@ -78,11 +78,14 @@ issues).
   first. Remaining: (1) the voice_ws fix; (2) owner-rename UI (a
   non-admin temp-room owner has no rename path — the context menu is
   `isAdmin`-gated).
-- **Soundboard + bot audio injection** — *server in progress
-  2026-07-04* ([`soundboard.md`](docs/soundboard.md)): clip library +
-  `use_soundboard`/`manage_soundboard` perms + `soundboard_played`
-  event; bot audio injection implemented-if-clean-else-deferred. Web UI
-  (voice-bar popover + admin manage) queued after.
+- **Soundboard + bot audio injection** — *server SHIPPED 2026-07-04*
+  (hub `ef9beed`, [`soundboard.md`](docs/soundboard.md)): clip library
+  + `use_soundboard`/`manage_soundboard` perms + `soundboard_played`
+  event; bot audio injection also shipped — `can_speak_voice` capability
+  gate on `/voice/ws` for `is_bot=true` sessions (the older self-service
+  bot voice-join REST helper predates the capability model and is
+  untouched). Web UI (voice-bar popover, admin manage view, `played`
+  chip rendering) queued next.
 - **LAN / offline mode** — **designed, ready to implement**:
   [`lan-mode.md`](docs/lan-mode.md). mDNS discovery + self-signed/
   fingerprint or gated-plaintext trust; `WAVVON_LAN_MODE` flag with a
