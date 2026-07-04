@@ -78,14 +78,13 @@ issues).
   first. Remaining: (1) the voice_ws fix; (2) owner-rename UI (a
   non-admin temp-room owner has no rename path — the context menu is
   `isAdmin`-gated).
-- **Soundboard + bot audio injection** — *server SHIPPED 2026-07-04*
-  (hub `ef9beed`, [`soundboard.md`](docs/soundboard.md)): clip library
-  + `use_soundboard`/`manage_soundboard` perms + `soundboard_played`
-  event; bot audio injection also shipped — `can_speak_voice` capability
-  gate on `/voice/ws` for `is_bot=true` sessions (the older self-service
-  bot voice-join REST helper predates the capability model and is
-  untouched). Web UI (voice-bar popover, admin manage view, `played`
-  chip rendering) queued next.
+- **Soundboard + bot audio injection** — *SHIPPED 2026-07-04* (server
+  hub `ef9beed`, web clients `eed7c04`, [`soundboard.md`](docs/soundboard.md)).
+  Clip library + `use_soundboard`/`manage_soundboard` perms +
+  `soundboard_played` event; real client-side PCM mix into the outgoing
+  stream; bot audio injection via `can_speak_voice` gate on `/voice/ws`.
+  Needs the live pass; play-gate uses hub-role perms (see channel-perms
+  endpoint follow-up).
 - **LAN / offline mode** — **designed, ready to implement**:
   [`lan-mode.md`](docs/lan-mode.md). mDNS discovery + self-signed/
   fingerprint or gated-plaintext trust; `WAVVON_LAN_MODE` flag with a
@@ -136,6 +135,16 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
   `voice_ws.rs` and echo the resolved id in `voice_ws_ready`. The web
   client already consumes a resolved id when present. **Queued to run
   right after the soundboard server frees the server repo.**
+- **No member-facing "my effective channel permissions" endpoint** —
+  recurring gap surfaced by the Permissions tab, the soundboard
+  play-gate, and channel-scoped `use_soundboard`. The only endpoint that
+  folds channel overwrites (`GET /channels/:id/permissions`) itself
+  requires `manage_roles`, so a plain member's client can't cheaply
+  learn its own channel-scoped effective perms — client UIs fall back to
+  hub-wide role checks for gating (servers still enforce the real
+  channel-scoped check, so it's a UX/visibility gap, not a security
+  one). Fix: a lightweight `GET /channels/:id/my-permissions` returning
+  the caller's own effective set.
 - **`packages/core` crypto test vectors are stale** — found 2026-07-04
   when `packages/core` got its first `test` script:
   `src/identity/crypto.test.ts` still asserts pre-rename `"voxply/…"`

@@ -6,6 +6,21 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Soundboard — web UI (2026-07-04)** — clients `eed7c04`.
+  **Client-side mix is real** (`mixClipIntoFrame` in `platform/voice.ts`):
+  a clip decoded via `AudioContext.decodeAudioData` (handles Opus-in-Ogg,
+  resamples to 48kHz, mono downmix) is sample-added onto each mic frame
+  with a `[-1,1]` clamp *before* the int16 quantize + Opus encode, so
+  it's baked into the sender's own outgoing stream (zero relay change,
+  per soundboard.md §1). Voice-bar `SoundboardPopover`, hub-admin
+  `SoundboardAdminSection` (upload/list/delete + local preview),
+  `soundboard_played` chips via `useSoundboardChips`. Rate-limited to
+  one clip at a time. 109 web tests green. **Caveat**: the `use_soundboard`
+  play-gate is checked against hub-wide roles, not channel-scoped
+  overwrites (see the "no member-facing channel-perms endpoint"
+  follow-up in ROADMAP) — the server still enforces the real
+  channel-scoped check on `played`, so a denied member's play 403s.
+
 - **Soundboard + bot audio injection — server (2026-07-04)** —
   [`soundboard.md`](soundboard.md), hub `ef9beed`. `soundboard_clips`
   table; `use_soundboard`/`manage_soundboard` permissions (in
