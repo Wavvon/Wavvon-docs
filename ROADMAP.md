@@ -227,10 +227,12 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
   `"voxply/…"` wire tags and was excluded from the suite; regenerated the
   DhKeyRecord + DM-envelope vectors against the canonical `wavvon-identity`
   values and re-enabled it (now runs alongside the new `wire.test.ts`).
-- **Hub switch leaves the message pane empty** — `handleSwitchHub`
-  (web) never fetches history for the auto-selected default channel;
-  only `handleSelectChannel` does. Pre-existing, unrelated to
-  permalinks (deep links are unaffected).
+- **✅ Hub switch / fresh load left the message pane empty — FIXED
+  2026-07-04** (clients `42a3390`). `loadHubData` auto-selected the first
+  channel but never fetched its messages (only `handleSelectChannel` did), so
+  the pane stayed empty until a manual click. It now fetches + subscribes the
+  auto-selected channel (guarded against a racing manual selection).
+  `e2e/live/30`.
 - **2026-07-04 batch: live pass DONE for web** (via the new
   `e2e/live/` suite — see Recently shipped) for the Permissions tab,
   channel permalinks/breadcrumbs, sidebar drill-in, role categories,
@@ -247,13 +249,11 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
   screen. Pre-existing, unrelated to the live suite. Fix: have
   `injectSession` also seed the IDB `wavvon/identity/main` record (the
   live suite's saved storageState already does this correctly).
-- **Web role appearance controls shown on built-in roles** — found
-  2026-07-04. `RolesSection` renders the color/icon/category controls
-  for `@everyone`/`Owner`, but the hub rejects appearance PATCHes on
-  built-in roles ("Cannot modify built-in roles"), so the controls
-  silently error. Either hide them for built-in roles or allow the
-  appearance fields server-side. (The e2e role test uses a custom role
-  to sidestep this.)
+- **✅ Web role appearance controls on built-in roles — FIXED 2026-07-04**
+  (clients `42a3390`). `RolesSection` no longer renders the
+  color/icon/category controls for `@everyone`/`Owner` (the hub rejects
+  appearance PATCHes on built-in roles). Permissions — a separate endpoint,
+  still editable for `@everyone` — remain. `e2e/live/31`.
 - **Role/category icon picker can store non-rendering shortcodes** —
   `EmojiPicker`'s hub-custom-emoji section returns `:name:` shortcode
   strings; server validation accepts them but they render as literal
