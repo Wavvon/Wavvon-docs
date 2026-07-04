@@ -120,6 +120,11 @@ exist on web.
 - No client has an away/DND/custom-status picker; presence is a binary
   online/offline dot (`member_online`/`member_offline`). If we want status,
   it's a new cross-client feature (server event + picker in all three).
+- **Fixed 2026-07-04:** newly-joined members now appear in an already-loaded
+  web client's member list live (`onMemberOnline` refetches `/users` for an
+  unknown pubkey) — previously they only showed after a reload.
+- **New known limit:** the hub's `GET /users` caps at 50 rows, so large
+  communities' member lists truncate — needs pagination/search (hub work).
 
 ### 4. Banner-channel management
 
