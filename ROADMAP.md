@@ -136,6 +136,16 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
     menu (`Edit "{{name}}"` / `Delete "{{name}}"`); also user profile
     "Joined", archive strength/progress, invite/discovery hints. Converted
     all to single-brace in `packages/i18n/en.json`.
+- **Web: assign/remove roles from the member right-click menu (2026-07-04)**
+  — closed the biggest client discrepancy found in round 2. The web
+  `UserContextMenu` now has a "Roles" section (gated on `manage_roles`,
+  hides `@everyone` and roles at/above the viewer's priority) that toggles
+  `PUT`/`DELETE /users/{pubkey}/roles/{role_id}`; member list regroups on
+  change. New platform commands `assignRoleToUser`/`removeRoleFromUser`/
+  `listUserRoles`; covered by `12-role-assignment.spec.ts`. Cross-client
+  parity is now tracked in [`client-parity.md`](docs/client-parity.md)
+  (**android still lacks it**; desktop has a near-identical version to
+  align).
 
 ## ⚠️ Known issues
 
@@ -170,15 +180,12 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
   already preferred a reply-supplied id when present). Broadcasts
   `channels_updated` on spawn, matching the main-hub-WS path. Two new
   integration tests in `temp_voice_channels_flow.rs`.
-- **Web has no role-assignment UI (assign/remove a role to a member)** —
-  found 2026-07-04 (e2e round 2). The hub endpoints exist and work
-  (`PUT`/`DELETE /users/{pubkey}/roles/{role_id}`, verified by
-  `12-role-assignment.spec.ts`), and desktop uses them, but the **web**
-  client has no way to reach them: the Hub Admin → Members tab shows each
-  member's roles read-only with only Kick/Ban, the member right-click menu
-  has only Send DM / Copy key / Mute / Kick / Ban, and there is no
-  create/delete-role UI (`createRole`/`deleteRole` are exported but unused).
-  Web can edit role appearance/categories but cannot grant/revoke roles.
+- **Role assignment — client parity** (web FIXED 2026-07-04; see Recently
+  shipped). Remaining, tracked in [`client-parity.md`](docs/client-parity.md):
+  **android** still has no role-assignment control in its user context menu;
+  **desktop** has one to align with web's filtering. Separately, **no client
+  has a create/delete-role UI** on web/android (`createRole`/`deleteRole`
+  platform commands exist but are unused) — desktop only.
 - **Web profile changes don't propagate live to other clients** — found
   2026-07-04 (e2e round 2). `PATCH /me` updates the DB but broadcasts no
   WebSocket event, and the client has no `user_updated`/`profile_updated`

@@ -52,6 +52,7 @@ These shipped — the doc is the design rationale behind the code (see
 17. [android-client.md](android-client.md) — Tauri 2 Android wrapper around the browser platform layer, side-loaded APK
     - [install-android.md](install-android.md) — end-user guide: enable unknown sources, download APK, Play Protect warning
     - [client-monorepo.md](client-monorepo.md) — **shipped (2026-06-13)**: the three client repos were consolidated into the one pnpm-workspace Wavvon-client monorepo (`packages/core|ui|platform|i18n` + `apps/*`); staged migration, git-subtree history preservation, CI/release/updater cutover. Hub server stays separate. See [decisions.md](decisions.md).
+    - [client-parity.md](client-parity.md) — **living tracker** of feature gaps across web / desktop / android (web leads). Current: android is missing role assignment via the right-click menu; web/android lack a create/delete-role UI.
 18. [bots.md](bots.md) — external bot ecosystem: invite-by-pubkey, slash commands, webhook dispatch, per-hub directory
 19. [accessibility.md](accessibility.md) — keyboard navigation, ARIA / screen-reader support, i18n strategy across desktop / web / Android
 20. [forum.md](forum.md) — forum channel type: post-list variant, posts + reply threads, `create_posts`/`manage_posts` permissions, FTS search
