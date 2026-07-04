@@ -71,12 +71,13 @@ issues).
   baseline RSVP-only). Calendar view (§4) still undesigned-priority,
   client-only. The events read-gating fix (H3) already landed in the
   security pass.
-- **Join-to-create temporary voice channels** — *server SHIPPED
-  2026-07-04* (hub `3005fc5`, [`temp-voice-channels.md`](docs/temp-voice-channels.md)):
-  spawner type + sibling temp rooms, 30s/60s-grace GC worker; reused the
-  existing `channels_updated` WS event (not a new one). *Web UI in
-  progress* (spawner creation, temp badge, voice-join-to-spawner
-  correctness).
+- **Join-to-create temporary voice channels** — *server SHIPPED*
+  (hub `3005fc5`) + *web UI SHIPPED* (clients `fb607de`),
+  [`temp-voice-channels.md`](docs/temp-voice-channels.md). **BUT not yet
+  functional on web** — the `voice_ws.rs` spawner gap below must land
+  first. Remaining: (1) the voice_ws fix; (2) owner-rename UI (a
+  non-admin temp-room owner has no rename path — the context menu is
+  `isAdmin`-gated).
 - **Soundboard + bot audio injection** — *server in progress
   2026-07-04* ([`soundboard.md`](docs/soundboard.md)): clip library +
   `use_soundboard`/`manage_soundboard` perms + `soundboard_played`
@@ -121,6 +122,17 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
     swatch sinks. **W2** (LOW, not exploitable): pre-existing
     `channel.color` raw-into-CSS in `SortableItems.tsx` — harden via
     `safeRoleColor` when convenient (open).
+- **🟠 Temp voice spawners don't work on web yet — `voice_ws.rs` gap**
+  — the spawn-on-join logic (hub `3005fc5`) was added only to
+  `routes/ws/handlers/voice.rs` (the main-hub-WS / UDP path used by
+  desktop/Android). Web's audio transport is the separate
+  `/voice/ws` (`routes/voice_ws.rs`), which never detects
+  `channel_type = 'spawner'` and its `voice_ws_ready` frame carries no
+  `channel_id`, so a web user clicking a spawner joins the spawner row
+  itself. Fix (additive, ~20 lines): mirror the spawn-detection into
+  `voice_ws.rs` and echo the resolved id in `voice_ws_ready`. The web
+  client already consumes a resolved id when present. **Queued to run
+  right after the soundboard server frees the server repo.**
 - **`packages/core` crypto test vectors are stale** — found 2026-07-04
   when `packages/core` got its first `test` script:
   `src/identity/crypto.test.ts` still asserts pre-rename `"voxply/…"`

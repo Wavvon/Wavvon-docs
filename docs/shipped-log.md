@@ -6,6 +6,20 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Join-to-create temporary voice channels — web UI (2026-07-04)** —
+  clients `fb607de`. Spawner option + "room name template" field in
+  `CreateChannelModal`; spawner rows click-to-voice-join (no
+  unread/draft/voice badges); temp rooms show a "Temporary" badge +
+  owner tooltip; voice UI state re-keyed off the *resolved* channel id
+  from the join reply. `channels_updated` was already handled by the
+  web WS layer, so temp spawn/GC refetch works for free.
+  **⚠️ Does not yet function end-to-end on web** — see the `voice_ws.rs`
+  spawner gap in ROADMAP Known issues: web's `/voice/ws` transport
+  never got the spawn-detection the main-hub-WS path did, so clicking a
+  spawner currently joins the spawner row itself. The web client is
+  correct-by-construction (uses the reply's resolved id); the hub-side
+  gap is the blocker.
+
 - **Join-to-create temporary voice channels — server (2026-07-04)** —
   [`temp-voice-channels.md`](temp-voice-channels.md), hub `3005fc5`.
   Additive `channels` columns (`is_temporary`, `owner_pubkey`,
