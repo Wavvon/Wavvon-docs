@@ -39,7 +39,7 @@ Everything here is **portable** (no native API) unless marked native-only.
 | Audio-profile applied to live session | ✅ (2026-07-04) | ✅ | ? |
 | **Identity / profile / social** | | | |
 | Avatar image upload + crop | ✅ (2026-07-04) | ✅ | ? |
-| Friends (requests/list/DM) | ❌ (button now hidden) | ✅ | ? |
+| Friends (requests/list/remove) | ✅ (2026-07-04) | ✅ | ? |
 | Multi-profile + per-hub assignment | ❌ | ✅ | ? |
 | "My certifications" viewer (member) | ❌ | ✅ | ? |
 | Home-hub list management | ❌ (read-only) | ✅ | ? |
@@ -132,11 +132,14 @@ exist on web.
   reads the saved `AudioProfileConfig` from `localStorage` and passes it as
   the 5th `VoiceWsSession` arg, so the settings choice takes effect on the
   live session.
-- **Friends button now hidden (2026-07-04).** The 👥 entry point only
-  renders when an `onOpenFriends` handler is wired; web passes none, so the
-  dead button is gone. **Still TODO:** actually build the friends feature on
-  web (modal + requests + `useFriends` + platform commands) to reach
-  desktop parity — see the social gaps above.
+- **Friends built (DONE 2026-07-04).** `components/FriendsModal.tsx` +
+  `platform/commands/friends.ts` (`listFriends`, `listPendingFriendRequests`,
+  `sendFriendRequest`, `acceptFriendRequest`, `removeFriend`) against the hub
+  `/friends` endpoints. The 👥 DM-sidebar button now opens it: add a friend by
+  public key, accept pending requests, list + remove friends. Covered by
+  `e2e/live/16-friends.spec.ts` (two-client send → accept → remove).
+  *Follow-up:* a "Message" action to open a DM directly from a friend row
+  (needs a start-DM-by-pubkey path).
 - **Dead code:** `web/src/platform/webrtc.ts` `WebRtcSharerSession` is
   defined but never instantiated — the intended outbound-screen-share path
   was never wired (see the media gaps above).
