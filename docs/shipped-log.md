@@ -6,6 +6,22 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Soundboard + bot audio injection — server (2026-07-04)** —
+  [`soundboard.md`](soundboard.md), hub `ef9beed`. `soundboard_clips`
+  table; `use_soundboard`/`manage_soundboard` permissions (in
+  `ALL_PERMISSIONS`, so channel-deniable); list/upload/delete/audio/
+  played routes with Opus-in-Ogg validation (OggS + OpusHead, duration
+  from the final page granule) and hard caps (≤10s / ≤512KB / ≤50
+  clips); `soundboard_played` WS attribution event (channel-scoped
+  fan-out; enforcement is the `use_soundboard` check, not audio
+  inspection). **Bot audio injection (Part B) also shipped**: external
+  `is_bot` sessions on `/voice/ws` are gated on the `can_speak_voice`
+  capability + channel `read_messages` before relay registration; the
+  older self-service `/bots/:id/voice/join` REST helper predates the
+  capability model and was left untouched. 11 soundboard + 2 bot-voice
+  tests. Web UI (voice-bar popover, client-side PCM mix, admin manage,
+  `played` chip) is the next pass.
+
 - **Join-to-create temporary voice channels — web UI (2026-07-04)** —
   clients `fb607de`. Spawner option + "room name template" field in
   `CreateChannelModal`; spawner rows click-to-voice-join (no
