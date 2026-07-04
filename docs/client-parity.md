@@ -34,7 +34,7 @@ Everything here is **portable** (no native API) unless marked native-only.
 | Whisper (targeted voice) | ✅ (2026-07-04) | ✅ | ? |
 | Hub-streams panel (cross-channel) | ❌ | ✅ | ? |
 | Mic level meter | ✅ (2026-07-04) | ✅ | ? |
-| In-app push-to-talk | ❌ *(tracked)* | ✅ | ? |
+| In-app push-to-talk | ✅ (2026-07-04) | ✅ | ? |
 | Global (unfocused) PTT hotkey | ➖ native | ✅ | ➖ |
 | Audio-profile applied to live session | ✅ (2026-07-04) | ✅ | ? |
 | **Identity / profile / social** | | | |
@@ -49,14 +49,14 @@ Everything here is **portable** (no native API) unless marked native-only.
 | Create / delete roles + edit permissions | ✅ (2026-07-04) | ✅ | ❌ **TODO** |
 | Role appearance (color/icon) + categories | ✅ | partial | ❌ |
 | Alliances (create/leave) + invite inbox | ✅ (2026-07-04) | ✅ | ? |
-| Alliance channel-sharing | ❌ *(tracked)* | ✅ | ? |
+| Alliance channel-sharing | ✅ (2026-07-04) | ✅ | ? |
 | Onboarding: approval queue + lobby/challenge settings | ✅ (2026-07-04) | ✅ | ? |
 | Onboarding survey builder + member survey | ❌ *(tracked)* | ✅ | ? |
 | Hub audit log | ✅ (2026-07-04) | ✅ | ? |
 | Hub icon library | ✅ (2026-07-04) | ✅ | ? |
 | Native bot admin / create | ✅ (2026-07-04) | ✅ | ? |
 | Channel bans | ✅ (2026-07-04) | ✅ | ? |
-| Channel appearance / icon picker | ❌ *(tracked)* | ✅ | ? |
+| Channel appearance (color/icon) | ✅ (2026-07-04) | ✅ | ? |
 | Kick / Ban / Mute — right-click menu | ✅ | ✅ | ❌ |
 | Presence status (away / DND / custom) | ❌ | ❌ | ❌ |
 | Banner-channel rename/delete from sidebar | ❌ | ? | ? |
@@ -234,16 +234,17 @@ Definitive status for everything still not at parity:
   (2) role-type whisper targets route only via the UDP addr set, not the
   pubkey set; (3) whisper-list save/load (named lists) not ported.*
 - **Hub-streams panel** — cross-channel stream discovery/subscribe UI. **Tracked.**
-- **In-app (focused) push-to-talk** — client-only and feasible via
-  `VoiceWsSession.setMuted()` + window keydown/keyup, but it wires directly
-  into the live voice-mute path, so it deserves careful, tested work rather
-  than a rushed batch. **Tracked.** (Global/unfocused PTT stays native-only.)
+- **In-app (focused) push-to-talk — DONE (2026-07-04).** `PushToTalkSection`
+  (Settings → Voice) + an App effect that gates `VoiceWsSession.setMuted()`
+  on the bound key while in voice; isolated so non-PTT users are unaffected.
+  `e2e/live/23`. Global/unfocused PTT stays native-only.
+- **Alliance channel-sharing — DONE (2026-07-04)** (`e2e/live/18`).
+- **Channel appearance (color/icon) — DONE (2026-07-04)** (`e2e/live/22`).
 - **Multi-profile + per-hub assignment** — client-only (localStorage /
   IndexedDB; web currently stubs empty arrays). Buildable with no server
   work. **Tracked.**
-- **Alliance channel-sharing**, **onboarding survey builder + member
-  survey**, **channel appearance / icon picker** — all HTTP-buildable
-  (routes exist); **tracked** as further UI.
+- **Onboarding survey builder + member survey** — HTTP-buildable (routes
+  exist); **tracked** as further UI (the heaviest remaining admin surface).
 - **Home-hub list management** — read works over
   `GET /identity/{master}/designation`, but **write is BLOCKED**: it needs
   the `HomeHubList` canonical signing-bytes format ported to `packages/core`
