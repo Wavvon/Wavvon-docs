@@ -72,12 +72,11 @@ issues).
   client-only. The events read-gating fix (H3) already landed in the
   security pass.
 - **Join-to-create temporary voice channels** — *server SHIPPED*
-  (hub `3005fc5`) + *web UI SHIPPED* (clients `fb607de`),
-  [`temp-voice-channels.md`](docs/temp-voice-channels.md). **BUT not yet
-  functional on web** — the `voice_ws.rs` spawner gap below must land
-  first. Remaining: (1) the voice_ws fix; (2) owner-rename UI (a
-  non-admin temp-room owner has no rename path — the context menu is
-  `isAdmin`-gated).
+  (hub `3005fc5`) + *web UI SHIPPED* (clients `fb607de`) +
+  *`voice_ws.rs` spawner gap FIXED 2026-07-04* (hub `1fc5aa6`, see Known
+  issues below), [`temp-voice-channels.md`](docs/temp-voice-channels.md).
+  Remaining: owner-rename UI (a non-admin temp-room owner has no rename
+  path — the context menu is `isAdmin`-gated).
 - **Soundboard + bot audio injection** — *SHIPPED 2026-07-04* (server
   hub `ef9beed`, web clients `eed7c04`, [`soundboard.md`](docs/soundboard.md)).
   Clip library + `use_soundboard`/`manage_soundboard` perms +
@@ -124,17 +123,18 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
     swatch sinks. **W2** (LOW, not exploitable): pre-existing
     `channel.color` raw-into-CSS in `SortableItems.tsx` — harden via
     `safeRoleColor` when convenient (open).
-- **🟠 Temp voice spawners don't work on web yet — `voice_ws.rs` gap**
-  — the spawn-on-join logic (hub `3005fc5`) was added only to
+- **✅ Temp voice spawners on web — FIXED 2026-07-04** (hub `1fc5aa6`)
+  — the spawn-on-join logic (hub `3005fc5`) had only been added to
   `routes/ws/handlers/voice.rs` (the main-hub-WS / UDP path used by
-  desktop/Android). Web's audio transport is the separate
-  `/voice/ws` (`routes/voice_ws.rs`), which never detects
-  `channel_type = 'spawner'` and its `voice_ws_ready` frame carries no
-  `channel_id`, so a web user clicking a spawner joins the spawner row
-  itself. Fix (additive, ~20 lines): mirror the spawn-detection into
-  `voice_ws.rs` and echo the resolved id in `voice_ws_ready`. The web
-  client already consumes a resolved id when present. **Queued to run
-  right after the soundboard server frees the server repo.**
+  desktop/Android); web's separate `/voice/ws` transport
+  (`routes/voice_ws.rs`) never detected `channel_type = 'spawner'`, so a
+  web user clicking a spawner joined the spawner row itself.
+  `voice_ws_task` now reuses the same `spawn_temp_channel()` helper,
+  gates on channel-scoped `read_messages` against the spawner first, and
+  echoes the resolved `channel_id` in `voice_ws_ready` (the web client
+  already preferred a reply-supplied id when present). Broadcasts
+  `channels_updated` on spawn, matching the main-hub-WS path. Two new
+  integration tests in `temp_voice_channels_flow.rs`.
 - **No member-facing "my effective channel permissions" endpoint** —
   recurring gap surfaced by the Permissions tab, the soundboard
   play-gate, and channel-scoped `use_soundboard`. The only endpoint that
