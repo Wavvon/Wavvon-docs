@@ -19,16 +19,61 @@ So parity work usually means porting a change into each app's copy.
 
 ## Parity matrix
 
+Legend: ✅ present · ❌ missing · ➖ n/a or native-only · `?` not audited.
+
+### Desktop features missing from web (audited 2026-07-04)
+
+Everything here is **portable** (no native API) unless marked native-only.
+
 | Feature | Web | Desktop | Android |
 |---|:--:|:--:|:--:|
-| Assign/remove roles to a member — right-click menu | ✅ (2026-07-04) | ✅ | ❌ **TODO** |
-| Create / delete hub roles (admin UI) | ❌ | ✅ | ❌ |
-| Role appearance (color/icon) + categories (admin UI) | ✅ | partial | ❌ |
+| **Real-time media** | | | |
+| Start a screen share (outbound) | ❌ | ✅ | ? |
+| View someone's screen share | ✅ | ✅ | ? |
+| Camera / webcam video (`VideoGrid`) | ❌ | ✅ | ? |
+| Whisper (targeted voice) | ❌ | ✅ | ? |
+| Hub-streams panel (cross-channel) | ❌ | ✅ | ? |
+| Mic level meter | ❌ | ✅ | ? |
+| In-app push-to-talk | ❌ | ✅ | ? |
+| Global (unfocused) PTT hotkey | ➖ native | ✅ | ➖ |
+| Audio-profile applied to live session | ⚠️ half-wired | ✅ | ? |
+| **Identity / profile / social** | | | |
+| Avatar image upload + crop | ❌ (URL only) | ✅ | ? |
+| Friends (requests/list/DM) | ❌ (dead button) | ✅ | ? |
+| Multi-profile + per-hub assignment | ❌ | ✅ | ? |
+| "My certifications" viewer (member) | ❌ | ✅ | ? |
+| Home-hub list management | ❌ (read-only) | ✅ | ? |
+| Multi-device pairing + device list/revoke | ❌ | ✅ | ? |
+| **Hub admin** | | | |
+| Assign/remove roles — right-click menu | ✅ (2026-07-04) | ✅ | ❌ **TODO** |
+| Create / delete roles + edit permissions | ❌ | ✅ | ❌ |
+| Role appearance (color/icon) + categories | ✅ | partial | ❌ |
+| Alliances (create/join/share) + invite inbox | ❌ | ✅ | ? |
+| Onboarding lobby + survey (admin & member) | ❌ | ✅ | ? |
+| Anti-spam challenge settings + member challenge | ❌ | ✅ | ? |
+| Hub audit log | ❌ | ✅ | ? |
+| Hub icon library | ❌ | ✅ | ? |
+| Native bot admin / create / wizard | ❌ | ✅ | ? |
+| Channel bans / appearance / icon picker | ❌ | ✅ | ? |
 | Kick / Ban / Mute — right-click menu | ✅ | ✅ | ❌ |
 | Presence status (away / DND / custom) | ❌ | ❌ | ❌ |
 | Banner-channel rename/delete from sidebar | ❌ | ? | ? |
 
-`?` = not yet audited. Extend this table as gaps are found.
+### Where web is ahead of desktop (parity is bidirectional)
+
+Web should not regress these; desktop/android should catch up:
+events with role slots + reminders, soundboard, full encrypted
+data-export archive, channel permission-overwrite tab, role categories +
+per-role color/icon, DND / quiet-hours, the moderation suite (content
+reports, automod webhook, outgoing webhooks, federated ban lists), link
+previews, and passkeys + hub trusted-devices.
+
+### Present under a different name (NOT gaps)
+
+Badges/tags → `ServerTagsSection`; cert admin → `CertificationsSection`;
+invites → inlined in `HubAdminPage`; hub browse → `DiscoverPage`;
+screen-share **viewing**, theme picker, and recovery-phrase import all
+exist on web.
 
 ---
 
@@ -76,6 +121,20 @@ So parity work usually means porting a change into each app's copy.
   context menu or settings gear, so it can't be renamed/deleted after
   creation. Audit desktop/android and decide the intended management surface
   (e.g. always expose the settings gear regardless of channel type).
+
+### 5. Half-wired / dead on web (quick wins)
+
+- **Friends button is a no-op** — `ChannelSidebar.tsx:635` renders a 👥
+  button, but `App.tsx:1827` wires `onOpenFriends={() => {}}`. There is no
+  `FriendsModal`/`useFriends`/friend platform commands on web (only an
+  unused `Friend` type). Either build the friends feature or hide the button.
+- **Audio profile not applied to the live voice session** — the settings
+  UI saves an `AudioProfileConfig`, but `handleVoiceJoin` (`App.tsx:~1284`)
+  constructs `VoiceWsSession` without passing it, so the saved profile has
+  no runtime effect. Thread the config in.
+- **Dead code:** `web/src/platform/webrtc.ts` `WebRtcSharerSession` is
+  defined but never instantiated — the intended outbound-screen-share path
+  was never wired (see the media gaps above).
 
 ---
 
