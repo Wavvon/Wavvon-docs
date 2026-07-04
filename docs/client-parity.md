@@ -32,7 +32,7 @@ Everything here is **portable** (no native API) unless marked native-only.
 | View someone's screen share | ✅ | ✅ | ? |
 | Camera / webcam video (`VideoGrid`) | ✅ (2026-07-04) | ✅ | ? |
 | Whisper (targeted voice) | ✅ (2026-07-04) | ✅ | ? |
-| Hub-streams panel (cross-channel) | ❌ | ✅ | ? |
+| Hub-streams panel (cross-channel) | ✅ (2026-07-04) | ✅ | ? |
 | Mic level meter | ✅ (2026-07-04) | ✅ | ? |
 | In-app push-to-talk | ✅ (2026-07-04) | ✅ | ? |
 | Global (unfocused) PTT hotkey | ➖ native | ✅ | ➖ |
@@ -40,7 +40,7 @@ Everything here is **portable** (no native API) unless marked native-only.
 | **Identity / profile / social** | | | |
 | Avatar image upload + crop | ✅ (2026-07-04) | ✅ | ? |
 | Friends (requests/list/remove) | ✅ (2026-07-04) | ✅ | ? |
-| Multi-profile + per-hub assignment | ❌ *(client-only, tracked)* | ✅ | ? |
+| Multi-profile + per-hub assignment | ✅ (2026-07-04) | ✅ | ? |
 | "My certifications" viewer (member) | ✅ (2026-07-04) | ✅ | ? |
 | Home-hub list management | ❌ read-only; write BLOCKED | ✅ | ? |
 | Multi-device pairing + device list/revoke | ❌ BLOCKED | ✅ | ? |
@@ -51,7 +51,7 @@ Everything here is **portable** (no native API) unless marked native-only.
 | Alliances (create/leave) + invite inbox | ✅ (2026-07-04) | ✅ | ? |
 | Alliance channel-sharing | ✅ (2026-07-04) | ✅ | ? |
 | Onboarding: approval queue + lobby/challenge settings | ✅ (2026-07-04) | ✅ | ? |
-| Onboarding survey builder + member survey | ❌ *(tracked)* | ✅ | ? |
+| Onboarding survey builder + member survey | ✅ (2026-07-04) | ✅ | ? |
 | Hub audit log | ✅ (2026-07-04) | ✅ | ? |
 | Hub icon library | ✅ (2026-07-04) | ✅ | ? |
 | Native bot admin / create | ✅ (2026-07-04) | ✅ | ? |
@@ -183,8 +183,8 @@ exist on web.
   panel, both on fake media). *NOT ported to WebRTC — `webrtc.ts`'s unused
   `WebRtcSharerSession` (the `transport:"webrtc"` v2 path) still doesn't
   interoperate with the current viewer; a follow-up could adopt it.*
-- **Camera video / whisper / hub-streams panel** remain web gaps (media
-  audit) — separate follow-ups.
+- **Camera video / whisper / hub-streams panel** — all DONE (2026-07-04);
+  see items 11–12 below.
 
 ### 8. Avatar image upload (web) — DONE (2026-07-04)
 
@@ -238,18 +238,29 @@ Definitive status for everything still not at parity:
   addr) — needs the UDP `0x01` branch to also deliver to `voice_ws_senders`;
   (2) role-type whisper targets route only via the UDP addr set, not the
   pubkey set; (3) whisper-list save/load (named lists) not ported.*
-- **Hub-streams panel** — cross-channel stream discovery/subscribe UI. **Tracked.**
+- **Hub-streams panel — DONE (2026-07-04).** `HubStreamsPanel` behind a 📡
+  header button lists screen shares in other channels
+  (`requestStreamList`/`subscribeStream`/`unsubscribeStream` over the WS
+  control plane); a subscribed stream is pushed into `activeScreenShares` so
+  the shared `ScreenShareViewer` renders it. `e2e/live/26` has a member watch
+  a share from another channel without joining it.
 - **In-app (focused) push-to-talk — DONE (2026-07-04).** `PushToTalkSection`
   (Settings → Voice) + an App effect that gates `VoiceWsSession.setMuted()`
   on the bound key while in voice; isolated so non-PTT users are unaffected.
   `e2e/live/23`. Global/unfocused PTT stays native-only.
 - **Alliance channel-sharing — DONE (2026-07-04)** (`e2e/live/18`).
 - **Channel appearance (color/icon) — DONE (2026-07-04)** (`e2e/live/22`).
-- **Multi-profile + per-hub assignment** — client-only (localStorage /
-  IndexedDB; web currently stubs empty arrays). Buildable with no server
-  work. **Tracked.**
-- **Onboarding survey builder + member survey** — HTTP-buildable (routes
-  exist); **tracked** as further UI (the heaviest remaining admin surface).
+- **Multi-profile + per-hub assignment — DONE (2026-07-04).** Client-only
+  (`utils/profiles.ts` localStorage store); `ProfilesSection` in Settings →
+  Profile does CRUD + set-default + apply-to-hub (applying does `PATCH /me`
+  display-name/avatar), with per-hub assignment persisted locally.
+  `e2e/live/24`.
+- **Onboarding survey builder + member survey — DONE (2026-07-04).**
+  `SurveyAdminSection` (add text/choice questions, choices, enable, save via
+  `PUT /admin/survey`) + `SurveyModal` shown to members on join
+  (`GET /survey/current`, `POST /survey/submit`; the public shape has no
+  `enabled` field, so App gates on `questions.length` + a dismissed set).
+  `e2e/live/25`.
 - **Home-hub list management** — read works over
   `GET /identity/{master}/designation`, but **write is BLOCKED**: it needs
   the `HomeHubList` canonical signing-bytes format ported to `packages/core`
@@ -261,9 +272,10 @@ Definitive status for everything still not at parity:
   Requires a crypto/identity-model port first — the same gap that blocks
   home-hub write.
 
-**Recommended next real build:** camera video (highest user value; protocol
-mapped) as its own focused pass, then the `packages/core` `SubkeyCert` /
-`HomeHubList` signing-bytes port to unblock pairing + home-hub write.
+**Recommended next real build:** the `packages/core` `SubkeyCert` /
+`HomeHubList` signing-bytes port — it's the one remaining blocker for both
+multi-device pairing and home-hub write, the only two feature-parity gaps
+left. Everything else in the porting pass has landed.
 
 ---
 
