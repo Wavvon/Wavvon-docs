@@ -121,23 +121,18 @@ pairing flow; the QR scan-and-offer UX hasn't been ported.
 
 ---
 
-## 9. OAuth social-verification badges — OPEN QUESTION
+## 9. OAuth social-verification badges — SUPERSEDED
 
-**Uncertain whether this fits our model — parked pending a decision.**
+**Resolved: replaced by community achievement badges (shipped 2026-07-05).**
 
-The idea: a user links a third-party account (GitHub, Steam, X, …) and
-gets a "verified" badge on their profile — *social proof, explicitly not
-auth* (using OAuth for login/recovery would make identity depend on a
-centralized provider, which [decisions.md](decisions.md) rejects).
+The OAuth idea had an unanswerable-without-a-central-authority core (who
+verifies the token, how does a badge travel cross-hub without a blessed
+service). **Community badges answer the same goal the federated way:** a
+hub grants a user a named badge, signed by the hub's pubkey, carried in
+the user's portfolio, verified offline, curated by the user — no central
+authority, no external provider. See
+[hub-certifications.md](hub-certifications.md) "Achievement badges."
 
-Open questions before any design:
-- Who verifies the OAuth token — each hub, or a shared attestation
-  service? A shared service reintroduces a central component we've
-  avoided.
-- How does a badge issued by one hub travel/verify across hubs and
-  farms without that central authority?
-- Is the value worth the moving parts, given we already have hub
-  certifications for trust?
-
-No decision yet. Do not implement until the model question above is
-answered.
+OAuth-provider linking (GitHub/Steam/X) could still layer on *later* as
+one more badge issuer, but only if there's real demand — it's no longer
+on the critical path.

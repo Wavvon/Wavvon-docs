@@ -415,3 +415,29 @@ store from [home-hub.md](home-hub.md)):
   the same portfolio in v1; a "this device only presents cert X" policy
   layers onto the subkey cert later, same as the deferred per-device
   permissions in [multi-device.md](multi-device.md).
+
+## Achievement badges (SHIPPED 2026-07-05)
+
+The cert primitive now doubles as **named achievement badges** — the
+federated answer to the "OAuth verification badge" idea in
+[future-features.md](future-features.md), done without any central
+authority (the issuer is a hub with a verifiable pubkey).
+
+- `CertPayload` gained optional `label` / `description` / `icon`
+  (appended with `skip_serializing_if`, so a plain standing-cert still
+  serialises byte-for-byte and its signature stays valid across hub
+  versions). A cert **with a `label`** is a badge ("Raid Leader",
+  "Awesome in Community A").
+- **Grant**: `POST /admin/certs/:pubkey/badge` `{label, description?, icon?}`
+  (admin-only) issues the badge cert. UI: a "Grant a badge" form in the
+  hub-admin Certifications tab.
+- **Carry + present**: badges land in the user's portfolio
+  (`GET /identity/:pubkey/certs`, aggregated across the user's hubs) and
+  render in Settings → Account → "Badges & certifications", each linking
+  back to the issuing community (`issuer_url`, or the fetched-from hub
+  when the issuer hasn't set `hub_url`).
+- **Curate**: the user hides/shows individual badges (client-side, in
+  `wavvon.hiddenBadges`). Cross-device curation (a personal-axis
+  visible-set on the home hub) is a follow-up.
+- Trust/verification is unchanged from certs: signed by the issuer hub,
+  verified against its `/info` pubkey, revocable, viewer-decides-trust.
