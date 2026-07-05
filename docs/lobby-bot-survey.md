@@ -1,7 +1,15 @@
 # Lobby, Bot Challenge, and Role Questionnaire
 
-Three interlocking onboarding features. None are built yet; this is the
-design we'd start from.
+Three interlocking onboarding features.
+
+> **Behavior clarification (2026-07-05, server `a503ede`)**: role
+> auto-assignment from survey answers applies **only when every answered
+> question is multiple-choice**. If any answered question is free-text, the
+> whole submission goes to admin review and no roles are auto-applied —
+> stricter than the Routes section's original wording, matching the design
+> rationale ("the hub cannot mechanically decide if a free-text answer
+> earns roles"). Mappings to roles holding the `admin` permission are
+> rejected at save time.
 
 - **Feature 1 — Security Level Lobby**: a confined entry state for users
   below the hub's `min_security_level`. They connect, run PoW in the
