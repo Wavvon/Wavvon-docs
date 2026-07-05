@@ -6,6 +6,11 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Temp-room owner rename UI (2026-07-05)** (clients `4100671`). The last
+  open piece of join-to-create temp voice channels: a non-admin room owner
+  gets a "Rename room" context-menu item (name-only modal, matching the
+  server's `owner_rename_only` grant). i18n ×4, `e2e/live/06` extended.
+
 - **`GET /channels/:id/my-permissions` + channel-scoped client gating
   (2026-07-05)** (server `daac936`, clients `fdb2086`). Members read their
   own effective channel-scoped permission set without `manage_roles` —

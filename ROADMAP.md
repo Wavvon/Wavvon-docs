@@ -81,13 +81,11 @@ fixed, its entry moves to the shipped log.
   baseline RSVP-only). Calendar view (§4) still undesigned-priority,
   client-only. The events read-gating fix (H3) already landed in the
   security pass.
-- **Join-to-create temporary voice channels** — *server SHIPPED*
-  (hub `3005fc5`) + *web UI SHIPPED* (clients `fb607de`) +
-  *`voice_ws.rs` spawner gap FIXED 2026-07-04* (hub `1fc5aa6`, see
-  [`shipped-log.md`](docs/shipped-log.md)),
-  [`temp-voice-channels.md`](docs/temp-voice-channels.md).
-  Remaining: owner-rename UI (a non-admin temp-room owner has no rename
-  path — the context menu is `isAdmin`-gated).
+- **Join-to-create temporary voice channels** — *fully SHIPPED*: server
+  (hub `3005fc5`), web UI (clients `fb607de`), `voice_ws.rs` spawner gap
+  fixed 2026-07-04 (hub `1fc5aa6`), owner-rename UI 2026-07-05 (clients
+  `4100671`). See [`temp-voice-channels.md`](docs/temp-voice-channels.md),
+  [`shipped-log.md`](docs/shipped-log.md).
 - **Soundboard + bot audio injection** — *SHIPPED 2026-07-04* (server
   hub `ef9beed`, web clients `eed7c04`, [`soundboard.md`](docs/soundboard.md)).
   Clip library + `use_soundboard`/`manage_soundboard` perms +
