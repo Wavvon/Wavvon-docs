@@ -6,6 +6,30 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **v0.3.0 schema baseline reset + four federation bug fixes (2026-07-05)**
+  (server `b6e09f5`, `2bd80b8`). All ALTER-ballast folded into clean CREATE
+  TABLEs — verified byte-identical via pg_dump diff (decision in
+  [`decisions.md`](decisions.md); pre-0.3.0 hubs wipe + re-setup, see
+  [`hub-operator-guide.md`](hub-operator-guide.md)). Fixing the ~20
+  integration-test files that hadn't compiled since the whisper commit
+  unmasked four real bugs, all fixed:
+  1. **Auth challenge stomping** — challenges were one-slot-per-pubkey, so
+     concurrent federation auth flows for the same key killed each other;
+     now keyed by challenge value (regression tests in `auth_flow.rs`).
+  2. **Federated DM receive not idempotent** — redelivery (at-least-once by
+     design) 500'd on duplicate keys forever; receive inserts are now
+     `ON CONFLICT DO NOTHING` and `dm_outbox.last_error` records the remote
+     body.
+  3. **Forum reactions silently dead since the Postgres migration
+     (2026-06-27)** — int4 aggregate decode failed and was swallowed by
+     `unwrap_or_default()`; every post showed zero reactions while the
+     write path returned 201.
+  4. **Federated-ban overrides unenforced at 2 of 3 gates** — whitelist/
+     blacklist only worked at auth verify; message layer and farm-token
+     middleware had drifted copies without them. Policy unified in
+     `moderation::is_denied_by_federated_policy`; auth path now fails
+     closed on DB errors.
+
 - **Alliance space-sharing v2 (2026-07-05)** — any space type shareable across
   an alliance; sharing a category shares its subtree recursively with live
   semantics (read-time recursive CTE). Shared-channel responses carry

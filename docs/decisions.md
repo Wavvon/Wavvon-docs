@@ -6,6 +6,36 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Schema baseline reset at v0.3.0 (pre-production)
+
+**Decision** (2026-07-05): collapse the hub's accumulated migration
+history — every `ALTER TABLE ADD COLUMN` layered on since the first
+schema — into a single clean baseline in `migrations.rs`. A fresh
+install now creates the final schema in one pass; the wizard/template
+first-run bootstrap ([hub-creation-wizard.md](hub-creation-wizard.md))
+is the one and only first-setup path. The additive-only migration rule
+resumes **from this baseline**: future changes are still
+`CREATE TABLE IF NOT EXISTS` / `ADD COLUMN` only.
+
+**Why**: no production deployments exist yet, and the upgrade-ALTER
+ballast made the schema unreadable as a whole and slowed every fresh
+test database. Resetting now is nearly free; resetting after GA never
+is.
+
+**Alternatives considered**:
+
+- **Keep accumulating ALTERs** — rejected: pure cost with no
+  beneficiary; no deployed hub needs the upgrade path yet.
+- **Adopt a versioned migration framework** (numbered files, journal
+  table) — deferred, not rejected: worth revisiting before the first
+  supported production upgrade, but overkill while a baseline reset is
+  still an option.
+
+**Tradeoff**: hubs created before v0.3.0 (the videogamezone.eu pilot)
+cannot upgrade in place — they must wipe the database and re-run first
+setup (the wizard makes this cheap). Accepted explicitly as the last
+moment this is acceptable.
+
 ## Alliance space-sharing v2: read-time recursive-CTE expansion
 
 **Decision** (2026-07-05): recursive alliance sharing resolves the

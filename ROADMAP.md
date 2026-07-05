@@ -111,14 +111,11 @@ fixed, its entry moves to the shipped log.
 
 ## ⚠️ Known issues
 
-- **~20 hub integration-test files don't compile** — found 2026-07-05 during
-  alliance space-sharing: the whisper-routing commit added
-  `whisper_target_pubkeys` to `AppState` but only some test files' literals
-  were updated (`alliance_flow.rs` fixed en route; `directory_flow`,
-  `federation_flow`, `dms_flow`, `screen_share_flow`, `soundboard_flow`,
-  `outgoing_webhooks_flow`, `temp_voice_channels_flow`, etc. still broken).
-  Plain `cargo test -p wavvon-hub` and `cargo clippy --all-targets` fail to
-  build until fixed. Mechanical fix: add the field to each `AppState` literal.
+- **Farm auth challenge race** — farm's `pending_challenges` DB table is
+  keyed by pubkey (one slot per key), so concurrent auth flows for the same
+  key stomp each other — the same race fixed hub-side on 2026-07-05 (see
+  [`shipped-log.md`](docs/shipped-log.md)). Fix the same way: key by the
+  challenge value, bind the pubkey inside the row.
 - **Desktop background effects load the MediaPipe model from a CDN** — found
   2026-07-05 while shipping web background effects. `apps/desktop/src/utils/
   backgroundProcessor.ts` uses `locateFile: (f) => https://cdn.jsdelivr.net/

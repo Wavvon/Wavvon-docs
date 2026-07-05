@@ -136,6 +136,14 @@ Wavvon uses additive migrations only — there are no destructive schema
 changes in minor/patch upgrades. If a migration fails (e.g., disk full),
 the hub exits and the database is left untouched.
 
+> **One-time exception — upgrading to v0.3.0**: the schema baseline was
+> reset pre-production ([decisions.md](decisions.md)). Databases created
+> by hubs **older than 0.3.0** cannot upgrade in place: drop the
+> database, start the new binary, and re-run first setup (ideally via
+> the [creation wizard](hub-creation-wizard.md)). `pg_dump` archives
+> from pre-0.3.0 hubs restore only onto pre-0.3.0 binaries. From 0.3.0
+> onward the additive in-place upgrade path above applies again.
+
 ---
 
 ## Basic hardening checklist
