@@ -119,9 +119,25 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
     button's `var(--accent-text)` (dark in calm, white in light) on a surface
     background. Set an explicit `color: var(--text)`.
   - **"Identity backup" label shown twice** in the account tab — deduped.
-  - Remaining manual-test items (voice multi-join / stale roster, channel
-    cascade-delete, sidebar sizing, settings surfaces, sound cues, settings
-    reorg) tracked for follow-up batches.
+- **Manual-test bug pass (2026-07-05) — batches 2–4** (server `05b890d`,
+  clients `f3ee45e`, `22dcc58`, `c05c544`, `bfb658c`, `fa5bd85`, `1173f94`):
+  - **Voice:** switching voice channels now leaves the previous one (repeated
+    joins stacked sessions → "in 3 rooms at once" + stale roster entries that
+    blocked temp-channel cleanup); the channel tree no longer duplicates the
+    voice roster (your name showed twice). `e2e/live/35`.
+  - **Channels:** deleting a category/channel cascades to all descendants
+    (was 409); long channel names truncate so the settings gear stays reachable.
+    Also fixed `tests/common.rs` (the hub integration suite hadn't compiled since
+    the whisper AppState field). `e2e/live/36,37`.
+  - **Settings surfaces:** language switcher (Settings → Appearance, `e2e/live/38`);
+    audio input/output device pickers (Settings → Voice); discovery directory
+    shows a greyed "Service not available" state when unreachable; clarified the
+    SVG icon-library field.
+  - Still queued from the manual test: voice/notification sound cues (#9/#10),
+    merge incoming+outgoing webhooks into one Integrations section (#19), webcam
+    device/preview + background blur (#6, blur is a large ML add), a full
+    settings recategorization (#21), and one redundant join-voice button needing
+    a pointer (#7).
 
 - **Multi-device pairing + home-hub write (web, 2026-07-04)** — ported the
   identity envelopes that were Rust-only into `packages/core`
