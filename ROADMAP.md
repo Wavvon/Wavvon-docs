@@ -37,13 +37,11 @@ fixed, its entry moves to the shipped log.
 
 ## 🔍 Flow-test findings (2026-07-06, private-hub + wizard flows)
 
-- [ ] **Lobby soft-landing not wired end-to-end** — `min_security_level > 0`
-  makes `/auth/verify` hard-403 sub-level joiners (incl. the owner's first
-  join!) instead of admitting them into the lobby with background PoW
-  ([lobby-bot-survey.md](docs/lobby-bot-survey.md) Feature 1). The gaming
-  preset's level-8 setting was removed as a stopgap (server `a4e57f9`).
-  Wire: verify admits with scope=lobby when lobby_enabled; web lobby UX +
-  background PoW; owner/first-user exemption.
+- [x] ~~**Lobby soft-landing** server half~~ — SHIPPED (hub `bded78c`):
+  admits sub-level joins as `scope="lobby"`, confined + promotable; owner/
+  first-user exempt; preset gate restored. Remaining (task, not blocker):
+  **web lobby UX** (background PoW + auto-promote) and **is_hub peer
+  exemption** from the gate.
 - [ ] **Invite-first joining** — new hubs default `invite_only=true`; first
   boot surfaces the owner's first invite link (banner, doctor, admin UI).
   Keep the serial in links (identity pin / anti-MITM); add the

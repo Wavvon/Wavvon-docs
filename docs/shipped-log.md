@@ -6,6 +6,21 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Lobby soft-landing, server half (2026-07-06)** (hub `bded78c`;
+  [`lobby-bot-survey.md`](lobby-bot-survey.md) Feature 1). `min_security_level`
+  used to hard-403 every sub-level join (even the owner's own first join) —
+  now, when the lobby is enabled, a sub-level join is admitted with
+  `scope="lobby"` and confined to `/me` + `/lobby/*` + survey (deny-by-default
+  in the AuthUser extractor; WS rejects lobby scope). `POST /lobby/submit-pow`
+  promotes lobby→member in place once PoW qualifies. Owner + implicit first
+  user are exempt (always member). Additive `sessions.scope` column; gaming
+  preset's `min_security_level: 8` restored now that the gate admits instead
+  of walls. 7 new tests. Web lobby UX + is_hub-peer exemption tracked as
+  follow-ups.
+  Also (server `4490d5c`): first real user becomes owner even on a
+  preset-seeded hub — the "first user" check had been counting the bootstrap
+  `system` sentinel.
+
 - **Manual-test feedback wave 3 (2026-07-05 late night)** (server `a503ede`
   `9457a5b`, clients `0ec7fa8` `fa23c1f` `4ada361`):
   - **Batch 2 web fixes** (`4ada361`): no-hub shell keeps the rails (welcome
