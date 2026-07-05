@@ -37,35 +37,22 @@ fixed, its entry moves to the shipped log.
 
 ## 🔍 Manual-test feedback batch (2026-07-05, owner pass on v0.3.0)
 
-Shipped same day → [shipped-log.md](docs/shipped-log.md) "feedback wave 1"
-(voice roster ghost, bootstrap presets, 5 web quick fixes). Still open:
+~35 items filed; all shipped same day → [shipped-log.md](docs/shipped-log.md)
+waves 1–3 (voice roster, kick/ban membership, timestamps, silence, admin
+surfaces, welcome banner, survey→roles, …). Still open:
 
-- [ ] **Kick/ban must actually remove the member** (BUG) — kick only kills
-  sessions, ban only blocks re-auth; the users row keeps them in `/users`.
-  Needs membership semantics: member = has roles; kick strips roles;
-  banned excluded from the list (row stays for message attribution).
-- [ ] **No-hub shell** — with no hub joined, the left rail should still show
-  friends/DMs, the + (add hub), and profile settings.
-- [ ] **Welcome invite banner** — operator-set "This is a server by
-  {label} — join our hub: {invite}" shown to joiners.
-- [ ] **Admin-tab error/retry states** — Roles tab hangs on "Loading…"
-  forever if its fetch fails; audit all admin tabs.
-- [ ] **Icon library: real file upload** (svg/png/jpg/gif + resize); the raw
-  `<svg>` paste box becomes an advanced option. Also: explain the admin
-  Recovery section inline.
-- [ ] **Hub admin nav**: Alliances out of "Integrations & bots" (it's
-  federation); consolidate the bot-related sections; grouped nav for User
-  Settings too.
-- [ ] **Survey → role auto-mapping** — implement the role mappings
-  [lobby-bot-survey.md](docs/lobby-bot-survey.md) Feature 3 already designed.
-- [ ] **Members section: inline role management**; **anti-spam challenge
-  preview**; **right-click chat authors for the user menu**; **composer
-  click-anywhere-to-focus**; **create-anything from the right-click menu**.
+- [ ] **Create-anything from the channel right-click menu** — the ctx menu
+  creates only channels/categories; events (and other creatables) should be
+  reachable there too.
 - [ ] **Create-hub-via-discovery from the + button** — create-vs-join fork;
-  create → pick a host from discovery → wizard (piece 3; needs farm
+  create → pick a host from discovery → wizard
+  ([hub-creation-wizard.md](docs/hub-creation-wizard.md) piece 3; needs farm
   lifecycle + template catalog).
 - [ ] **Multiple named custom themes per user** — design against
   [custom-themes.md](docs/custom-themes.md).
+- [ ] **AddHubModal has no i18n** (pre-existing, surfaced during the welcome
+  banner wiring); several `hub.admin.overview.*` de/es values are still
+  English placeholders.
 
 ## 📌 Wishlist (undesigned)
 

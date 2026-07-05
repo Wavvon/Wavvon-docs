@@ -6,6 +6,27 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Manual-test feedback wave 3 (2026-07-05 late night)** (server `a503ede`
+  `9457a5b`, clients `0ec7fa8` `fa23c1f` `4ada361`):
+  - **Batch 2 web fixes** (`4ada361`): no-hub shell keeps the rails (welcome
+    moves into the content slot); right-click message authors for the
+    moderation menu; composer click-anywhere focus; channel silence finally
+    has UI (per-channel Notifications submenu; hide-silenced props were
+    never wired); submenu z-index/overflow; message permalinks replace the
+    channel-link menu item.
+  - **Admin surfaces** (`0ec7fa8`): grouped User Settings nav; ErrorRetry
+    across 8 admin sections (Roles used to hang on failed fetch); icon
+    library file upload (raster → 64×64 svg-wrapped) + Recovery explainer;
+    Federation nav group; anti-spam challenge Preview modal; inline member
+    role management in the Members table.
+  - **Welcome invite banner** (`9457a5b` + `fa23c1f`): operator-set
+    label/invite in hub settings → /info; join-preview + dismissible
+    post-join banner.
+  - **Survey → roles** (`a503ede` + `fa23c1f`): per-choice role mappings
+    with admin-permission guard and strict free-text review rule
+    ([`lobby-bot-survey.md`](lobby-bot-survey.md) clarified); admin UI role
+    picker per option.
+
 - **Manual-test feedback wave 2 (2026-07-05 night)** (server `8867105`
   `db25169`, clients `9815177` `207e7bf` `e0c3bf8`):
   - **Kick/ban end membership** (`8867105`): membership = holding roles;
