@@ -6,6 +6,21 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Manual-test feedback wave 1 (2026-07-05 evening)** (server `327c399`
+  `7ed61c7`, clients `9467b0d` `df6064b`). From the owner's live pass:
+  - **Voice roster ghost fixed** (`7ed61c7`): the WS voice filter
+    suppressed the actor's own Joined/Left events, so after a channel
+    switch/leave your own sidebar kept you in the old channel forever.
+    Roster events now reach everyone including the actor.
+  - **First-run bootstrap presets** (`327c399`,
+    [`hub-creation-wizard.md`](hub-creation-wizard.md) piece 2 local half):
+    `WAVVON_TEMPLATE=gaming|community|minimal` + `WAVVON_TEMPLATE_FILE`;
+    bootstrap runs pre-owner-seeding; unknown preset = startup error. 22 tests.
+  - **Web quick fixes**: language setting → Profile; "Voice Lobby" →
+    "Room Creator" (`9467b0d`); voice devices first in the Voice tab;
+    status picker dismisses on outside click; event modal start/end
+    widths (`df6064b`).
+
 - **Farm serial routing, first slice (2026-07-05)** (server `012b791`;
   design in [`farm-impl.md`](farm-impl.md) § Serial routing). The farm
   reverse proxy resolves `/hub/{serial}/…` by hub pubkey (unique partial
