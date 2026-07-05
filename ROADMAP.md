@@ -109,11 +109,6 @@ fixed, its entry moves to the shipped log.
 
 ## ⚠️ Known issues
 
-- **Farm auth challenge race** — farm's `pending_challenges` DB table is
-  keyed by pubkey (one slot per key), so concurrent auth flows for the same
-  key stomp each other — the same race fixed hub-side on 2026-07-05 (see
-  [`shipped-log.md`](docs/shipped-log.md)). Fix the same way: key by the
-  challenge value, bind the pubkey inside the row.
 - **Desktop background effects load the MediaPipe model from a CDN** — found
   2026-07-05 while shipping web background effects. `apps/desktop/src/utils/
   backgroundProcessor.ts` uses `locateFile: (f) => https://cdn.jsdelivr.net/
@@ -142,10 +137,6 @@ fixed, its entry moves to the shipped log.
   pass (see [`shipped-log.md`](docs/shipped-log.md)) covered everything
   else; the importer (`export` with a real bot token, `apply` against a
   running hub) hasn't been exercised live.
-- **Farm/seed test DBs leak (LOW)** — hub's `create_test_db()` got a
-  `TestDbGuard` (hub `e203106`, 2026-07-04) but `crates/farm/tests`
-  (`wavvon_farm_test_*`) and `crates/seed/tests` (`seed_test_*`) still
-  create unguarded databases; apply the same guard pattern.
 - **Paired-device DMs attribute to the subkey, not the canonical identity** —
   found 2026-07-04 building pairing. The community experience (messages,
   membership, roles, bans) is token-based and already resolves to the shared

@@ -6,6 +6,14 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Farm challenge race fixed + farm/seed test-DB guards (2026-07-05)**
+  (server `8b45c9e`). Farm's pubkey-keyed challenge slot had the same
+  concurrent-auth stomping race as the hub; now nonce-keyed
+  (`pending_challenges_v2`, additive) with an optional `challenge` echo on
+  verify (race-free; old clients fall back to newest-challenge). Farm and
+  seed integration tests adopt hub's `TestDbGuard` — test databases are
+  dropped on scope exit instead of leaking (~80 observed on a dev volume).
+
 - **Presence status: away/DND/custom text, hub-synced (2026-07-05)**. New WS
   `set_status` client message + `member_status` hub-wide broadcast; status
   persisted on the users row (additive `presence_status`/`presence_custom`
