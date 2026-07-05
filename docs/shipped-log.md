@@ -6,6 +6,21 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Manual-test feedback wave 2 (2026-07-05 night)** (server `8867105`
+  `db25169`, clients `9815177` `207e7bf` `e0c3bf8`):
+  - **Kick/ban end membership** (`8867105`): membership = holding roles;
+    kick/ban strip them, /users hides banned + role-less non-bots, users
+    row kept for message attribution. Kicked users rejoin as new members
+    (invite needed on invite-only hubs); banned stay 403.
+  - **Voice roster, web half** (`e0c3bf8`): the current channel's row no
+    longer blanks its own roster.
+  - **Year-58479 timestamps** (`9815177`): messages carry ms, everything
+    else seconds — shared formatters now normalize.
+  - **Voice UI batch** (`207e7bf`): SVG icons replace unrenderable emoji,
+    "Deafen"→"Mute all audio", default initial-avatars, screenshare
+    self-preview, unified header command row.
+  - **CI green again** (`db25169`): two clippy -D warnings lints.
+
 - **Manual-test feedback wave 1 (2026-07-05 evening)** (server `327c399`
   `7ed61c7`, clients `9467b0d` `df6064b`). From the owner's live pass:
   - **Voice roster ghost fixed** (`7ed61c7`): the WS voice filter
