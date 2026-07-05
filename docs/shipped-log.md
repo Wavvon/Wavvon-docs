@@ -6,6 +6,197 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Alliance space-sharing v2 (2026-07-05)** — any space type shareable across
+  an alliance; sharing a category shares its subtree recursively with live
+  semantics (read-time recursive CTE). Shared-channel responses carry
+  `channel_type`/`parent_id`/`is_category`; web sidebar renders allied trees and
+  alliance messaging is now wired (was stubbed). Fixed two pre-existing
+  federation bugs en route: joiner stored literal `"self"` as inviter URL;
+  mutual hubs recursed indefinitely merging shared views (`local_only` hop).
+  See [`alliances.md`](alliances.md), [`decisions.md`](decisions.md).
+
+- **Manual-test bug pass (2026-07-05) — batch 5 (features + polish)**. All with
+  2+ Playwright tests each; full live suite 62 green.
+  - **Farm-ready invites** (`237eb59`): `wavvon://<host>/i/<hubSerial>/<code>`
+    (serial = hub public key) so a farm can route the same domain to different
+    hubs by serial. `parseHubInput` extracts the serial (path or `?hub=`,
+    backward-compatible), `buildInviteLink` generates it, and the Invites admin
+    tab shows a full copyable link. 5 core unit tests + `e2e/live/42`.
+  - **Soundboard popover** no longer overflows the viewport (`0ea4404`,
+    `e2e/live/39`); **channel-header buttons** spaced out.
+  - **Voice join/leave sound cues** wired (`playVoiceTone`) with a toggle
+    (`37db681`, `e2e/live/41`); mention ping already covered notifications.
+  - **Incoming + outgoing webhooks** merged into one Integrations tab
+    (`756e7f3`, `e2e/live/40`).
+  - **Camera device picker + live preview** in Settings (`9edb456`,
+    `e2e/live/43`).
+  - **Webcam background effects — blur / image / video** (`8b1d489`,
+    `e2e/live/45`). Ported + extended the desktop `BackgroundProcessor`
+    (MediaPipe selfie segmentation); no device gating (opt-in, user decides);
+    model + WASM served **self-hosted** from `/mediapipe/*` via a Vite plugin
+    (no CDN, offline-friendly, nothing committed), lazy-loaded on first use,
+    graceful fallback to raw video if it can't load.
+  - **Hub-admin nav grouped** into labeled sections + made scrollable
+    (`e803326`, `e2e/live/44`).
+  - **#7** (redundant join-voice button): investigated — the channel header is
+    the only join-voice control; nothing redundant found to remove.
+
+- **Manual-test bug pass (2026-07-05) — batch 1** (server `4d38025`, clients
+  `33c4485`). From hands-on testing of the running hub:
+  - **Ban/kick/mute from the member right-click menu were broken** — the client
+    hit `/admin/bans`, `DELETE /admin/members/{pk}`, `/admin/members/{pk}/mute`,
+    none of which exist. Pointed them at `POST /moderation/{bans,kick,mutes}`.
+    `e2e/live/33`.
+  - **Integrations tab 405'd** — listing used `GET /admin/webhooks` and
+    regenerate used `PATCH /admin/webhooks/{id}`, but only POST/DELETE existed.
+    Added both handlers. Also fixed a pre-existing **create 500** (the INSERT
+    passed integer `1` for the BOOLEAN `active` column). `e2e/live/34`.
+  - **Theme-picker buttons unreadable in calm/light** — inherited the base
+    button's `var(--accent-text)` (dark in calm, white in light) on a surface
+    background. Set an explicit `color: var(--text)`.
+  - **"Identity backup" label shown twice** in the account tab — deduped.
+
+- **Manual-test bug pass (2026-07-05) — batches 2–4** (server `05b890d`,
+  clients `f3ee45e`, `22dcc58`, `c05c544`, `bfb658c`, `fa5bd85`, `1173f94`):
+  - **Voice:** switching voice channels now leaves the previous one (repeated
+    joins stacked sessions → "in 3 rooms at once" + stale roster entries that
+    blocked temp-channel cleanup); the channel tree no longer duplicates the
+    voice roster (your name showed twice). `e2e/live/35`.
+  - **Channels:** deleting a category/channel cascades to all descendants
+    (was 409); long channel names truncate so the settings gear stays reachable.
+    Also fixed `tests/common.rs` (the hub integration suite hadn't compiled since
+    the whisper AppState field). `e2e/live/36,37`.
+  - **Settings surfaces:** language switcher (Settings → Appearance, `e2e/live/38`);
+    audio input/output device pickers (Settings → Voice); discovery directory
+    shows a greyed "Service not available" state when unreachable; clarified the
+    SVG icon-library field.
+
+- **Known-issue fix batch (2026-07-04/05)** — issues fixed out of ROADMAP
+  Known issues, moved here on close:
+  - **SECURITY — 2026-07-04 audit findings all fixed** — full audit in
+    [`security-audit-2026-07-04.md`](security-audit-2026-07-04.md).
+    Server fixes hub `efbf17b`, web fix clients `62792cb`. Verified by
+    hand + regression tests. **H1** (WS Subscribe read-gate):
+    `handle_subscribe` requires channel-scoped `READ_MESSAGES`; 2 WS
+    integration tests over real TCP. **H2** (channel-perm escalation):
+    priority guard + unconditional `admin`-grant block + self-grant guard
+    on PUT/DELETE; `manager_cannot_grant_admin_via_overwrite` asserts 403.
+    **H3** (events) / **H4** (pins): read paths channel-gated (`get_event`
+    404s to avoid existence leak); pin writes channel-scoped. **D1/D2/D3**
+    (importer): TLS-bypass now loopback-only behind `--insecure`,
+    non-`https` hub rejected unless loopback, `Retry-After` clamped; same
+    TLS line scrubbed from `demo-seed`. **W1** (color beacon):
+    `safeRoleColor` validator on both swatch sinks. **W2** (2026-07-05,
+    clients `46fa57e`): `SortableItems.tsx` validates `channel.color` via
+    `safeRoleColor` before the category-header `background` sink.
+  - **Temp voice spawners on web** (2026-07-04, hub `1fc5aa6`) — the
+    spawn-on-join logic (hub `3005fc5`) had only been added to
+    `routes/ws/handlers/voice.rs` (the main-hub-WS / UDP path used by
+    desktop/Android); web's separate `/voice/ws` transport
+    (`routes/voice_ws.rs`) never detected `channel_type = 'spawner'`, so a
+    web user clicking a spawner joined the spawner row itself.
+    `voice_ws_task` now reuses the same `spawn_temp_channel()` helper,
+    gates on channel-scoped `read_messages` against the spawner first, and
+    echoes the resolved `channel_id` in `voice_ws_ready`. Broadcasts
+    `channels_updated` on spawn, matching the main-hub-WS path. Two new
+    integration tests in `temp_voice_channels_flow.rs`.
+  - **Web profile changes propagate live** (2026-07-04, hub `a23a7d9`,
+    clients `fb97442`) — `PATCH /me` now broadcasts a hub-wide
+    `member_updated` WS event carrying the fresh name/avatar; the client
+    updates the member in its `users` map in place, so display-name/avatar
+    changes show live on other clients without a reload. `e2e/live/29`.
+  - **Banner channels manageable from the web sidebar** (2026-07-05,
+    clients `47ee91f`) — admins get a management row (name + settings
+    gear) plus a right-click context menu on banner rows, so they can
+    rename/delete like any channel; members still see just the image.
+    `e2e/live/11`.
+  - **`packages/core` crypto test vectors regenerated** (2026-07-04,
+    clients `fb97442`) — `src/identity/crypto.test.ts` asserted pre-rename
+    `"voxply/…"` wire tags and was excluded from the suite; regenerated the
+    DhKeyRecord + DM-envelope vectors against the canonical
+    `wavvon-identity` values and re-enabled it.
+  - **Hub switch / fresh load left the message pane empty** (2026-07-04,
+    clients `42a3390`) — `loadHubData` auto-selected the first channel but
+    never fetched its messages, so the pane stayed empty until a manual
+    click. It now fetches + subscribes the auto-selected channel (guarded
+    against a racing manual selection). `e2e/live/30`.
+  - **Web mock-API e2e (`forum.spec.ts`) repaired** (2026-07-05, clients
+    `46fa57e`) — `injectSession` now also seeds the IndexedDB
+    `wavvon/identity/main` record; the catch-all mock route falls back to
+    the specific mocks instead of the network, the list-posts mocks match
+    the query string, and the reaction test keys off the POST landing.
+    5/5 green.
+  - **Web role appearance controls on built-in roles** (2026-07-04,
+    clients `42a3390`) — `RolesSection` no longer renders the
+    color/icon/category controls for `@everyone`/`Owner` (the hub rejects
+    appearance PATCHes on built-in roles); permissions remain editable.
+    `e2e/live/31`.
+  - **Icon pickers can no longer store non-rendering shortcodes**
+    (2026-07-05, clients `47ee91f`) — `EmojiPicker` gained a `unicodeOnly`
+    prop that hides the hub-custom-emoji (`:name:`) section; the role,
+    channel, category, and soundboard icon pickers pass it (the message
+    composer still offers custom emoji). `e2e/live/32`.
+  - **Test harness DB leak** (2026-07-04, hub `e203106`) —
+    `create_test_db()` returns a `TestDbGuard` whose `Drop` issues
+    `DROP DATABASE … WITH (FORCE)` (via a dedicated OS thread so it fires
+    on panic too); verified 0→0 leaked DBs across back-to-back full-suite
+    runs. A `db_sweep` `#[ignore]`d test clears any backlog. The farm/seed
+    equivalent is still open (ROADMAP Known issues).
+
+- **Multi-device pairing + home-hub write (web, 2026-07-04)** — ported the
+  identity envelopes that were Rust-only into `packages/core`
+  (`master`/`wire`/`ecies`, byte-for-byte pinned by the `wavvon-identity` hex
+  vectors), then built the two features it unblocked: publishing a
+  master-signed home-hub list, and full device pairing (offer → claim →
+  approve → cert), device list + revoke. Auth now presents the subkey cert and
+  records the canonical pubkey, so a paired device is recognised as the same
+  user. `e2e/live/27` (home hubs) + `28` (pairing). Closes the last two web
+  parity gaps — see [`client-parity.md`](client-parity.md).
+
+- **Web e2e live-test suite + 2026-07-04 batch live pass** — new
+  `apps/web/e2e/live/` Playwright suite runs against a real hub (owner
+  seeded via `WAVVON_OWNER_PUBKEY`; see `e2e/live/README.md`). Covers
+  smoke (onboard/join/send), nested-channel permalinks + drill-in +
+  breadcrumbs, channel permission overwrites, role categories +
+  color/icon, event slots + reminders, temp-voice spawner (1fc5aa6
+  regression), soundboard upload/delete, and full-archive export. Bugs
+  found + fixed during the pass:
+  - **W (web): channel live-push broken for newly-created channels** —
+    the web client never sent the WS `subscribe` frame (the platform
+    `subscribeChannel` hit a non-existent HTTP route), so messages in a
+    channel created after connect never pushed live. Now sends the WS
+    frame and subscribes on channel select.
+  - **W (web): event creation fully broken** — composer never sent
+    `channel_id` (hub 400), and the bare create-response (no
+    `rsvp_counts`/`slots`) crashed `EventCard`; threaded `channel_id`
+    through and refetch after create.
+  - **W (web): modal clipped tall content** — `.modal` had no
+    `max-height`, so the channel Permissions tab's Save/actions row was
+    pushed off-screen. Added `max-height`/`overflow-y`.
+
+- **Web e2e round 2 — profile / member list / channel CRUD / roles
+  (2026-07-04)** — added `e2e/live/09..12`: profile-edit propagation, member
+  presence, channel/category/forum/banner CRUD, and role-assignment. Bug
+  found + fixed:
+  - **W (web): i18n placeholders shown literally** — 11 catalog entries
+    used i18next double-brace `{{name}}` syntax, but the client uses
+    **i18next-icu** (single-brace `{name}`), so they rendered the raw
+    `{{name}}` to users. Most visible on the channel/category right-click
+    menu (`Edit "{{name}}"` / `Delete "{{name}}"`); also user profile
+    "Joined", archive strength/progress, invite/discovery hints. Converted
+    all to single-brace in `packages/i18n/en.json`.
+
+- **Web: assign/remove roles from the member right-click menu (2026-07-04)**
+  — closed the biggest client discrepancy found in round 2. The web
+  `UserContextMenu` now has a "Roles" section (gated on `manage_roles`,
+  hides `@everyone` and roles at/above the viewer's priority) that toggles
+  `PUT`/`DELETE /users/{pubkey}/roles/{role_id}`; member list regroups on
+  change. New platform commands `assignRoleToUser`/`removeRoleFromUser`/
+  `listUserRoles`; covered by `12-role-assignment.spec.ts`. Cross-client
+  parity is tracked in [`client-parity.md`](client-parity.md)
+  (**android still lacks it**; desktop has a near-identical version to
+  align).
+
 - **Soundboard — web UI (2026-07-04)** — clients `eed7c04`.
   **Client-side mix is real** (`mixClipIntoFrame` in `platform/voice.ts`):
   a clip decoded via `AudioContext.decodeAudioData` (handles Opus-in-Ogg,
