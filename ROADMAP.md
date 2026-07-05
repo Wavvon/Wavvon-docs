@@ -46,8 +46,11 @@ fixed, its entry moves to the shipped log.
 > (interactive UI, audio, video) and games fall out ([gaming.md](docs/gaming.md)).
 
 - **Farm layer** — multi-hub control plane; farm-ready invites shipped with hub serial in URLs.
-  Next step: design doc + bounded first slice (wiring farm serial through farm's reverse-proxy routing).
-  See [farm-model.md](docs/farm-model.md).
+  Serial-routing first slice **designed** (2026-07-05):
+  [farm-impl.md § Serial routing — first slice](docs/farm-impl.md#serial-routing--first-slice),
+  [decisions.md](docs/decisions.md) ("Farm reverse-proxy routes by hub serial"). **Implementation queued**:
+  `hub_pubkey` unique index, serial-keyed lookup in `farm/src/proxy.rs`, WS-upgrade socket bridge,
+  `voice_udp_addr` on the hub's serial-routed `/info`. See [farm-model.md](docs/farm-model.md).
 - **Project visibility push** — remaining: a hosted demo hub, directory listings, launch post.
   Needed both for adoption and for the code-signing re-application.
   *(2026-06-10: all six READMEs rewritten as landing pages with badges,

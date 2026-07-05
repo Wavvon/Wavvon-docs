@@ -518,6 +518,16 @@ generated on hub creation). It is *not* the hub's pubkey — the pubkey
 is long and exposes routing details. The mapping `hub_id →
 upstream_url` lives in the new `hubs` table on the farm.
 
+> **Superseded for the client-facing routing key** by
+> [Serial routing — first slice](#serial-routing--first-slice) below.
+> Shipped invites (`wavvon://<host>/i/<serial>/<code>`, serial = hub
+> pubkey) made the pubkey the durable public identifier a client holds,
+> so the *routing* segment became the serial. The opaque `id` survives
+> as the farm-internal DB / management handle (`/farm/hubs/{hub_id}`),
+> not as the reverse-proxy key. The "pubkey exposes routing details"
+> objection no longer holds: the serial is already public in every
+> invite.
+
 Inside the hub process, routes look the same as today — the path
 prefix is stripped by the farm before proxying. A hub that
 currently serves `GET /channels` continues to serve `GET /channels`;
@@ -663,6 +673,157 @@ return `503 hub_unavailable` quickly on a downed hub.
   same as directly-addressed hubs.
 
 ---
+
+---
+
+## Serial routing — first slice
+
+The bounded first implementation slice of the farm layer: get an
+incoming request on the farm's shared domain to the right hub process,
+keyed on the **serial** (the hub's Ed25519 public key). Everything
+above (auth move, creation policy, admin panel) is designed; this is
+the one piece worth building first, because it is what makes a
+farm-hosted invite link actually resolve.
+
+### Why this reverses the Phase 2 opaque-`hub_id` decision
+
+Phase 2 routed on an opaque 8-12 hex `hub_id`. The shipped
+**farm-ready invites** (`wavvon://<host>/i/<serial>/<code>`, serial =
+hub pubkey — see [shipped-log.md](shipped-log.md), 2026-07-05) made the
+pubkey the durable, farm-independent identifier the client already
+holds after parsing an invite. Routing on anything else would force a
+serial→id resolution round-trip before a client could hit the hub. The
+serial is also the identity federation and DM addressing already use
+(`(pubkey, farm_url)` — [farm-model.md](farm-model.md)). So the
+client-facing routing key becomes the serial; the opaque `id` (the
+`hubs` table PK in `farm/src/db/migrations.rs`, Wavvon-server) stays as
+the farm-internal management handle only.
+
+### URL shape: path prefix, keyed on serial
+
+**Decision**: `https://farm.example.com/hub/<serial>/<path>` routes to
+the hub process whose pubkey is `<serial>`. Path prefix, serial as the
+segment.
+
+- **vs subdomain** (`<serial>.farm.example.com`): a serial is 64 hex
+  chars — over the 63-char DNS label limit, so it can't even be a
+  label without truncation, and truncation reintroduces a lookup.
+  Subdomains also need a wildcard cert and wildcard DNS; path prefix
+  keeps one cert and one hostname, which is the whole point for the
+  self-hoster the farm targets.
+- **vs header** (`X-Hub-Serial`): invisible to links. It breaks the
+  shipped invite URL shape, can't be bookmarked or shared, and forces
+  every client request to set it. A link has to carry its target in
+  the URL.
+- **vs query param**: doesn't route at the axum layer — every handler
+  would extract and dispatch. A path prefix dispatches once at the top.
+
+This matches both the shipped invite (`/i/<serial>/`) and the existing
+proxy route (`/hub/{...}/{*path}` in `farm/src/proxy.rs`); the concrete
+change is that the segment is resolved as a serial, not as the `id` PK.
+
+### Serial → process mapping
+
+The `hubs` table already carries `hub_pubkey` and `process_port`
+(`farm/src/db/migrations.rs`, Wavvon-server). The slice needs:
+
+- A **unique index on `hub_pubkey`** (additive migration:
+  `CREATE UNIQUE INDEX IF NOT EXISTS`). `hub_pubkey` is nullable today;
+  it must be populated at hub registration (the farm learns it from the
+  hub's `/info`, and `hub_heartbeats` is already keyed by it).
+- The proxy resolves
+  `SELECT process_port, suspended_at FROM hubs WHERE hub_pubkey = $1 AND deleted_at IS NULL`,
+  strips the `/hub/<serial>` prefix, and forwards to
+  `http://127.0.0.1:<process_port>` — exactly as the current handler
+  does, but looked up by serial instead of by `id`.
+
+No overlap risk between the two identifier spaces: routing lives under
+`/hub/<serial>/…` (64 hex) and management under `/farm/hubs/<id>` (8-12
+hex) — different route trees, different lengths.
+
+### Unknown / unavailable serials
+
+Deterministic, distinct JSON errors (the current proxy already returns
+this shape):
+
+- serial not in `hubs` (or `deleted_at` set) → `404 hub_not_found`.
+  The client reads this as "this invite points at a hub this farm no
+  longer hosts." No auto-spawn — an unknown serial is a hard miss.
+- `suspended_at` set → `503 hub_suspended` (+ reason body, per Phase 3).
+- row exists but `process_port` null / process down → `503 hub_not_running`.
+
+### WebSocket upgrade
+
+The serial→port resolution is **identical** for WS; only the transport
+differs. The current buffered `reqwest` path in `farm/src/proxy.rs`
+cannot carry an `Upgrade: websocket` request (its own comment admits
+this). The slice adds an upgrade-aware branch: when the request carries
+`Connection: Upgrade`, resolve the serial to a port as above, then
+bridge the client socket to a raw TCP connection to
+`127.0.0.1:<process_port>` (hyper upgrade + bidirectional copy) instead
+of buffering the body through reqwest. Same routing key, socket-bridge
+transport. WS routing is **in** this slice — chat depends on it.
+
+### UDP voice — not proxied, learned over the serial-routed path
+
+A UDP datagram carries no host header or path, so the farm cannot
+reverse-proxy voice by serial, and multiple hub processes cannot share
+one public UDP port. The slice's contract:
+
+- Each hub process binds its **own** UDP voice port.
+- The client learns that endpoint by fetching the hub's `/info` **over
+  the serial-routed HTTP path** (`GET /hub/<serial>/info`), which now
+  carries a `voice_udp_addr` field (public host + per-hub port).
+- The client then dials UDP **directly** at `(farm host, hub UDP port)`
+  — bypassing the farm HTTP proxy entirely. The farm's only role in
+  voice is that the discovery `/info` is serial-routed.
+
+Farm-level UDP multiplexing (one shared voice port, demux by a token in
+the first datagram) is a larger design and is **out** of this slice —
+see "What's out" below.
+
+### What the hub must know about being behind a farm
+
+For routing itself, **nothing** — the farm strips the `/hub/<serial>`
+prefix, so the hub serves `GET /channels` exactly as today (the Phase 2
+"no changes to existing hub route paths" property holds). Three
+operational facts the hub can't infer and must be given (at spawn /
+config, Wavvon-server `hub`):
+
+1. **Bind loopback.** The farm reaches it on `127.0.0.1:<port>`; the
+   hub must not be publicly reachable, so `X-Forwarded-For` /
+   `X-Hub-Id` (already injected by the proxy) are trustworthy.
+2. **Publish its external voice endpoint** in `/info`
+   (`voice_udp_addr`) — the hub otherwise only knows `127.0.0.1` and
+   the client could never reach voice.
+3. **Know the public farm host** (for building absolute invite links;
+   the serial half of the invite is its own pubkey, which it already
+   holds).
+
+### What's in
+
+- Deterministic path-prefix HTTP routing by serial for already-
+  registered hubs: `/hub/<serial>/<path>` → `127.0.0.1:<process_port>`.
+- The same serial→port resolution for WebSocket upgrades, via a
+  socket-bridge transport branch.
+- Unique index on `hub_pubkey`; populated at registration.
+- `404 hub_not_found` / `503 hub_suspended` / `503 hub_not_running`.
+- `voice_udp_addr` on the hub's serial-routed `/info`; client dials UDP
+  direct. No UDP proxying.
+
+### What's out (and where it lives)
+
+- **Hub lifecycle** — spawn / monitor / stop, process supervision:
+  Phase 2 "process supervision" above + `farm/src/hub_manager.rs` and
+  the `agent` crate (Wavvon-server).
+- **Farm-level SSO / token verification** — Phase 1 (auth move).
+- **TLS automation / cert issuance** — [farm-model.md](farm-model.md);
+  path prefix is chosen precisely so there's one cert, but automating
+  it is out.
+- **Hub creation policy, quotas, admin panel, discovery listing** —
+  Phase 3.
+- **Farm-level UDP voice multiplexing** (single shared port, token
+  demux) — future; the slice uses per-hub direct UDP.
 
 ---
 

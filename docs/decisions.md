@@ -6,6 +6,46 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Farm reverse-proxy routes by hub serial, not opaque hub_id
+
+**Decision** (2026-07-05): the farm's shared-domain reverse proxy keys
+on the **hub serial** (its Ed25519 pubkey) as the client-facing routing
+segment — `https://farm.example.com/hub/<serial>/<path>` resolved via a
+unique index on `hubs.hub_pubkey` to the hub's `process_port`. The
+opaque 8-12 hex `hubs.id` PK stays, but only as the farm-internal
+management handle (`/farm/hubs/{hub_id}`), not as the proxy key. Path
+prefix, not subdomain or header. Full design:
+[farm-impl.md](farm-impl.md#serial-routing--first-slice).
+
+**Alternatives considered**:
+
+- **Opaque `hub_id` as the routing key** (the original Phase 2 choice) —
+  reversed. Shipped farm-ready invites already carry the serial
+  (`wavvon://<host>/i/<serial>/<code>`), so routing on `hub_id` would
+  force a serial→id resolution round-trip before any client could reach
+  the hub. The serial is also the identifier federation and DM
+  addressing already use.
+- **Subdomain per hub** (`<serial>.farm.example.com`) — rejected: a
+  64-hex serial exceeds the 63-char DNS label limit, and subdomains
+  need a wildcard cert + wildcard DNS, defeating the one-cert
+  self-hoster goal.
+- **Header (`X-Hub-Serial`)** — rejected: invisible to links, breaks
+  the shipped invite URL shape, can't be shared or bookmarked.
+
+**Tradeoff**: 64-char path segments on every request (cosmetically ugly,
+well within HTTP limits) and a second identifier space for the same hub
+(serial for routing, `id` for management). Accepted because the serial
+is the durable, federation-consistent, already-public identity, and the
+"pubkey exposes routing details" objection behind the original opaque-id
+choice no longer holds once the serial ships in every invite.
+
+**Outcome**: designed; implementation slice queued (ROADMAP farm
+wishlist). The concrete change is a `hub_pubkey` unique index, a
+serial-keyed lookup in `farm/src/proxy.rs`, and a WS-upgrade socket
+bridge — the existing proxy handles HTTP-by-`id` only. Supersedes the
+Phase 2 routing text in [farm-impl.md](farm-impl.md), which now carries
+a forward pointer.
+
 ## Schema baseline reset at v0.3.0 (pre-production)
 
 **Decision** (2026-07-05): collapse the hub's accumulated migration
