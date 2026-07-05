@@ -6,6 +6,16 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Farm serial routing, first slice (2026-07-05)** (server `012b791`;
+  design in [`farm-impl.md`](farm-impl.md) § Serial routing). The farm
+  reverse proxy resolves `/hub/{serial}/…` by hub pubkey (unique partial
+  index) instead of the opaque id — the serial clients already hold from
+  invite links. WebSocket upgrades bridge through a raw socket relay
+  (copy_bidirectional on 101). Fixed two latent `process_port`
+  INTEGER-as-i64 decode bugs — one made the proxy silently 404 every
+  registered hub (zero prior test coverage), one would have broken
+  startup re-spawn. 5 integration tests incl. end-to-end WS echo.
+
 - **LAN / offline mode, server half (2026-07-05)** (hub `a6ec49b`,
   [`lan-mode.md`](lan-mode.md)). `WAVVON_LAN_MODE=1`: hard private-address
   guard (refuses to start on a public address; hostnames rejected — no DNS
