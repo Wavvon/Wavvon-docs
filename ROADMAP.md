@@ -35,6 +35,23 @@ fixed, its entry moves to the shipped log.
   the final logo asset. Run `cargo tauri icon <1024x1024.png>` once the brand
   logo is ready. See [`brand.md`](docs/brand.md).
 
+## 🔍 Manual-test feedback batch (2026-07-05, owner pass on v0.3.0)
+
+- [ ] **No-hub shell** — with no hub joined, the left rail should still show
+  friends/DMs, the + (add hub), and profile settings. (in progress)
+- [ ] **First-run bootstrap presets** — apply a config template on empty-DB
+  first launch; 2–3 built-in presets
+  ([hub-creation-wizard.md](docs/hub-creation-wizard.md) piece 2). (in progress)
+- [ ] **Welcome invite banner** — operator-set "This is a server by
+  {label} — join our hub: {invite}" shown to joiners.
+- [ ] **Create-hub-via-discovery from the + button** — create-vs-join fork;
+  create → pick a host from discovery → wizard (piece 3; needs farm
+  lifecycle + template catalog).
+- [ ] **Multiple named custom themes per user** — currently one custom skin
+  slot; design against [custom-themes.md](docs/custom-themes.md).
+- [x] ~~Language setting → Profile tab~~ + ~~"Voice Lobby" → "Room Creator"~~
+  shipped same day (clients `9467b0d`).
+
 ## 📌 Wishlist (undesigned)
 
 > **Big future pillars** (full writeups in
