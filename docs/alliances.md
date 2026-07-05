@@ -21,7 +21,9 @@ Defined in `hub/src/db/migrations.rs` (Wavvon-server):
   canonical cross-hub name (see "Local labelling" below).
 - `alliance_members` — alliance_id × hub_pubkey, with hub_name + hub_url
 - `alliance_shared_channels` — alliance_id × channel_id (local channels
-  the hub has chosen to share)
+  the hub has chosen to share), plus `include_descendants BOOLEAN NOT
+  NULL DEFAULT FALSE`. When true, the row shares not just that space but
+  the whole tree beneath it (see "Recursive space sharing" below).
 - `pending_alliance_invites` — alliance_id, from_hub_pubkey, from_hub_url,
   alliance_name (as labelled by the sender), optional message, invite
   token, created_at. Holds push-invite cards until the receiving admin
@@ -43,9 +45,9 @@ All in `hub/src/routes/alliances.rs` (Wavvon-server):
 | `POST   /alliances/pending-invites/:id/decline`      | admin    | Decline a pending push invite        |
 | `POST   /alliances/:id/join`                         | admin    | Use invite token to join (hub-to-hub)|
 | `DELETE /alliances/:id/leave`                        | admin    | Leave alliance                       |
-| `POST   /alliances/:id/channels`                     | admin    | Share a local channel                |
-| `DELETE /alliances/:id/channels/:ch_id`              | admin    | Unshare a channel                    |
-| `GET    /alliances/:id/channels`                     | any auth | All shared channels (local + remote) |
+| `POST   /alliances/:id/channels`                     | admin    | Share a local space (see below)      |
+| `DELETE /alliances/:id/channels/:ch_id`              | admin    | Unshare a space                      |
+| `GET    /alliances/:id/channels`                     | any auth | Effective shared set (local + remote)|
 | `GET    /alliances/:id/channels/:ch_id/messages`     | any auth | Read messages (local or via peer)    |
 | `POST   /alliances/:id/channels/:ch_id/messages`     | sender   | Post (federated to owning hub)       |
 
@@ -113,18 +115,60 @@ and caches results. For local channels, it loads from SQLite directly.
 **Reactions are loaded in both branches** via
 `messages::load_reactions` (the helper was made `pub(crate)` for this).
 
+## Recursive space sharing
+
+Sharing extends beyond text/forum leaves: **any space type** is
+shareable, and sharing a container shares the tree beneath it. "Space"
+is the same nested unit as in
+[nested-channels-ux.md](nested-channels-ux.md): banner / channel /
+category / forum, and spaces nest.
+
+**Sharing.** `POST /alliances/:id/channels` accepts an optional
+`include_descendants` (defaults false). Clients send `true` when
+sharing a category, so the whole subtree comes along. Sharing a single
+leaf leaves it false.
+
+**Effective set (computed at read time).** The effective shared set is
+`explicit shares ∪ all descendants of include_descendants shares`,
+resolved on each `GET` via a recursive CTE, depth-guarded at 32. This
+gives **live semantics**:
+
+- a sub-channel created after a category was shared is automatically
+  shared;
+- unsharing the root removes the whole subtree;
+- a channel moved out of a shared category stops being shared.
+
+No per-descendant rows are materialized — see
+[decisions.md](decisions.md) (2026-07-05).
+
+**Response shape.** `GET /alliances/:id/channels` entries gain:
+
+- `channel_type` — `"text"` | `"forum"` | `"banner"` | `"spawner"`;
+- `parent_id` — null unless the parent is **itself in the shared set**,
+  so entries always form well-rooted trees;
+- `is_category` — whether the entry is a container.
+
+Old peers omit these fields; responses parse via serde defaults
+(`channel_type` `"text"`, `parent_id` null, `is_category` false), so
+the change is wire-compatible with un-upgraded alliance members.
+
+**Message endpoints** resolve against the effective set (descendants
+included). `POST` to a banner / category / spawner returns **400**;
+`GET` on those returns an empty list.
+
+**Client.** The web client (Wavvon-web) renders the shared tree in the
+sidebar — categories as non-clickable folders, text/forum clickable,
+banner/spawner dimmed — and now wires alliance channel open/post
+(previously stubbed).
+
 ## What's not done
 
-- **Share any space type, including sub-spaces** — sharing today is
-  limited to text + forum channels. A member should be able to share
-  **any space** across an alliance (banner, channel, category, forum),
-  and sharing a container (a category) should be able to share the
-  **tree beneath it** recursively. "Space" here is the same nested unit
-  as in [nested-channels-ux.md](nested-channels-ux.md): banner / channel
-  / category / forum, and spaces nest. Undesigned; overlaps forum-post
-  federation ([forum.md](forum.md)) and voice-in-alliance below.
-- Voice in alliance channels
+- **Voice in alliance channels** — the UDP relay is single-hub; cross-hub
+  voice needs a relay redesign.
+- **Forum post federation** — forum posts/replies stay hub-local even on
+  an alliance-shared forum channel; federating them is undesigned.
+- **Member discovery beyond invite tokens** — no way to browse an
+  alliance's membership; joining is still invite-driven.
 - Game launch/lobby federation across alliance
-- Member discovery beyond invite tokens
 
 See [ROADMAP](../ROADMAP.md) and [future-features.md](future-features.md).

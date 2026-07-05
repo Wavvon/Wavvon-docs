@@ -52,6 +52,9 @@ issues).
 > **3. Gaming + rich bots** — one theme: give bots a Telegram-class runtime
 > (interactive UI, audio, video) and games fall out ([gaming.md](docs/gaming.md)).
 
+- **Farm layer** — multi-hub control plane; farm-ready invites shipped with hub serial in URLs.
+  Next step: design doc + bounded first slice (wiring farm serial through farm's reverse-proxy routing).
+  See [farm-model.md](docs/farm-model.md).
 - **Project visibility push** — remaining: a hosted demo hub, directory listings, launch post.
   Needed both for adoption and for the code-signing re-application.
   *(2026-06-10: all six READMEs rewritten as landing pages with badges,
@@ -63,14 +66,12 @@ issues).
   category manager + per-role color/icon controls into desktop's and
   Android's own `RoleEditor.tsx`/`RoleCreator.tsx` copies. See
   [`role-categories.md`](docs/role-categories.md) §4, §6.
-- **Cross-farm hub-certification relay** — let certifications propagate
-  across the hubs a single farm operator manages instead of each hub
-  verifying independently. No design work started; **follows the farm
-  layer** (pillar 1 above). See [`future-features.md`](docs/future-features.md).
-- **Alliance space-sharing — any space + sub-spaces** — sharing is
-  limited to text + forum channels today; expand to any space type
-  (banner/channel/category/forum) and share a container's sub-tree
-  recursively. See [`alliances.md`](docs/alliances.md) "What's not done".
+- **Cross-farm cert relay** — propagate certifications across farm-managed hubs,
+  building on badge/cert signer. Design-stage; **depends on farm layer**.
+  See [`future-features.md`](docs/future-features.md).
+- **Gaming + rich bots capability layer** — design the Telegram-class bot runtime.
+  First slice (bot audio injection) already shipped hub-side 2026-07-04
+  ([soundboard.md](docs/soundboard.md) §2); next: capability-layer design.
 - **Forum post federation across alliances** — v1 forums are hub-local
   only; posts/replies don't federate over alliance-shared channels. No
   design work started; overlaps the alliance space-sharing work above.
@@ -118,6 +119,14 @@ issues).
 
 Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
 
+- **Alliance space-sharing v2 (2026-07-05)** — any space type shareable across
+  an alliance; sharing a category shares its subtree recursively with live
+  semantics (read-time recursive CTE). Shared-channel responses carry
+  `channel_type`/`parent_id`/`is_category`; web sidebar renders allied trees and
+  alliance messaging is now wired (was stubbed). Fixed two pre-existing
+  federation bugs en route: joiner stored literal `"self"` as inviter URL;
+  mutual hubs recursed indefinitely merging shared views (`local_only` hop).
+  See [`alliances.md`](docs/alliances.md), [`decisions.md`](docs/decisions.md).
 - **Manual-test bug pass (2026-07-05) — batch 5 (features + polish)**. All with
   2+ Playwright tests each; full live suite 62 green.
   - **Farm-ready invites** (`237eb59`): `wavvon://<host>/i/<hubSerial>/<code>`
@@ -231,6 +240,14 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
 
 ## ⚠️ Known issues
 
+- **~20 hub integration-test files don't compile** — found 2026-07-05 during
+  alliance space-sharing: the whisper-routing commit added
+  `whisper_target_pubkeys` to `AppState` but only some test files' literals
+  were updated (`alliance_flow.rs` fixed en route; `directory_flow`,
+  `federation_flow`, `dms_flow`, `screen_share_flow`, `soundboard_flow`,
+  `outgoing_webhooks_flow`, `temp_voice_channels_flow`, etc. still broken).
+  Plain `cargo test -p wavvon-hub` and `cargo clippy --all-targets` fail to
+  build until fixed. Mechanical fix: add the field to each `AppState` literal.
 - **Desktop background effects load the MediaPipe model from a CDN** — found
   2026-07-05 while shipping web background effects. `apps/desktop/src/utils/
   backgroundProcessor.ts` uses `locateFile: (f) => https://cdn.jsdelivr.net/

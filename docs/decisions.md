@@ -6,6 +6,38 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Alliance space-sharing v2: read-time recursive-CTE expansion
+
+**Decision** (2026-07-05): recursive alliance sharing resolves the
+effective shared set — explicit shares ∪ all descendants of any
+`include_descendants` share — at **read time** via a recursive CTE
+(depth-guarded at 32), not by materializing a row per shared descendant.
+A single `include_descendants BOOLEAN` on `alliance_shared_channels`
+records intent; `GET /alliances/:id/channels` and the message endpoints
+expand it on each call. Full design: [alliances.md](alliances.md).
+
+**Why**: the expansion is correct **by construction**. Sub-channels
+created after a category is shared are shared automatically; unsharing a
+root drops the whole subtree; moving a channel out of a shared category
+un-shares it — all with no bookkeeping, because nothing derived is
+stored to go stale.
+
+**Alternatives considered**:
+
+- **Materialized per-descendant rows** — rejected: every channel
+  create / move / delete would have to fan out inserts and deletes into
+  the shared set, needing triggers or a sync worker, and any missed hook
+  leaves stale shares. Trades a cheap read for fragile write-time
+  bookkeeping.
+- **Path-prefix matching** (store a materialized path, match by prefix)
+  — rejected: no foreign-key integrity, and re-parenting a subtree means
+  rewriting every descendant's path anyway.
+
+**Tradeoff**: a CTE walk per list/message call instead of a plain index
+lookup. Accepted — alliance share sets are small (a hub shares a handful
+of spaces), the depth guard bounds the walk, and correctness beats
+micro-optimizing a low-frequency read.
+
 ## LAN mode: explicit flag + hard private-address guard
 
 **Decision** (designed 2026-07-04, not yet implemented): a hub runs on

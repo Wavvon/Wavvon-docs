@@ -72,15 +72,16 @@ No timeline; deliberately after §1.
 
 ## 4. Alliance space-sharing — any space, including sub-spaces
 
-Alliance channel-sharing is shipped (create/share/unshare/leave) but
-limited to text + forum channels. **Direction:** a member should be able
-to share **any space type** across an alliance — banner, channel,
-category, forum — and **recursively** share a space *with its
-sub-spaces* (sharing a category shares the tree beneath it). This mirrors
-the nested-channels "space" model (a space is banner / channel /
-category / forum, and spaces nest). Canonical doc: [alliances.md](alliances.md)
-("What's not done"). Also still open there: voice in alliance channels,
-game launch/lobby federation, member discovery beyond invite tokens.
+**Implemented (v2, 2026-07-05).** Alliance sharing now covers **any
+space type** — banner, channel, category, forum — and **recursively**
+shares a space *with its sub-spaces* (sharing a category shares the tree
+beneath it, with live semantics). Canonical doc:
+[alliances.md](alliances.md) ("Recursive space sharing"); rationale in
+[decisions.md](decisions.md) (2026-07-05).
+
+Still future in this area: voice in alliance channels (relay redesign),
+forum post federation (posts stay hub-local — see §5), game launch/lobby
+federation, member discovery beyond invite tokens.
 
 ---
 
