@@ -6,6 +6,20 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **`GET /channels/:id/my-permissions` + channel-scoped client gating
+  (2026-07-05)** (server `daac936`, clients `fdb2086`). Members read their
+  own effective channel-scoped permission set without `manage_roles` —
+  closes the recurring UX gap (soundboard play-gate, Permissions tab
+  reachability). Web: soundboard button now respects channel-level denies;
+  the settings gear opens for `manage_roles` members straight into the
+  Permissions tab (rename/delete stay admin-only). `e2e/live/47` + 4 hub
+  integration tests. **Also (server `fab74e2`): int4-cast sweep** — channel
+  message reactions 500'd the whole history fetch whenever a message had a
+  reaction (same uncast `MAX(CASE…)` as the forum bug, three loaders), and
+  `/health` `db_status` had reported a decode error on every check since
+  the Postgres migration; both fixed, reaction read-back now covered in
+  `chat_flow.rs`.
+
 - **v0.3.0 schema baseline reset + four federation bug fixes (2026-07-05)**
   (server `b6e09f5`, `2bd80b8`). All ALTER-ballast folded into clean CREATE
   TABLEs — verified byte-identical via pg_dump diff (decision in

@@ -141,23 +141,10 @@ fixed, its entry moves to the shipped log.
   (`onMemberOnline` only flips `online` on users already in the array).
   Documented by `10-member-presence.spec.ts` (which reloads to pick up the
   join; offline transitions of known members ARE live).
-- **No member-facing "my effective channel permissions" endpoint** —
-  recurring gap surfaced by the Permissions tab, the soundboard
-  play-gate, and channel-scoped `use_soundboard`. The only endpoint that
-  folds channel overwrites (`GET /channels/:id/permissions`) itself
-  requires `manage_roles`, so a plain member's client can't cheaply
-  learn its own channel-scoped effective perms — client UIs fall back to
-  hub-wide role checks for gating (servers still enforce the real
-  channel-scoped check, so it's a UX/visibility gap, not a security
-  one). Fix: a lightweight `GET /channels/:id/my-permissions` returning
-  the caller's own effective set.
 - **Discord importer still needs a live run** — the 2026-07-04 web live
   pass (see [`shipped-log.md`](docs/shipped-log.md)) covered everything
   else; the importer (`export` with a real bot token, `apply` against a
-  running hub) hasn't been exercised live. Also open: the
-  channel-settings gear is `isAdmin`-gated (pre-existing), so a member
-  with only `manage_roles` can't reach the Permissions tab the server
-  would allow them to use.
+  running hub) hasn't been exercised live.
 - **Farm/seed test DBs leak (LOW)** — hub's `create_test_db()` got a
   `TestDbGuard` (hub `e203106`, 2026-07-04) but `crates/farm/tests`
   (`wavvon_farm_test_*`) and `crates/seed/tests` (`seed_test_*`) still
