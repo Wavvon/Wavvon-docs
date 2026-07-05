@@ -132,13 +132,12 @@ fixed, its entry moves to the shipped log.
   **desktop** has one to align with web's filtering. (Web has a full
   create / edit-permissions / delete-role UI — Roles admin tab, covered by
   `e2e/live/13`; **android** still lacks it.)
-- **Web has no presence status (away/DND/custom)** — presence is a binary
-  online/offline dot driven by `member_online`/`member_offline`; there is
-  no status picker. Also, a brand-new member does not appear in an
-  already-loaded client's member list until that client refetches `/users`
-  (`onMemberOnline` only flips `online` on users already in the array).
-  Documented by `10-member-presence.spec.ts` (which reloads to pick up the
-  join; offline transitions of known members ARE live).
+- **Presence status — desktop/Android parity** — web shipped 2026-07-05
+  (hub-synced away/DND/custom over `set_status`/`member_status`, see
+  [`shipped-log.md`](docs/shipped-log.md)). Desktop already has a local-only
+  status picker in its `ChannelSidebar.tsx` — wire it to the hub sync;
+  Android has none. Also open: DND doesn't suppress notification
+  sounds/pings yet on any client (visual only).
 - **Discord importer still needs a live run** — the 2026-07-04 web live
   pass (see [`shipped-log.md`](docs/shipped-log.md)) covered everything
   else; the importer (`export` with a real bot token, `apply` against a

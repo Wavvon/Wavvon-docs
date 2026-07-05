@@ -6,6 +6,18 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Presence status: away/DND/custom text, hub-synced (2026-07-05)**. New WS
+  `set_status` client message + `member_status` hub-wide broadcast; status
+  persisted on the users row (additive `presence_status`/`presence_custom`
+  columns — first post-baseline migration) and surfaced by `/users` only
+  while online. Web: footer status picker (ported from desktop's local-only
+  one), colored dots + custom text in the member list, live updates.
+  "Online" click clears the custom text (back-to-normal semantics). The
+  "new member appears live" half of the old known issue was already fixed
+  on 07-04 (`fb97442`). 2 hub integration tests + `e2e/live/10` extended.
+  Also fixed en route: vitest was collecting Playwright specs under `e2e/`
+  (48 failing suites in `npm run test`) — excluded in `vite.config.ts`.
+
 - **Temp-room owner rename UI (2026-07-05)** (clients `4100671`). The last
   open piece of join-to-create temp voice channels: a non-admin room owner
   gets a "Rename room" context-menu item (name-only modal, matching the
