@@ -44,6 +44,14 @@ issues).
 
 ## 📌 Wishlist (undesigned)
 
+> **Big future pillars** (full writeups in
+> [future-features.md](docs/future-features.md)): **1. Farm layer** — the
+> major architectural next step (multi-hub control plane;
+> [farm-model.md](docs/farm-model.md); farm-ready invites already landed).
+> **2. Cross-farm certification relay** — follows the farm layer.
+> **3. Gaming + rich bots** — one theme: give bots a Telegram-class runtime
+> (interactive UI, audio, video) and games fall out ([gaming.md](docs/gaming.md)).
+
 - **Project visibility push** — remaining: a hosted demo hub, directory listings, launch post.
   Needed both for adoption and for the code-signing re-application.
   *(2026-06-10: all six READMEs rewritten as landing pages with badges,
@@ -57,11 +65,16 @@ issues).
   [`role-categories.md`](docs/role-categories.md) §4, §6.
 - **Cross-farm hub-certification relay** — let certifications propagate
   across the hubs a single farm operator manages instead of each hub
-  verifying independently. No design work started. See
-  [`future-features.md`](docs/future-features.md).
+  verifying independently. No design work started; **follows the farm
+  layer** (pillar 1 above). See [`future-features.md`](docs/future-features.md).
+- **Alliance space-sharing — any space + sub-spaces** — sharing is
+  limited to text + forum channels today; expand to any space type
+  (banner/channel/category/forum) and share a container's sub-tree
+  recursively. See [`alliances.md`](docs/alliances.md) "What's not done".
 - **Forum post federation across alliances** — v1 forums are hub-local
   only; posts/replies don't federate over alliance-shared channels. No
-  design work started. See [`forum.md`](docs/forum.md).
+  design work started; overlaps the alliance space-sharing work above.
+  See [`forum.md`](docs/forum.md).
 - **Event role-slot sign-ups + reminders** — *server SHIPPED 2026-07-04*
   (hub `825b0da`, [`events.md`](docs/events.md) §2-§3); *web UI SHIPPED
   2026-07-04* (clients `dea0df0`, `EventComposer.tsx` slot editor +
@@ -263,9 +276,9 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
 - **Role assignment — client parity** (web FIXED 2026-07-04; see Recently
   shipped). Remaining, tracked in [`client-parity.md`](docs/client-parity.md):
   **android** still has no role-assignment control in its user context menu;
-  **desktop** has one to align with web's filtering. Separately, **no client
-  has a create/delete-role UI** on web/android (`createRole`/`deleteRole`
-  platform commands exist but are unused) — desktop only.
+  **desktop** has one to align with web's filtering. (Web has a full
+  create / edit-permissions / delete-role UI — Roles admin tab, covered by
+  `e2e/live/13`; **android** still lacks it.)
 - **✅ Web profile changes now propagate live — FIXED 2026-07-04** (hub
   `a23a7d9`, clients `fb97442`). `PATCH /me` now broadcasts a hub-wide
   `member_updated` WS event carrying the fresh name/avatar; the client updates

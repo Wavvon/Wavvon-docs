@@ -115,8 +115,16 @@ and caches results. For local channels, it loads from SQLite directly.
 
 ## What's not done
 
+- **Share any space type, including sub-spaces** — sharing today is
+  limited to text + forum channels. A member should be able to share
+  **any space** across an alliance (banner, channel, category, forum),
+  and sharing a container (a category) should be able to share the
+  **tree beneath it** recursively. "Space" here is the same nested unit
+  as in [nested-channels-ux.md](nested-channels-ux.md): banner / channel
+  / category / forum, and spaces nest. Undesigned; overlaps forum-post
+  federation ([forum.md](forum.md)) and voice-in-alliance below.
 - Voice in alliance channels
 - Game launch/lobby federation across alliance
 - Member discovery beyond invite tokens
 
-See ROADMAP.
+See [ROADMAP](../ROADMAP.md) and [future-features.md](future-features.md).
