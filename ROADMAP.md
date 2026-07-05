@@ -218,6 +218,17 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
 
 ## ⚠️ Known issues
 
+- **Desktop background effects load the MediaPipe model from a CDN** — found
+  2026-07-05 while shipping web background effects. `apps/desktop/src/utils/
+  backgroundProcessor.ts` uses `locateFile: (f) => https://cdn.jsdelivr.net/
+  npm/@mediapipe/selfie_segmentation/${f}`, so blur/image backgrounds require
+  internet and hit jsDelivr — wrong for a desktop app (breaks offline, odd for
+  a self-hosted product). The web client now serves the same assets locally
+  (the `mediapipeAssets` Vite plugin → `/mediapipe/*`, package
+  `@mediapipe/selfie_segmentation` is already a desktop dep). **Fix:** bundle
+  the model + WASM as Tauri resources and point `locateFile` at the local path.
+  While there, port the web version's **video background** mode (desktop only
+  has none/blur/image) for parity.
 - **✅ SECURITY — 2026-07-04 audit findings ALL FIXED** — full audit in
   [`security-audit-2026-07-04.md`](docs/security-audit-2026-07-04.md).
   Server fixes hub `efbf17b`, web fix clients `62792cb`. Verified by
