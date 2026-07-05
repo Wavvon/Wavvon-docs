@@ -6,6 +6,14 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Desktop: MediaPipe self-hosted + video background (2026-07-05)** (clients
+  `73cdadf`). Background effects no longer hit jsDelivr — web's
+  `mediapipeAssets` Vite plugin now serves desktop too (`/mediapipe/*`,
+  bundled into the Tauri dist), fixing offline use. Video background mode
+  ported from web; the Image picker the class always supported finally got
+  UI. 5 vitest cases. Follow-up in ROADMAP: desktop doesn't persist the
+  choice across launches.
+
 - **Farm challenge race fixed + farm/seed test-DB guards (2026-07-05)**
   (server `8b45c9e`). Farm's pubkey-keyed challenge slot had the same
   concurrent-auth stomping race as the hub; now nonce-keyed

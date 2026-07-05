@@ -109,17 +109,11 @@ fixed, its entry moves to the shipped log.
 
 ## ⚠️ Known issues
 
-- **Desktop background effects load the MediaPipe model from a CDN** — found
-  2026-07-05 while shipping web background effects. `apps/desktop/src/utils/
-  backgroundProcessor.ts` uses `locateFile: (f) => https://cdn.jsdelivr.net/
-  npm/@mediapipe/selfie_segmentation/${f}`, so blur/image backgrounds require
-  internet and hit jsDelivr — wrong for a desktop app (breaks offline, odd for
-  a self-hosted product). The web client now serves the same assets locally
-  (the `mediapipeAssets` Vite plugin → `/mediapipe/*`, package
-  `@mediapipe/selfie_segmentation` is already a desktop dep). **Fix:** bundle
-  the model + WASM as Tauri resources and point `locateFile` at the local path.
-  While there, port the web version's **video background** mode (desktop only
-  has none/blur/image) for parity.
+- **Desktop background choice doesn't persist across launches** — found
+  2026-07-05 while porting video backgrounds to desktop (clients `73cdadf`):
+  web persists the mode/source in localStorage, desktop threads React state
+  only, so blur/image/video resets on every launch. Port web's persistence
+  (and its Settings live-preview) to desktop.
 - **Role assignment — client parity** (web shipped 2026-07-04; see
   [`shipped-log.md`](docs/shipped-log.md)). Remaining, tracked in
   [`client-parity.md`](docs/client-parity.md):
