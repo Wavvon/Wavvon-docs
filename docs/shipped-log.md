@@ -6,6 +6,16 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **LAN / offline mode, server half (2026-07-05)** (hub `a6ec49b`,
+  [`lan-mode.md`](lan-mode.md)). `WAVVON_LAN_MODE=1`: hard private-address
+  guard (refuses to start on a public address; hostnames rejected — no DNS
+  on a LAN), self-signed cert tier with restart-stable SHA-256 fingerprint
+  (`WAVVON_LAN_TLS_MODE=self`, default) or gated plaintext (`none`), mDNS
+  advertisement with join-URL + fingerprint TXT fields
+  (`WAVVON_LAN_MDNS=0` opt-out), `/info` exposes
+  `lan_mode`/`lan_tls`/`lan_fingerprint`, doctor prints the join URL +
+  fingerprint. Native discovery UX / QR payloads stay client-era. 15 tests.
+
 - **Desktop: MediaPipe self-hosted + video background (2026-07-05)** (clients
   `73cdadf`). Background effects no longer hit jsDelivr — web's
   `mediapipeAssets` Vite plugin now serves desktop too (`/mediapipe/*`,

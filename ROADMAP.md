@@ -96,11 +96,12 @@ fixed, its entry moves to the shipped log.
   stream; bot audio injection via `can_speak_voice` gate on `/voice/ws`.
   Needs the live pass; play-gate uses hub-role perms (see channel-perms
   endpoint follow-up).
-- **LAN / offline mode** — **designed, ready to implement**:
-  [`lan-mode.md`](docs/lan-mode.md). mDNS discovery + self-signed/
-  fingerprint or gated-plaintext trust; `WAVVON_LAN_MODE` flag with a
-  hard private-address guard (can't be exposed publicly). Server-first;
-  native discovery UX deferred to client era.
+- **LAN / offline mode** — *server half SHIPPED 2026-07-05* (hub `a6ec49b`,
+  [`lan-mode.md`](docs/lan-mode.md)): `WAVVON_LAN_MODE` with the hard
+  private-address guard, mDNS advertisement, self-signed/fingerprint or
+  gated-plaintext tiers, `/info` trust fields, doctor output. Remaining
+  (client-era per §5–§6): native "nearby hubs" discovery UX, QR/fingerprint
+  pinning payloads, LAN federation.
 - **Personal data export (full archive)** — *export half SHIPPED
   2026-07-04* (clients `542891e`, [`data-export.md`](docs/data-export.md)).
   Two follow-ups: (1) **prefs-blob decrypt** — web has no decrypt path
