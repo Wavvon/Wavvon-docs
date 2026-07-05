@@ -105,6 +105,26 @@ issues).
 
 Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
 
+- **Manual-test bug pass (2026-07-05) — batch 5 (features + polish)**. All with
+  2+ Playwright tests each; full live suite 62 green.
+  - **Farm-ready invites** (`237eb59`): `wavvon://<host>/i/<hubSerial>/<code>`
+    (serial = hub public key) so a farm can route the same domain to different
+    hubs by serial. `parseHubInput` extracts the serial (path or `?hub=`,
+    backward-compatible), `buildInviteLink` generates it, and the Invites admin
+    tab shows a full copyable link. 5 core unit tests + `e2e/live/42`.
+  - **Soundboard popover** no longer overflows the viewport (`0ea4404`,
+    `e2e/live/39`); **channel-header buttons** spaced out.
+  - **Voice join/leave sound cues** wired (`playVoiceTone`) with a toggle
+    (`37db681`, `e2e/live/41`); mention ping already covered notifications.
+  - **Incoming + outgoing webhooks** merged into one Integrations tab
+    (`756e7f3`, `e2e/live/40`).
+  - **Camera device picker + live preview** in Settings (`9edb456`,
+    `e2e/live/43`); background blur deferred (heavy ML).
+  - **Hub-admin nav grouped** into labeled sections + made scrollable
+    (`e803326`, `e2e/live/44`).
+  - **#7** (redundant join-voice button): investigated — the channel header is
+    the only join-voice control; nothing redundant found to remove.
+
 - **Manual-test bug pass (2026-07-05) — batch 1** (server `4d38025`, clients
   `33c4485`). From hands-on testing of the running hub:
   - **Ban/kick/mute from the member right-click menu were broken** — the client
