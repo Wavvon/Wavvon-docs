@@ -119,7 +119,13 @@ Full log: [`docs/shipped-log.md`](docs/shipped-log.md).
   - **Incoming + outgoing webhooks** merged into one Integrations tab
     (`756e7f3`, `e2e/live/40`).
   - **Camera device picker + live preview** in Settings (`9edb456`,
-    `e2e/live/43`); background blur deferred (heavy ML).
+    `e2e/live/43`).
+  - **Webcam background effects — blur / image / video** (`8b1d489`,
+    `e2e/live/45`). Ported + extended the desktop `BackgroundProcessor`
+    (MediaPipe selfie segmentation); no device gating (opt-in, user decides);
+    model + WASM served **self-hosted** from `/mediapipe/*` via a Vite plugin
+    (no CDN, offline-friendly, nothing committed), lazy-loaded on first use,
+    graceful fallback to raw video if it can't load.
   - **Hub-admin nav grouped** into labeled sections + made scrollable
     (`e803326`, `e2e/live/44`).
   - **#7** (redundant join-voice button): investigated — the channel header is
