@@ -35,6 +35,24 @@ fixed, its entry moves to the shipped log.
   the final logo asset. Run `cargo tauri icon <1024x1024.png>` once the brand
   logo is ready. See [`brand.md`](docs/brand.md).
 
+## 🔍 Flow-test findings (2026-07-06, private-hub + wizard flows)
+
+- [ ] **Lobby soft-landing not wired end-to-end** — `min_security_level > 0`
+  makes `/auth/verify` hard-403 sub-level joiners (incl. the owner's first
+  join!) instead of admitting them into the lobby with background PoW
+  ([lobby-bot-survey.md](docs/lobby-bot-survey.md) Feature 1). The gaming
+  preset's level-8 setting was removed as a stopgap (server `a4e57f9`).
+  Wire: verify admits with scope=lobby when lobby_enabled; web lobby UX +
+  background PoW; owner/first-user exemption.
+- [ ] **Invite-first joining** — new hubs default `invite_only=true`; first
+  boot surfaces the owner's first invite link (banner, doctor, admin UI).
+  Keep the serial in links (identity pin / anti-MITM); add the
+  `https://host/i/…` web twin wherever links render.
+- [ ] **`wavvon-hub setup` interactive install wizard** — for non-Docker-pro
+  operators: asks name/preset/domain-or-LAN/TLS, emits compose + .env
+  (Postgres included), starts, prints the first invite link + QR. Offline
+  sibling of the discovery wizard (piece 3).
+
 ## 🔍 Manual-test feedback batch (2026-07-05, owner pass on v0.3.0)
 
 ~35 items filed; all shipped same day → [shipped-log.md](docs/shipped-log.md)
