@@ -6,6 +6,23 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Clients v0.3.0/v0.3.1 released + pilot hub fresh-installed on v0.3.1
+  (2026-07-06)**: first clients release since v0.2.6 and since the rename.
+  v0.3.0 shipped desktop (Windows exe, macOS universal dmg — first CI
+  proof of the xcap 0.9.6 fix — Linux AppImage, updater manifest) and the
+  web bundle; v0.3.1 re-ran for Android after fixing the doubled
+  `apps/android/android` workflow paths, which unmasked the real blocker
+  (audiopus_sys host-arch libopus → ROADMAP known issue; still no APK).
+  Clients release.sh fixed (pre-monorepo tauri.conf path, changelog-wiping
+  git-cliff mode) and CHANGELOG.md introduced. **videogamezone pilot**
+  wiped and reinstalled per owner decision: `ghcr.io/wavvon/hub:0.3.1` +
+  postgres:16 sidecar in `~/voxply` (vhost symlink pins the dir; db
+  container named wavvon-db — plain "db" belongs to the neighbouring govd
+  bot), `WAVVON_PUBLIC_URL` set, fresh hub identity, first-boot owner
+  invite minted and handed to the owner. Hostname is still
+  voxply.videogamezone.eu until the vhost server_name gains the wavvon
+  alias + friend's nginx reload.
+
 - **Server v0.3.1 released — first working release pipeline since v0.2.0
   (2026-07-06)**: `wavvon-hub-linux-x86_64`, `wavvon-hub-linux-aarch64`
   (first successful aarch64 build ever), `wavvon-farm-linux-x86_64` +

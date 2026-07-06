@@ -15,14 +15,13 @@ fixed, its entry moves to the shipped log.
   shipped 2026-06-13 via WebSocket audio relay. All four clients complete.
   First cross-internet voice test pending (pilot hub). Phase 2 (voice
   encryption) is separate.
-- [ ] **First external operator pilot (videogamezone.eu)** — hub v0.2.3 LIVE
-  at `https://wavvon.videogamezone.eu`. Remaining: first cross-internet voice
-  test (everything shipped, just needs two humans), friend onboards +
+- [ ] **First external operator pilot (videogamezone.eu)** — hub **v0.3.1**
+  LIVE (fresh install 2026-07-06: Postgres stack, new hub identity, all old
+  data wiped by design; public URL currently `voxply.videogamezone.eu` —
+  the wavvon hostname needs a server_name edit + friend's nginx reload).
+  First-boot owner invite minted, pending redemption. Remaining: redeem
+  owner invite, first cross-internet voice test, friend onboards +
   ownership transfer, doc-test feedback, two-operator federation test.
-- [ ] **Fix macOS desktop build: xcap 0.9.6 now compiles** — bumped from
-  0.0.14 to 0.9.6 to resolve upstream E0282 error; call sites in
-  `screen_share.rs` updated for new API. Verify in CI before removing from
-  Known issues.
 
 ## 🚧 Blocked
 
@@ -167,6 +166,13 @@ surfaces, welcome banner, survey→roles, …). Still open:
 
 ## ⚠️ Known issues
 
+- **Android APK release build fails in native cross-compilation** — found
+  2026-07-06 cutting clients v0.3.0/v0.3.1 (workflow paths fixed in
+  `16c69cc`, then the real blocker surfaced): `audiopus_sys` builds
+  `libopus.so` for the host arch, so the aarch64-Android link fails
+  ("incompatible with aarch64linux"). The NDK toolchain isn't reaching
+  the crate's C build. No APK has ever shipped; needs voice-crate build
+  wiring (cargo-ndk or CC/CMake toolchain env in the workflow).
 - **demo-seed broken by invite-first defaults** — fresh hubs now boot with
   `invite_only=true` (hub `10f3e2d`), so demo-seed's plain `/auth/verify`
   403s before it can create Nova. Workaround used for the 2026-07-06
