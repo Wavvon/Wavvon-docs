@@ -175,6 +175,16 @@ components:
         priority: { type: integer }
         display_separately: { type: boolean }
 
+    RoleCategory:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        color: { type: string, nullable: true }
+        icon: { type: string, nullable: true }
+        position: { type: integer }
+        created_at: { type: integer }
+
     Invite:
       type: object
       properties:
@@ -522,6 +532,82 @@ paths:
                 display_name: { type: string }
                 avatar: { type: string, nullable: true }
 
+  # ── Passkey / device credential management ──────────────────────────────────
+
+  /me/credentials:
+    get:
+      summary: List the caller's registered passkeys
+      tags: [Me]
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string }
+                    friendly_name: { type: string, nullable: true }
+                    aaguid: { type: string, nullable: true }
+                    created_at: { type: integer }
+                    last_used_at: { type: integer, nullable: true }
+
+  /me/credentials/{id}:
+    patch:
+      summary: Rename a passkey
+      tags: [Me]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [friendly_name]
+              properties:
+                friendly_name: { type: string }
+    delete:
+      summary: Remove a passkey
+      tags: [Me]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+
+  /me/devices:
+    get:
+      summary: List the caller's trusted devices (active device tokens)
+      tags: [Me]
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string }
+                    device_name: { type: string, nullable: true }
+                    created_at: { type: integer }
+                    expires_at: { type: integer }
+                    last_used_at: { type: integer, nullable: true }
+
+  /me/devices/{id}:
+    delete:
+      summary: Revoke a trusted device token
+      tags: [Me]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+
   # ── Hub ───────────────────────────────────────────────────────────────────
 
   /hub:
@@ -671,6 +757,105 @@ paths:
       tags: [Channels]
       parameters:
         - name: channel_id
+          in: path
+          required: true
+          schema: { type: string }
+
+  # ── Channel permission overwrites (nested-channels §3.6) ──────────────────
+
+  /channels/{channel_id}/my-permissions:
+    get:
+      summary: Caller's resolved effective permissions on a channel
+      description: >-
+        Not gated on manage_roles — any member may see their own effective
+        channel-scoped permission set (hub-wide baseline + ancestor-chain
+        overwrite cascade). `is_admin` short-circuits every check.
+      tags: [Channels]
+      parameters:
+        - name: channel_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  channel_id: { type: string }
+                  permissions: { type: array, items: { type: string } }
+                  is_admin: { type: boolean }
+
+  /channels/{channel_id}/permissions:
+    get:
+      summary: Get resolved permission overwrites for every role on a channel (manage_roles)
+      tags: [Channels]
+      parameters:
+        - name: channel_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  channel_id: { type: string }
+                  roles:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        role_id: { type: string }
+                        role_name: { type: string }
+                        overwrites:
+                          type: object
+                          properties:
+                            allow: { type: array, items: { type: string } }
+                            deny: { type: array, items: { type: string } }
+                        inherited: { type: array, items: { type: string } }
+                        effective: { type: array, items: { type: string } }
+
+  /channels/{channel_id}/permissions/{role_id}:
+    put:
+      summary: Replace a role's permission overwrites on a channel (manage_roles)
+      description: >-
+        Cannot grant `admin` via an overwrite, cannot edit a role at or
+        above the caller's own priority, and can only allow permissions
+        the caller effectively holds on the channel.
+      tags: [Channels]
+      parameters:
+        - name: channel_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: role_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                allow: { type: array, items: { type: string } }
+                deny: { type: array, items: { type: string } }
+      responses:
+        "403":
+          description: Role at or above caller's priority, or grant exceeds caller's own permissions
+    delete:
+      summary: Clear a role's permission overwrites on a channel (manage_roles)
+      tags: [Channels]
+      parameters:
+        - name: channel_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: role_id
           in: path
           required: true
           schema: { type: string }
@@ -1044,6 +1229,73 @@ paths:
       tags: [Roles]
       parameters:
         - name: role_id
+          in: path
+          required: true
+          schema: { type: string }
+
+  # ── Role categories (display-only grouping, no permissions) ───────────────
+
+  /role-categories:
+    get:
+      summary: List role categories
+      tags: [Roles]
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/RoleCategory' }
+    post:
+      summary: Create a role category (manage_roles)
+      tags: [Roles]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                color: { type: string, description: "^#[0-9a-fA-F]{6}$" }
+                icon: { type: string, description: "Single emoji grapheme, max 16 bytes" }
+                position: { type: integer, default: 0 }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RoleCategory' }
+
+  /role-categories/{category_id}:
+    patch:
+      summary: Update a role category (manage_roles)
+      tags: [Roles]
+      parameters:
+        - name: category_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                color: { type: string, nullable: true }
+                icon: { type: string, nullable: true }
+                position: { type: integer }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RoleCategory' }
+    delete:
+      summary: Delete a role category (manage_roles)
+      description: Roles referencing this category fall back to uncategorized.
+      tags: [Roles]
+      parameters:
+        - name: category_id
           in: path
           required: true
           schema: { type: string }
@@ -1888,6 +2140,157 @@ paths:
                   token: { type: string }
                   expires_at: { type: integer, description: "Unix timestamp" }
 
+  # ── WebAuthn / passkeys (see webauthn-auth.md) ────────────────────────────
+
+  /auth/webauthn/begin:
+    post:
+      summary: Start WebAuthn passkey registration
+      description: Excludes credentials the user already has so re-registering the same authenticator is blocked.
+      security: []
+      tags: [Auth]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_pubkey]
+              properties:
+                user_pubkey: { type: string, description: "Hex-encoded Ed25519 public key" }
+                display_name: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session_id: { type: string }
+                  options: { type: object, description: "PublicKeyCredentialCreationOptions" }
+
+  /auth/webauthn/finish:
+    post:
+      summary: Complete WebAuthn passkey registration and issue a session token
+      security: []
+      tags: [Auth]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [session_id, credential]
+              properties:
+                session_id: { type: string }
+                credential: { type: object, description: "RegisterPublicKeyCredential from navigator.credentials.create()" }
+                friendly_name: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session_token: { type: string }
+        "400":
+          description: Unknown/expired session, or registration verification failed
+
+  /auth/webauthn/assert/begin:
+    post:
+      summary: Start WebAuthn passkey authentication (login)
+      security: []
+      tags: [Auth]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_pubkey]
+              properties:
+                user_pubkey: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session_id: { type: string }
+                  options: { type: object, description: "PublicKeyCredentialRequestOptions" }
+        "404":
+          description: No passkeys registered for this user
+
+  /auth/webauthn/assert/finish:
+    post:
+      summary: Complete WebAuthn assertion and issue a session token
+      security: []
+      tags: [Auth]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [session_id, credential]
+              properties:
+                session_id: { type: string }
+                credential: { type: object, description: "PublicKeyCredential assertion from navigator.credentials.get()" }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session_token: { type: string }
+        "401":
+          description: Assertion verification failed
+
+  /auth/device-token/create:
+    post:
+      summary: Mint a long-lived "trust this device" token
+      description: Requires an existing session (e.g. right after a WebAuthn assertion).
+      tags: [Auth]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                device_name: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  token: { type: string, description: "Shown once — store hashed on the client" }
+                  expires_at: { type: integer }
+
+  /auth/device-token/redeem:
+    post:
+      summary: Exchange a device token for a fresh session token
+      description: Rotates the device token on each use (issues a new one, invalidates the old).
+      security: []
+      tags: [Auth]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session_token: { type: string }
+        "401":
+          description: Device token expired, revoked, or invalid
+
   # ── Operational ───────────────────────────────────────────────────────────
 
   /metrics:
@@ -2016,6 +2419,184 @@ paths:
               properties:
                 tags: { type: array, items: { type: string } }
                 nsfw: { type: boolean }
+
+  # ── Federated ban list (admin) ─────────────────────────────────────────────
+
+  /admin/banlist/sources:
+    get:
+      summary: List federated ban list sources (admin)
+      tags: [Federation]
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    url: { type: string }
+                    policy: { type: string, enum: [hard-reject, soft-flag] }
+                    added_at: { type: integer }
+                    issuer_pubkey: { type: string, nullable: true }
+    post:
+      summary: Add a ban list source and trigger an immediate sync (admin)
+      tags: [Federation]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url: { type: string }
+                policy: { type: string, enum: [hard-reject, soft-flag], default: hard-reject }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url: { type: string }
+                  policy: { type: string }
+                  added_at: { type: integer }
+                  issuer_pubkey: { type: string, nullable: true }
+    patch:
+      summary: Update the policy on an existing ban list source (admin)
+      tags: [Federation]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url, policy]
+              properties:
+                url: { type: string }
+                policy: { type: string, enum: [hard-reject, soft-flag] }
+      responses:
+        "404":
+          description: Source not found
+    delete:
+      summary: Remove a ban list source and its synced entries (admin)
+      tags: [Federation]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url: { type: string }
+
+  /admin/banlist/entries:
+    get:
+      summary: List synced federated ban entries (admin)
+      tags: [Federation]
+      parameters:
+        - name: source
+          in: query
+          schema: { type: string }
+          description: Filter by source hub pubkey
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    source_hub_pubkey: { type: string }
+                    target_master_pubkey: { type: string }
+                    reason: { type: string, nullable: true }
+                    added_at: { type: integer }
+                    synced_at: { type: integer }
+
+  /admin/banlist/overrides:
+    get:
+      summary: List local ban list overrides (admin)
+      tags: [Federation]
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    target_pubkey: { type: string }
+                    override_type: { type: string, enum: [whitelist, blacklist] }
+                    reason: { type: string, nullable: true }
+                    created_at: { type: integer }
+    post:
+      summary: Add a local whitelist/blacklist override (admin)
+      tags: [Federation]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [target_pubkey, override_type]
+              properties:
+                target_pubkey: { type: string }
+                override_type: { type: string, enum: [whitelist, blacklist] }
+                reason: { type: string }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  target_pubkey: { type: string }
+                  override_type: { type: string }
+                  reason: { type: string, nullable: true }
+                  created_at: { type: integer }
+
+  /admin/banlist/overrides/{pubkey}:
+    delete:
+      summary: Remove a ban list override (admin)
+      tags: [Federation]
+      parameters:
+        - name: pubkey
+          in: path
+          required: true
+          schema: { type: string }
+
+  /admin/settings/banlist:
+    get:
+      summary: Get ban list publishing settings and configured sources (admin)
+      tags: [Federation]
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  publish_banlist: { type: boolean }
+                  sources:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        url: { type: string }
+                        policy: { type: string }
+                        added_at: { type: integer }
+                        issuer_pubkey: { type: string, nullable: true }
+    patch:
+      summary: Toggle whether this hub publishes its ban list (admin)
+      tags: [Federation]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [publish_banlist]
+              properties:
+                publish_banlist: { type: boolean }
 
   /admin/audit-log:
     get:
@@ -2205,6 +2786,108 @@ paths:
           description: File bytes
         "404":
           description: File not found
+
+  # ── Soundboard ────────────────────────────────────────────────────────────
+
+  /soundboard:
+    get:
+      summary: List every clip in the hub's soundboard library
+      description: Any authenticated member may list; playing one is gated separately by use_soundboard.
+      tags: [Soundboard]
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string }
+                    name: { type: string }
+                    emoji: { type: string, nullable: true }
+                    uploader: { type: string }
+                    size_bytes: { type: integer }
+                    duration_ms: { type: integer }
+                    created_at: { type: integer }
+    post:
+      summary: Upload a soundboard clip (manage_soundboard)
+      description: >-
+        Multipart upload: `name` (text), optional `emoji` (text), `audio`
+        (Opus-in-Ogg file, ≤512 KB, ≤10s). Hubs cap at 50 clips.
+      tags: [Soundboard]
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [name, audio]
+              properties:
+                name: { type: string }
+                emoji: { type: string }
+                audio: { type: string, format: binary }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  name: { type: string }
+                  emoji: { type: string, nullable: true }
+                  uploader: { type: string }
+                  size_bytes: { type: integer }
+                  duration_ms: { type: integer }
+                  created_at: { type: integer }
+        "400":
+          description: Missing fields, clip too large/long, invalid Opus/Ogg container, or hub clip limit reached
+
+  /soundboard/{id}:
+    delete:
+      summary: Delete a soundboard clip (manage_soundboard)
+      tags: [Soundboard]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+
+  /soundboard/{id}/audio:
+    get:
+      summary: Fetch a clip's raw Opus-in-Ogg audio bytes
+      description: Clips are immutable once uploaded, so responses are cacheable indefinitely.
+      tags: [Soundboard]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: "`audio/ogg` bytes"
+
+  /soundboard/{id}/played:
+    post:
+      summary: Broadcast a "clip played" attribution event (use_soundboard)
+      description: >-
+        Attribution UX only — the hub does not verify the clip was actually
+        mixed into the caller's outgoing audio; the channel-scoped
+        use_soundboard permission check is the real enforcement.
+      tags: [Soundboard]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [channel_id]
+              properties:
+                channel_id: { type: string }
 
   # ── Content reporting ─────────────────────────────────────────────────────
 
@@ -2503,6 +3186,92 @@ paths:
                   properties:
                     user_pubkey: { type: string }
                     status: { type: string }
+
+  /events/{event_id}/slots:
+    post:
+      summary: Create a sign-up slot for an event (creator or admin)
+      tags: [Events]
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                capacity: { type: integer, nullable: true, description: "Omit or null = unlimited" }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  name: { type: string }
+                  capacity: { type: integer, nullable: true }
+                  position: { type: integer }
+                  claimed: { type: integer }
+                  claimants: { type: array, items: { type: string } }
+
+  /events/{event_id}/slots/{slot_id}:
+    patch:
+      summary: Rename or resize a slot (creator or admin)
+      description: Rejects shrinking capacity below the current claim count; demote claimants off the slot first.
+      tags: [Events]
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: slot_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                capacity: { type: integer, nullable: true }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  name: { type: string }
+                  capacity: { type: integer, nullable: true }
+                  position: { type: integer }
+                  claimed: { type: integer }
+                  claimants: { type: array, items: { type: string } }
+        "400":
+          description: New capacity is below the current claim count
+    delete:
+      summary: Delete a slot (creator or admin)
+      description: Rejects deletion while the slot still has claimants — move them off the slot first.
+      tags: [Events]
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: slot_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "409":
+          description: Slot has claimants
 
   # ── Polls ─────────────────────────────────────────────────────────────────
 
@@ -2880,6 +3649,94 @@ paths:
           required: true
           schema: { type: string }
 
+  /channels/{channel_id}/posts/{post_id}/reactions:
+    post:
+      summary: React to a post
+      tags: [Forum]
+      parameters:
+        - name: channel_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: post_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [emoji]
+              properties:
+                emoji: { type: string, description: "1–8 chars" }
+
+  /channels/{channel_id}/posts/{post_id}/reactions/{emoji}:
+    delete:
+      summary: Remove own reaction from a post
+      tags: [Forum]
+      parameters:
+        - name: channel_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: post_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: emoji
+          in: path
+          required: true
+          schema: { type: string }
+
+  /channels/{channel_id}/posts/{post_id}/replies/{reply_id}/reactions:
+    post:
+      summary: React to a reply
+      tags: [Forum]
+      parameters:
+        - name: channel_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: post_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: reply_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [emoji]
+              properties:
+                emoji: { type: string, description: "1–8 chars" }
+
+  /channels/{channel_id}/posts/{post_id}/replies/{reply_id}/reactions/{emoji}:
+    delete:
+      summary: Remove own reaction from a reply
+      tags: [Forum]
+      parameters:
+        - name: channel_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: post_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: reply_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: emoji
+          in: path
+          required: true
+          schema: { type: string }
+
   # ── Channel-scoped moderation (pubkey field) ──────────────────────────────
 
   /channels/{channel_id}/bans:
@@ -3244,6 +4101,37 @@ paths:
         "403":
           description: User not approved or banned
 
+  /admin/certs/{pubkey}/badge:
+    post:
+      summary: Grant a named achievement badge to a user (admin)
+      description: >-
+        A badge is a certification carrying a label (+ optional
+        description/icon); it lands in the user's portfolio and links back
+        to this hub via issuer_url.
+      tags: [Certifications]
+      parameters:
+        - name: pubkey
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [label]
+              properties:
+                label: { type: string, description: "1–64 chars" }
+                description: { type: string }
+                icon: { type: string }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Certification' }
+        "403":
+          description: User not approved or banned
+
   /admin/certs/{pubkey}/revoke:
     post:
       summary: Revoke a user's certs (admin)
@@ -3571,6 +4459,215 @@ paths:
         "401":
           description: Invalid webhook token
 
+  # ── Outgoing webhooks (hub -> external URL push) ──────────────────────────
+
+  /admin/outgoing-webhooks:
+    get:
+      summary: List outgoing webhooks (admin)
+      tags: [OutgoingWebhooks]
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string }
+                    url: { type: string }
+                    display_name: { type: string, nullable: true }
+                    active: { type: boolean }
+                    failure_count: { type: integer }
+                    last_delivery_at: { type: integer, nullable: true }
+                    last_failure_at: { type: integer, nullable: true }
+                    created_at: { type: integer }
+                    created_by_pubkey: { type: string }
+                    subscription_count: { type: integer }
+    post:
+      summary: Create an outgoing webhook (admin)
+      description: >-
+        `url` must be https and must not resolve to a private/loopback
+        address. The returned `secret` is shown once and used to derive the
+        persisted HMAC signing key.
+      tags: [OutgoingWebhooks]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url: { type: string }
+                display_name: { type: string }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  url: { type: string }
+                  display_name: { type: string, nullable: true }
+                  secret: { type: string, description: "Shown once. Never persisted or returned again." }
+
+  /admin/outgoing-webhooks/{id}:
+    patch:
+      summary: Update an outgoing webhook's URL, name, or active state (admin)
+      tags: [OutgoingWebhooks]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url: { type: string }
+                display_name: { type: string }
+                active: { type: boolean }
+    delete:
+      summary: Delete an outgoing webhook (admin)
+      tags: [OutgoingWebhooks]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+
+  /admin/outgoing-webhooks/{id}/subscriptions:
+    get:
+      summary: List an outgoing webhook's event subscriptions (admin)
+      tags: [OutgoingWebhooks]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  subscriptions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        event: { type: string }
+                        channels:
+                          type: array
+                          items: { type: string }
+                          nullable: true
+    put:
+      summary: Replace an outgoing webhook's event subscriptions (admin)
+      description: "`message.*` events (other than `message.mention_bot`) require an explicit `channels` list."
+      tags: [OutgoingWebhooks]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subscriptions]
+              properties:
+                subscriptions:
+                  type: array
+                  items:
+                    type: object
+                    required: [event]
+                    properties:
+                      event: { type: string }
+                      channels:
+                        type: array
+                        items: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count: { type: integer }
+
+  /admin/outgoing-webhooks/{id}/rotate-secret:
+    post:
+      summary: Rotate an outgoing webhook's signing secret (admin)
+      tags: [OutgoingWebhooks]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  secret: { type: string, description: "Shown once. Never persisted or returned again." }
+
+  /admin/outgoing-webhooks/{id}/enable:
+    post:
+      summary: Re-enable a disabled outgoing webhook and reset its failure count (admin)
+      tags: [OutgoingWebhooks]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+
+  /admin/outgoing-webhooks/{id}/deliveries:
+    get:
+      summary: List recent delivery attempts for an outgoing webhook (admin)
+      tags: [OutgoingWebhooks]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50, maximum: 200 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+        - name: event_type
+          in: query
+          schema: { type: string }
+        - name: success
+          in: query
+          schema: { type: boolean }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string }
+                    webhook_id: { type: string }
+                    event_type: { type: string }
+                    event_seq: { type: integer, nullable: true }
+                    attempted_at: { type: integer }
+                    attempt_number: { type: integer }
+                    status_code: { type: integer, nullable: true }
+                    success: { type: boolean }
+                    error_msg: { type: string, nullable: true }
+
   # ── Bots (external bot system) ────────────────────────────────────────────
 
   /bots:
@@ -3790,7 +4887,7 @@ paths:
                 properties:
                   voice_ws_url: { type: string, example: /voice/ws }
                   channel_id: { type: string }
-        "403": { description: Caller is not the bot identified by {id} }
+        "403": { description: "Caller is not the bot identified by {id}" }
         "404": { description: Channel not found }
 
   /bots/{id}/voice/leave:
@@ -3816,7 +4913,7 @@ paths:
                 channel_id: { type: string }
       responses:
         "204": { description: No content }
-        "403": { description: Caller is not the bot identified by {id} }
+        "403": { description: "Caller is not the bot identified by {id}" }
 
   /bots/{id}/screenshare/start:
     post:
@@ -3853,7 +4950,7 @@ paths:
                 properties:
                   stream_id: { type: string }
                   channel_id: { type: string }
-        "403": { description: Caller is not the bot identified by {id} }
+        "403": { description: "Caller is not the bot identified by {id}" }
         "404": { description: Channel not found }
 
   /bots/{id}/screenshare/stop:
@@ -3882,7 +4979,7 @@ paths:
                 stream_id: { type: string }
       responses:
         "204": { description: No content — idempotent if stream already gone }
-        "403": { description: Caller is not the bot identified by {id} }
+        "403": { description: "Caller is not the bot identified by {id}" }
 
   # ── Group DM membership / sender keys ─────────────────────────────────────
 
@@ -4214,6 +5311,10 @@ tags:
     description: Social-recovery contacts and key rotation.
   - name: Webhooks
     description: Incoming webhooks for posting messages from external services.
+  - name: OutgoingWebhooks
+    description: Outgoing webhooks — hub pushes signed event payloads to an external URL.
+  - name: Soundboard
+    description: Per-hub voice soundboard clip library.
   - name: Search
   - name: Emojis
   - name: Uploads

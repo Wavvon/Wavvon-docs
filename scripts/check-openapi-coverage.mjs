@@ -17,14 +17,23 @@ const hubRoot = hubArg
   ? hubArg
   : ["../hub", "_hub"].map((p) => join(repoRoot, p)).find(existsSync);
 
-if (!hubRoot || !existsSync(join(hubRoot, "hub", "src", "server.rs"))) {
+// The hub crate moved from hub/ to crates/hub/ in the workspace
+// restructure; accept either layout so the check keeps working against
+// older checkouts too.
+const serverRsPath = hubRoot
+  ? ["crates/hub/src/server.rs", "hub/src/server.rs"]
+      .map((p) => join(hubRoot, p))
+      .find(existsSync)
+  : undefined;
+
+if (!serverRsPath) {
   console.error(
     `check-openapi-coverage: Wavvon-server checkout not found (tried ${hubRoot ?? "../hub, _hub"})`,
   );
   process.exit(2);
 }
 
-const serverRs = readFileSync(join(hubRoot, "hub", "src", "server.rs"), "utf8");
+const serverRs = readFileSync(serverRsPath, "utf8");
 
 // Axum `.route("/path/:param", ...)` registrations. Normalise `:param` to
 // `{param}` to match OpenAPI syntax.
