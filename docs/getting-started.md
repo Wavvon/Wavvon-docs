@@ -10,13 +10,13 @@ that is yours forever.
 ## Download
 
 The Wavvon desktop app is available for Windows, macOS, and Linux from the
-[Wavvon releases page](https://github.com/Wavvon/Wavvon-client/releases).
+[Wavvon releases page](https://github.com/Wavvon/Wavvon-clients/releases).
 
 **Windows**: installers are currently **not code-signed** (signing for a
 young open-source project is in progress — the CI signing pipeline is
 already wired). SmartScreen will warn about an unrecognized app: click
 **More info → Run anyway**. Builds are reproducible from the public
-[Wavvon-client](https://github.com/Wavvon/Wavvon-client) monorepo (which
+[Wavvon-client](https://github.com/Wavvon/Wavvon-clients) monorepo (which
 holds the desktop, web, and Android apps) via GitHub Actions.
 
 **macOS / Linux**: notarization and GPG signing are planned for a future

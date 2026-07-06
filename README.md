@@ -23,7 +23,7 @@ stacks up — including its honest limitations.
 ## Get started
 
 - **Use Wavvon** — download the
-  [desktop app](https://github.com/Wavvon/Wavvon-client/releases)
+  [desktop app](https://github.com/Wavvon/Wavvon-clients/releases)
   (Windows / macOS / Linux), or read
   [getting-started.md](docs/getting-started.md).
 - **Host a community** — run your own hub in 2 minutes with Docker:
@@ -60,9 +60,9 @@ stacks up — including its honest limitations.
 
 | Repo | Local path | Contents |
 |---|---|---|
-| [Wavvon](https://github.com/Wavvon/Wavvon) *(this repo)* | `docs/` | Architecture docs, ROADMAP, design decisions, API spec |
+| [Wavvon-docs](https://github.com/Wavvon/Wavvon-docs) *(this repo)* | `docs/` | Architecture docs, ROADMAP, design decisions, API spec |
 | [Wavvon-server](https://github.com/Wavvon/Wavvon-server) | `server/` | Hub server, farm tooling, seed server, identity crate |
-| [Wavvon-client](https://github.com/Wavvon/Wavvon-client) | `clients/` | All clients (desktop / web / Android) + shared packages + voice crate |
+| [Wavvon-clients](https://github.com/Wavvon/Wavvon-clients) | `clients/` | All clients (desktop / web / Android) + shared packages + voice crate |
 | [Wavvon-discovery](https://github.com/Wavvon/Wavvon-discovery) | `discovery/` | Optional public hub directory |
 
 ## Documentation
