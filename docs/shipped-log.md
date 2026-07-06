@@ -6,6 +6,24 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Server v0.3.1 released — first working release pipeline since v0.2.0
+  (2026-07-06)**: `wavvon-hub-linux-x86_64`, `wavvon-hub-linux-aarch64`
+  (first successful aarch64 build ever), `wavvon-farm-linux-x86_64` +
+  Docker images published. Three pipeline bugs fixed to get there:
+  auto-tag dispatched release.yml without its required `tag` input
+  (422'd silently on every tag since v0.2.1 — tags pushed, nothing
+  built); OpenSSL (via webauthn-rs) was vendored only on Windows, so the
+  musl static and Docker builds had nothing to link (now vendored on all
+  targets, Docker builder gained perl+make); release.sh used a stale
+  `hub/Cargo.toml` pathspec and a git-cliff mode that wiped previous
+  releases' notes from CHANGELOG.md on every run. Also de-flaked the
+  four cross-hub DM delivery tests (poll instead of fixed sleeps) that
+  were failing CI on unrelated PRs, and the openapi coverage gate got
+  unbroken (script knew only the old `hub/` layout) + fed a spec that
+  documents all 228 routes. v0.3.0's tag/release exists but is empty —
+  its notes fold into v0.3.1. Dependabot PRs #10–#14 merged along the
+  way. Closes the "no release assets since v0.2.1" known issue.
+
 - **Public-facing cleanup after the Voxply→Wavvon rename (2026-07-06)**
   (docs `674cfd3`+assets, server `1c99dd8`, clients `3020ada`, discovery
   `037d403`): every `github.com/Wavvon/Wavvon` link now points at

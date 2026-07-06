@@ -174,13 +174,6 @@ surfaces, welcome banner, survey→roles, …). Still open:
   the fresh hub before seeding. Proper fix: teach demo-seed to redeem the
   first-boot owner invite. Also found: its `secret_key_hex` output fields
   are empty — only recovery phrases are usable from the creds file.
-- **No release assets since v0.2.1; last binaries carry the voxply- name** —
-  the `Build static binaries` job failed on every tag since v0.2.1 (v0.2.4's
-  run: aarch64 musl link failure in the pre-rename code). The workflow has
-  since moved aarch64 to cargo-zigbuild but no tag has exercised it — the
-  next release tag (v0.3.0, human-gated) validates the pipeline and finally
-  ships `wavvon-*` binaries. Server README points at the releases page
-  instead of a direct asset link until then.
 - **Desktop background choice doesn't persist across launches** — found
   2026-07-05 while porting video backgrounds to desktop (clients `73cdadf`):
   web persists the mode/source in localStorage, desktop threads React state
