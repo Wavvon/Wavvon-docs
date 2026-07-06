@@ -69,8 +69,10 @@ surfaces, welcome banner, survey→roles, …). Still open:
   create → pick a host from discovery → wizard
   ([hub-creation-wizard.md](docs/hub-creation-wizard.md) piece 3; needs farm
   lifecycle + template catalog).
-- [ ] **Multiple named custom themes per user** — design against
-  [custom-themes.md](docs/custom-themes.md).
+- [x] ~~**Multiple named custom themes per user**~~ — SHIPPED (clients
+  `afc07a8`): named theme store with apply/rename/duplicate/delete, legacy
+  single-skin migrated, gallery imports create new entries. (web;
+  desktop/android single-slot copies still to port.)
 - [ ] **AddHubModal has no i18n** (pre-existing, surfaced during the welcome
   banner wiring); several `hub.admin.overview.*` de/es values are still
   English placeholders.
