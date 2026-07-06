@@ -6,6 +6,26 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **v0.3.2 (clients + server) + pilot on latest (2026-07-06 evening)**:
+  nine web fixes from the owner's live pilot pass — /join/<code> invite
+  links parse in Add-hub; banner channels regained their image controls
+  (create URL/upload + settings editing; the desktop-only three-step
+  flow was never ported); channel-permissions rows at/above own rank
+  render read-only (even the owner 403'd on the Owner row's >= guard);
+  fixed-size tabbed settings modal + single-row footer + Apply label +
+  icon-placeholder cleanup; hub rename now syncs the sidebar (save hook
+  + /info self-heal, new renameSavedHub keeps remember_token);
+  hub-dropdown closes on Invite/Settings; emoji channel icons render
+  (ChannelIcon only knew svg registry ids). Server v0.3.2: banner
+  source-switch atomically clears the other column (PATCH had no
+  explicit-NULL; stale banner_url shadowed new uploads). Release
+  hygiene: clients release.sh syncs all app manifest versions; server
+  release.sh regenerates Cargo.lock. **Pilot** switched to
+  `hub:latest` (owner call: alpha, surprise-upgrades fine) and pulled
+  v0.3.2 — data intact, VideogameZone name intact, fresh web bundle
+  served. Android APK still blocked on audiopus cross-compile (known
+  issue).
+
 - **Clients v0.3.0/v0.3.1 released + pilot hub fresh-installed on v0.3.1
   (2026-07-06)**: first clients release since v0.2.6 and since the rename.
   v0.3.0 shipped desktop (Windows exe, macOS universal dmg — first CI
