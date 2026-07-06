@@ -6,6 +6,21 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Web UX bug batch (2026-07-06)** (clients `479af88`): four fixes from
+  the owner's manual pass. **Message right-click menu** — a message row
+  now opens a context menu with message actions (reply, copy text, copy
+  link, pin, edit, delete, report) plus author actions (profile, copy
+  key, admin mute/kick/ban); the author name/avatar still opens the full
+  user menu with role management. **Resizable channel sidebar** —
+  drag-handle on the right edge (220–480px, persisted, double-click
+  resets), and the voice-controls footer wraps instead of overflowing.
+  **Floating camera window** — video moved out of the channel header
+  into an app-level picture-in-picture window (draggable, resizable,
+  position/size persisted) that follows the voice session rather than
+  the selected channel. **Header cleanup** — the "Copy channel link"
+  header button removed; the action lives in the channel's right-click
+  menu instead.
+
 - **Backlog sweep, 2026-07-06 (loop session)** — cleared the buildable
   backlog: **invite-first defaults + role-granting invites** (hub `10f3e2d`,
   incl. one-time first-boot owner invite) and **is_hub lobby exemption**
