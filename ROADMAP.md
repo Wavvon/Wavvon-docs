@@ -65,10 +65,19 @@ surfaces, welcome banner, survey→roles, …). Still open:
 - [ ] **Create-anything from the channel right-click menu** — the ctx menu
   creates only channels/categories; events (and other creatables) should be
   reachable there too.
-- [ ] **Create-hub-via-discovery from the + button** — create-vs-join fork;
-  create → pick a host from discovery → wizard
-  ([hub-creation-wizard.md](docs/hub-creation-wizard.md) piece 3; needs farm
-  lifecycle + template catalog).
+- [ ] **Create-hub-via-discovery from the + button** — DESIGNED
+  ([hub-creation-wizard.md §4](docs/hub-creation-wizard.md#4-client-entry--create-a-hub-from-the--button),
+  [decisions.md](docs/decisions.md)). `+` gains a Join/Create fork; Create
+  is a two-exit router (client can't spawn a server). **Buildable next
+  slice = self-host handoff**: fork UI + a panel that opens
+  `discovery.wavvon.app/new` or shows the `wavvon-hub setup` one-liner +
+  an owner-invite paste field that delegates to the existing invite-redeem
+  path. UI-only over shipped primitives (invite-first defaults, first-boot
+  owner invite, role-granting invites) — **no new farm/hub endpoint**;
+  Wavvon-web first. **Managed/farm exit deferred** — needs
+  `POST /farm/hubs` provisioning + auto-spawn lifecycle
+  (`farm/src/hub_manager.rs` + `agent`), see
+  [farm-impl.md §C](docs/farm-impl.md#c-user-facing-hub-creation-flow).
 - [x] ~~**Multiple named custom themes per user**~~ — SHIPPED (clients
   `afc07a8`): named theme store with apply/rename/duplicate/delete, legacy
   single-skin migrated, gallery imports create new entries. (web;

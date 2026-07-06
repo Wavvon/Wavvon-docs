@@ -259,6 +259,133 @@ path and the CLI wizard is a stretch goal (deferred below).
 
 ---
 
+## 4. Client entry — "Create a hub" from the `+` button
+
+Pieces 1-3 give an operator a zero-to-live path *on the web*. This piece
+wires that path to the client so a user who is already in the app can
+start it from the hub-list `+` button, which today only **joins** an
+existing hub (`AddHubModal`, opened from the hub-list area of `App.tsx`
+in Wavvon-web — the current delivery target; the same change ports to
+Wavvon-desktop/Android later, and the modal lives in `packages/ui`).
+
+**Decision**: the `+` button opens a two-choice fork — **Join a hub**
+(today's `AddHubModal`, unchanged) and **Create a hub** (new). "Create"
+does *not* pretend the client can stand up a server. It presents the two
+honest sub-paths and, whichever the user takes, lands them back in-client
+as the **owner** by redeeming the hub's first-boot owner invite.
+
+### The honest constraint
+
+A chat client cannot spawn a hub process. Creation is always an act on a
+host: either a machine the user controls (self-host) or a farm that
+provisions on their behalf (managed). The client's job is to *route* the
+user to the right host and then *re-absorb* the resulting hub as an owned
+one. So "Create a hub" is a router with two exits, not a server-spawner.
+
+### Sub-path (a) — Self-host (buildable now)
+
+For users who will run their own server. The Create fork shows two
+equivalent handoffs and one in-client finish:
+
+1. **Web wizard handoff** — a "Set it up on the web" action opens
+   `discovery.wavvon.app/new` (Section 3) in the system browser. The
+   operator picks a template, customises, and takes the **Docker** or
+   **Binary** deploy path, which emits a pre-filled run command carrying
+   `WAVVON_BOOTSTRAP_TOKEN`. They run it on their own box.
+2. **CLI one-liner handoff** — for command-line operators, the fork shows
+   the offline `wavvon-hub setup` one-liner (the interactive install
+   wizard, Wavvon-server `hub/`; being built — ROADMAP flow-test
+   findings). It asks name/preset/domain-or-LAN/TLS, emits compose + env,
+   starts the hub, and **prints the one-time owner invite link + QR**
+   (the invite-first first-boot behaviour that already shipped: new hubs
+   default `invite_only=true`, and first boot mints a one-time
+   owner-granting invite as a `wavvon://` + `https` twin that `doctor`
+   also prints).
+3. **Redeem the owner invite in-client** — both handoffs end the same
+   way: the operator has an owner invite link. The Create fork's final
+   step is a **"Paste your owner invite"** field. Pasting the
+   `wavvon://<host>/i/<serial>/<code>` invite runs the *existing* join
+   path; because the invite carries `grant_role_id` for the owner role
+   (the first-boot exception to the admin-role single-use guard), the
+   user lands in their new hub already holding ownership. No new join
+   mechanism — this reuses the shipped role-granting-invite redemption.
+
+**This is the first slice.** It needs **no new farm capability and no new
+hub endpoint** — only client UI: the fork, the two handoff panels
+(one opens a URL, one shows copyable text), and the owner-invite paste
+field that delegates to the existing invite-redeem flow. The server side
+(templates, bootstrap token, first-boot owner invite, `wavvon-hub setup`)
+is already shipped or in flight independently.
+
+### Sub-path (b) — Managed / farm (deferred — needs farm lifecycle)
+
+For users who don't want to run a server. The Create fork lists farms
+that advertise public hosting, the user picks one, the farm provisions a
+hub and returns its address plus the owner claim. This is the in-client
+create flow already designed in
+[farm-impl.md](farm-impl.md#c-user-facing-hub-creation-flow) (Phase 3 §C:
+farm picker → creation form → `POST /farm/hubs` → auto-spawn → owner-role
+assignment from the spawn payload). The client UI is the same fork; the
+"Create on a farm" exit renders the farm picker instead of the self-host
+handoff.
+
+**Why deferred**: `POST /farm/hubs` provisioning depends on farm
+**lifecycle** — spawn/monitor/stop of hub processes
+(`farm/src/hub_manager.rs` + the `agent` crate, Wavvon-server), which is
+partial. Serial routing shipped (a request can *reach* a farm-hosted hub)
+but nothing yet *creates* one on demand. Until lifecycle lands, the farm
+picker would surface farms it cannot actually provision on, so this exit
+stays dark. See "What the managed path needs" below.
+
+### The fork is the whole shippable client change
+
+The `+` popover gains one branch. Everything under "Create → self-host"
+is UI over already-shipped primitives; everything under "Create → farm"
+is gated behind a capability probe (`GET /farm/info` advertising
+`creation_policy = open`) and simply isn't rendered while no reachable
+farm can provision — no dead option ships, matching the Phase 3 §C.1 rule.
+
+### What the managed path additionally requires from the farm
+
+Not built now; captured so the deferred slice has a shape:
+
+- **`POST /farm/hubs` create-hub-for-user** — designed in
+  [farm-impl.md](farm-impl.md#post-farmhubs--hub-creation) (Phase 2/3).
+  The wizard is already specced as a caller; the client fork becomes a
+  second caller with the same body (name, description, visibility, icon).
+- **Auto-spawn lifecycle** — the farm must actually start the hub process
+  and wait for its `/info` to go healthy (Phase 3 §C.4, 10s timeout,
+  tombstone-on-failure). This is the missing piece: `hub_manager.rs`
+  spawn/monitor and, for multi-node farms, the `agent` worker.
+- **Per-creator quota** — `max_hubs_per_user` / `max_hubs_total` +
+  `GET /farm/me/hub-quota` so the picker only shows farms the user can
+  create on (Phase 3 §A, §C.2). Buildable alongside `POST /farm/hubs`.
+- **Owner-claim handshake** — the farm passes `owner_pubkey` to the
+  spawned hub via its startup/first-admin bootstrap path so ownership is
+  server-assigned, not client-asserted (Phase 3 §C.4). For farm-spawned
+  hubs this replaces the self-host owner-invite paste: the returned
+  session already owns the hub.
+
+### Alternative considered — one unified in-client create form for both
+
+Route both self-host and managed through a single form that asks
+template + name + customisation, then "picks" a host. Rejected: it hides
+the fundamental split (the client can spawn nothing itself) behind a
+form that would dead-end for self-hosters, who must leave the app to run
+a command. Being explicit about the two exits is more honest and lets the
+buildable self-host exit ship now without waiting on farm lifecycle.
+
+### Alternative considered — embed the whole wizard in the client
+
+Reimplement template browse + customise inside the client instead of
+opening `discovery.wavvon.app/new`. Rejected for the same reason Section
+3 keeps the wizard on the web: the Docker/binary command generation and
+managed-farm signup already live there, and duplicating template browsing
+in-client is maintenance for no gain. The client opens the web wizard and
+re-absorbs the result via the owner invite.
+
+---
+
 ## Implementation summary
 
 What each repo owns. Engineers should not drift across this boundary.
@@ -287,10 +414,14 @@ What each repo owns. Engineers should not drift across this boundary.
   reuses the Phase 3 spawn-payload path (`owner_pubkey`, name, icon) — no
   new farm route needed for the managed path.
 
-**Clients** (Wavvon-desktop, Wavvon-web, Wavvon-android): no changes
-required for this design — the in-app "Create a hub" flow is already
-covered in [farm-impl.md](farm-impl.md). The wizard is a separate web
-surface.
+**Clients** (Wavvon-web first, then Wavvon-desktop/Android): the `+`
+button gains a Join/Create fork (Section 4). The buildable slice is
+UI-only over shipped primitives — the fork, a self-host handoff panel
+(opens `discovery.wavvon.app/new` or shows the `wavvon-hub setup`
+one-liner), and an owner-invite paste field that delegates to the
+existing invite-redeem path. The managed "Create on a farm" exit reuses
+[farm-impl.md](farm-impl.md#c-user-facing-hub-creation-flow) Phase 3 §C
+and stays gated until farm lifecycle lands.
 
 ---
 

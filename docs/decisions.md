@@ -6,6 +6,52 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## "Create a hub" from the `+` button is a two-exit router, not a spawner
+
+**Decision** (2026-07-06): the hub-list `+` button gets a Join/Create
+fork. "Create a hub" does not pretend the client can stand up a server —
+it routes to one of two honest exits and re-absorbs the result as an
+owned hub. **(a) Self-host**: hand off to the web wizard
+(`discovery.wavvon.app/new`) or the offline `wavvon-hub setup` one-liner;
+the operator runs the server, then pastes the shipped first-boot
+owner-granting invite back into the client to land as owner. **(b)
+Managed/farm**: pick a farm advertising public hosting; the farm
+provisions a hub and returns its address plus a server-assigned owner
+claim. The buildable **first slice is (a)** — UI-only over already-shipped
+primitives (invite-first defaults, one-time owner invite, role-granting
+invite redemption, `wavvon-hub setup`), needing **no new farm capability
+and no new hub endpoint**. (b) is deferred behind farm lifecycle. Full
+design: [hub-creation-wizard.md](hub-creation-wizard.md#4-client-entry--create-a-hub-from-the--button).
+
+**Alternatives considered**:
+
+- **One unified in-client create form** that asks template + name and
+  then "picks" a host — rejected: it hides the fact the client can spawn
+  nothing itself, and would dead-end for self-hosters who must leave the
+  app to run a command. The explicit two-exit fork is honest and lets the
+  self-host exit ship now.
+- **Embed the whole template wizard in the client** — rejected for the
+  same reason Section 3 keeps the wizard on the web: Docker/binary command
+  generation and managed-farm signup already live there; duplicating
+  template browsing in-client is maintenance for no gain.
+- **Ship Create as farm-only** (skip self-host, wait for lifecycle) —
+  rejected: it blocks the whole feature on farm lifecycle work when the
+  self-host path is fully unblocked today.
+
+**Tradeoff**: the self-host exit sends the user out of the app to run a
+command and come back with an invite — more steps than a one-click
+managed create. Accepted because it is the only honest thing a client can
+offer without a provisioning backend, and it ships now instead of waiting
+on farm lifecycle (`farm/src/hub_manager.rs` + the `agent` crate,
+Wavvon-server).
+
+**Outcome**: designed; self-host slice queued as the buildable next step
+(ROADMAP #13). Client change is the `+` fork + self-host handoff panel +
+owner-invite paste (delegating to the existing invite-redeem path), in
+Wavvon-web first. Managed path deferred to Phase 3 §C
+([farm-impl.md](farm-impl.md#c-user-facing-hub-creation-flow)) once
+`POST /farm/hubs` provisioning + auto-spawn lifecycle land.
+
 ## Farm reverse-proxy routes by hub serial, not opaque hub_id
 
 **Decision** (2026-07-05): the farm's shared-domain reverse proxy keys
