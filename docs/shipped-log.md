@@ -6,6 +6,21 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Public-facing cleanup after the Voxply→Wavvon rename (2026-07-06)**
+  (docs `674cfd3`+assets, server `1c99dd8`, clients `3020ada`, discovery
+  `037d403`): every `github.com/Wavvon/Wavvon` link now points at
+  `Wavvon-docs` and `Wavvon-client` at `Wavvon-clients` — the renames had
+  left 404s in all four repos' READMEs plus server CI's spec checkout.
+  Server README/compose/hub.toml.example caught up with reality:
+  PostgreSQL (not SQLite), `WAVVON_DATABASE_URL` documented, compose
+  gained the postgres:16 sidecar, crate table matches the workspace.
+  Client READMEs no longer claim voice is desktop-only. **README assets
+  regenerated** — the old screenshots/join-flow GIF still showed "Voxply
+  HQ"; recaptured against a demo-seeded hub as "Wavvon HQ" with the
+  current UI, via a new committed capture harness
+  (`apps/web/e2e/capture/`). Release-pipeline failure diagnosed →
+  ROADMAP known issue (needs the next tag).
+
 - **Web UX bug batch (2026-07-06)** (clients `479af88`): four fixes from
   the owner's manual pass. **Message right-click menu** — a message row
   now opens a context menu with message actions (reply, copy text, copy
