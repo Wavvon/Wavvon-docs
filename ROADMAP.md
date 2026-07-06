@@ -51,10 +51,11 @@ fixed, its entry moves to the shipped log.
   optional grant_role_id; priority guard + forced single-use/expiry for
   admin roles; first-boot owner invite is the documented exception. Applies
   on the /auth/verify path (the /join/:code path is a small follow-on).
-- [ ] **`wavvon-hub setup` interactive install wizard** — for non-Docker-pro
-  operators: asks name/preset/domain-or-LAN/TLS, emits compose + .env
-  (Postgres included), starts, prints the first invite link + QR. Offline
-  sibling of the discovery wizard (piece 3).
+- [x] ~~**`wavvon-hub setup` interactive install wizard**~~ — SHIPPED (hub
+  `89119a2`): interactive-or-scripted; emits docker-compose.yml (+ Postgres
+  sidecar) + .env with a generated password, public/lan modes, optional
+  --start; points the operator at the first-boot owner invite in the logs.
+  QR deferred (code doesn't exist until first boot).
 
 ## 🔍 Manual-test feedback batch (2026-07-05, owner pass on v0.3.0)
 

@@ -6,6 +6,18 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Backlog sweep, 2026-07-06 (loop session)** — cleared the buildable
+  backlog: **invite-first defaults + role-granting invites** (hub `10f3e2d`,
+  incl. one-time first-boot owner invite) and **is_hub lobby exemption**
+  (`8dc6739`); **`wavvon-hub setup` install wizard** (`89119a2`); web
+  **lobby UX + background PoW** (clients `c1f95d0`, first JS PoW in
+  `packages/core`); **generated offline avatar picker + profile avatar
+  editing** (`4c93c9d`); **multiple named custom themes** (`afc07a8`);
+  **Settings › profile dedup + Voice&Video restructure + 2-col layout**
+  (`b270a3d`). **create-hub-via-discovery** designed (`bc798da`), UI slice
+  built separately. Human-gated remainder: pilot upgrade, v0.3.0 release
+  tag, git remotes.
+
 - **Lobby soft-landing, server half (2026-07-06)** (hub `bded78c`;
   [`lobby-bot-survey.md`](lobby-bot-survey.md) Feature 1). `min_security_level`
   used to hard-403 every sub-level join (even the owner's own first join) —
