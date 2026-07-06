@@ -42,10 +42,15 @@ fixed, its entry moves to the shipped log.
   first-user exempt; preset gate restored. Remaining (task, not blocker):
   **web lobby UX** (background PoW + auto-promote) and **is_hub peer
   exemption** from the gate.
-- [ ] **Invite-first joining** — new hubs default `invite_only=true`; first
-  boot surfaces the owner's first invite link (banner, doctor, admin UI).
-  Keep the serial in links (identity pin / anti-MITM); add the
-  `https://host/i/…` web twin wherever links render.
+- [x] ~~**Invite-first joining**~~ — SHIPPED (hub `10f3e2d`): new hubs default
+  invite_only=true (templates opt out); first boot mints + logs a one-time
+  owner-granting invite (wavvon:// + https twin), doctor prints it. Web: an
+  admin surface for the owner invite / role-granting invite creation is a
+  small frontend follow-on.
+- [x] ~~**Role-granting invites**~~ — SHIPPED (hub `10f3e2d`): invites carry an
+  optional grant_role_id; priority guard + forced single-use/expiry for
+  admin roles; first-boot owner invite is the documented exception. Applies
+  on the /auth/verify path (the /join/:code path is a small follow-on).
 - [ ] **`wavvon-hub setup` interactive install wizard** — for non-Docker-pro
   operators: asks name/preset/domain-or-LAN/TLS, emits compose + .env
   (Postgres included), starts, prints the first invite link + QR. Offline
