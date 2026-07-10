@@ -19,9 +19,9 @@ of one thing:
 
 1. **Block** — strongest. "I never want to see this person anywhere."
 2. **Ignore / hide** — softer, chat-only, no enforcement.
-3. **Quiet hours / DND** — time-based notification downgrade, no
-   per-person targeting. Picks up the deferred item from the
-   notifications decision in [decisions.md](decisions.md).
+3. **Quiet hours / DND** — status-driven notification downgrade
+   (schedule deferred), no per-person targeting. Picks up the deferred
+   item from the notifications decision in [decisions.md](decisions.md).
 
 ## Where the state lives
 
@@ -44,7 +44,8 @@ PrefsBlob {
   ...existing fields...
   blocks:  Vec<BlockEntry>,    // { pubkey, since }
   ignores: Vec<IgnoreEntry>,   // { pubkey, since }
-  dnd:     DndSettings,        // schedule + quick-toggle state
+  dnd:     DndSchedule,        // future quiet-hours window only — the
+                               // on/off state is presence status, not prefs
 }
 ```
 
@@ -199,16 +200,22 @@ does **not** change the stored per-channel `NotifyMode`; it's applied at
 the moment the client decides whether to fire a notification/pin. When
 DND ends, the per-channel modes are unchanged and behave as before.
 
-### Two ways to engage
+### How it engages *(revised 2026-07-10 — see decisions.md)*
 
-- **Quick-toggle** — a Do Not Disturb switch in the **sidebar footer**,
-  next to the existing self-mute/self-deafen controls. One click on/off,
-  no schedule. This is the common case ("I'm in a meeting, shut up for a
-  bit").
-- **Schedule** — an optional active window (e.g. quiet 22:00–08:00
-  local) configured in Settings. While inside the window, DND is on
-  automatically. The quick-toggle can override the schedule in either
-  direction until the next window boundary.
+DND rides on the **presence status** the user already sets in the
+sidebar-footer status picker (Online / Away / Do Not Disturb + custom
+text, shipped 2026-07-05). Picking **Do Not Disturb** does two things at
+once: it shows the DND badge to other members (hub-synced via
+`set_status`/`member_status`) and it arms the local notification gate.
+There is **no separate footer quick-toggle button** — an earlier draft
+of this section specced one next to self-mute/deafen, but a second
+control duplicating a state the status picker already owns was rejected
+(one fixed home per control).
+
+- **Schedule** — *deferred.* An optional active window (e.g. quiet
+  22:00–08:00 local) configured in Settings would auto-set the status to
+  DND while inside the window; a manual status change overrides it until
+  the next window boundary. Not built yet.
 
 ### Interaction with the three-mode system
 
@@ -223,12 +230,16 @@ from a DND that isn't "airplane mode."
 
 ### Storage and scope
 
-`DndSettings { enabled: bool, schedule: Option<{ start, end, tz }> }` in
-the prefs blob (replicated, so phone and desktop agree). Multi-device
-note: DND is a *display/notify* preference; with cross-device chat push
-deferred ([multi-device.md](multi-device.md)), each device applies DND
-locally from the shared setting. No server involvement — DND is purely a
-client notification-gate transform.
+The DND **on/off state is the presence status itself** — stored and
+synced wherever presence already is (community-hub-side via
+`set_status`, persisted across reconnects; sent to the active hub's
+session today). The notification gate is a pure client transform reading
+that status; no new storage. Only the **future schedule** would live in
+the prefs blob (`DndSchedule { start, end, tz }`, replicated so phone
+and desktop agree). Known limitation carried over from presence itself:
+status is set per hub, so the DND badge shows on the hub where it was
+set — the local notification gate, though, reads own status once and
+quiets everything.
 
 ## Route changes
 
@@ -279,11 +290,13 @@ content).
 
 ### DND surfaces
 
-- Sidebar-footer DND quick-toggle (next to self-mute/deafen).
+- The **status picker** in the sidebar footer is the only DND control —
+  no dedicated toggle button (revised 2026-07-10, see decisions.md).
 - Settings -> Notifications -> a "Quiet hours" subsection with the
-  optional schedule (start/end time pickers, timezone = local).
-- When DND is active, the footer toggle shows an active state and a
-  tooltip ("Quiet hours active — notifications downgraded").
+  optional schedule (start/end time pickers, timezone = local) —
+  *deferred*; it would auto-set the status.
+- While status is DND, the picker itself shows the active state; the
+  gate suppresses mention pings and system notifications.
 
 ## Interaction with federation
 
@@ -335,8 +348,11 @@ row, and the DM-block set is the server-enforced piece behind it.
    voice local-mute, notification gating, and the Settings management
    list. Reads/writes today's `blocked_users.json` plus a sibling
    ignore/DND store. No server change, works now, no home hub needed.
-2. **Phase 2 — DND quick-toggle + schedule.** Pure client; the
-   downgrade transform in the notification gate. Independent of 1.
+2. **Phase 2 — DND notification gate on presence status.** Pure client;
+   the downgrade transform reads the existing status picker. Independent
+   of 1. *Web shipped 2026-07-10* (mention ping + system notification
+   suppressed while own status is `dnd`); desktop/Android pending with
+   the rest of presence parity. Schedule deferred.
 3. **Phase 3 — move to the prefs blob.** When home hubs land
    ([home-hub.md](home-hub.md)), `blocks`/`ignores`/`dnd` move into the
    encrypted blob and replicate. Local file becomes the legacy fallback.

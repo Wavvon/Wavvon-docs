@@ -6,6 +6,18 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Web: DND status now gates notifications + components/ reorg
+  (2026-07-10)**: selecting **Do Not Disturb** in the status picker now
+  actually suppresses mention pings and system notifications (unreads
+  still accumulate) — previously visual-only on every client. Decision:
+  DND rides on presence status, no dedicated toggle
+  ([decisions.md](decisions.md)); the never-mounted `DndToggle` /
+  `DndSettingsSection` dead code and `DndSettings` types were deleted.
+  Quiet-hours schedule stays deferred. Desktop/Android gates still
+  pending (with presence parity). Also: the ~100 flat files in web's
+  `src/components/` were reorganized into 13 themed subfolders (clients
+  `b149281`), imports normalized to `@components/<group>/<Name>`.
+
 - **v0.3.2 (clients + server) + pilot on latest (2026-07-06 evening)**:
   nine web fixes from the owner's live pilot pass — /join/<code> invite
   links parse in Add-hub; banner channels regained their image controls

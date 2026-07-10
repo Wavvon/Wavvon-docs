@@ -6,6 +6,37 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Do Not Disturb engages via presence status, not a dedicated toggle
+
+**Decision** (2026-07-10): DND has no control of its own. The presence
+status picker in the sidebar footer (Online / Away / Do Not Disturb,
+shipped 2026-07-05) is the single surface — selecting **Do Not Disturb**
+both broadcasts the badge to other members and arms the local
+notification gate (mention pings and system notifications suppressed;
+unread counters still accumulate). The gate is a read-time client
+transform per [block-mute-ignore.md](block-mute-ignore.md) §3; no new
+storage, since the status is already hub-synced and persisted. The
+never-mounted `DndToggle` / `DndSettingsSection` components and the
+`DndSettings` prefs shape from the earlier draft were deleted from
+Wavvon-web.
+
+**Alternatives considered**:
+
+- **Sidebar-footer quick-toggle next to self-mute/deafen** (the original
+  block-mute-ignore.md §3 design; a `DndToggle` component was even built
+  but never wired) — rejected: it duplicates a state the status picker
+  already owns, giving one fact two homes and two controls that can
+  disagree visually. One fixed home per control.
+- **DND enabled flag in the encrypted prefs blob** — rejected for the
+  on/off state: presence is already synced and persisted hub-side;
+  mirroring it into the prefs blob invites drift. The blob remains the
+  right home for the *future* quiet-hours schedule, which is a private
+  preference, not a broadcast state.
+
+**Superseded**: the "quick-toggle" half of block-mute-ignore.md §3
+(section revised in place, 2026-07-10). The one-step-downgrade transform
+and the deferred schedule are unchanged.
+
 ## "Create a hub" from the `+` button is a two-exit router, not a spawner
 
 **Decision** (2026-07-06): the hub-list `+` button gets a Join/Create
