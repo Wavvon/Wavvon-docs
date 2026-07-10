@@ -180,6 +180,11 @@ surfaces, welcome banner, survey→roles, …). Still open:
   the fresh hub before seeding. Proper fix: teach demo-seed to redeem the
   first-boot owner invite. Also found: its `secret_key_hex` output fields
   are empty — only recovery phrases are usable from the creds file.
+- **Hub sidebar rail — desktop parity** — found 2026-07-11 comparing the
+  running apps: web's leftmost `HubSidebar` rail (hub icons with unread/
+  ping badges, DMs button, `+` add/create menu, discover) has no desktop
+  equivalent; desktop switches hubs via a header dropdown only. See
+  [`client-parity.md`](docs/client-parity.md) §11.
 - **Role assignment — client parity** (web shipped 2026-07-04; see
   [`shipped-log.md`](docs/shipped-log.md)). Remaining, tracked in
   [`client-parity.md`](docs/client-parity.md):

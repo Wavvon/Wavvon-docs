@@ -58,17 +58,20 @@ Everything here is **portable** (no native API) unless marked native-only.
 | Channel bans | ✅ (2026-07-04) | ✅ | ? |
 | Channel appearance (color/icon) | ✅ (2026-07-04) | ✅ | ? |
 | Kick / Ban / Mute — right-click menu | ✅ | ✅ | ❌ |
-| Presence status (away / DND / custom) | ❌ | ❌ | ❌ |
+| Presence status (away / DND / custom) | ✅ (2026-07-05) | ✅ (2026-07-11) | ❌ |
+| Hub sidebar rail (hub icons + DMs + `+` menu) | ✅ | ❌ **TODO** | ? |
 | Banner-channel rename/delete from sidebar | ❌ | ? | ? |
 
 ### Where web is ahead of desktop (parity is bidirectional)
 
 Web should not regress these; desktop/android should catch up:
-events with role slots + reminders, soundboard, full encrypted
-data-export archive, channel permission-overwrite tab, role categories +
-per-role color/icon, DND / quiet-hours, the moderation suite (content
-reports, automod webhook, outgoing webhooks, federated ban lists), link
-previews, and passkeys + hub trusted-devices.
+the hub sidebar rail (see item 11), events with role slots + reminders,
+soundboard, full encrypted data-export archive, channel
+permission-overwrite tab, role categories + per-role color/icon, the
+quiet-hours schedule (deferred everywhere; DND itself is on web +
+desktop now), the moderation suite (content reports, automod webhook,
+outgoing webhooks, federated ban lists), link previews, and passkeys +
+hub trusted-devices.
 
 ### Present under a different name (NOT gaps)
 
@@ -117,9 +120,13 @@ exist on web.
 
 ### 3. Presence status
 
-- No client has an away/DND/custom-status picker; presence is a binary
-  online/offline dot (`member_online`/`member_offline`). If we want status,
-  it's a new cross-client feature (server event + picker in all three).
+- **Web — DONE (2026-07-05, gates + global broadcast 2026-07-10).**
+  **Desktop — DONE (2026-07-11,** clients `81de52c`): hub-synced picker
+  with custom text, DND notification gating, global broadcast +
+  re-apply on reconnect, member-list status dots.
+- **Android — TODO.** No picker, no `member_status` handling, no DND
+  gating. It wraps the web platform adapter, so much of web's plumbing
+  may apply; audit first.
 - **Fixed 2026-07-04:** newly-joined members now appear in an already-loaded
   web client's member list live (`onMemberOnline` refetches `/users` for an
   unknown pubkey) — previously they only showed after a reload.
@@ -214,6 +221,23 @@ exist on web.
 - **My certifications viewer** — `MyCertificationsSection` in Settings →
   Account, read-only fan-out over `GET /identity/{pubkey}/certs`.
   `e2e/live/19`.
+
+### 11. Hub sidebar rail (desktop)
+
+- **Web has `components/layout/HubSidebar.tsx`** — the leftmost vertical
+  rail: drag-sortable hub icons with unread/ping badges, a DMs button,
+  the `+` add/create-hub menu, discover, and farm settings. Present on
+  web since at least the 2026-06-13 monorepo normalization.
+- **Desktop has no rail at all** — hub switching is a dropdown at the
+  top of the channel sidebar (`ChannelSidebar.tsx` `hub-header` +
+  chevron), found comparing the two apps side by side 2026-07-11. The
+  rail's CSS lives in the shared `packages/ui` stylesheet, and desktop's
+  `App.tsx` already holds the state the rail needs (`hubs`,
+  `unreadByHub`, `pingByHub`, `hubNotifyMode`), so the port is mostly
+  component + wiring work; decide whether the dropdown stays as a
+  compact-width fallback or goes away.
+- **Android** — uses its own mobile shell; audit what hub switching
+  looks like there before assuming a gap.
 
 ---
 
