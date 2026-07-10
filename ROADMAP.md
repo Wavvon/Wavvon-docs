@@ -185,13 +185,6 @@ surfaces, welcome banner, survey→roles, …). Still open:
   web persists the mode/source in localStorage, desktop threads React state
   only, so blur/image/video resets on every launch. Port web's persistence
   (and its Settings live-preview) to desktop.
-- **Desktop camera background effects silently broken** — found 2026-07-10
-  fixing the same bugs on web (clients `9426c20`): desktop's
-  `backgroundProcessor.ts` copy still resolves `mod.SelfieSegmentation`
-  (always undefined — the MediaPipe package only registers a global) and
-  treats the segmentation mask as ImageData (it's a canvas/bitmap), so every
-  effect falls back to raw video. Port web's fix (globalThis constructor,
-  drawImage + source-in compositing, serialized send, eager initialize).
 - **Role assignment — client parity** (web shipped 2026-07-04; see
   [`shipped-log.md`](docs/shipped-log.md)). Remaining, tracked in
   [`client-parity.md`](docs/client-parity.md):

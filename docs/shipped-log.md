@@ -6,6 +6,18 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Desktop: camera background effects fix ported from web (2026-07-11)**:
+  desktop's `backgroundProcessor.ts` copy had the same two bugs fixed on
+  web the day before (globalThis constructor resolution, mask consumed as
+  ImageData instead of composited as a canvas) — ported the full web fix
+  (drawImage/source-in cutout, serialized send(), eager initialize(),
+  `activeMode`) and surfaced the active/unavailable status line in the
+  Settings camera-background section via a new `backgroundActive` value on
+  `useVideo` (reuses the shared `settings.camera.bg.*` keys). Unit tests
+  extended with a segmentation-failure fallback case (clients `9ab943e`).
+  Live webcam pass still pending — desktop has no fake-camera e2e harness
+  like web's.
+
 - **Web: camera background effects fixed (2026-07-10)**: blur/image/video
   backgrounds never actually engaged — two bugs in `backgroundProcessor.ts`
   made every mode silently fall back to raw video: the MediaPipe package
