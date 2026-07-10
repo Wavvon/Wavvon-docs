@@ -22,7 +22,13 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   Quiet-hours schedule stays deferred. Desktop/Android gates still
   pending (with presence parity). Also: the ~100 flat files in web's
   `src/components/` were reorganized into 13 themed subfolders (clients
-  `b149281`), imports normalized to `@components/<group>/<Name>`.
+  `b149281`), imports normalized to `@components/<group>/<Name>`; and
+  SettingsPage.tsx (724 lines) was split into per-tab components under
+  `settings/tabs/` + extracted Passkey/TrustedDevices sections (clients
+  `91e4b80`), with a new hubless e2e spec asserting every settings tab
+  renders — written to chase a reported "Camera tab not visible", which
+  turned out to be real only on released builds: the tab shipped to
+  develop 2026-07-07 (`1b03e8a`), after v0.3.2 was cut.
 
 - **v0.3.2 (clients + server) + pilot on latest (2026-07-06 evening)**:
   nine web fixes from the owner's live pilot pass — /join/<code> invite
