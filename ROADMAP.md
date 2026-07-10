@@ -180,11 +180,6 @@ surfaces, welcome banner, survey→roles, …). Still open:
   the fresh hub before seeding. Proper fix: teach demo-seed to redeem the
   first-boot owner invite. Also found: its `secret_key_hex` output fields
   are empty — only recovery phrases are usable from the creds file.
-- **Desktop background choice doesn't persist across launches** — found
-  2026-07-05 while porting video backgrounds to desktop (clients `73cdadf`):
-  web persists the mode/source in localStorage, desktop threads React state
-  only, so blur/image/video resets on every launch. Port web's persistence
-  (and its Settings live-preview) to desktop.
 - **Role assignment — client parity** (web shipped 2026-07-04; see
   [`shipped-log.md`](docs/shipped-log.md)). Remaining, tracked in
   [`client-parity.md`](docs/client-parity.md):
@@ -192,17 +187,12 @@ surfaces, welcome banner, survey→roles, …). Still open:
   **desktop** has one to align with web's filtering. (Web has a full
   create / edit-permissions / delete-role UI — Roles admin tab, covered by
   `e2e/live/13`; **android** still lacks it.)
-- **Presence status — desktop/Android parity** — web shipped 2026-07-05
-  (hub-synced away/DND/custom over `set_status`/`member_status`, see
-  [`shipped-log.md`](docs/shipped-log.md)). Desktop already has a local-only
-  status picker in its `ChannelSidebar.tsx` — wire it to the hub sync;
-  Android has none. Web 2026-07-10: DND notification gating (mention
-  pings + system notifications suppressed while status is DND), presence
-  made **global across hubs** (broadcast to all sessions + re-apply on
-  reconnect; was active-hub-only), and hub-mute (`silent` notify mode)
-  now really suppresses pings ([decisions.md](docs/decisions.md), two
-  entries). Desktop/Android still visual-only and active-hub-only — port
-  the gates + global broadcast with the parity work.
+- **Presence status — Android parity** — web shipped 2026-07-05, DND
+  gating + global broadcast 2026-07-10, and the full set ported to
+  desktop 2026-07-11 (clients `81de52c`, see
+  [`shipped-log.md`](docs/shipped-log.md)). Android still has none of
+  it: no status picker, no `member_status` handling in its Tauri shell,
+  no DND notification gating.
 - **Discord importer still needs a live run** — the 2026-07-04 web live
   pass (see [`shipped-log.md`](docs/shipped-log.md)) covered everything
   else; the importer (`export` with a real bot token, `apply` against a

@@ -6,6 +6,41 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Desktop: hub-synced presence with DND gating + global broadcast
+  (2026-07-11)**: ported web's full presence set (web `5af06ca`,
+  `e137c87`, `ac8e251`) — the local-only, purely visual status picker in
+  `ChannelSidebar` now syncs away/DND/custom text over
+  `set_status`/`member_status` (picker gains the custom-text input,
+  drops the meaningless "offline" option). Presence is device-global:
+  broadcast to every connected hub session (new `send_all_hubs_ws_raw`
+  Tauri command) and re-applied per hub on (re)connect
+  (`send_hub_ws_raw_to`). The Rust WS layer learns `member_status`
+  (previously dropped as `Other`); the member list renders away/DND dots
+  + custom text; `/users` fields threaded through `UserInfo`. DND now
+  actually gates mention pings and system notifications (unreads still
+  accumulate); desktop's `silent` notify mode already gated. The inert
+  `dndActive`/`save_dnd_settings` plumbing was removed (clients
+  `81de52c`). Live two-client pass still pending.
+
+- **Desktop: camera background choice persists + Settings live preview
+  (2026-07-11)**: background mode/source now persist via the same
+  localStorage keys web uses (`wavvon.bgMode`/`bgSource`), loaded/saved
+  in `useVideo` — blur/image/video no longer reset every launch. The
+  hardcoded-English background buttons in Settings were replaced by a
+  new `CameraSection` ported from web's CameraTab: i18n'd controls plus
+  a live mirrored preview that runs outside a call and restarts on
+  device/mode/source change (clients `e41842b`). Closes the 2026-07-05
+  known issue.
+
+- **Desktop + docs: wire test vectors regenerated for wavvon tags
+  (2026-07-11)**: the Voxply→Wavvon bulk rename (clients `032028d`)
+  updated envelope tag string literals but not the hex-encoded test
+  vectors — 20 of desktop's 38 wire vector tests had been failing since,
+  and `wire-format.md`'s vectors were equally stale. Desktop vectors
+  copied from the server identity crate's regenerated
+  `wire_vectors.rs` (clients `4cb5933`); all 20 hex blocks in
+  `wire-format.md` refreshed to match.
+
 - **Desktop: camera background effects fix ported from web (2026-07-11)**:
   desktop's `backgroundProcessor.ts` copy had the same two bugs fixed on
   web the day before (globalThis constructor resolution, mask consumed as
