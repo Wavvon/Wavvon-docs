@@ -230,16 +230,25 @@ from a DND that isn't "airplane mode."
 
 ### Storage and scope
 
-The DND **on/off state is the presence status itself** — stored and
-synced wherever presence already is (community-hub-side via
-`set_status`, persisted across reconnects; sent to the active hub's
-session today). The notification gate is a pure client transform reading
-that status; no new storage. Only the **future schedule** would live in
-the prefs blob (`DndSchedule { start, end, tz }`, replicated so phone
-and desktop agree). Known limitation carried over from presence itself:
-status is set per hub, so the DND badge shows on the hub where it was
-set — the local notification gate, though, reads own status once and
-quiets everything.
+The DND **on/off state is the presence status itself**, and presence is
+**global, not per-hub** (revised 2026-07-10): the device is the source
+of truth — the picker broadcasts `set_status` to **every** connected hub
+session, the choice persists on the device, and it is re-applied to each
+hub as it (re)connects (only when the device holds an explicit choice,
+so a fresh device doesn't stomp a status set elsewhere). Each hub still
+persists the last value it saw across reconnects. The notification gate
+is a pure client transform reading that status; no new storage.
+
+Presence/DND must not be confused with **hub mute**, the *per-hub*
+quieting tool: setting a hub's (or a channel's) notify mode to `silent`
+suppresses that hub's notifications without touching your visible
+status. The two gates are independent and both applied at read time.
+
+Only the **future schedule** would live in the prefs blob
+(`DndSchedule { start, end, tz }`, replicated so phone and desktop
+agree). Multi-device presence reconciliation (device A sets DND — what
+does device B show and send?) is deferred with the per-device-prefs
+distinction in [multi-device.md](multi-device.md).
 
 ## Route changes
 

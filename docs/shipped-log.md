@@ -6,12 +6,18 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
-- **Web: DND status now gates notifications + components/ reorg
-  (2026-07-10)**: selecting **Do Not Disturb** in the status picker now
-  actually suppresses mention pings and system notifications (unreads
-  still accumulate) — previously visual-only on every client. Decision:
-  DND rides on presence status, no dedicated toggle
-  ([decisions.md](decisions.md)); the never-mounted `DndToggle` /
+- **Web: DND status now gates notifications, presence made global, hub
+  mute made real + components/ reorg (2026-07-10)**: selecting **Do Not
+  Disturb** in the status picker now actually suppresses mention pings
+  and system notifications (unreads still accumulate) — previously
+  visual-only on every client. Presence is now **global across hubs**:
+  the picker broadcasts `set_status` to all connected sessions (was
+  active-hub-only), persists on the device, and re-applies per hub on
+  (re)connect. The notify-mode gate also landed: a hub/channel set to
+  `silent` (hub mute) no longer pings on mentions — it was cosmetic
+  before. Two decisions recorded ([decisions.md](decisions.md)): DND
+  rides on presence status with no dedicated toggle; presence is global
+  while per-hub quiet is hub mute. The never-mounted `DndToggle` /
   `DndSettingsSection` dead code and `DndSettings` types were deleted.
   Quiet-hours schedule stays deferred. Desktop/Android gates still
   pending (with presence parity). Also: the ~100 flat files in web's

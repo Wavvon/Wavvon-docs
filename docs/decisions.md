@@ -6,6 +6,42 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Presence is global across hubs; per-hub quiet is hub mute, not status
+
+**Decision** (2026-07-10, same day as the DND-via-status decision below,
+after review): a user's presence status (Online / Away / DND + custom
+text) is **one global fact**, not a per-hub setting. Setting it per hub
+would conflate two different concepts: *"I am not to be disturbed"*
+(a property of the person, visible everywhere) versus *"this hub should
+not disturb me"* (a property of the relationship with one hub). The
+second concept already has its own tool — the per-hub/per-channel
+**notify modes** (`all`/`mentions`/`silent`), where `silent` is hub
+mute, already surfaced in the hub sidebar as a muted badge.
+
+Implementation (web, 2026-07-10): the client is the source of truth for
+presence — the status picker broadcasts `set_status` to **all** connected
+hub sessions (previously only the active one), persists the choice on
+the device, and re-applies it to each hub on (re)connect (only when an
+explicit choice exists on the device, so a fresh device doesn't stomp a
+status set elsewhere). The notification gate now checks **both** quiets
+independently: mention pings/popups are suppressed when own presence is
+`dnd` *or* when the message's hub/channel effective notify mode is
+`silent` — the latter was previously cosmetic (the muted hub still
+pinged).
+
+**Alternatives considered**:
+
+- **Per-hub presence** (the accidental status quo — `set_status` went
+  only to the active hub) — rejected: nobody is "in a meeting" on one
+  hub and free on another; the badge others see would depend on which
+  hub happened to be active when you set it.
+- **Hub-side fan-out** (a hub propagates your status to your other
+  hubs) — rejected: hubs don't know each other's membership and must
+  not (privacy); the client already holds every session, so client-side
+  fan-out is one loop with no protocol change.
+
+**Superseded**: nothing removed; refines the scope of the decision below.
+
 ## Do Not Disturb engages via presence status, not a dedicated toggle
 
 **Decision** (2026-07-10): DND has no control of its own. The presence

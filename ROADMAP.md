@@ -196,11 +196,13 @@ surfaces, welcome banner, survey→roles, …). Still open:
   (hub-synced away/DND/custom over `set_status`/`member_status`, see
   [`shipped-log.md`](docs/shipped-log.md)). Desktop already has a local-only
   status picker in its `ChannelSidebar.tsx` — wire it to the hub sync;
-  Android has none. DND notification gating (suppress mention pings +
-  system notifications while status is DND) shipped on **web 2026-07-10**
-  ([decisions.md](docs/decisions.md): DND rides on presence status, no
-  dedicated toggle); desktop/Android still visual-only — port the gate
-  with the parity work.
+  Android has none. Web 2026-07-10: DND notification gating (mention
+  pings + system notifications suppressed while status is DND), presence
+  made **global across hubs** (broadcast to all sessions + re-apply on
+  reconnect; was active-hub-only), and hub-mute (`silent` notify mode)
+  now really suppresses pings ([decisions.md](docs/decisions.md), two
+  entries). Desktop/Android still visual-only and active-hub-only — port
+  the gates + global broadcast with the parity work.
 - **Discord importer still needs a live run** — the 2026-07-04 web live
   pass (see [`shipped-log.md`](docs/shipped-log.md)) covered everything
   else; the importer (`export` with a real bot token, `apply` against a
