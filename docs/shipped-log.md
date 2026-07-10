@@ -6,6 +6,20 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Web: camera background effects fixed (2026-07-10)**: blur/image/video
+  backgrounds never actually engaged — two bugs in `backgroundProcessor.ts`
+  made every mode silently fall back to raw video: the MediaPipe package
+  (Closure IIFE, no module exports) meant `mod.SelfieSegmentation` was
+  always undefined, and the segmentation mask (a GpuBuffer canvas) was
+  consumed as ImageData, which would have killed the render loop. Fixed
+  with the globalThis constructor + drawImage/source-in compositing;
+  send() serialized to one in-flight frame; eager initialize() so broken
+  environments fall back deterministically; the Camera tab now shows an
+  active/unavailable status instead of pretending (clients `9426c20`,
+  4-locale keys). Verified with a new fake-camera e2e spec + visual check
+  of the composited blur. Desktop's copy has the same bugs → new known
+  issue in ROADMAP.
+
 - **Web: DND status now gates notifications, presence made global, hub
   mute made real + components/ reorg (2026-07-10)**: selecting **Do Not
   Disturb** in the status picker now actually suppresses mention pings
