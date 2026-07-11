@@ -59,19 +59,17 @@ Everything here is **portable** (no native API) unless marked native-only.
 | Channel appearance (color/icon) | ✅ (2026-07-04) | ✅ | ? |
 | Kick / Ban / Mute — right-click menu | ✅ | ✅ | ❌ |
 | Presence status (away / DND / custom) | ✅ (2026-07-05) | ✅ (2026-07-11) | ❌ |
-| Hub sidebar rail (hub icons + DMs + `+` menu) | ✅ | ❌ **TODO** | ? |
 | Banner-channel rename/delete from sidebar | ❌ | ? | ? |
 
 ### Where web is ahead of desktop (parity is bidirectional)
 
 Web should not regress these; desktop/android should catch up:
-the hub sidebar rail (see item 11), events with role slots + reminders,
-soundboard, full encrypted data-export archive, channel
-permission-overwrite tab, role categories + per-role color/icon, the
-quiet-hours schedule (deferred everywhere; DND itself is on web +
-desktop now), the moderation suite (content reports, automod webhook,
-outgoing webhooks, federated ban lists), link previews, and passkeys +
-hub trusted-devices.
+events with role slots + reminders, soundboard, full encrypted
+data-export archive, channel permission-overwrite tab, role categories +
+per-role color/icon, the quiet-hours schedule (deferred everywhere; DND
+itself is on web + desktop now), the moderation suite (content reports,
+automod webhook, outgoing webhooks, federated ban lists), link previews,
+and passkeys + hub trusted-devices.
 
 ### Present under a different name (NOT gaps)
 
@@ -221,23 +219,6 @@ exist on web.
 - **My certifications viewer** — `MyCertificationsSection` in Settings →
   Account, read-only fan-out over `GET /identity/{pubkey}/certs`.
   `e2e/live/19`.
-
-### 11. Hub sidebar rail (desktop)
-
-- **Web has `components/layout/HubSidebar.tsx`** — the leftmost vertical
-  rail: drag-sortable hub icons with unread/ping badges, a DMs button,
-  the `+` add/create-hub menu, discover, and farm settings. Present on
-  web since at least the 2026-06-13 monorepo normalization.
-- **Desktop has no rail at all** — hub switching is a dropdown at the
-  top of the channel sidebar (`ChannelSidebar.tsx` `hub-header` +
-  chevron), found comparing the two apps side by side 2026-07-11. The
-  rail's CSS lives in the shared `packages/ui` stylesheet, and desktop's
-  `App.tsx` already holds the state the rail needs (`hubs`,
-  `unreadByHub`, `pingByHub`, `hubNotifyMode`), so the port is mostly
-  component + wiring work; decide whether the dropdown stays as a
-  compact-width fallback or goes away.
-- **Android** — uses its own mobile shell; audit what hub switching
-  looks like there before assuming a gap.
 
 ---
 
