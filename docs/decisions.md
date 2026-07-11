@@ -6,6 +6,88 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Paired-device DMs attribute to canonical via cert-chained envelopes; DH capability is a wrapped canonical scalar
+
+**Decision** (2026-07-11): fix the multi-device DM bug (paired devices
+attributing DMs to their subkey and keying E2E against the wrong X25519
+key) with two anchored-to-canonical mechanisms, neither of which puts a
+signing seed on a paired device:
+
+1. **DH capability** — the canonical DM DH keypair stays what ships
+   today: the X25519 scalar derived from the *canonical* (subkey-0 /
+   entropy) Ed25519 seed via the SHA-512+clamp recipe, published at
+   `/identity/{canonical}/dh-key`. At pairing the enrolling device (which
+   holds the entropy) wraps that **32-byte X25519 scalar** — not the
+   Ed25519 seed — for the new subkey with the existing ECIES
+   `wrapBlobKey`, delivered in `PairingComplete.wrapped_dh_seed_hex`
+   next to `wrapped_blob_key_hex`. The paired device stores the scalar
+   and uses it for every DM key agreement. It gains decrypt/agreement
+   capability with **no** signing capability (the scalar is not
+   reversible to either the master or the subkey-0 seed), preserving the
+   "paired devices never hold the master seed" invariant. Only a device
+   holding the entropy publishes the DH key; paired devices skip publish.
+
+2. **Attribution** — the envelope keeps `sender_pubkey = canonical`
+   (unchanged semantics). A paired device signs with its subkey and
+   attaches its `SubkeyCert` in a new optional `signer_cert` field.
+   Verifiers with an absent `signer_cert` behave exactly as today (verify
+   against `sender_pubkey`); with a present one they verify (a) the cert
+   (master→subkey), (b) the envelope signature against
+   `signer_cert.subkey_pubkey`, and (c) that `sender_pubkey` is owned by
+   `signer_cert.master_pubkey`. Binding (c) is tiered: the origin hub
+   proves it from the authenticated session's resolved `(canonical,
+   master)`; a federated hub or recipient client resolves master→canonical
+   from its local `users` row, falling back to the sender's device
+   registry (canonical's self-cert) when the user is unknown. The
+   `FederatedDmRequest` carries `signer_cert` so downstream hubs verify
+   without a session.
+
+**Alternatives considered**:
+
+- **Client signs the envelope as the canonical identity** — impossible
+  by design: a paired device deliberately holds neither the master nor
+  the subkey-0 (canonical) signing seed.
+- **Hub rewrites `sender` subkey→canonical on the DM path** — works on
+  the origin hub but breaks downstream: the envelope signature (by the
+  subkey) no longer verifies against the rewritten canonical `sender` on
+  a federated hub or a recipient client, and a rewrite carries no proof
+  that resists a malicious peer hub spoofing `sender`. Cert-chaining
+  keeps the proof self-contained across federation.
+- **Attribute DMs to the master pubkey** (self-contained with one cert,
+  `sender_pubkey = cert.master_pubkey`) — rejected: the DR receive path
+  fetches the sender's static DH by `sender_pubkey`, and the DH key lives
+  at the canonical pubkey, not the master; it would also make DM
+  attribution a third identifier inconsistent with community actions and
+  existing DM history (both keyed to the canonical/subkey-0 pubkey).
+- **Per-subkey published DH keys with cert-chained binding** — rejected
+  for v1: every recipient would re-key existing conversations against a
+  new per-device DH key and track which device is current. Wrapping the
+  one canonical scalar keeps every shipped conversation working with zero
+  re-keying and one small pairing-payload field.
+- **Defer to the full home-hub build-out** — rejected: the fix needs
+  only a pairing-payload field, an optional envelope field, a publish
+  guard, and verification tiering, all on machinery (subkey certs, ECIES
+  wrap, device registry, `resolve_canonical_identity`) that already
+  ships. It does not need the canonical DM inbox or designation
+  replication.
+
+**Tradeoff / outcome**: one refinement to the
+[e2e-encryption.md](e2e-encryption.md) "Multi-device" open question —
+the DH anchor is the **canonical (subkey-0/entropy) seed's** DH, not the
+HKDF-master's, because that is what is already published and what
+existing conversations key against; anchoring elsewhere would force a
+re-key. Compatibility: historical rows are not rewritten. Because
+paired-device E2E sends previously failed hub signature verification
+(subkey signature checked against canonical), almost no cert-less
+subkey-keyed encrypted rows exist; any orphaned ones from the pre-fix
+window stay unreadable and are documented as a bounded loss (multi-device
+pairing is recent and web-only). A cert-chained envelope reaching an
+un-upgraded hub or client fails its signature check and does not
+federate/decrypt until that peer upgrades — a strict improvement over
+today (paired-device E2E did not work at all), and the un-upgraded
+population shrinks as the single web delivery target updates. Full detail
+and file list in [multi-device.md](multi-device.md#implementation--dm-attribution--dh-fix).
+
 ## Multi-account is device-local storage namespacing, not a synced concept
 
 **Decision** (2026-07-11, implemented web same day): a device can hold

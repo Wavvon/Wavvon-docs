@@ -71,6 +71,7 @@ These shipped — the doc is the design rationale behind the code (see
 - [screen-share-modal.md](screen-share-modal.md) — unified desktop screen-share picker: Tauri `list_capture_sources` command, thumbnail grid, single-modal UX replacing the current two-step OS overlay
 - [nested-channels-ux.md](nested-channels-ux.md) — nested-channel UX gaps: channel permalinks (breadcrumb resolution), deep-nesting sidebar strategy (capped indent + drill-in), and channel permission overwrites (net-new file-system-style cascade — data model, resolver, routes, UI)
 - [future-features.md](future-features.md) — anti-spam PoW, deferred bot scope, other backlog designs
+- [bot-capability-layer.md](bot-capability-layer.md) — the consent spine for the "Telegram-class bot runtime → games" pillar: capability request/grant model, interactive-UI runtime choice (declarative components vs sandboxed webview game modal), voice/video injection gates, abuse controls, phased first playable
 
 ### Archived designs
 
@@ -146,6 +147,7 @@ Reading order is for learning the system end-to-end. This section is for
 - **Server tags & portable badges** — [server-tags.md](server-tags.md)
 - **Database abstraction layer (trait-based store)** — [store-trait-design.md](store-trait-design.md)
 - **Bots & integrations** — [bots.md](bots.md)
+- **Bot capability layer (grants, game modal, media injection)** — [bot-capability-layer.md](bot-capability-layer.md)
 - **Gaming platform (tiers, SDK, sandbox)** — [gaming.md](gaming.md), [games-sdk.md](games-sdk.md)
 - **Protocol contract (REST + WebSocket)** — [`../openapi.yaml`](../openapi.yaml) (REST), [ws-protocol.md](ws-protocol.md) (full WS message reference)
 

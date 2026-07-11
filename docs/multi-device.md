@@ -280,3 +280,133 @@ Wavvon-server; paths under `desktop/` live in Wavvon-desktop.
   storage (master kept cold, subkey hot).
 - `desktop/src/` (Wavvon-desktop) — pairing UI: show QR, scan QR,
   confirm fingerprint.
+
+## Implementation — DM attribution & DH fix
+
+Fixes the bug where a paired device attributes DMs to its subkey and
+keys E2E against the subkey's X25519 key instead of the canonical
+identity's. Rationale and alternatives are in
+[decisions.md](decisions.md). Community-axis actions already resolve to
+canonical via `resolve_canonical_identity`; this brings the DM path in
+line without ever putting a signing seed on a paired device.
+
+The delivery target today is the web client, so the client work below is
+in Wavvon-clients (`packages/core`, `apps/web`); the desktop/Android
+Tauri equivalents follow the same shape when those ship.
+
+### Mechanism A — DH capability via a wrapped canonical scalar
+
+The canonical DM DH keypair is unchanged: the X25519 scalar from the
+canonical (subkey-0 / entropy) Ed25519 seed via SHA-512+clamp
+(`dhKeypairFromSeed`), published at `/identity/{canonical}/dh-key`. A
+paired device is provisioned with a copy of that scalar at pairing.
+
+Server (Wavvon-server):
+
+- `identity/src/lib.rs` — `PairingComplete` (and the wire vectors)
+  gain an optional `wrapped_dh_seed_hex: Option<String>` alongside
+  `wrapped_blob_key_hex`. Both are ECIES-wrapped for the new subkey; the
+  identity crate already exposes the wrap/unwrap primitive.
+- No DB or `dh_keys` change — the published DH key stays keyed to the
+  canonical pubkey.
+
+Client (Wavvon-clients):
+
+- `packages/core/src/identity/wire.ts` — add `wrapped_dh_seed_hex?:
+  string` to `PairingComplete` / `PairingStatus`.
+- Enrolling device (`apps/web/.../DevicesSection.tsx`, step 4): wrap
+  `x25519PrivFromSeed(entropy)` (the 32-byte clamped scalar, **not** the
+  Ed25519 seed) for the claiming subkey with `wrapBlobKey` and include it
+  in the complete payload.
+- Claiming device (`apps/web/.../IdentitySetupScreen.tsx`): unwrap with
+  `unwrapBlobKey` and persist the scalar on the account record
+  (`identity/store.ts` `IdentityRecord.canonical_dh_priv_hex?`), in the
+  account-scoped namespace.
+- `packages/core/src/identity/crypto.ts` — let the 1:1 and DR static
+  steps take the canonical DH **private scalar** directly rather than
+  always deriving it from a seed: add an optional scalar parameter to
+  `initDrSession` / `decryptDmDr` (and the v1 `encryptDm`/`decryptDm`
+  DH inputs). The primary device passes the entropy-derived scalar (as
+  today); a paired device passes the stored `canonical_dh_priv_hex`.
+- `apps/web/src/platform/commands/dms.ts` — `sendDm`/`getDmMessages`
+  select the DH scalar: `canonical_dh_priv_hex` if present, else
+  `dhKeypairFromSeed(seed_hex)`. Recipient selection and `fetchDhKey`
+  stay keyed to the canonical pubkey.
+- `publishDhKey` — guard: only publish when the device holds the
+  canonical signing seed (i.e. `publicKeyHex(seed_hex) === canonical`
+  and no `signer_cert`). Paired devices skip publish; the primary already
+  published the canonical DH key.
+
+### Mechanism B — attribution via cert-chained envelopes
+
+Envelope keeps `sender_pubkey = canonical`. A paired device signs with
+its subkey and attaches its cert; primary/legacy devices send exactly as
+today (no cert, byte-identical envelope — no wire-vector break).
+
+Server (Wavvon-server):
+
+- `hub/src/routes/dm_models.rs` — `EncryptedDmEnvelope` and
+  `FederatedDmRequest` gain `signer_cert: Option<SubkeyCert>`.
+- `hub/src/routes/dms/keys.rs` — `envelope_signing_bytes` is unchanged
+  (`sender_pubkey` is not in the signed bytes). Add a verifier helper
+  `verify_envelope_sender(env, expected_canonical, master_lookup)`:
+  - `signer_cert` absent → verify signature against `sender_pubkey`
+    (current behaviour).
+  - present → verify cert (master→subkey), verify signature against
+    `cert.subkey_pubkey`, and require `sender_pubkey` to bind to
+    `cert.master_pubkey`.
+- `hub/src/routes/dms/messages.rs`:
+  - `send_dm` — replace the `verify_signature(&user.public_key, …)` call
+    with the helper. Binding is trivial here: require `signer_cert
+    .master_pubkey == user.master_pubkey` and `env.sender_pubkey ==
+    user.public_key` (both already on the authenticated session; add
+    `master_pubkey` to `AuthUser` — see auth note). Store/broadcast
+    `sender = user.public_key` (canonical), and forward `signer_cert` in
+    the outbox `FederatedDmRequest`.
+  - `receive_federated_dm` — verify via the helper. Binding: resolve
+    `master_pubkey → canonical` from the local `users` row; if the sender
+    is unknown, fetch the sender's device registry from a delivery hub
+    and require the same master to have certified `sender_pubkey`
+    (canonical's self-cert), then cache. Store under the resolved
+    canonical.
+- `hub/src/auth/middleware.rs` / `auth/models.rs` — expose the session's
+  `master_pubkey` on `AuthUser` (already resolved in
+  `resolve_canonical_identity`) so `send_dm` can bind without a re-query.
+
+Client (Wavvon-clients):
+
+- `packages/core/src/identity/crypto.ts` — `DmEnvelope` / `DrEnvelope`
+  gain `signer_cert?: SubkeyCert`. `encryptDm`/`encryptDmDr` take the
+  signing seed (the device subkey) **and** the canonical `sender_pubkey`
+  + optional `signer_cert`; set `sender_pubkey = canonical` always,
+  attach `signer_cert` only when the signing key ≠ canonical.
+- Receive/verify path (`getDmMessages`) — when `signer_cert` is present,
+  verify the two-link chain before trusting attribution; bind
+  `sender_pubkey` to the conversation's canonical member.
+- `apps/web/src/platform/commands/dms.ts` — `sendDm` passes
+  `identity.canonical_pubkey ?? publicKeyHex(seed_hex)` as
+  `sender_pubkey` and `identity.subkey_cert` as `signer_cert`.
+
+### Phasing
+
+1. **Server accepts both forms.** Add the optional envelope/pairing
+   fields and the verifier helper; primary-device and legacy DMs are
+   unaffected. `AuthUser.master_pubkey` exposed.
+2. **Pairing hands out the DH scalar.** `wrapped_dh_seed_hex` on
+   complete; claiming device stores it. New pairings are fixed.
+3. **Client DM path uses canonical anchor.** DH-scalar selection,
+   cert-chained signing, publish guard, receive-side chain verification.
+4. **Federated binding hardening.** Device-registry fallback + cache in
+   `receive_federated_dm` for unknown senders.
+
+### Compatibility
+
+- Historical rows are not rewritten. Cert-less subkey-keyed encrypted
+  rows are effectively absent (they failed the pre-fix canonical
+  signature check); any orphaned ones stay unreadable — a bounded,
+  documented loss confined to the recent web-only pairing window.
+- A cert-chained envelope reaching an un-upgraded hub or client fails its
+  signature check (unknown `signer_cert`, sig verified against canonical)
+  and does not federate/decrypt until that peer upgrades. Strict
+  improvement over today, where paired-device E2E did not work at all;
+  the un-upgraded population shrinks as the web client updates.
