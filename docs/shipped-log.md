@@ -6,6 +6,18 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Web: passkey-derived identity via WebAuthn PRF (2026-07-11)**:
+  identity setup gains "Create identity with a passkey" and "I have a
+  passkey" — the passkey's PRF output (salt `wavvon-master/v1`, pinned
+  constant in `packages/core/src/identity/prf.ts`) is used directly as
+  the 32-byte identity entropy, so the derived 24-word phrase remains
+  available and is offered as the domain-independent backup after
+  creation. Fully client-side (`apps/web/src/platform/prfIdentity.ts`);
+  the hub-session passkey ceremony is unchanged. Graceful fallback to
+  phrase flows when PRF is unsupported. New `identity_setup.passkey.*`
+  keys in all four locales. Desktop/Android PRF shims remain wishlist
+  (clients `5f9008f`; decision in [decisions.md](decisions.md)).
+
 - **Web: nickname + avatar step in first-run onboarding (2026-07-11)**:
   all three identity-setup paths (create, recover from phrase/hex, pair
   with existing device) now finish on a profile step — nickname input +
