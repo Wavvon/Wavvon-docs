@@ -6,6 +6,17 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Invite role policies — default role + member invites (2026-07-11)**:
+  hub setting `default_invite_role_id` grants a role automatically to
+  anyone joining via an invite with no explicit grant (both redemption
+  paths, explicit grants win, admin-permission roles rejected/skipped);
+  non-admin `manage_channels` holders confirmed able to mint
+  priority-guarded role invites and get a QuickInviteModal with an
+  optional role picker; admin Invites tab gains the default-role
+  picker. 11 new hub tests; live-verified: plain-invite joiner received
+  the default role (DB-checked). Decision in
+  [decisions.md](decisions.md) (hub `edca039`, clients `1bf0b8c`).
+
 - **Live e2e session against a real hub: 4 bugs found + fixed
   (2026-07-11)**: booted a fresh hub + Postgres locally and drove the
   web client headless through owner-invite join, role-granting invites,

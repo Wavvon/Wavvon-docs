@@ -6,6 +6,50 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Invite role policies: privileged inviters pick, everyone else gets the hub default
+
+**Decision** (2026-07-11, implemented hub + web same day): two-tier
+role assignment through invites, replacing the "every newcomer is only
+@everyone until someone fixes it" default that pushes other platforms'
+communities toward auto-role bots.
+
+1. **Inviter with role power picks the role** — any member whose role
+   grants `manage_channels` (the invite-creation permission) can mint
+   an invite carrying `grant_role_id`, limited to roles strictly below
+   their own max priority. Guarded at mint AND at redemption (an
+   inviter demoted after minting confers nothing). This tier mostly
+   shipped with role-granting invites; this decision extends the UI to
+   non-admin members (QuickInviteModal) and pins the non-admin paths
+   with tests.
+2. **Hub default for everyone else** — a hub setting
+   `default_invite_role_id` (admin-configured, on the standard
+   hub-settings surface; `""` clears). Applied at redemption to any
+   invite with no explicit grant, on both `/auth/verify` and
+   `/join/:code`, through the same shared grant helper. Explicit
+   grants always win. The default may never be a role carrying the
+   `admin` permission — rejected at configuration and skipped at
+   redemption if the role later gains admin or is deleted
+   (defense-in-depth).
+
+**Alternatives considered**:
+
+- **Per-inviter-role policy matrix** ("invites from role X grant role
+  Y") — deferred: a single hub default covers the observed need
+  (newcomer trust tier) with one setting; the matrix adds admin UI
+  complexity with no demonstrated demand. The redemption helper is the
+  seam if it's ever wanted.
+- **Applying the default only when the inviter lacks role power** —
+  rejected: "no explicit grant → default" is simpler to reason about
+  and makes admin-minted plain invites behave identically to member
+  ones.
+- **Allowing an admin-permission role as default** — rejected outright:
+  a standing setting that silently hands out admin to anyone with an
+  invite link is a takeover primitive, not a convenience.
+
+**Outcome**: live-verified e2e — a plain-invite joiner received the
+configured default role; explicit-grant, priority-guard, and
+clear-the-default paths covered by 11 new hub tests.
+
 ## Paired-device DMs attribute to canonical via cert-chained envelopes; DH capability is a wrapped canonical scalar
 
 **Decision** (2026-07-11): fix the multi-device DM bug (paired devices

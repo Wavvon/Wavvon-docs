@@ -93,16 +93,6 @@ surfaces, welcome banner, survey→roles, …). Still open:
 
 ## 📌 Wishlist (undesigned)
 
-- **Invite role policies (hub-level)** — extend the shipped
-  role-granting invites: an admin-configured rule so invites created by
-  *regular members* automatically grant a designated role to the
-  newcomer (e.g. member-invited users land as "guest", admin-invited as
-  "member" — trust tiers). Admin-authored policy means the priority
-  guard isn't bypassed; the redemption-time grant helper
-  (`apply_invite_role_grant`) is the natural seam. Could later show
-  invited-by lineage (`invites.created_by` already exists). Idea
-  2026-07-11.
-
 > **Big future pillars** (full writeups in
 > [future-features.md](docs/future-features.md)): **1. Farm layer** — the
 > major architectural next step (multi-hub control plane;
