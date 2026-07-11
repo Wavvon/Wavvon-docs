@@ -55,7 +55,7 @@ These shipped — the doc is the design rationale behind the code (see
     - [client-parity.md](client-parity.md) — **living tracker** of feature gaps across web / desktop / android (web leads). Current: android is missing role assignment via the right-click menu; web/android lack a create/delete-role UI.
 18. [bots.md](bots.md) — external bot ecosystem: invite-by-pubkey, slash commands, webhook dispatch, per-hub directory
 19. [accessibility.md](accessibility.md) — keyboard navigation, ARIA / screen-reader support, i18n strategy across desktop / web / Android
-20. [forum.md](forum.md) — forum channel type: post-list variant, posts + reply threads, `create_posts`/`manage_posts` permissions, FTS search
+20. [forum.md](forum.md) — forum channel type: post-list variant, posts + reply threads, `create_posts`/`manage_posts` permissions, FTS search; §9 designs alliance federation (read-through proxy, owning hub authoritative — designed, not built)
 21. [banner-channels.md](banner-channels.md) — banner channel type: full-width image rows in the hub sidebar (decorative chrome, hub-uploaded or external URL), drag-drop ordered like regular channels
 22. [screen-share-webrtc.md](screen-share-webrtc.md) — screen share v2: WebRTC P2P, hub as SDP/ICE signaler, optional TURN, v1-relay fallback floor, multi-sharer
 23. [block-mute-ignore.md](block-mute-ignore.md) — user-level block / ignore / quiet-hours (DND): personal-axis prefs-blob state, client-side filtering, server-enforced DM block
@@ -139,6 +139,7 @@ Reading order is for learning the system end-to-end. This section is for
 - **Shared channels across alliance** — [alliances.md](alliances.md)
 - **Federated DMs (outbox model)** — [federation.md](federation.md)
 - **Federated reactions on alliance reads** — [federation.md](federation.md)
+- **Forum post federation across alliances (designed, not built)** — [forum.md](forum.md) §9
 
 ### Hosting & ecosystem
 - **Farm → Server → Hub deployment model** — [farm-model.md](farm-model.md), [farm-impl.md](farm-impl.md), [architecture.md](architecture.md)

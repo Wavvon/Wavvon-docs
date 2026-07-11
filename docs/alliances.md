@@ -166,7 +166,9 @@ banner/spawner dimmed — and now wires alliance channel open/post
 - **Voice in alliance channels** — the UDP relay is single-hub; cross-hub
   voice needs a relay redesign.
 - **Forum post federation** — forum posts/replies stay hub-local even on
-  an alliance-shared forum channel; federating them is undesigned.
+  an alliance-shared forum channel; the design to federate them (via the
+  same read-through proxy as alliance messages) is in
+  [forum.md](forum.md) section 9, not yet built.
 - **Member discovery beyond invite tokens** — no way to browse an
   alliance's membership; joining is still invite-driven.
 - Game launch/lobby federation across alliance

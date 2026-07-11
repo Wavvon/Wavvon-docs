@@ -370,10 +370,9 @@ posts/replies were originally scoped out of v1 below but have since
 shipped (`post_reads`, `post_reactions`, and a JSON `attachments`
 column on `posts`/`post_replies` all exist and are wired end-to-end).
 
-- **Federation**: posts/replies federating over alliance shared channels
-  ([federation.md](federation.md)). v1 is local-only. The federation
-  envelope would gain `post` / `post_reply` event types alongside
-  `message`; designed once the local model is stable.
+- **Federation**: posts/replies/reactions federating over alliance
+  shared channels is now designed — see section 9 below. v1 remains
+  local-only until that ships.
 - **Rich formatting beyond the existing markdown**: forums reuse the
   message markdown subset; no forum-specific rich text, no embeds.
 - **Channel type conversion** (`text` ⇄ `forum` on an existing
@@ -383,3 +382,164 @@ column on `posts`/`post_replies` all exist and are wired end-to-end).
 - **Post tags / categories within a forum** and **post drafts**:
   wishlist, not designed.
 - **Cross-channel / hub-wide forum search**: per-channel only in v1.
+
+---
+
+## 9. Federation across alliances
+
+**Status**: designed, not built. Wishlist item, not a pillar. Supersedes
+the earlier idea (above) of a new federation *envelope* — alliance
+content does not use an envelope, it uses a read-through proxy, and
+forums reuse that.
+
+### Decision
+
+**Federate forum content the same way alliance messages already do:
+read-through proxy, owning hub authoritative.** No replication, no sync
+log, no new envelope.
+
+When Hub B reads or posts to an alliance channel owned by Hub A, Hub B
+holds no copy — it resolves the owner by walking alliance members and
+proxies the HTTP call to Hub A over the federation client
+(`get_alliance_channel_messages` / `post_alliance_channel_message` in
+`hub/src/routes/alliances/channels.rs`, Wavvon-server). The owning hub is
+the single source of truth. Forums extend this: an alliance-shared
+**forum** channel proxies its post list, post detail, replies, and
+reactions to the owning hub. The `posts` / `post_replies` /
+`post_reactions` tables live only on the owning community hub — exactly
+where the two-axis rule puts community-axis state. Nothing personal (read
+cursors, drafts) crosses; that stays on the reader's home hub.
+
+### Alternative considered
+
+A **dedicated push/replication sync** — a DM-style outbox that forwards
+each post to every member hub, or a CRDT/op-log each hub materializes.
+Rejected: replication buys offline reads and live push but forces
+conflict handling, storage duplication, a versioned envelope, and a
+reconciliation worker — for a low-velocity surface. The proxy model
+already exists, already handles member resolution and the cycle-guard
+(`local_only=true`), and gives correct semantics for free.
+
+### Tradeoff
+
+Proxy trades **availability for simplicity and correctness**. If the
+owning hub is offline its forum is unreadable to allies (same as alliance
+messages today) — no offline cache. In exchange there is exactly one
+copy, so **ordering and conflicts are non-problems**: order is the owning
+hub's `created_at`/`id`, edits are last-writer there, a delete is gone
+for everyone on next fetch. No vector clocks, no split-brain.
+
+### Identity attribution across hubs
+
+The message path authenticates the proxied write as the **hub** and
+smuggles attribution into the content (`[alice via hub] …`,
+`channels.rs`). Tolerable for a chat line, ugly in a post *title*, and it
+loses the author pubkey. Forums do it honestly: the proxied create
+carries the author pubkey + origin-hub identity, and the owning hub
+trusts the assertion **because the request is authenticated as an allied
+hub** (alliance membership is already a trust relationship). New additive
+`author_hub` columns on `posts`/`post_replies` store the origin alongside
+`author_pubkey`; clients render "alice · HubName".
+
+Caveat surfaced in UI and threat model: attribution is **hub-asserted,
+not cryptographically proven** — unlike a signed DM envelope
+([e2e-encryption.md](e2e-encryption.md)), the author doesn't sign the
+post; the origin hub vouches. Render as mediated ("via HubName"), never
+as a verified badge.
+
+### Moderation semantics
+
+- **Owning hub is sovereign.** Its `manage_posts` moderators (§5) can
+  remove/lock/pin any post/reply it hosts, federated or not. Removal
+  needs no propagation — one copy, so the delete is instantly visible to
+  every ally on next read-through.
+- **Origin-hub retraction.** An allied hub may remove content *its own
+  users* authored, via a proxied `DELETE` authenticated as that hub; the
+  owning hub honors it only when `author_hub` matches the requester. A
+  hub can retract its members' posts (e.g. after a local ban) without
+  gaining mod power over anyone else's content.
+- **Owner can always refuse or override**; the origin hub cannot force
+  retention. Pin/lock stay **owner-only** (curation of the owner's
+  space).
+
+### Conflict and ordering
+
+None to handle. Single authoritative copy ⇒ the owning hub's existing
+local ordering (`idx_posts_channel_activity`, §1) and last-writer edits
+apply unchanged. This is the payoff of proxy-over-replication.
+
+### Threat-model deltas
+
+An allied hub becomes a **write path into your forum**. Over
+[threat-model.md](threat-model.md):
+
+- **Spam/flood via an ally.** Add a **per-origin-hub rate limiter** on
+  federated forum writes (mirror the `badge_offer` limiter in
+  `hub/src/rate_limit.rs`, Wavvon-server) and a **federated-write policy**
+  the owner controls per shared channel — because the proxied write
+  authenticates as a hub, the local `create_posts`/`send_messages` gates
+  don't map to a user. New additive `alliance_shared_channels` column
+  (e.g. `forum_remote_write` ∈ `none` | `replies_only` |
+  `posts_and_replies`, default `replies_only`) lets an announcement forum
+  take allied replies but not allied threads.
+- **Attribution spoofing.** An origin hub can assert any `author_pubkey`;
+  accepted within alliance trust, advisory only, must not feed anything
+  assuming a proven identity (reputation certs,
+  [hub-certifications.md](hub-certifications.md)).
+- **Blast radius.** Containment = owner sovereignty: delete an origin
+  hub's content wholesale, unshare the channel, or leave the alliance.
+
+### Non-goals
+
+- **Live cross-hub WS push** — allies poll/refetch on open, as alliance
+  messages do; the local `forum_event` ([ws-protocol.md](ws-protocol.md))
+  stays local.
+- **Offline reads / store-and-forward writes** — forum writes are
+  synchronous proxy calls that fail if the owner is offline (unlike the
+  DM outbox).
+- **Cryptographically signed authorship** — attribution is hub-vouched.
+- **Cross-hub / alliance-wide forum search** — per-channel on the owner
+  (§7).
+- **Cross-hub sync of per-post read cursors** — personal-axis, stays on
+  the reader's home hub ([home-hub.md](home-hub.md)).
+
+### Phasing
+
+1. **Read-through GET (first slice, small)** — proxy post list, post
+   detail, replies (reactions included, as alliance message reads already
+   load them, [federation.md](federation.md)). Read-only makes remote
+   forums *visible* (the biggest gap) and mirrors how alliance message
+   reads shipped before writes.
+2. **Proxied writes** — create post/reply/reaction carrying
+   `author_pubkey` + `author_hub`; additive columns; per-origin rate
+   limit; the `forum_remote_write` policy.
+3. **Origin-hub retraction + moderation propagation** as above; pin/lock
+   stay owner-only.
+- Deferred: live WS push, cross-hub search, signed attribution.
+
+### Files this will touch
+
+All Wavvon-server unless noted.
+
+- `hub/src/routes/alliances/channels.rs` — new proxy handlers
+  (`get_alliance_forum_posts`, `..._forum_post`,
+  `post_alliance_forum_post`, `..._forum_reply`, `react_alliance_forum`,
+  `delete_alliance_forum_content`), reusing the member-walk + owner
+  resolution already there; locally-owned forum channels delegate to the
+  local handlers.
+- `hub/src/routes/posts.rs` — local forum handlers reused when the
+  channel is owned here.
+- `hub/src/federation/client.rs` — matching `FederationClient` methods
+  (siblings of `get_messages` / `send_message`).
+- `hub/src/db/migrations.rs` — additive `author_hub` on
+  `posts`/`post_replies`; `forum_remote_write` on
+  `alliance_shared_channels`.
+- `hub/src/rate_limit.rs` — per-origin-hub federated forum write limiter.
+- `hub/src/routes/post_models.rs` — wire types gain optional `author_hub`
+  / origin fields (serde defaults so un-upgraded peers parse).
+- `hub/src/server.rs` — route wiring for
+  `/alliances/:id/channels/:cid/posts…` (paralleling alliance message
+  routes).
+- Wavvon-web `apps/web` (current delivery target) — alliance forum views
+  call the alliance forum endpoints, render "author · hub"; mirrored to
+  Wavvon-desktop / Wavvon-android afterward.
