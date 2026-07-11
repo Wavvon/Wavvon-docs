@@ -22,6 +22,7 @@ fixed, its entry moves to the shipped log.
   First-boot owner invite minted, pending redemption. Remaining: redeem
   owner invite, first cross-internet voice test, friend onboards +
   ownership transfer, doc-test feedback, two-operator federation test.
+- [ ] **Passkey PRF identity** — create/restore identity via WebAuthn PRF (passkey = master key anchor), web client; 24-word phrase stays as fallback. Per [webauthn-auth.md](docs/webauthn-auth.md).
 
 ## 🚧 Blocked
 

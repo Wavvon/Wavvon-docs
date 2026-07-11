@@ -6,6 +6,46 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Passkey PRF output is the identity entropy, not a new key layer
+
+**Decision** (2026-07-11, implemented web-only same day): the
+"passkey = master key anchor" design from
+[webauthn-auth.md](webauthn-auth.md) is implemented by using the
+WebAuthn **PRF extension output (32 bytes) directly as the identity
+entropy** — the exact slot BIP39 entropy occupies. The PRF eval salt is
+the pinned protocol constant `wavvon-master/v1` (in
+`packages/core/src/identity/prf.ts`; must be byte-identical on every
+client, never changed — only versioned alongside). Everything
+downstream (HKDF master derivation, subkey 0, entropy ↔ 24-word
+phrase) is untouched, so a passkey-created identity can still reveal
+its 24 words, and the phrase remains the domain-independent backup —
+offered, not forced, right after passkey creation.
+
+The bootstrap credential is created **fully client-side** (self-signed
+challenge, discoverable credential, rp = current origin) and is never
+registered with a hub — it exists purely as a PRF oracle. The separate
+hub-session passkey ceremony (`/auth/webauthn/*`) is unchanged.
+
+**Alternatives considered**:
+
+- **PRF output feeds a new derivation layer** (PRF → HKDF → entropy) —
+  rejected: adds a second protocol constant and breaks the property
+  that passkey identities and phrase identities are the same kind of
+  identity with interchangeable backups.
+- **Register the bootstrap credential with the hub during creation** —
+  rejected: identity creation must not require a hub round-trip, and
+  the hub gains nothing (PRF results never leave the client).
+- **Raw-seed QR export for portability** — rejected: a QR of the seed
+  is the plaintext secret in scannable form; screenshots sync to cloud
+  photo libraries. The encrypted `.wavvon-backup` +
+  recovery-kit idea ([identity-recovery.md](identity-recovery.md))
+  is the QR-shaped answer.
+
+**Tradeoff accepted**: the passkey is bound to the rp domain it was
+created on (the hub domain serving the web app). If that domain dies,
+the passkey can't be asserted elsewhere — the revealed 24-word phrase
+is the deliberate escape hatch, and the onboarding copy says so.
+
 ## Presence is global across hubs; per-hub quiet is hub mute, not status
 
 **Decision** (2026-07-10, same day as the DND-via-status decision below,

@@ -1,5 +1,14 @@
 # WebAuthn / Passkey Authentication
 
+> **Status update (2026-07-11)**: the hub ceremony (registration,
+> assertion, credential + trusted-device management) and the web
+> client integration are shipped. The **PRF master-key path is now
+> implemented on web**: identity create/restore via passkey PRF
+> (`apps/web/src/platform/prfIdentity.ts`, salt constant in
+> `packages/core/src/identity/prf.ts`) — see the decision entry in
+> [decisions.md](decisions.md). Desktop/Android PRF shims remain
+> future work, as does formal deprecation of the phrase-first flow.
+
 Today Wavvon generates an Ed25519 keypair from a random seed, stores
 the seed in `localStorage` (web) or `~/.wavvon/identity.json`
 (desktop/android), and uses session tokens to authenticate with hubs.
