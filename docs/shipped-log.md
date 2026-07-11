@@ -6,6 +6,20 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Web: account-switcher UX polish from live user testing
+  (2026-07-11)**: iterative session with the user driving a running
+  hub + both clients. Editable account labels behind a visible pencil
+  (the old click-the-name rename had zero affordance); the standalone
+  "Your public key" section merged into the account list with a
+  per-row copy-full-key button (canonical-aware); required label on
+  every new account (count-based prefill, dedupe keeps existing);
+  the list is now a real table (# | Label+pencil | Public key |
+  Actions) with fixed action positions (Switch/Copy/Remove; active row
+  shows a disabled Active); adding an account no longer auto-switches;
+  drag-and-drop ordering via a handle-only native-DnD # column with
+  keyboard fallback, persisted as device-local account_order
+  (18 new tests, 201 total) (clients `a9d18ef`, `f93e8c0`, `2876394`).
+
 - **Invite role policies — default role + member invites (2026-07-11)**:
   hub setting `default_invite_role_id` grants a role automatically to
   anyone joining via an invite with no explicit grant (both redemption
