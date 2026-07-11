@@ -6,6 +6,15 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Web: identity backup exports selected accounts (2026-07-11)**:
+  the encrypted backup gains a checkbox list when the device holds
+  multiple accounts (active pre-checked, select-all) — one passphrase,
+  one file. Envelope `version` 2: payload is always an array of
+  identity records; import still accepts v1 single-object files,
+  dedupes by pubkey, reports "N added, M already on this device", and
+  never replaces. Pure payload logic in
+  `utils/identityBackupPayload.ts` (15 tests) (clients `04b5d38`).
+
 - **Web: multi-account with device-local switcher (2026-07-11)**:
   multiple identities per device, isolated via
   `utils/accountScope.ts` localStorage namespacing (hub lists, session
