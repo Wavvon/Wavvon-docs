@@ -6,6 +6,20 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Web: multi-account with device-local switcher (2026-07-11)**:
+  multiple identities per device, isolated via
+  `utils/accountScope.ts` localStorage namespacing (hub lists, session
+  tokens, drafts, profiles, notify prefs, DM ratchet state);
+  `IdentityRecord.id` is now the account pubkey, registry = the
+  IndexedDB identity rows, switcher lives in Settings → Account
+  (switch = pointer swap + reload; removal = fingerprint-typed confirm
+  + namespace purge). Add-account reuses all setup paths via the
+  extracted `IdentitySetupScreen` (create/passkey/phrase/pair),
+  deduping by pubkey. No migration by design (pre-release). Also fixed
+  `IdentityBackupSection` reading a never-populated key (export always
+  failed). Client-only — no hub changes (clients `99d363e`; decision
+  in [decisions.md](decisions.md)).
+
 - **Web: passkey-derived identity via WebAuthn PRF (2026-07-11)**:
   identity setup gains "Create identity with a passkey" and "I have a
   passkey" — the passkey's PRF output (salt `wavvon-master/v1`, pinned

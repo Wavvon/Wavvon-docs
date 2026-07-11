@@ -6,6 +6,43 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Multi-account is device-local storage namespacing, not a synced concept
+
+**Decision** (2026-07-11, implemented web same day): a device can hold
+multiple identities ("accounts") and switch between them. An account is
+purely **device-local client state** — the account list is never synced
+to any hub, never enters the prefs blob or any personal-axis store, and
+no hub knows or cares that two pubkeys share a browser. Each account's
+local state (hub list, session tokens, drafts, profiles, notification
+prefs, DM ratchet state) is isolated by a localStorage namespace
+(`wavvon:acct:<pubkey>:<key>`, one helper module all per-user storage
+routes through); the account registry is just the rows of the existing
+IndexedDB identity store keyed by pubkey. Switching swaps the
+active-account pointer and reloads the app — guaranteed teardown of
+sockets/voice, replaceable later by an in-place switch. Removing an
+account requires typing its fingerprint and purges its namespace
+(session tokens and ratchet state must not outlive the identity on a
+shared device).
+
+**Alternatives considered**:
+
+- **Simultaneous multi-account sessions** — rejected for v1: parallel
+  socket/voice/notification stacks per account for marginal benefit;
+  two browser profiles already deliver it for free.
+- **Syncing the account list across devices** — rejected: which
+  identities live on which device is the user's per-device choice
+  (identity A on devices 1+2, identity B only on device 2 is fine).
+  Pairing already handles per-identity device enrollment; an
+  account-list sync would create a new cross-identity linkage that
+  contradicts identities being unrelated keypairs.
+- **Cross-account safeguards** (wrong-account posting warnings) —
+  rejected: each account has its own hub list; using two accounts on
+  one hub is the user's responsibility, not the client's.
+- **Backward-compatible migration of the single-account store** —
+  deliberately skipped (pre-release): the IndexedDB upgrade drops the
+  legacy singleton row; existing installs re-import via
+  phrase/passkey/pairing.
+
 ## Passkey PRF output is the identity entropy, not a new key layer
 
 **Decision** (2026-07-11, implemented web-only same day): the
