@@ -6,6 +6,23 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Live e2e session against a real hub: 4 bugs found + fixed
+  (2026-07-11)**: booted a fresh hub + Postgres locally and drove the
+  web client headless through owner-invite join, role-granting invites,
+  lobby PoW promotion, channels, and DMs. Found and fixed same-day:
+  (1) hub never registered `GET /channels/{id}/polls` — poll listing
+  405'd on every channel load since polls shipped; (2) hub never
+  registered `GET /conversations/{id}` and (3) `createConversation`
+  sent `member_pubkeys` for the server's `members` — together with the
+  dead Message-button code fixed earlier, starting a DM was impossible
+  in web; (4) `handleSendDm` swallowed failures after clearing the
+  input (silent message loss) — now restores text + shows the error.
+  Cosmetic: DM composer placeholder showed "Invia" (send-button key).
+  Live-verified after fixes: owner invite → owner role, member invite
+  → `tester` role (DB-checked), lobby confine → PoW → `promoted`
+  (DB-checked), DM started from profile card and received cross-account
+  (server `d88722f`, clients `cc1c6e6` + `c2af774`).
+
 - **Paired-device DM canonical attribution — fixed cross-repo
   (2026-07-11)**: implements the same-day design (decisions.md,
   [multi-device.md](multi-device.md)). Pairing now wraps the canonical
