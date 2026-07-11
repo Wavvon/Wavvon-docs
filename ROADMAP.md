@@ -62,29 +62,37 @@ fixed, its entry moves to the shipped log.
 waves 1–3 (voice roster, kick/ban membership, timestamps, silence, admin
 surfaces, welcome banner, survey→roles, …). Still open:
 
-- [ ] **Create-anything from the channel right-click menu** — the ctx menu
-  creates only channels/categories; events (and other creatables) should be
-  reachable there too.
-- [ ] **Create-hub-via-discovery from the + button** — DESIGNED
-  ([hub-creation-wizard.md §4](docs/hub-creation-wizard.md#4-client-entry--create-a-hub-from-the--button),
-  [decisions.md](docs/decisions.md)). `+` gains a Join/Create fork; Create
-  is a two-exit router (client can't spawn a server). **Buildable next
-  slice = self-host handoff**: fork UI + a panel that opens
-  `discovery.wavvon.app/new` or shows the `wavvon-hub setup` one-liner +
-  an owner-invite paste field that delegates to the existing invite-redeem
-  path. UI-only over shipped primitives (invite-first defaults, first-boot
-  owner invite, role-granting invites) — **no new farm/hub endpoint**;
-  Wavvon-web first. **Managed/farm exit deferred** — needs
-  `POST /farm/hubs` provisioning + auto-spawn lifecycle
-  (`farm/src/hub_manager.rs` + `agent`), see
-  [farm-impl.md §C](docs/farm-impl.md#c-user-facing-hub-creation-flow).
+- [x] ~~**Create-anything from the channel right-click menu**~~ — SHIPPED
+  (clients, 2026-07-11): the ctx menu gains "Create event" (mirrors the
+  existing create-channel/category admin gate) and "Create poll" (gated on
+  `send_messages`, matching the composer's own poll button), both reusing
+  `EventComposer`/`PollComposer` as self-contained modals targeting the
+  right-clicked channel. Forum post creation considered and **not** added —
+  `ForumComposer` isn't modal-shaped (embedded in `ForumView`'s post
+  list/detail navigation), so wiring it from the context menu would invent
+  a new flow rather than reuse an existing one.
+- [x] ~~**Create-hub-via-discovery from the + button**~~ — SHIPPED (clients
+  `da250c9`): `+` gains a Join/Create fork (`CreateHubFork`); Join opens
+  the existing `AddHubModal` unchanged, Create shows the self-host handoff
+  panel (`CreateHubSelfHost`: web-wizard link, copyable `wavvon-hub setup`
+  one-liner, owner-invite paste delegating to the existing invite-redeem
+  path) or, only when the user already has a known farm from their joined
+  hubs' `/info.farm_url`, the pre-existing farm `CreateHubWizard` as a
+  sibling exit (per-farm cards already disable on unreachable/quota-
+  exceeded, so no dead option ships). **Found + fixed 2026-07-11**: the
+  fork's own popover was rendered as `position: absolute` inside
+  `.hub-sidebar`, which sets `overflow-x: hidden` — the popover was in the
+  DOM but silently clipped, never actually visible. Rebuilt on the
+  `context-menu`/`context-menu-overlay` fixed-position pattern (matching
+  the channel right-click menu) and wired the `+` button's title and the
+  two menu entries to the `hub.add_or_create`/`hub.join`/`hub.create` i18n
+  keys, which already existed but were unused.
 - [x] ~~**Multiple named custom themes per user**~~ — SHIPPED (clients
   `afc07a8`): named theme store with apply/rename/duplicate/delete, legacy
   single-skin migrated, gallery imports create new entries. (web;
   desktop/android single-slot copies still to port.)
-- [ ] **AddHubModal has no i18n** (pre-existing, surfaced during the welcome
-  banner wiring); several `hub.admin.overview.*` de/es values are still
-  English placeholders.
+- [x] ~~**AddHubModal has no i18n**~~ — SHIPPED (clients `71d1b51`); the
+  `hub.admin.overview.*` de/es placeholders are also translated now.
 
 ## 📌 Wishlist (undesigned)
 
