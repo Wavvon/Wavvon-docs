@@ -39,6 +39,17 @@ gone — and they only recover hub-level standing, not the key itself.
 
 # Part 1 — Backup / export
 
+> **Implementation note (2026-07-11)**: the web client shipped a working
+> version of this design (`IdentityBackupSection.tsx`, envelope
+> `version: 2` with a multi-account array payload — see
+> [shipped-log.md](shipped-log.md)) with one deliberate deviation: the
+> KDF is **PBKDF2-SHA256, not Argon2id**, because WebCrypto has no
+> Argon2 and the design keeps crypto out of JS-land dependencies. The
+> envelope stores its KDF parameters, so a future client can move to
+> Argon2id (e.g. via a WASM build) without breaking old backups —
+> exactly the evolution path the format was designed for. The spec
+> below still describes Argon2id as the target.
+
 ## What's in the backup
 
 The shipped identity file lives at `~/.wavvon/identity.json` (written by
