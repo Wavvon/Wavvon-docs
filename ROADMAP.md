@@ -176,6 +176,17 @@ surfaces, welcome banner, survey→roles, …). Still open:
 
 ## ⚠️ Known issues
 
+- **Desktop: `get_pending_deep_link` command missing** — found 2026-07-11
+  launching `npm run tauri dev`: shared frontend code invokes a Tauri
+  command the desktop Rust shell doesn't register (startup unhandled
+  rejection; non-fatal). `wavvon://` deep links likely broken on
+  desktop. Register the command in `apps/desktop/src-tauri` or gate the
+  call behind the platform adapter.
+- **Desktop: `npm run dev` doesn't launch Tauri** — the script only runs
+  Vite (port 1420); the real dev command is `npm run tauri dev`.
+  Container CLAUDE.md corrected 2026-07-11; consider renaming the
+  scripts to match expectations.
+
 - **Android APK release build fails in native cross-compilation** — found
   2026-07-06 cutting clients v0.3.0/v0.3.1 (workflow paths fixed in
   `16c69cc`, then the real blocker surfaced): `audiopus_sys` builds
