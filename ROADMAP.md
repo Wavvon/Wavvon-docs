@@ -200,13 +200,6 @@ surfaces, welcome banner, survey→roles, …). Still open:
   pass (see [`shipped-log.md`](docs/shipped-log.md)) covered everything
   else; the importer (`export` with a real bot token, `apply` against a
   running hub) hasn't been exercised live.
-- **Paired-device DMs attribute to the subkey, not the canonical identity** —
-  found 2026-07-04 building pairing. The community experience (messages,
-  membership, roles, bans) is token-based and already resolves to the shared
-  canonical identity, but DM envelopes and the published DH key are signed with
-  the device's own subkey seed, so a DM sent from a paired device shows its
-  subkey as sender. Fix: sign/attribute DMs + DH key against the canonical
-  identity (or have the hub map subkey→canonical on the DM path).
 - **Windows installer unsigned** — SmartScreen warning on first run; workaround
   "More info → Run anyway". See the code-signing blocker above.
 - **Bot deferred scope** — voice/screen-share injection, bot DMs,

@@ -6,6 +6,21 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Paired-device DM canonical attribution — fixed cross-repo
+  (2026-07-11)**: implements the same-day design (decisions.md,
+  [multi-device.md](multi-device.md)). Pairing now wraps the canonical
+  X25519 DH scalar for the new subkey (`wrapped_dh_seed_hex` — agreement
+  capability without signing capability); DM envelopes gain optional
+  `signer_cert` with tiered verification (origin hub binds via session;
+  federation resolves via users row / device registry);
+  `FederatedDmRequest` forwards the cert. Cert-less envelopes stay
+  byte-identical — no wire-vector break. Client attaches the cert and
+  attributes to canonical when the signing key differs; paired devices
+  never publish the DH key. This makes paired-device E2E DMs work at
+  all — they previously failed hub signature verification outright.
+  6 new hub flow tests + 7 client decision tests; full suites green
+  (server `aab8107`, clients `974fe5e`).
+
 - **Web: full-archive import/restore (2026-07-11)**: "Restore from
   archive…" decrypts the export, resolves-or-creates its identity as an
   account, and restores hub list/drafts/ignored users/voice gains into
