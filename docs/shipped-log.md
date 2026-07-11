@@ -6,6 +6,72 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Web: full-archive import/restore (2026-07-11)**: "Restore from
+  archive…" decrypts the export, resolves-or-creates its identity as an
+  account, and restores hub list/drafts/ignored users/voice gains into
+  that account's namespace with skip-and-report conflicts (local data
+  never silently overwritten); DM history, home-hub designations, and
+  the encrypted-prefs `gap_note` reported as not-restorable per
+  [data-export.md](data-export.md) §5. Pure merge logic +12 tests incl.
+  cross-account isolation (clients `53ccce2`).
+
+- **Hub: voice_udp_addr on /info + demo-seed invite fix + mini-app
+  scoped tokens (2026-07-11)**: `/info` advertises the voice UDP
+  endpoint (from `WAVVON_PUBLIC_URL`/LAN advertise addr; farm
+  serial-routing slice). demo-seed redeems the first-boot owner invite
+  (`--invite`/`INVITE_CODE`), mints a roster invite, and writes real
+  `secret_key_hex` (was empty) — clears the known issue. **Security**:
+  `bot_app_join` sessions are now `scope='mini_app'` bound to one
+  channel+bot — REST fully confined, WS confined to the bound channel,
+  voice rejected; closes the full-session gap found in the
+  [bot-capability-layer.md](bot-capability-layer.md) design pass
+  (hub `59e28ec`, 6 confinement tests).
+
+- **Web: ctx-menu create event/poll + invisible + popover fix
+  (2026-07-11)**: channel right-click menu gains Create event
+  (admin-gated) and Create poll (`send_messages`-gated), reusing the
+  existing composers. Found + fixed: the shipped Join/Create `+` popover
+  (`da250c9`) was silently clipped by `.hub-sidebar` `overflow-x:hidden`
+  — never actually visible; rebuilt on the fixed-position context-menu
+  pattern and wired its unused i18n keys (clients `83a7676`).
+
+- **Web: role-granting invite admin UI + invite-expiry fix
+  (2026-07-11)**: `InviteManager` with role picker (limited below the
+  admin's own max priority), single-use/24h clamp on admin-permission
+  roles, role chips on the invite list. Fixed pre-existing bug: create
+  body sent `expires_in` but the server reads `expires_in_seconds` —
+  admin-typed expiry was silently dropped (clients `68a1f73`).
+
+- **Hub: /join/:code role grants + redemption-time priority guard;
+  lobby is_hub regression test (2026-07-11)**: `apply_invite_role_grant`
+  shared by both redemption paths; priority guard now re-checked at
+  redemption (inviter demoted after minting no longer confers the role —
+  grant withheld, join succeeds; first-boot system invite exempt). Added
+  the missing test that `is_hub` peers are never lobby-confined
+  (exemption itself shipped in `8dc6739`) (hub `5d2b7a8`).
+
+- **Web: lobby soft-landing polish (2026-07-11)**: persistent sidebar
+  clock badge on lobby-scoped hubs (visible when not the active hub) +
+  promote-decision forks extracted to `utils/lobbyDecision.ts` with 15
+  tests. Core flow had shipped in `c1f95d0` (clients `1474561`).
+
+- **Designs: bot capability layer, forum federation, paired-DM fix
+  (2026-07-11)**: [bot-capability-layer.md](bot-capability-layer.md)
+  (admin-granted capability spine, game modal, video via screen-share
+  relay, Phase-1 tic-tac-toe slice); [forum.md](forum.md) §9 federation
+  via read-through proxy; paired-device DM attribution fix designed
+  (decisions.md + [multi-device.md](multi-device.md) implementation
+  plan) — design pass found paired-device E2E DMs were fully broken,
+  not just mis-attributed (docs `5c3995b`, `df9fc4c`).
+
+- **Web: identity/account i18n sweep + de/es admin translations
+  (2026-07-11)**: ~150 new keys across IdentitySetupScreen,
+  IdentityBackupSection, AddHubModal (clears that known issue), and six
+  account-section components + shared BlockIgnoreSection; raw
+  "Error: No active hub" replaced with translated empty-states; 18
+  `hub.admin.overview.*` de/es English placeholders translated
+  (clients `71d1b51`, `f7158d5`).
+
 - **Web: identity backup exports selected accounts (2026-07-11)**:
   the encrypted backup gains a checkbox list when the device holds
   multiple accounts (active pre-checked, select-all) — one passphrase,

@@ -36,20 +36,17 @@ fixed, its entry moves to the shipped log.
 
 ## 🔍 Flow-test findings (2026-07-06, private-hub + wizard flows)
 
-- [x] ~~**Lobby soft-landing** server half~~ — SHIPPED (hub `bded78c`):
-  admits sub-level joins as `scope="lobby"`, confined + promotable; owner/
-  first-user exempt; preset gate restored. Remaining (task, not blocker):
-  **web lobby UX** (background PoW + auto-promote) and **is_hub peer
-  exemption** from the gate.
-- [x] ~~**Invite-first joining**~~ — SHIPPED (hub `10f3e2d`): new hubs default
-  invite_only=true (templates opt out); first boot mints + logs a one-time
-  owner-granting invite (wavvon:// + https twin), doctor prints it. Web: an
-  admin surface for the owner invite / role-granting invite creation is a
-  small frontend follow-on.
-- [x] ~~**Role-granting invites**~~ — SHIPPED (hub `10f3e2d`): invites carry an
-  optional grant_role_id; priority guard + forced single-use/expiry for
-  admin roles; first-boot owner invite is the documented exception. Applies
-  on the /auth/verify path (the /join/:code path is a small follow-on).
+- [x] ~~**Lobby soft-landing**~~ — fully SHIPPED: server half (hub `bded78c`),
+  web UX (clients `c1f95d0`, sidebar badge + decision-logic extraction
+  `1474561`), is_hub peer exemption (hub `8dc6739`, regression test
+  `5d2b7a8`). Remaining niche gap: no blocking pre-join PoW flow for
+  `lobby_enabled=false` hubs with `min_security_level>0` (honest 403 today).
+- [x] ~~**Invite-first joining**~~ — SHIPPED (hub `10f3e2d`); web admin
+  surface for role-granting invite creation SHIPPED 2026-07-11 (clients
+  `68a1f73`, also fixed silently-dropped invite expiry).
+- [x] ~~**Role-granting invites**~~ — SHIPPED (hub `10f3e2d`); the
+  /join/:code path + redemption-time priority guard re-check SHIPPED
+  2026-07-11 (hub `5d2b7a8`).
 - [x] ~~**`wavvon-hub setup` interactive install wizard**~~ — SHIPPED (hub
   `89119a2`): interactive-or-scripted; emits docker-compose.yml (+ Postgres
   sidecar) + .env with a generated password, public/lan modes, optional
@@ -110,8 +107,8 @@ surfaces, welcome banner, survey→roles, …). Still open:
   socket bridge; also fixed two latent `process_port` decode bugs that silently 404'd
   every proxied hub. See
   [farm-impl.md § Serial routing — first slice](docs/farm-impl.md#serial-routing--first-slice).
-  **Next slices**: `voice_udp_addr` on the hub's `/info` (hub-side), then lifecycle/SSO
-  per [farm-model.md](docs/farm-model.md).
+  `voice_udp_addr` on the hub's `/info` SHIPPED 2026-07-11 (hub `59e28ec`).
+  **Next slices**: lifecycle/SSO per [farm-model.md](docs/farm-model.md).
 - **Project visibility push** — remaining: a hosted demo hub, directory listings, launch post.
   Needed both for adoption and for the code-signing re-application.
   *(2026-06-10: all six READMEs rewritten as landing pages with badges,
@@ -126,13 +123,17 @@ surfaces, welcome banner, survey→roles, …). Still open:
 - **Cross-farm cert relay** — propagate certifications across farm-managed hubs,
   building on badge/cert signer. Design-stage; **depends on farm layer**.
   See [`future-features.md`](docs/future-features.md).
-- **Gaming + rich bots capability layer** — design the Telegram-class bot runtime.
-  First slice (bot audio injection) already shipped hub-side 2026-07-04
-  ([soundboard.md](docs/soundboard.md) §2); next: capability-layer design.
-- **Forum post federation across alliances** — v1 forums are hub-local
-  only; posts/replies don't federate over alliance-shared channels. No
-  design work started; overlaps the alliance space-sharing work above.
-  See [`forum.md`](docs/forum.md).
+- **Gaming + rich bots capability layer** — DESIGNED 2026-07-11:
+  [bot-capability-layer.md](docs/bot-capability-layer.md) (consent spine:
+  admin-granted capabilities + effective-capability resolver; game modal =
+  promoted mini-app; video via screen-share relay; Phase-1 slice =
+  grants + resolver + modal → playable tic-tac-toe). The scoped-token
+  prerequisite it flagged already SHIPPED (hub `59e28ec`). Next: build
+  Phase 1.
+- **Forum post federation across alliances** — DESIGNED 2026-07-11:
+  [forum.md](docs/forum.md) §9 (read-through proxy to the owning hub,
+  same pattern as alliance messages; hub-vouched attribution via
+  `author_hub`; first slice = read-only GET). Next: build the read slice.
 - **Event role-slot sign-ups + reminders** — *server SHIPPED 2026-07-04*
   (hub `825b0da`, [`events.md`](docs/events.md) §2-§3); *web UI SHIPPED
   2026-07-04* (clients `dea0df0`, `EventComposer.tsx` slot editor +
@@ -163,12 +164,13 @@ surfaces, welcome banner, survey→roles, …). Still open:
   gated-plaintext tiers, `/info` trust fields, doctor output. Remaining
   (client-era per §5–§6): native "nearby hubs" discovery UX, QR/fingerprint
   pinning payloads, LAN federation.
-- **Personal data export (full archive)** — *export half SHIPPED
-  2026-07-04* (clients `542891e`, [`data-export.md`](docs/data-export.md)).
-  Two follow-ups: (1) **prefs-blob decrypt** — web has no decrypt path
-  for the hub-synced E2E prefs blob, so v1 exports a local snapshot with
-  a `gap_note`; (2) **import/restore** (§5) not built. Cross-client
-  archive compat (desktop↔web envelope) also deferred.
+- **Personal data export (full archive)** — export SHIPPED 2026-07-04
+  (clients `542891e`); **import/restore SHIPPED 2026-07-11** (clients
+  `53ccce2`: restore-into-account with skip-and-report conflicts,
+  unrestorable items surfaced). Remaining: **prefs-blob decrypt** (web has
+  no decrypt path for the hub-synced E2E prefs blob — export carries a
+  `gap_note`); custom-theme store is still device-global, not
+  account-scoped; cross-client archive compat (desktop↔web) deferred.
 - **Live captions in voice** — local STT, desktop-era (too heavy for
   web). See [`future-features.md`](docs/future-features.md).
 
@@ -181,13 +183,6 @@ surfaces, welcome banner, survey→roles, …). Still open:
   ("incompatible with aarch64linux"). The NDK toolchain isn't reaching
   the crate's C build. No APK has ever shipped; needs voice-crate build
   wiring (cargo-ndk or CC/CMake toolchain env in the workflow).
-- **demo-seed broken by invite-first defaults** — fresh hubs now boot with
-  `invite_only=true` (hub `10f3e2d`), so demo-seed's plain `/auth/verify`
-  403s before it can create Nova. Workaround used for the 2026-07-06
-  README asset recapture: flip `hub_settings.invite_only` to `false` on
-  the fresh hub before seeding. Proper fix: teach demo-seed to redeem the
-  first-boot owner invite. Also found: its `secret_key_hex` output fields
-  are empty — only recovery phrases are usable from the creds file.
 - **Role assignment — client parity** (web shipped 2026-07-04; see
   [`shipped-log.md`](docs/shipped-log.md)). Remaining, tracked in
   [`client-parity.md`](docs/client-parity.md):
