@@ -6,6 +6,16 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Web: nickname + avatar step in first-run onboarding (2026-07-11)**:
+  all three identity-setup paths (create, recover from phrase/hex, pair
+  with existing device) now finish on a profile step — nickname input +
+  the existing `AvatarChooser` (upload or generated) in a new
+  `ProfileSetupStep` component. The choice is saved as the user's
+  default named profile, which the existing first-hub effect applies
+  automatically via `PATCH /me`; skipping keeps the old bare
+  display-name modal as the fallback on first hub join. New
+  `onboarding.profile.*` keys in all four locales (clients `89222bd`).
+
 - **Desktop: hub-synced presence with DND gating + global broadcast
   (2026-07-11)**: ported web's full presence set (web `5af06ca`,
   `e137c87`, `ac8e251`) — the local-only, purely visual status picker in
