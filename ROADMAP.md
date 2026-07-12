@@ -202,12 +202,22 @@ surfaces, welcome banner, survey→roles, …). Still open:
   **desktop** has one to align with web's filtering. (Web has a full
   create / edit-permissions / delete-role UI — Roles admin tab, covered by
   `e2e/live/13`; **android** still lacks it.)
+- **Settings IA + profile model — desktop/Android parity** — web shipped
+  2026-07-12 (Accounts settings group, default-profile-per-account,
+  WYSIWYG multi-context profile editor, bio/pronouns display; see
+  [decisions.md](docs/decisions.md)); desktop and Android still use the
+  named-preset pool, the old single Account tab, and don't render
+  bio/pronouns on profile cards (hub already serves them).
 - **Presence status — Android parity** — web shipped 2026-07-05, DND
   gating + global broadcast 2026-07-10, and the full set ported to
   desktop 2026-07-11 (clients `81de52c`, see
   [`shipped-log.md`](docs/shipped-log.md)). Android still has none of
   it: no status picker, no `member_status` handling in its Tauri shell,
   no DND notification gating.
+- **Flaky e2e: `account-switch.spec.ts` under parallel workers** — failed
+  twice on 2026-07-12 in full 8-worker runs, passes every solo/re-run;
+  likely a timing race in the switch-then-assert flow. Deflake or mark
+  serial.
 - **Discord importer still needs a live run** — the 2026-07-04 web live
   pass (see [`shipped-log.md`](docs/shipped-log.md)) covered everything
   else; the importer (`export` with a real bot token, `apply` against a

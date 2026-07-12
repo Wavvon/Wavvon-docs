@@ -6,6 +6,89 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Profile cosmetics: bio + pronouns in; activity surfacing declined
+
+**Decision** (2026-07-12, user call, inspired by Discord's profile
+surface): member profiles gain **bio** (≤ 500 chars) and **pronouns**
+(≤ 40 chars) — per-hub values stored on each hub next to
+display_name/avatar, defaults carried in the account's default profile.
+The editor is a **WYSIWYG card**: the profile card itself is the form
+(inline inputs, click-to-edit avatar with hover pencil), with per-context
+drafts and one "Save changes" persisting everything edited.
+
+**Alternatives**: Discord-style extras were considered — profile widgets,
+a wishlist tab, and "last activities". Widgets/wishlist are deferred (they
+lean on a store/game ecosystem Wavvon doesn't have; banner + accent color
+are the natural next cosmetics instead). **"Last activities" is declined
+outright**: surfacing what a user recently did is activity tracking, and
+Wavvon's no-telemetry ethos means it must not exist as a default-on
+profile filler. If ever wanted, it needs its own explicitly opt-in design.
+
+**Tradeoff**: two more nullable columns on `users` and two more fields on
+the /me PATCH surface, in exchange for profiles that feel like a person.
+The member_updated WS broadcast stays name/avatar-only — cards fetch live,
+so bio edits don't need hub-wide push.
+
+**Outcome**: hub + web shipped 2026-07-12. Desktop/Android parity pending
+(ROADMAP).
+
+## Profiles: one default per account; per-hub identity lives on the hub
+
+**Decision** (2026-07-12, user call during the settings redesign): the
+client-side named-profile preset pool and its per-hub assignment map are
+deleted. Each account keeps exactly one **default profile** (display name +
+avatar, local per-account storage) that prefills and auto-applies when the
+account joins a hub. How you appear on a hub is edited in place and stored
+by that hub itself (member state via `PATCH /me`) — the hub is the source
+of truth; nothing per-hub is mirrored client-side.
+
+**Alternatives**: (a) keep the preset pool (status quo) — presets you
+"apply" to hubs, with a local hub→profile map; (b) make the pool
+device-global so profiles can be reused across accounts, with a per-account
+default pointer.
+
+**Tradeoff**: we lose one-click re-application of a persona across many
+hubs. In exchange the model aligns exactly with the two-axis rule: per-hub
+profile is community-axis state on the community hub (it already was,
+server-side — the pool just duplicated it), and the single default profile
+is personal-axis state that can later ride the per-account prefs blob to
+other devices. Option (b) was rejected because device-global state is owned
+by no identity — no keypair to sign it, no home hub to sync it, stuck
+per-device forever — and because cross-account profile sharing nudges users
+into publicly linking identities that separate accounts exist to keep
+apart. Alpha state: no migration; orphaned localStorage keys are ignored.
+
+**Outcome**: shipped web 2026-07-12. Desktop/Android still on the old
+model (tracked in ROADMAP known issues).
+
+## Settings IA: "Accounts" macro group with four scoped tabs
+
+**Decision** (2026-07-12, user call, three iterations): user settings nav
+gains an **Accounts** group with four tabs — **Profile** (default profile,
+per-hub profile, badges/certifications), **Manage accounts** (switcher
+table, recovery phrase, identity backup, full archive, home hubs),
+**Devices** (paired devices, passkeys, trusted devices — all "what can act
+as this account, revoke it"), **Privacy** (blocked/ignored users — about
+other people, not account access). The "Managing account" selector is
+owned by SettingsPage and shared across tabs, so a selection survives tab
+changes; the Profile tab participates too (a non-active account's default
+profile is plain local scoped storage — editable without switching). The
+language selector moved to Appearance (app-level, not account-level).
+
+**Alternatives**: one mega Account tab (status quo — ~1,400 lines of
+sections, and four active-only sections sat *below* the managing selector
+while ignoring it); two tabs (accounts list vs. everything else — re-merges
+unrelated concerns); splitting Devices further per section (three tabs of
+one list each).
+
+**Tradeoff**: more tabs to scan in the nav, but each answers one question,
+and grouping certifications under Profile (identity presentation, not
+security) and recovery/backup next to the switcher (getting identities
+on/off the device) removes the old tab's mixed active-only/managing
+semantics.
+
+**Outcome**: shipped web 2026-07-12 with the profile-model change above.
+
 ## Account switching is an in-place key-remount, guarded, not a reload
 
 **Decision** (2026-07-12, user call after live testing, supersedes the

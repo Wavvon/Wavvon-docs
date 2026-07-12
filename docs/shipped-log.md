@@ -6,6 +6,56 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Hub + web: bio & pronouns + WYSIWYG profile editor (2026-07-12)**:
+  members get per-hub `bio` (≤ 500 chars) and `pronouns` (≤ 40) —
+  additive `users` columns, PATCH/GET /me and the public profile
+  endpoint carry them, avatar-style clear-on-empty-string, 400 on
+  oversize, three new integration tests (hub `2aa7c11`). Web-side the
+  profile editor became the card itself: inline name/pronouns/bio
+  inputs styled as the member card, click-to-edit avatar with a hover
+  pencil (`avatar-edit-btn`/`profile-inline-input` in the shared
+  styles.css), per-context **drafts** with "•" dirty markers in the
+  context dropdown, and a single "Save changes" persisting every edited
+  context (default → scoped storage, hubs → their own sessions). The
+  default profile and first-join auto-apply carry bio/pronouns;
+  UserProfileCard displays both, and the editor card has an always-present badges section under the bio (per-hub badges in hub contexts, identity-wide curated badges in the default context, honest empty state) with the avatar chooser in a proper modal; the bio field auto-grows with its content (200px floor, no manual resize handle) (also fixed two latent UserProfileCard bugs: badges typed as strings while the hub serializes {id,label} objects — a guaranteed render crash — and the card using the undefined .modal-box class, rendering the dialog transparent). "Use default" has a fixed home next to the context dropdown, disabled when inapplicable, instead of appearing and disappearing. Round-trip verified against a live
+  hub's Postgres (clients `77c5cad`, squashed feature commit). Widgets/
+  wishlist deferred and
+  activity surfacing declined — see [decisions.md](decisions.md).
+
+- **Web: profile context dropdown — edit any hub's profile from Settings
+  (2026-07-12)**: the Profile tab's two fixed editors (default + active
+  hub) became one editor with a context dropdown (the Discord
+  server-profiles pattern): pick the default profile or *any* joined
+  hub and edit how you appear there in place. Per-hub reads/writes go
+  through that hub's own live session via the new
+  `platform/commands/myProfile.ts` (`getMyProfileOnHub` /
+  `updateMyProfileOnHub` on top of `hubFetchWithToken` — the active hub
+  isn't special); a friendly note covers hubs with no session this run; "Use default" in hub contexts links the context to the default profile persistently (per-account stored set): the hub mirrors the default from then on and every save of the default also updates followed hubs; editing a field there detaches it.
+  Hub contexts are active-account-only (sessions belong to the active
+  account); the default profile stays editable for any on-device
+  account. Verified live against a real hub (PATCH landed in the hub
+  DB); live/24 spec rewritten for the dropdown flow.
+
+- **Web: settings "Accounts" group + default-profile-per-account
+  (2026-07-12)**: user settings reorganized into an Accounts nav group
+  with four tabs — Profile / Manage accounts / Devices / Privacy — the
+  "Managing" selector lifted to `SettingsPage` (selection survives tab
+  changes, e2e-proven), certifications moved under Profile, language
+  selector moved to Appearance. The named-profile preset pool +
+  per-hub assignment map were **deleted** (see
+  [decisions.md](decisions.md)): each account now has one default
+  profile (new `DefaultProfileSection`, editable for any on-device
+  account via scoped storage without switching) and the per-hub
+  profile is edited in place against the hub (`HubProfileSection`,
+  `PATCH /me`). Onboarding's profile step now writes the default
+  profile directly; the first-hub-join effect reads it at fire time.
+  All four locales updated (13 new keys, 20 dead ones removed);
+  10 mock-API e2e pass incl. the rewritten `settings-tabs` /
+  `account-managing` specs; live specs repointed. Alpha: no
+  migration, old localStorage keys orphaned by design. Desktop/
+  Android parity pending (ROADMAP).
+
 - **Web: manage any account without switching — "Managing" selector
   (2026-07-12)**: the Account tab gains a "Managing: [account]"
   selector; the per-account sections operate on the selected account.
