@@ -6,6 +6,24 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Hub + web: self-authored interests block + profile cosmetics
+  (2026-07-12)**: opt-in **"Now / Looking for"** on the profile — an
+  ordered list (≤6) of self-written entries, each a fixed verb
+  (Playing / Want to play / Looking for / Into) + free text (≤80). Plus
+  an **accent color** and uploaded **cover image** overriding the
+  key-derived banner (precedence cover → accent → identity). All three
+  are additive `users` columns riding PATCH/GET `/me` and the profile
+  endpoint (interests validated: kind enum, text 1..80, ≤6; accent hex;
+  cover ≤400k chars; empty clears), per-context like bio/pronouns, no
+  wire-format/federation work (hub `f11526c`). Web renders them in the
+  editor (banner-click modal for cover/accent; verb-row editor for
+  interests) and on `UserProfileCard` so other members see them; cover
+  reuses the avatar data-URL approach (client-downscaled JPEG). This is
+  the opt-in counterpart to the declined *automatic* activity tracking
+  — nothing observed or logged. Verified live: interests, accent, and a
+  cover JPEG round-trip into Postgres (clients `6460138`). See
+  [decisions.md](decisions.md).
+
 - **Web: Profile tab redesigned as an identity-colored card
   (2026-07-12)**: the tab read as a plain form in an empty pane; it's
   now a real profile. The WYSIWYG editor card gained a banner whose

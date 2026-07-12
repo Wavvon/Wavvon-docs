@@ -204,10 +204,15 @@ surfaces, welcome banner, survey→roles, …). Still open:
   `e2e/live/13`; **android** still lacks it.)
 - **Settings IA + profile model — desktop/Android parity** — web shipped
   2026-07-12 (Accounts settings group, default-profile-per-account,
-  WYSIWYG multi-context profile editor, bio/pronouns display; see
-  [decisions.md](docs/decisions.md)); desktop and Android still use the
-  named-preset pool, the old single Account tab, and don't render
-  bio/pronouns on profile cards (hub already serves them).
+  WYSIWYG multi-context profile editor, bio/pronouns/interests +
+  accent/cover cosmetics; see [decisions.md](docs/decisions.md)); desktop
+  and Android still use the named-preset pool, the old single Account tab,
+  and don't render bio/pronouns/interests or the cosmetic banner on
+  profile cards (hub already serves all the fields).
+- **Interests "browse / filter by" (Slice 2, undesigned)** — "who else is
+  Looking for X / Playing Y" on the member surface. Needs queryable
+  storage (a `user_interests` child table or index/FTS), not the current
+  JSON column — decide when picked up. See [decisions.md](docs/decisions.md).
 - **Presence status — Android parity** — web shipped 2026-07-05, DND
   gating + global broadcast 2026-07-10, and the full set ported to
   desktop 2026-07-11 (clients `81de52c`, see

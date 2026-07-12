@@ -6,6 +6,42 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Self-authored interests block + profile cosmetics (accent, cover)
+
+**Decision** (2026-07-12, user call): members get an opt-in **"Now /
+Looking for"** block — an ordered list (≤ 6) of self-written entries, each a
+fixed verb (`playing` / `want` / `lfg` / `into`) plus free text (≤ 80
+chars). Stored per-hub on the hub next to bio/pronouns, seeded from the
+default profile — the same two-axis shape. Plus two cosmetics: an **accent
+color** and an uploaded **cover image**, both overriding the key-derived
+banner gradient (precedence cover → accent → identity). All three ride the
+existing `/me` PATCH/GET and `/users/{pubkey}/profile` — no wire-format or
+federation work.
+
+**This reverses the earlier "activity surfacing declined" stance for the
+opt-in case only.** The line that still holds: no *automatic* activity
+history (see the entry below). This block is the opposite — nothing is
+observed or logged; you type "playing X" yourself and delete it yourself.
+The four fixed verbs (rather than free tags) exist so a hub can group
+members ("who else is Looking for X") without unmatchable-tag noise or a
+moderation surface.
+
+**Alternatives**: free-text-only interests (rejected — collapses into bio,
+kills grouping); arbitrary user tags (rejected — unmatchable, moderation
+surface); identity-wide-only placement (rejected — matchmaking needs *this
+hub's* members to see it, which is community-axis); federation now
+(deferred — needs a signed public-profile envelope that doesn't exist yet).
+
+**Tradeoff**: interests JSON + two cosmetic columns and more `/me` surface,
+in exchange for profiles that help people find common ground. Cover images
+reuse the avatar data-URL approach (client-downscaled to a small JPEG,
+length-capped server-side) so no new image-storage or moderation surface.
+A "browse everyone Looking for X" filter is a tempting Slice 2 but wants
+queryable storage (a child table), not the JSON column — deferred.
+
+**Outcome**: hub + web shipped 2026-07-12. Desktop/Android parity pending
+(ROADMAP).
+
 ## Profile cosmetics: bio + pronouns in; activity surfacing declined
 
 **Decision** (2026-07-12, user call, inspired by Discord's profile
