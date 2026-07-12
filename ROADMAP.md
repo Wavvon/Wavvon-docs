@@ -203,18 +203,15 @@ surfaces, welcome banner, survey→roles, …). Still open:
   create / edit-permissions / delete-role UI — Roles admin tab, covered by
   `e2e/live/13`; **android** still lacks it.)
 - **Settings IA + profile model — desktop/Android parity** — web shipped
-  2026-07-12 (Accounts settings group, default-profile-per-account,
-  WYSIWYG multi-context profile editor, bio/pronouns/interests +
-  accent/cover cosmetics; see [decisions.md](docs/decisions.md)); desktop
-  and Android still use the named-preset pool, the old single Account tab,
-  and don't render bio/pronouns/interests or the cosmetic banner on
-  profile cards (hub already serves all the fields).
-- **Profile Hubs tab — federation + member-card empty state** — favorite
-  hubs ship per-hub and within-hub only (2026-07-12); cross-allied-hub
-  visibility is deferred (needs a signed public-profile envelope). Also the
-  member `UserProfileCard` shows featured hubs only when non-empty — it has
-  no tabbed "this user doesn't show their hubs" empty state (the editor's
-  Hubs tab does); revisit if the member card gets tabbed.
+  2026-07-12 (Accounts settings group, default-profile-per-account, tabbed
+  multi-context profile editor — Bio/Activities/Hubs — with status,
+  accent/cover cosmetics and a tabbed member card; see
+  [decisions.md](docs/decisions.md)); desktop and Android still use the
+  named-preset pool, the old single Account tab, and don't render the new
+  profile fields or the cosmetic banner (hub already serves all of them).
+- **Profile favorite-hubs federation** — favorite hubs ship per-hub and
+  within-hub only (2026-07-12); cross-allied-hub visibility is deferred
+  (needs a signed public-profile envelope).
 - **Settings account list doesn't refresh mid-session** — adding an account
   while Settings is open doesn't update the "managing account" dropdowns
   until Settings is reopened (`SettingsPage` loads the account list once on
