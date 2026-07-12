@@ -93,6 +93,15 @@ surfaces, welcome banner, survey→roles, …). Still open:
 
 ## 📌 Wishlist (undesigned)
 
+- **In-place account switch (no reload)** — switching accounts reloads the
+  app (the teardown guarantee from the multi-account decision), now dressed
+  as a seamless overlay transition. A true background switch needs an audit
+  of every per-account piece of App state + connection singletons (WS,
+  voice, module-level caches) so nothing leaks across accounts; a
+  React key-remount of the app shell keyed on account id is the likely
+  shape. Also relevant: web app reload speed is dev-mode slow, production
+  fast — measure there before investing.
+
 > **Big future pillars** (full writeups in
 > [future-features.md](docs/future-features.md)): **1. Farm layer** — the
 > major architectural next step (multi-hub control plane;
