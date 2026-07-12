@@ -29,7 +29,7 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   (later moved into a thought bubble beside the avatar — the avatar
   "thinking" — with the tab content in a fixed-height panel so the card
   no longer resizes between tabs, clients `f86a27d`), +
-  a longer free-text `activities`, ≤1000). Both are plain per-hub text
+  a longer free-text `activities`, ≤500). Both are plain per-hub text
   fields on the existing `/me` + profile plumbing (absent=unchanged,
   empty=clear); the `interests` JSON column is left dormant. Accent /
   cover cosmetics from the prior entry are unchanged. `UserProfileCard`
