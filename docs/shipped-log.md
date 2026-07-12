@@ -4,25 +4,30 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
-## Entries
+- **Hub + web: tabbed profile card (Bio + Activities) (2026-07-12)**:
+  same-day redesign of the interests feature below — the structured
+  "Now / Looking for" verb-form read as impersonal, so it's replaced by
+  a **tabbed** profile card: a fixed header (banner, avatar, name,
+  pronouns, key) over **Bio** (about me + badges) and **Activities** (a
+  short `status_message`, ≤140, placeholder "What are you thinking?", +
+  a longer free-text `activities`, ≤1000). Both are plain per-hub text
+  fields on the existing `/me` + profile plumbing (absent=unchanged,
+  empty=clear); the `interests` JSON column is left dormant. Accent /
+  cover cosmetics from the prior entry are unchanged. `UserProfileCard`
+  shows the status under the name and activities as a section. Verified
+  live: bio + status + activities round-trip into Postgres across the
+  tabs (hub `cde17a5`, clients `af062e2`). A third **Hubs** tab (opt-in
+  draggable favorites) is designed but deferred. See
+  [decisions.md](decisions.md).
 
 - **Hub + web: self-authored interests block + profile cosmetics
-  (2026-07-12)**: opt-in **"Now / Looking for"** on the profile — an
-  ordered list (≤6) of self-written entries, each a fixed verb
-  (Playing / Want to play / Looking for / Into) + free text (≤80). Plus
-  an **accent color** and uploaded **cover image** overriding the
-  key-derived banner (precedence cover → accent → identity). All three
-  are additive `users` columns riding PATCH/GET `/me` and the profile
-  endpoint (interests validated: kind enum, text 1..80, ≤6; accent hex;
-  cover ≤400k chars; empty clears), per-context like bio/pronouns, no
-  wire-format/federation work (hub `f11526c`). Web renders them in the
-  editor (banner-click modal for cover/accent; verb-row editor for
-  interests) and on `UserProfileCard` so other members see them; cover
-  reuses the avatar data-URL approach (client-downscaled JPEG). This is
-  the opt-in counterpart to the declined *automatic* activity tracking
-  — nothing observed or logged. Verified live: interests, accent, and a
-  cover JPEG round-trip into Postgres (clients `6460138`). See
-  [decisions.md](decisions.md).
+  (2026-07-12, superseded same day)**: the original opt-in **"Now /
+  Looking for"** block — a fixed-verb + free-text list. Replaced hours
+  later by the tabbed free-text card above; kept here for history. The
+  **accent color** + **cover image** banner cosmetics it introduced
+  (precedence cover → accent → identity, cover via the avatar
+  data-URL approach) remain in use. Was hub `f11526c` / clients
+  `6460138`.
 
 - **Web: Profile tab redesigned as an identity-colored card
   (2026-07-12)**: the tab read as a plain form in an empty pane; it's

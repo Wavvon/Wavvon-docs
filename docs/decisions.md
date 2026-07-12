@@ -6,7 +6,42 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
-## Self-authored interests block + profile cosmetics (accent, cover)
+## Profile card is tabbed; interests become free-text status + activities
+
+**Decision** (2026-07-12, user call, same day — supersedes the structured
+interests block below): the structured "Now / Looking for" verb-form felt
+impersonal ("like a survey"), so it's replaced. The profile card is now
+**tabbed** — a fixed header (banner, avatar, name, pronouns, key) over two
+tabs: **Bio** (about me + badges) and **Activities** (a short
+`status_message` line, placeholder "What are you thinking?", ≤ 140, plus a
+longer free-text `activities` field, ≤ 1000). Both are plain per-hub text
+fields on the same `/me` + profile plumbing as bio; the old `interests`
+JSON column is left dormant (additive-only migrations).
+
+**Why the reversal so soon**: the fixed-verb form was built to enable hub
+*grouping* ("who else is Looking for X"), but the user judged that
+structure too rigid for a personal profile and preferred free expression.
+Grouping/matchmaking-by-interest is not lost forever — if it returns it'll
+be a deliberate *browse* feature (the deferred Slice 2), not a data shape
+forced onto every profile.
+
+**Still automatic-free**: this remains fully self-authored. Truly automatic
+"playing X" detection stays out (OS scanning / connected accounts = the
+declined tracking); auto game presence remains a future *gaming/bot-layer*
+feature with explicit consent, not a profile field.
+
+**A third tab, Hubs** (opt-in, draggable favorite hubs; empty state when
+not shared) is designed but deferred to its own pass — favorite hubs are a
+single cross-hub list, unlike the per-hub fields, so it has a distinct
+data-model shape.
+
+**Outcome**: hub + web shipped 2026-07-12 (`cde17a5` / `af062e2`).
+
+## ~~Self-authored interests block~~ + profile cosmetics (accent, cover)
+
+**SUPERSEDED same day** by the tabbed free-text redesign above — the
+structured interests form was replaced by free-text `status_message` +
+`activities`. The accent-color / cover-image cosmetics below still stand.
 
 **Decision** (2026-07-12, user call): members get an opt-in **"Now /
 Looking for"** block — an ordered list (≤ 6) of self-written entries, each a
