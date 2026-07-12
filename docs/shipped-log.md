@@ -4,6 +4,22 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Hub + web: Hubs profile tab + account-switch card fix
+  (2026-07-12)**: third profile tab, **Hubs** — an opt-in "show my
+  hubs" toggle and a drag-ordered (`@dnd-kit`) list of favorite hubs
+  picked from the ones you've joined. `favorite_hubs` (JSON
+  {url,name,icon}, ≤30) + `show_hubs` (bool) are additive `users`
+  columns on the usual /me + profile plumbing; the public profile
+  **gates the list to empty when hidden, except for the owner** (the
+  editor reads its own profile through that endpoint). `UserProfileCard`
+  shows a member's featured hubs. Also fixed a bug where the profile
+  card vanished when switching the managing account (the reset effect
+  cleared drafts but the context-loader didn't re-run for an unchanged
+  "Default" context — now the default draft is seeded synchronously);
+  verified live with two accounts. 5 new hub tests; favorite_hubs
+  round-trips into Postgres (hub `1a68d2e`, clients `9400e22`). See
+  [decisions.md](decisions.md).
+
 - **Hub + web: tabbed profile card (Bio + Activities) (2026-07-12)**:
   same-day redesign of the interests feature below — the structured
   "Now / Looking for" verb-form read as impersonal, so it's replaced by

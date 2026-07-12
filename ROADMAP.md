@@ -209,10 +209,18 @@ surfaces, welcome banner, survey→roles, …). Still open:
   and Android still use the named-preset pool, the old single Account tab,
   and don't render bio/pronouns/interests or the cosmetic banner on
   profile cards (hub already serves all the fields).
-- **Interests "browse / filter by" (Slice 2, undesigned)** — "who else is
-  Looking for X / Playing Y" on the member surface. Needs queryable
-  storage (a `user_interests` child table or index/FTS), not the current
-  JSON column — decide when picked up. See [decisions.md](docs/decisions.md).
+- **Profile Hubs tab — federation + member-card empty state** — favorite
+  hubs ship per-hub and within-hub only (2026-07-12); cross-allied-hub
+  visibility is deferred (needs a signed public-profile envelope). Also the
+  member `UserProfileCard` shows featured hubs only when non-empty — it has
+  no tabbed "this user doesn't show their hubs" empty state (the editor's
+  Hubs tab does); revisit if the member card gets tabbed.
+- **Settings account list doesn't refresh mid-session** — adding an account
+  while Settings is open doesn't update the "managing account" dropdowns
+  until Settings is reopened (`SettingsPage` loads the account list once on
+  mount). Minor; refresh on account-list change if it annoys.
+- **Game icons in Activities (wishlist)** — let users attach game icons to
+  their Activities entries; parked per the 2026-07-12 profile work.
 - **Presence status — Android parity** — web shipped 2026-07-05, DND
   gating + global broadcast 2026-07-10, and the full set ported to
   desktop 2026-07-11 (clients `81de52c`, see

@@ -30,12 +30,19 @@ forced onto every profile.
 declined tracking); auto game presence remains a future *gaming/bot-layer*
 feature with explicit consent, not a profile field.
 
-**A third tab, Hubs** (opt-in, draggable favorite hubs; empty state when
-not shared) is designed but deferred to its own pass — favorite hubs are a
-single cross-hub list, unlike the per-hub fields, so it has a distinct
-data-model shape.
+**A third tab, Hubs** — opt-in featured hubs, drag-ordered, hidden by
+default. `favorite_hubs` (JSON array of {url,name,icon}) + `show_hubs`
+(bool) are stored per-hub like the other profile fields (reusing the draft
+model), even though a favorite-hubs list is conceptually one cross-hub
+thing — uniformity won over a bespoke identity-wide store, and default +
+follow propagates it. **Privacy**: the public profile endpoint gates
+`favorite_hubs` to empty when `show_hubs` is false, *except* for the owner
+(the web editor reads its own profile through that endpoint, so the owner
+must always get their real list back). Drag via the app's existing
+`@dnd-kit`. Federation of favorites deferred (same reason as the fields).
 
-**Outcome**: hub + web shipped 2026-07-12 (`cde17a5` / `af062e2`).
+**Outcome**: hub + web shipped 2026-07-12 (`cde17a5`/`af062e2` for the
+tabs; `1a68d2e`/`9400e22` for the Hubs tab).
 
 ## ~~Self-authored interests block~~ + profile cosmetics (accent, cover)
 
