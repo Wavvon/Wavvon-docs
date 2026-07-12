@@ -88,7 +88,7 @@ exist on web.
   gained a "Roles" section, gated on `manage_roles`, that toggles the hub
   endpoints `PUT`/`DELETE /users/{public_key}/roles/{role_id}` via the new
   `assignRoleToUser` / `removeRoleFromUser` / `listUserRoles` platform
-  commands. It hides `@everyone` and any role whose priority is ≥ the
+  commands. It hides `everyone` and any role whose priority is ≥ the
   viewer's own (mirroring the hub guard), and refetches `/users` on change
   so the member list regroups. Covered by
   `apps/web/e2e/live/12-role-assignment.spec.ts`.

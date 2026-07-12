@@ -57,7 +57,7 @@ Two new constants in `permissions.rs` (they slot into the role editor
 and channel overwrites automatically, since both operate on strings):
 
 - `use_soundboard` — play clips; channel-deniable via overwrites
-  (a serious-meeting channel can deny it on @everyone).
+  (a serious-meeting channel can deny it on everyone).
 - `manage_soundboard` — upload/rename/delete clips.
 
 ### Routes and events

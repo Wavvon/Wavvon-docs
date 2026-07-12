@@ -808,7 +808,7 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
     5/5 green.
   - **Web role appearance controls on built-in roles** (2026-07-04,
     clients `42a3390`) — `RolesSection` no longer renders the
-    color/icon/category controls for `@everyone`/`Owner` (the hub rejects
+    color/icon/category controls for `everyone`/`Owner` (the hub rejects
     appearance PATCHes on built-in roles); permissions remain editable.
     `e2e/live/31`.
   - **Icon pickers can no longer store non-rendering shortcodes**
@@ -869,7 +869,7 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 - **Web: assign/remove roles from the member right-click menu (2026-07-04)**
   — closed the biggest client discrepancy found in round 2. The web
   `UserContextMenu` now has a "Roles" section (gated on `manage_roles`,
-  hides `@everyone` and roles at/above the viewer's priority) that toggles
+  hides `everyone` and roles at/above the viewer's priority) that toggles
   `PUT`/`DELETE /users/{pubkey}/roles/{role_id}`; member list regroups on
   change. New platform commands `assignRoleToUser`/`removeRoleFromUser`/
   `listUserRoles`; covered by `12-role-assignment.spec.ts`. Cross-client

@@ -20,7 +20,7 @@ minor bumps signal breaking wire-protocol changes; patch bumps are compatible.
 - Multi-device pairing via QR code, SubkeyCert chain, and master identity; `device_list`, `device_revoke`, `subkey_issue` Tauri commands
 - Federation: cross-hub messaging, DM routing, and hub-to-hub authentication
 - Voice channels: Opus audio, VAD, push-to-talk, per-channel role permission
-- Roles & permissions system with built-in @everyone and Owner roles
+- Roles & permissions system with built-in everyone and Owner roles
 - Hub moderation: bans, mutes, channel bans, voice mutes
 - In-hub games via iframe manifests
 - Hub alliances for cross-hub channel sharing

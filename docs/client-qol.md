@@ -266,7 +266,7 @@ CREATE TABLE event_rsvps (
 );
 ```
 
-New permission `create_events`, seeded for `@everyone` by default (same
+New permission `create_events`, seeded for `everyone` by default (same
 seeding pattern as `create_posts` in the forum migration).
 
 **Wire** (Wavvon-server):

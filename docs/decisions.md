@@ -229,7 +229,7 @@ switching at all is the companion feature (account selector, same-day).
 
 **Decision** (2026-07-11, implemented hub + web same day): two-tier
 role assignment through invites, replacing the "every newcomer is only
-@everyone until someone fixes it" default that pushes other platforms'
+everyone until someone fixes it" default that pushes other platforms'
 communities toward auto-role bots.
 
 1. **Inviter with role power picks the role** — any member whose role
