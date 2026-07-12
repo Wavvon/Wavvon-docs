@@ -17,6 +17,18 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   `39c2208`, clients `844e74d`). Desktop/Android picker parity deferred.
   See [decisions.md](decisions.md).
 
+- **Web: WYSIWYG editing on your own member card (2026-07-12)**: your
+  own profile card is directly editable — status (thought bubble), bio,
+  and activities are live inline inputs with a "Save changes" button
+  that shows only when something changed (no edit-mode toggle). Save is
+  default-propagation-aware — always PATCHes the current hub, and if
+  that hub follows the default profile it also updates the default and
+  pushes the changed fields to every other following hub
+  (`patchMyProfileOnHub` sends only the changed fields). Name/avatar/
+  pronouns/cosmetics/hubs stay in the Settings editor. Verified live:
+  card edit persists to the hub and propagates into the default
+  (clients `27a6563`).
+
 - **Web: tabbed member profile card (2026-07-12)**: `UserProfileCard`
   (what other members see) is now tabbed — Bio / Activities / Hubs —
   mirroring the editor, so what you edit is what others see. Bio shows
