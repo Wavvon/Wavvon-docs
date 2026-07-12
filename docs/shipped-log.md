@@ -4,6 +4,16 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Web: tabbed member profile card (2026-07-12)**: `UserProfileCard`
+  (what other members see) is now tabbed — Bio / Activities / Hubs —
+  mirroring the editor, so what you edit is what others see. Bio shows
+  about-me + roles + badges; Activities the activities text; Hubs the
+  featured hubs or a "this member doesn't show their hubs" empty state.
+  Status renders in the avatar thought bubble. Also dropped the "(N)"
+  count from the editor's "Save changes" (following the default marks
+  every followed hub dirty, so it could read "(100)" for one typo).
+  Clients `4a0f9f7`.
+
 - **Hub + web: Hubs profile tab + account-switch card fix
   (2026-07-12)**: third profile tab, **Hubs** — an opt-in "show my
   hubs" toggle and a drag-ordered (`@dnd-kit`) list of favorite hubs
