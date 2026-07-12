@@ -6,6 +6,22 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Web: Profile tab redesigned as an identity-colored card
+  (2026-07-12)**: the tab read as a plain form in an empty pane; it's
+  now a real profile. The WYSIWYG editor card gained a banner whose
+  gradient is derived deterministically from the account's Ed25519
+  public key (`utils/identityColor.ts`) — identity-is-a-key made
+  visible, every account its own consistent colors — with the avatar
+  overlapping the banner, a large name, muted pronouns, the short
+  pubkey, and bio/badges under hairline dividers
+  (`.profile-card*` in the shared styles.css). Plus a subtitle and a
+  responsive two-column layout (`.profile-two-col`): the editor card
+  and the Badges & certifications panel sit side by side on wide
+  screens (using the pane width) and stack on narrow ones. The boxed "Managing account" selector is
+  replaced by an inline scope line reading "[profile] for [account]"
+  (the account half only when more than one account exists). Verified
+  in dark and light themes (clients `1377203`).
+
 - **Hub + web: bio & pronouns + WYSIWYG profile editor (2026-07-12)**:
   members get per-hub `bio` (≤ 500 chars) and `pronouns` (≤ 40) —
   additive `users` columns, PATCH/GET /me and the public profile
