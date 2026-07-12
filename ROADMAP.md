@@ -218,6 +218,12 @@ surfaces, welcome banner, survey→roles, …). Still open:
   mount). Minor; refresh on account-list change if it annoys.
 - **Game icons in Activities (wishlist)** — let users attach game icons to
   their Activities entries; parked per the 2026-07-12 profile work.
+- **Presence Invisible + TTL — desktop/Android parity** — web shipped the
+  Invisible state and "clear after" TTL and dropped the custom-text status
+  (2026-07-12); desktop/Android still have the old picker (online/away/dnd +
+  custom, no invisible/TTL). Also: an invisible user still shows in a voice
+  channel's participant list (roster-only hiding), and sees themselves
+  offline in their own roster (no self-distinct indicator yet).
 - **Presence status — Android parity** — web shipped 2026-07-05, DND
   gating + global broadcast 2026-07-10, and the full set ported to
   desktop 2026-07-11 (clients `81de52c`, see

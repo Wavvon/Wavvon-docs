@@ -4,6 +4,19 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Hub + web: Invisible presence + "clear after" TTL (2026-07-12)**:
+  the footer status picker is now Online / Away / Do Not Disturb /
+  **Invisible** with an optional **clear-after** duration (Off/30m/1h/
+  3h); the free-text custom status is removed (the profile "thought"
+  bubble is separate). Invisible = connected but shown offline to
+  others — the hub gates the roster (`reported_online`) and the realtime
+  broadcast (emits offline, never "invisible") while keeping the user in
+  `online_users` for delivery. TTL is a client-side timer reverting to
+  Online. Two real-WS hub tests + the roster-gate unit test. Verified
+  live: picking Invisible persists and flips the roster to offline (hub
+  `39c2208`, clients `844e74d`). Desktop/Android picker parity deferred.
+  See [decisions.md](decisions.md).
+
 - **Web: tabbed member profile card (2026-07-12)**: `UserProfileCard`
   (what other members see) is now tabbed — Bio / Activities / Hubs —
   mirroring the editor, so what you edit is what others see. Bio shows

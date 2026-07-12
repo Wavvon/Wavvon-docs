@@ -6,6 +6,35 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Presence: Invisible + "clear after" TTL; custom-text status removed
+
+**Decision** (2026-07-12, user call): the footer presence picker becomes
+**Online / Away / Do Not Disturb / Invisible** plus an optional **"clear
+after"** duration (Off / 30m / 1h / 3h). The free-text custom status is
+removed.
+
+- **Invisible** = connected but shown offline to everyone else. The hub
+  keeps the user in `online_users` (delivery, voice, routing all work) but
+  gates the roster (`reported_online()` → false) and the realtime presence
+  broadcast (emits offline, never the literal "invisible") for other
+  members. The user's own client tracks its invisible state locally (hollow
+  dot) and sees itself offline in the roster — acceptable for v1; a
+  self-distinct indicator is a later nicety. Known gap: an invisible user in
+  a voice channel still shows in that channel's participant list.
+- **TTL on presence, never on the profile**: earlier we explicitly rejected
+  a TTL on the persistent profile "thought" (expiring profile data is
+  wrong). Presence is the right home — it's ephemeral/online-only already.
+  The timer is **client-side** (reverts to Online on fire); disconnecting
+  resets presence anyway, so no hub-side scheduling.
+- **Two "status" concepts reconciled**: the persistent per-hub profile
+  status_message (the avatar thought bubble) is the lasting tagline; the
+  ephemeral presence picker is the transient mood. Removing the redundant
+  free-text presence custom keeps them from overlapping.
+
+**Outcome**: hub + web shipped 2026-07-12 (`39c2208`/`844e74d`). The
+`presence_custom` column stays (dormant; desktop/Android may still set it).
+Desktop/Android presence-picker parity deferred (ROADMAP).
+
 ## Profile card is tabbed; interests become free-text status + activities
 
 **Decision** (2026-07-12, user call, same day — supersedes the structured
