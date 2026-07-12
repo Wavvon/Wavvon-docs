@@ -25,7 +25,10 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   "Now / Looking for" verb-form read as impersonal, so it's replaced by
   a **tabbed** profile card: a fixed header (banner, avatar, name,
   pronouns, key) over **Bio** (about me + badges) and **Activities** (a
-  short `status_message`, ≤140, placeholder "What are you thinking?", +
+  short `status_message`, ≤140, placeholder "What are you thinking?"
+  (later moved into a thought bubble beside the avatar — the avatar
+  "thinking" — with the tab content in a fixed-height panel so the card
+  no longer resizes between tabs, clients `f86a27d`), +
   a longer free-text `activities`, ≤1000). Both are plain per-hub text
   fields on the existing `/me` + profile plumbing (absent=unchanged,
   empty=clear); the `interests` JSON column is left dormant. Accent /
