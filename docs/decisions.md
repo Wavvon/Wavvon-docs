@@ -6,6 +6,35 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Account switching is an in-place key-remount, guarded, not a reload
+
+**Decision** (2026-07-12, user call after live testing, supersedes the
+"switch = reload" paragraph of the multi-account entry below): switching
+accounts remounts the app tree in place — `AccountRoot` renders
+`<App key={activeAccountId}>`, so React unmount runs every cleanup and
+the new account mounts fresh from local data. No navigation, no
+transition overlay (an interim overlay approach was built and rejected
+same-day: account data is local, so a loading page was papering over an
+unnecessary reload).
+
+What preserved the reload's safety guarantee:
+
+- **Teardown audit** — the one real leak found: the module-level hub
+  sessions map (`platform/session.ts`) survives React remounts, so the
+  outgoing account's WebSockets would have stayed open;
+  `resetHubSessions()` now runs before the key flips. Voice/video/
+  screen-share/webcam-processor refs gained a master unmount effect.
+- **Voice guard** — switching is *blocked* while joined to a voice
+  channel (disabled buttons + surfaced reason), not auto-left; the
+  user's explicit call: prevention over interruption.
+- **4s switch cooldown** — rapid consecutive switches race the
+  remount + per-hub reconnect cycle; refused with a reason.
+
+The e2e proves the contract: a `window` marker planted before the
+switch survives it (a reload would wipe it), no overlay is ever
+attached, and the cooldown engages. Managing *other* accounts without
+switching at all is the companion feature (account selector, same-day).
+
 ## Invite role policies: privileged inviters pick, everyone else gets the hub default
 
 **Decision** (2026-07-11, implemented hub + web same day): two-tier
@@ -143,12 +172,13 @@ local state (hub list, session tokens, drafts, profiles, notification
 prefs, DM ratchet state) is isolated by a localStorage namespace
 (`wavvon:acct:<pubkey>:<key>`, one helper module all per-user storage
 routes through); the account registry is just the rows of the existing
-IndexedDB identity store keyed by pubkey. Switching swaps the
+IndexedDB identity store keyed by pubkey. ~~Switching swaps the
 active-account pointer and reloads the app — guaranteed teardown of
-sockets/voice, replaceable later by an in-place switch. Removing an
-account requires typing its fingerprint and purges its namespace
-(session tokens and ratchet state must not outlive the identity on a
-shared device).
+sockets/voice, replaceable later by an in-place switch.~~ *(Superseded
+2026-07-12: switching is now an in-place key-remount — see the entry
+above.)* Removing an account requires typing its fingerprint and purges
+its namespace (session tokens and ratchet state must not outlive the
+identity on a shared device).
 
 **Alternatives considered**:
 
