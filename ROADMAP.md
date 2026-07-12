@@ -30,9 +30,6 @@ fixed, its entry moves to the shipped log.
   before there are users isn't worth it). Ship unsigned with the documented
   SmartScreen workaround meanwhile; all signing-service steps removed from CI.
   Options and design in [`code-signing.md`](docs/code-signing.md).
-- **Android client icons** — placeholder solid-color PNGs in place. Waiting on
-  the final logo asset. Run `cargo tauri icon <1024x1024.png>` once the brand
-  logo is ready. See [`brand.md`](docs/brand.md).
 
 ## 🔍 Flow-test findings (2026-07-06, private-hub + wizard flows)
 
@@ -87,7 +84,7 @@ surfaces, welcome banner, survey→roles, …). Still open:
 - [x] ~~**Multiple named custom themes per user**~~ — SHIPPED (clients
   `afc07a8`): named theme store with apply/rename/duplicate/delete, legacy
   single-skin migrated, gallery imports create new entries. (web;
-  desktop/android single-slot copies still to port.)
+  desktop single-slot copy still to port.)
 - [x] ~~**AddHubModal has no i18n**~~ — SHIPPED (clients `71d1b51`); the
   `hub.admin.overview.*` de/es placeholders are also translated now.
 
@@ -116,10 +113,10 @@ surfaces, welcome banner, survey→roles, …). Still open:
   cross-links, and a `docker compose` quick-start.
   2026-06-11: demo-seed tool added; real screenshots + join-flow GIF added to READMEs.)*
 - **Passkey registration from desktop** — blocked by Tauri webview RP ID mismatch; requires either a native OS WebAuthn plugin (tauri-plugin-passkey) or a hybrid approach where the desktop opens the hub URL in the system browser for the ceremony.
-- **Role categories + role color/icon — desktop/Android parity** — web
+- **Role categories + role color/icon — desktop parity** — web
   client shipped 2026-07-04 (clients `a6b2d24`); port the same
-  category manager + per-role color/icon controls into desktop's and
-  Android's own `RoleEditor.tsx`/`RoleCreator.tsx` copies. See
+  category manager + per-role color/icon controls into desktop's own
+  `RoleEditor.tsx`/`RoleCreator.tsx` copies. See
   [`role-categories.md`](docs/role-categories.md) §4, §6.
 - **Cross-farm cert relay** — propagate certifications across farm-managed hubs,
   building on badge/cert signer. Design-stage; **depends on farm layer**.
@@ -142,8 +139,8 @@ surfaces, welcome banner, survey→roles, …). Still open:
   claim/unclaim). **Web create path was broken until the 2026-07-04 e2e
   pass** — the composer never sent `channel_id` (create 400'd) and the
   bare create-response crashed the card; both fixed (see
-  [`shipped-log.md`](docs/shipped-log.md)). Desktop/Android UI queued next (parallel
-  `EventCard.tsx`/`EventComposer.tsx` copies in those apps still show
+  [`shipped-log.md`](docs/shipped-log.md)). Desktop UI queued next (its parallel
+  `EventCard.tsx`/`EventComposer.tsx` copies still show
   baseline RSVP-only). Calendar view (§4) still undesigned-priority,
   client-only. The events read-gating fix (H3) already landed in the
   security pass.
@@ -188,26 +185,18 @@ surfaces, welcome banner, survey→roles, …). Still open:
   Container CLAUDE.md corrected 2026-07-11; consider renaming the
   scripts to match expectations.
 
-- **Android APK release build fails in native cross-compilation** — found
-  2026-07-06 cutting clients v0.3.0/v0.3.1 (workflow paths fixed in
-  `16c69cc`, then the real blocker surfaced): `audiopus_sys` builds
-  `libopus.so` for the host arch, so the aarch64-Android link fails
-  ("incompatible with aarch64linux"). The NDK toolchain isn't reaching
-  the crate's C build. No APK has ever shipped; needs voice-crate build
-  wiring (cargo-ndk or CC/CMake toolchain env in the workflow).
-- **Role assignment — client parity** (web shipped 2026-07-04; see
+- **Role assignment — desktop parity** (web shipped 2026-07-04; see
   [`shipped-log.md`](docs/shipped-log.md)). Remaining, tracked in
-  [`client-parity.md`](docs/client-parity.md):
-  **android** still has no role-assignment control in its user context menu;
-  **desktop** has one to align with web's filtering. (Web has a full
-  create / edit-permissions / delete-role UI — Roles admin tab, covered by
-  `e2e/live/13`; **android** still lacks it.)
-- **Settings IA + profile model — desktop/Android parity** — web shipped
+  [`client-parity.md`](docs/client-parity.md): **desktop** has a
+  role-assignment control to align with web's filtering, and lacks web's
+  full create / edit-permissions / delete-role Roles admin tab (covered by
+  `e2e/live/13`).
+- **Settings IA + profile model — desktop parity** — web shipped
   2026-07-12 (Accounts settings group, default-profile-per-account, tabbed
   multi-context profile editor — Bio/Activities/Hubs — with status,
   accent/cover cosmetics and a tabbed member card; see
-  [decisions.md](docs/decisions.md)); desktop and Android still use the
-  named-preset pool, the old single Account tab, and don't render the new
+  [decisions.md](docs/decisions.md)); desktop still uses the
+  named-preset pool, the old single Account tab, and doesn't render the new
   profile fields or the cosmetic banner (hub already serves all of them).
 - **Profile favorite-hubs federation** — favorite hubs ship per-hub and
   within-hub only (2026-07-12); cross-allied-hub visibility is deferred
@@ -218,18 +207,13 @@ surfaces, welcome banner, survey→roles, …). Still open:
   mount). Minor; refresh on account-list change if it annoys.
 - **Game icons in Activities (wishlist)** — let users attach game icons to
   their Activities entries; parked per the 2026-07-12 profile work.
-- **Presence Invisible + TTL — desktop/Android parity** — web shipped the
+- **Presence Invisible + TTL — desktop parity** — web shipped the
   Invisible state and "clear after" TTL and dropped the custom-text status
-  (2026-07-12); desktop/Android still have the old picker (online/away/dnd +
-  custom, no invisible/TTL). Also: an invisible user still shows in a voice
-  channel's participant list (roster-only hiding), and sees themselves
-  offline in their own roster (no self-distinct indicator yet).
-- **Presence status — Android parity** — web shipped 2026-07-05, DND
-  gating + global broadcast 2026-07-10, and the full set ported to
-  desktop 2026-07-11 (clients `81de52c`, see
-  [`shipped-log.md`](docs/shipped-log.md)). Android still has none of
-  it: no status picker, no `member_status` handling in its Tauri shell,
-  no DND notification gating.
+  (2026-07-12); desktop still has the old picker (online/away/dnd +
+  custom, no invisible/TTL). Also (web behavior, not parity): an invisible
+  user still shows in a voice channel's participant list (roster-only
+  hiding), and sees themselves offline in their own roster (no self-distinct
+  indicator yet).
 - **Flaky e2e: `account-switch.spec.ts` under parallel workers** — failed
   twice on 2026-07-12 in full 8-worker runs, passes every solo/re-run;
   likely a timing race in the switch-then-assert flow. Deflake or mark
@@ -246,6 +230,11 @@ surfaces, welcome banner, survey→roles, …). Still open:
 
 ## 💤 Won't do
 
+- **Maintain / converge the old Android client** — `apps/android` was removed
+  2026-07-12 (too far behind, not a delivery target for ~2-3 years). It gets a
+  clean-slate rewrite when mobile is prioritized, not incremental parity.
+  Build/native learnings preserved in
+  [`android-rewrite-notes.md`](docs/android-rewrite-notes.md).
 - **Load-aware DM routing across a user's hubs** — failover only; load-balancing
   needs gossip + cross-hub consistency. See [decisions.md](docs/decisions.md)
 - **Concurrent mic test while in voice** — two cpal input streams unreliable
