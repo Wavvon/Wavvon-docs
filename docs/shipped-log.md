@@ -6,6 +6,36 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 ## Entries
 
+- **Web: manage any account without switching — "Managing" selector
+  (2026-07-12)**: the Account tab gains a "Managing: [account]"
+  selector; the per-account sections operate on the selected account.
+  Home hubs and device certs/revocations sign locally with the selected
+  account's master seed (those endpoints are signature-authoritative —
+  no session needed); dm-blocks/passkeys/trusted-devices go through the
+  new `hubFetchAs` background token (challenge/verify as the selected
+  account, cached in its own namespace, active session untouched).
+  Non-member accounts get a friendly notice; passkey *registration*
+  stays active-only (WebAuthn binds the live session). **The
+  sovereignty differentiator made tangible: stay in a voice call on one
+  identity while administering another — possible only because Wavvon
+  identities are locally held keys, not server accounts.** 8 unit +
+  1 e2e proving the managed request carries the managed account's
+  distinct token (clients `5f3f029`).
+
+- **Web: in-place account switch — no reload, guarded (2026-07-12)**:
+  switching remounts the app tree (`AccountRoot`, `<App key=account>`)
+  instead of reloading; teardown audit fixed the one real leak (the
+  module-level hub-sessions map survived remounts — outgoing account's
+  WebSockets now reset before the key flips) and gave voice/video/
+  screen-share refs a master unmount effect. Switching is blocked while
+  in a voice channel (prevention, not auto-leave) and rate-limited by a
+  4s cooldown protecting the remount+reconnect window. An interim
+  "Switching account…" overlay approach was built and rejected same-day
+  (two of its bugs — parse-time paint and a StrictMode flag race — are
+  covered by the account-switch e2e, which now proves no navigation via
+  a surviving window marker). Decision in
+  [decisions.md](decisions.md) (clients `d36a664`…`6c03ff0`).
+
 - **Web: account-switcher UX polish from live user testing
   (2026-07-11)**: iterative session with the user driving a running
   hub + both clients. Editable account labels behind a visible pencil
