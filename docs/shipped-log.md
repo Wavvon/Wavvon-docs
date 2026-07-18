@@ -4,6 +4,16 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Hub: /voice/ws read gate closed (2026-07-19)**: the H-series gap
+  from the voice-move Phase 2 pass — the web voice transport enforced
+  `READ_MESSAGES` only for bots and spawner-channel joins, so a web
+  client could join voice in a hidden channel by guessing its id. Now
+  one hoisted gate covers every human join (spawner branch's duplicate
+  removed), with the `staging_voice_grants` bypass preserved for
+  event-context moves. Three transport-specific tests in
+  `voice_relay_flow.rs` (rejection regression, happy path, grant
+  bypass); full suite green. Hub `360272e`.
+
 - **Web: passkey-PRF identity surface removed (2026-07-19)**: user call
   after the provider-matrix testing below — two of three real providers
   broken (Bitwarden: no third-party PRF anywhere; Windows Hello 25H2:

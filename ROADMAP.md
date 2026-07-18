@@ -252,15 +252,6 @@ surfaces, welcome banner, survey→roles, …). Still open:
   settings-IA restructure, 2 hit localStorage key renames, 1 hardcoded
   past date (05-events), 4 misc timing/selector rot. Suite is 57/76
   green; fix these spec-side.
-- **H: `/voice/ws` human joins have no read gate** — found 2026-07-18
-  during the voice-move Phase 2 work: `voice_ws.rs` enforces
-  `READ_MESSAGES` only for bot sessions and spawner-channel joins; a
-  plain human join through the web voice transport is not read-gated at
-  all (the desktop UDP path's `voice_join` IS gated). A web client
-  could join voice in a channel hidden from it by guessing the id.
-  Pre-existing, not introduced by voice-move (its grant bypass touched
-  only the existing checks). Fix: add the same effective-`READ_MESSAGES`
-  check (+ `staging_voice_grants` bypass) to the plain-join branch.
 - **Staging panel "voice-only" hint needs server data** — the §7.4
   voice-only path works, but the panel can't show the designed
   "voice-only" chip because a client can't see another member's channel
