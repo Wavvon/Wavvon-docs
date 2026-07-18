@@ -1,13 +1,18 @@
 # WebAuthn / Passkey Authentication
 
-> **Status update (2026-07-11)**: the hub ceremony (registration,
-> assertion, credential + trusted-device management) and the web
-> client integration are shipped. The **PRF master-key path is now
-> implemented on web**: identity create/restore via passkey PRF
-> (`apps/web/src/platform/prfIdentity.ts`, salt constant in
-> `packages/core/src/identity/prf.ts`) — see the decision entry in
-> [decisions.md](decisions.md). Desktop/Android PRF shims remain
-> future work, as does formal deprecation of the phrase-first flow.
+> **Status update (2026-07-19)**: the hub ceremony (registration,
+> assertion, credential + trusted-device management) and its web client
+> integration are shipped and stay. The **PRF identity path was REMOVED
+> from the web client** (clients `9afe8b0`, user call) after live
+> provider testing found the ecosystem too immature: Bitwarden serves
+> no third-party PRF on any browser and Windows Hello 25H2 is
+> create-only (constraints below) — only Google Password Manager
+> remained untested. The derivation spec, the refuse-on-unverified
+> invariant (decisions.md), and `PRF_SALT_LABEL` in
+> `packages/core/src/identity/prf.ts` (pinned protocol constant) are
+> kept for when providers mature; reinstating means restoring the
+> removed `apps/web/src/platform/prfIdentity.ts` surface from git
+> history and re-running the provider matrix.
 
 Today Wavvon generates an Ed25519 keypair from a random seed, stores
 the seed in `localStorage` (web) or `~/.wavvon/identity.json`

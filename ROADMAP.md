@@ -232,21 +232,18 @@ surfaces, welcome banner, survey→roles, …). Still open:
 
 ## ⚠️ Known issues
 
-- **W: passkey PRF provider matrix (owner-tested 2026-07-18)** — client
-  hardening all SHIPPED as one squashed commit (clients `a310f64`):
-  create-time robustness, realm-safe buffers, honest provider advice,
-  and the creation-time restore self-test that REFUSES creation when
-  unverified (decisions.md: passkey identity must prove restore at
-  birth). Findings
-  (details in [webauthn-auth.md](docs/webauthn-auth.md)): **Bitwarden
-  extension** returns no third-party PRF on any browser (known upstream
-  limitation); **Windows Hello** (25H2, post-KB5077181) delivers PRF at
-  create but fails every PRF `get()` — create-only, restore impossible
-  (platform bug; refusal covers it). Remaining: owner test of
-  **Google Password Manager** (sign into Chrome) — the last untested
-  synced provider, expected to fully work; optional upstream nudges
-  (Bitwarden forum vote + GitHub issue on missing `prf.enabled:false`;
-  Microsoft Feedback Hub for the Hello get() failure).
+- **Passkey-PRF identity: REMOVED for now (2026-07-19)** — after the
+  2026-07-18 provider-matrix testing (Bitwarden: no third-party PRF on
+  any browser; Windows Hello 25H2: create-only, restore broken; GPM:
+  untested), the user pulled the identity create/restore-by-passkey
+  surface entirely (clients `9afe8b0`; the intermediate hardening was
+  `a310f64`). Hub-session passkey auth + trusted devices are unaffected
+  and stay. Findings + reinstatement notes in
+  [webauthn-auth.md](docs/webauthn-auth.md); revisit when providers
+  mature (watch: GPM test, Bitwarden third-party PRF, Windows Hello
+  get() fix). Optional upstream nudges remain (Bitwarden forum vote +
+  GitHub issue on missing `prf.enabled:false`; Microsoft Feedback Hub
+  for the Hello get() failure).
 - **Live e2e suite: 18 pre-existing failures** — surfaced 2026-07-18 by
   the first full run since the harness was repaired (it had been broken
   since the invite-only default + account-naming changes of early

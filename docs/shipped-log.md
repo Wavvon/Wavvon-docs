@@ -4,6 +4,17 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Web: passkey-PRF identity surface removed (2026-07-19)**: user call
+  after the provider-matrix testing below — two of three real providers
+  broken (Bitwarden: no third-party PRF anywhere; Windows Hello 25H2:
+  create-only), the third (GPM) untested; too little ecosystem to ship
+  an identity path on. Removed the create/restore-by-passkey entry
+  points, `prfIdentity.ts` + 13 unit tests, the capability probe, and
+  11×4 i18n keys; hub-session passkey auth + trusted devices stay;
+  `PRF_SALT_LABEL` kept as a pinned protocol constant. First slice to
+  use the new branch → squash-merge workflow. Reinstatement notes in
+  [webauthn-auth.md](webauthn-auth.md). Clients `9afe8b0`. Web 237/237.
+
 - **Web: passkey PRF identity hardening — refuse-on-unverified
   (2026-07-18)**: one squashed commit (clients `a310f64`) from a live
   owner-testing session across three real providers. The
