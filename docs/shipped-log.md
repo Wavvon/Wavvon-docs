@@ -4,6 +4,35 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Web: passkey identity creation fixed for late-PRF providers
+  (2026-07-18)**: owner repro (Firefox + Bitwarden extension) — the
+  passkey got saved in the vault but Wavvon threw "unsupported" and
+  abandoned it, because `createIdentityWithPasskey` trusted the
+  create-response's `prf.enabled` flag, which providers legitimately
+  omit while still serving PRF on assertion. The create-response is now
+  advisory only: missing output ⇒ always follow up with a `get()`
+  scoped to the new credential; only that answer can declare
+  unsupported. New `PrfOutputUnavailableError` +
+  `identity_setup.passkey.prf_missing` (×4 locales) tells the user the
+  stranded vault entry is safe to delete; `prfExtensionEnabled` helper
+  removed so nothing can branch on the untrustworthy flag again. 3 new
+  unit tests; web 248/248. Owner retest on real providers pending
+  (tracked in ROADMAP). Clients `234945e`.
+
+- **Web: live e2e pass for the events delta + harness revival
+  (2026-07-18)**: five new live specs (48-52) drive the shipped
+  voice-move/staging/hub-wide/propagation/squad-rooms features with
+  real browsers against a hub built from `08d873b` — all five pass
+  reliably. The pass surfaced and fixed four real client bugs, chief
+  among them `EventRsvp.pubkey` vs the hub's `user_pubkey` (crashed the
+  staging panel on any real slot claim — invisible to unit tests), plus
+  a stale-slots snapshot (panel now refetches via new `getEvent`), a
+  broken composer modal class, and an unbounded move-submenu. Also
+  repaired the live harness itself, silently broken for weeks
+  (account-naming step, invite-only default, namespaced localStorage) —
+  the full suite runs again: 57/76 green, the 18 pre-existing failures
+  root-caused and tracked in ROADMAP. Clients `bfce564`.
+
 - **Hub + web: events Phase 3 — hub-wide events, card propagation,
   squad rooms (2026-07-18)**: completes the guild-scale delta
   ([events.md](events.md) §5-§6, §7.5). `hub_wide` (create-time only,

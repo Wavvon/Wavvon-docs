@@ -171,8 +171,11 @@ surfaces, welcome banner, survey→roles, …). Still open:
     2026-07-18* (hub `08d873b`, clients `1f9d1d0`, see
     [shipped-log.md](docs/shipped-log.md)) — hub_wide +
     propagate_to_children + event-linked squad rooms with event-end
-    lifetime. Live e2e pass over all three phases IN PROGRESS (real hub
-    + multi-client Playwright specs).
+    lifetime. Live e2e pass over all three phases DONE 2026-07-18
+    (clients `bfce564`, specs 48-52 all green against a real hub; four
+    client bugs found + fixed). Remaining live gaps: real
+    cross-internet voice audio (pilot hub) and the §7.4 voice-only
+    browser assertion (hub-tested only).
 - **Join-to-create temporary voice channels** — *fully SHIPPED*: server
   (hub `3005fc5`), web UI (clients `fb607de`), `voice_ws.rs` spawner gap
   fixed 2026-07-04 (hub `1fc5aa6`), owner-rename UI 2026-07-05 (clients
@@ -203,17 +206,21 @@ surfaces, welcome banner, survey→roles, …). Still open:
 
 ## ⚠️ Known issues
 
-- **W: passkey identity creation strands the credential when PRF isn't
-  reported on create** — user repro 2026-07-18 (Firefox + Bitwarden
-  extension): `navigator.credentials.create()` succeeds (login saved in
-  Bitwarden) but `prfIdentity.ts` throws `PrfUnsupportedError` when the
-  create-response lacks `prf.enabled`, abandoning the credential —
-  orphaned Bitwarden entry, no identity. Providers legitimately answer
-  PRF only on assertion; fix queued: attempt the follow-up `get()`
-  scoped to the new credential before declaring unsupported, and split
-  the error message by failing stage. Real-provider passkey flows were
-  never live-tested (e2e uses the virtual authenticator) — add
-  Chrome-native + Bitwarden-extension manual checks to the live pass.
+- **W: passkey PRF fix awaits real-provider retest** — the
+  strands-the-credential bug is FIXED (clients `234945e`, see
+  [shipped-log.md](docs/shipped-log.md)); owner retest pending on
+  Chrome native passkeys (expected-works baseline) and Firefox +
+  Bitwarden extension (the fix's target). Real-provider passkey flows
+  have never been manually verified (e2e uses the virtual
+  authenticator).
+- **Live e2e suite: 18 pre-existing failures** — surfaced 2026-07-18 by
+  the first full run since the harness was repaired (it had been broken
+  since the invite-only default + account-naming changes of early
+  July). Root causes, none from the events/voice-move work: 7 specs use
+  the removed desktop-era "Join Voice" header button, 4 hit the
+  settings-IA restructure, 2 hit localStorage key renames, 1 hardcoded
+  past date (05-events), 4 misc timing/selector rot. Suite is 57/76
+  green; fix these spec-side.
 - **H: `/voice/ws` human joins have no read gate** — found 2026-07-18
   during the voice-move Phase 2 work: `voice_ws.rs` enforces
   `READ_MESSAGES` only for bot sessions and spawner-channel joins; a
