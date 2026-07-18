@@ -394,6 +394,19 @@ subkey and gets it certified by the master (as per the multi-device
 protocol). Per-device revocation is fully intact.
 
 Constraints:
+- **Windows Hello: PRF at create() only — restore broken (empirically
+  confirmed 2026-07-18, Win 11 25H2 build 26200.8655, post-KB5077181)**:
+  creation delivers the PRF output, but **every PRF-carrying `get()`
+  fails inside the Windows dialog** ("Si è verificato un problema
+  durante l'accesso con la passkey") — scoped and discoverable alike,
+  while plain non-PRF assertions work fine. So a Windows Hello passkey
+  identity is real but the passkey can never restore it. Mitigation
+  shipped (clients `dcd004f`): identity creation always runs a scoped
+  verification `get()` — its output is canonical (restores go through
+  `get()`, so a create-only output must never be the seed source when
+  `get()` disagrees or works) — and on failure the identity is still
+  created with a prominent warning that the 24-word phrase is the only
+  recovery path. Platform bug; retest as Windows updates land.
 - **The Bitwarden extension is not a third-party PRF provider on ANY
   browser (empirically confirmed 2026-07-18)**: raw
   `navigator.credentials.create()`/`get()` ceremonies with the PRF

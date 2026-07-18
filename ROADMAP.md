@@ -206,17 +206,19 @@ surfaces, welcome banner, survey→roles, …). Still open:
 
 ## ⚠️ Known issues
 
-- **W: passkey PRF — Bitwarden extension can't serve it (any browser);
-  Chrome-native retest remaining** — the strands-the-credential bug is
-  FIXED (clients `234945e`) and the misleading "try Bitwarden" advice
-  removed (`662c1b0`). Owner A/B 2026-07-18: the Bitwarden extension
-  returns empty extension results on BOTH Firefox and Chrome — a known
-  Bitwarden-as-provider limitation (community-forum tracked), not
-  browser-specific and not ours (details in
-  [webauthn-auth.md](docs/webauthn-auth.md)). Remaining: owner retest
-  on Chrome native passkeys (Google Password Manager / Windows Hello —
-  expected to work); optional upstream nudges (forum vote + a GitHub
-  issue for the missing `prf.enabled:false` on create).
+- **W: passkey PRF provider matrix (owner-tested 2026-07-18)** — client
+  hardening all SHIPPED: create-time robustness `234945e`, realm-safe
+  buffers `695bb65`, honest provider advice `662c1b0`, and creation-time
+  recovery verification with the phrase-only warning `dcd004f`. Findings
+  (details in [webauthn-auth.md](docs/webauthn-auth.md)): **Bitwarden
+  extension** returns no third-party PRF on any browser (known upstream
+  limitation); **Windows Hello** (25H2, post-KB5077181) delivers PRF at
+  create but fails every PRF `get()` — create-only, restore impossible
+  (platform bug; the new warning covers it). Remaining: owner test of
+  **Google Password Manager** (sign into Chrome) — the last untested
+  synced provider, expected to fully work; optional upstream nudges
+  (Bitwarden forum vote + GitHub issue on missing `prf.enabled:false`;
+  Microsoft Feedback Hub for the Hello get() failure).
 - **Live e2e suite: 18 pre-existing failures** — surfaced 2026-07-18 by
   the first full run since the harness was repaired (it had been broken
   since the invite-only default + account-naming changes of early
