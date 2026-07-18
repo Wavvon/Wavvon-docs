@@ -203,6 +203,17 @@ surfaces, welcome banner, survey→roles, …). Still open:
 
 ## ⚠️ Known issues
 
+- **W: passkey identity creation strands the credential when PRF isn't
+  reported on create** — user repro 2026-07-18 (Firefox + Bitwarden
+  extension): `navigator.credentials.create()` succeeds (login saved in
+  Bitwarden) but `prfIdentity.ts` throws `PrfUnsupportedError` when the
+  create-response lacks `prf.enabled`, abandoning the credential —
+  orphaned Bitwarden entry, no identity. Providers legitimately answer
+  PRF only on assertion; fix queued: attempt the follow-up `get()`
+  scoped to the new credential before declaring unsupported, and split
+  the error message by failing stage. Real-provider passkey flows were
+  never live-tested (e2e uses the virtual authenticator) — add
+  Chrome-native + Bitwarden-extension manual checks to the live pass.
 - **H: `/voice/ws` human joins have no read gate** — found 2026-07-18
   during the voice-move Phase 2 work: `voice_ws.rs` enforces
   `READ_MESSAGES` only for bot sessions and spawner-channel joins; a
