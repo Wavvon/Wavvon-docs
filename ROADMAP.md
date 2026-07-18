@@ -207,16 +207,16 @@ surfaces, welcome banner, survey→roles, …). Still open:
 ## ⚠️ Known issues
 
 - **W: passkey PRF provider matrix (owner-tested 2026-07-18)** — client
-  hardening all SHIPPED: create-time robustness `234945e`, realm-safe
-  buffers `695bb65`, honest provider advice `662c1b0`, and creation-time
-  recovery verification `dcd004f`, hardened to refuse-on-unverified
-  `cc9a585` (decisions.md: passkey identity must prove restore at
+  hardening all SHIPPED as one squashed commit (clients `a310f64`):
+  create-time robustness, realm-safe buffers, honest provider advice,
+  and the creation-time restore self-test that REFUSES creation when
+  unverified (decisions.md: passkey identity must prove restore at
   birth). Findings
   (details in [webauthn-auth.md](docs/webauthn-auth.md)): **Bitwarden
   extension** returns no third-party PRF on any browser (known upstream
   limitation); **Windows Hello** (25H2, post-KB5077181) delivers PRF at
   create but fails every PRF `get()` — create-only, restore impossible
-  (platform bug; the new warning covers it). Remaining: owner test of
+  (platform bug; refusal covers it). Remaining: owner test of
   **Google Password Manager** (sign into Chrome) — the last untested
   synced provider, expected to fully work; optional upstream nudges
   (Bitwarden forum vote + GitHub issue on missing `prf.enabled:false`;

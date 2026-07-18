@@ -401,7 +401,7 @@ Constraints:
   durante l'accesso con la passkey") — scoped and discoverable alike,
   while plain non-PRF assertions work fine. So a Windows Hello passkey
   identity would be real but the passkey could never restore it.
-  Policy shipped (clients `cc9a585`, superseding `dcd004f`'s brief
+  Policy shipped (clients `a310f64`, superseding `a310f64`'s brief
   warn-and-create; see the decisions.md entry "Passkey identity: refuse
   creation unless restore is proven at birth"): identity creation
   always runs a scoped verification `get()` — its output is the
@@ -422,11 +422,11 @@ Constraints:
   community reports say third-party PRF works with Chrome's built-in
   passkeys (Google Password Manager), 1Password, and Apple Passwords.
   Consequences here: the client's PRF-missing error names working
-  providers and no longer suggests Bitwarden (clients `662c1b0`); this
+  providers and no longer suggests Bitwarden (clients `a310f64`); this
   doc's earlier "Bitwarden PRF everywhere" premise (§ above) is
   aspirational until Bitwarden ships it. During the investigation a
   realm-sensitive `instanceof ArrayBuffer` in `bufferSourceToBytes` was
-  found and fixed (clients `695bb65`) — real bug, not this cause.
+  found and fixed (clients `a310f64`) — real bug, not this cause.
   Detectability gap worth reporting upstream: because create() returns
   no `prf` member at all (instead of `enabled: false`), sites cannot
   detect non-support before the credential is stored — users end up

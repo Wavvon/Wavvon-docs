@@ -4,20 +4,24 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
-- **Web: passkey identity creation fixed for late-PRF providers
-  (2026-07-18)**: owner repro (Firefox + Bitwarden extension) — the
-  passkey got saved in the vault but Wavvon threw "unsupported" and
-  abandoned it, because `createIdentityWithPasskey` trusted the
-  create-response's `prf.enabled` flag, which providers legitimately
-  omit while still serving PRF on assertion. The create-response is now
-  advisory only: missing output ⇒ always follow up with a `get()`
-  scoped to the new credential; only that answer can declare
-  unsupported. New `PrfOutputUnavailableError` +
-  `identity_setup.passkey.prf_missing` (×4 locales) tells the user the
-  stranded vault entry is safe to delete; `prfExtensionEnabled` helper
-  removed so nothing can branch on the untrustworthy flag again. 3 new
-  unit tests; web 248/248. Owner retest on real providers pending
-  (tracked in ROADMAP). Clients `234945e`.
+- **Web: passkey PRF identity hardening — refuse-on-unverified
+  (2026-07-18)**: one squashed commit (clients `a310f64`) from a live
+  owner-testing session across three real providers. The
+  create-response is advisory only (providers legitimately answer PRF
+  only on assertion — `prfExtensionEnabled` removed); the follow-up
+  scoped `get()` is both the **canonical seed source** and a **restore
+  self-test that gates creation**: if the passkey can't prove it can
+  re-derive the secret, no identity is created
+  (`PrfRestoreUnverifiedError`; the stranded vault entry is flagged
+  safe to delete; user routed to the recovery-phrase flow — see the
+  decisions.md entry "Passkey identity: refuse creation unless restore
+  is proven at birth"). Also: realm-safe buffer extraction
+  (`ArrayBuffer.isView` instead of cross-realm-fragile `instanceof`)
+  and honest provider guidance (Bitwarden named as non-working).
+  Provider findings → [webauthn-auth.md](webauthn-auth.md): Bitwarden
+  extension serves no third-party PRF on any browser; Windows Hello
+  25H2 is create-only (every PRF `get()` fails). 13 prfIdentity unit
+  tests; web 250/250.
 
 - **Web: live e2e pass for the events delta + harness revival
   (2026-07-18)**: five new live specs (48-52) drive the shipped

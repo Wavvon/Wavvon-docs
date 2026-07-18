@@ -37,8 +37,8 @@ cancel also refuses creation — the message invites a retry. Healthy
 providers pay one extra authenticator prompt at signup; that's the cost
 of the invariant "every passkey identity has proven restore at birth."
 
-**Outcome**: clients `cc9a585` (supersedes the warn-and-acknowledge UI
-from `dcd004f`/`5459169` the same day). Provider matrix + platform bugs
+**Outcome**: clients `a310f64` (supersedes the warn-and-acknowledge UI
+from `a310f64`/`a310f64` the same day). Provider matrix + platform bugs
 in [webauthn-auth.md](webauthn-auth.md).
 
 ## Voice-move: hub-requested leave-and-join with claim-based auto-consent and ephemeral voice-only presence
