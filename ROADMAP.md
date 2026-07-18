@@ -203,8 +203,11 @@ surfaces, welcome banner, survey→roles, …). Still open:
   account-scoped; cross-client archive compat (desktop↔web) deferred.
 - **Live captions in voice** — local STT, desktop-era (too heavy for
   web). See [`future-features.md`](docs/future-features.md).
-- **Hub-hosted identity vault** — DESIGNED 2026-07-19
-  ([identity-vault.md](docs/identity-vault.md),
+- **Hub-hosted identity vault** — DESIGNED 2026-07-19, **PARKED same day
+  (user call): revisit after the videogamezone.eu pilot** — real users
+  will show how identities actually get lost, which decides whether
+  hub-held encrypted seed material is worth its trade-off. Do NOT build
+  meanwhile. ([identity-vault.md](docs/identity-vault.md),
   [decisions.md](docs/decisions.md)): opt-in passphrase-wrapped master-seed
   backup stored on the user's home hubs, recoverable on a fresh device with
   no key material — handle-derived locator (hub learns neither handle nor

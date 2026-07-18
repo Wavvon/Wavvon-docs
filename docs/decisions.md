@@ -8,7 +8,13 @@ so this file stays small enough to read whole.
 
 ## Hub-hosted identity vault: opt-in, passphrase-locked, handle-addressed
 
-**Decision** (2026-07-19): add an **opt-in** recovery tier that stores the
+> **PARKED 2026-07-19 (user call, same day as the design)**: not built,
+> not scheduled. Revisit **after the videogamezone.eu pilot** — real
+> users will show how identities actually get lost, which is the
+> evidence that decides whether hub-held encrypted seed material is
+> worth its trade-off. The design below stays as the considered option.
+
+**Decision** (2026-07-19): design an **opt-in** recovery tier that stores the
 user's passphrase-encrypted master seed — the same `.wavvon-backup`
 envelope family — on their **home hub(s)** as personal-axis state,
 retrievable and decryptable on a fresh device that holds **no key

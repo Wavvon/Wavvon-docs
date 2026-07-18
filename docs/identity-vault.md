@@ -4,7 +4,10 @@ The third recovery layer, split out of
 [identity-recovery.md](identity-recovery.md) (Part 1: the .wavvon-backup
 file; Part 2: recovery contacts) per the ~focused-doc convention.
 
-**Status**: design — no code yet. Extends the Part 1 `.wavvon-backup`
+**Status**: design — no code yet; **PARKED 2026-07-19 (user call):
+revisit after the videogamezone.eu pilot**, when real identity-loss
+patterns can justify (or kill) the hub-held-ciphertext trade-off. Do not
+build without that re-decision. Extends the Part 1 `.wavvon-backup`
 envelope and the personal-axis storage model ([home-hub.md](home-hub.md)).
 This is the provider-independent successor to what passkey PRF promised
 ([webauthn-auth.md](webauthn-auth.md)): recovery on a fresh device with
