@@ -12,11 +12,15 @@ below); **calendar view DESIGNED, not implemented** (client-only,
 lowest priority — see §4). Desktop/Android UI for slots + reminders is
 queued next; see ROADMAP.
 
-**Guild-scale delta DESIGNED, not implemented (2026-07-18):**
-**hub-level events** (§5), **propagation to sub-channels** (§6), and
-**slot-based participant marshalling / voice-move** (§7 — the
-centerpiece). The voice-move consent model + voice-only presence grant
-are also recorded in [decisions.md](decisions.md).
+**Guild-scale delta DESIGNED 2026-07-18:** **hub-level events** (§5),
+**propagation to sub-channels** (§6), and **slot-based participant
+marshalling / voice-move** (§7 — the centerpiece). Phase 1 (move
+primitive) and Phase 2 (staging panel) SHIPPED 2026-07-18 (see ROADMAP).
+Phase 3 (hub-wide + propagation + squad rooms) — **web client SHIPPED
+2026-07-18** (see the implementation notes in §5/§6/§7.5); server side
+was already present when this client pass started, not independently
+verified live by it. The voice-move consent model + voice-only presence
+grant are also recorded in [decisions.md](decisions.md).
 
 ---
 
@@ -274,7 +278,17 @@ channel picker (now labelled "Announcement channel", defaulting to the
 hub's announcements/banner channel). `EventCard.tsx` renders a small
 "Hub-wide" badge. No new component files.
 
-## 6. Event propagation to sub-channels
+> **Implementation note (2026-07-18, clients)**: shipped as described. The
+> client has no channel-scoped permission model, so "holds hub-level
+> `CREATE_EVENTS`" reuses the same `isAdmin` check the composer's callers
+> already use to decide "may create an event at all" (the channel-scoped
+> gate is hub-only today, same posture as the staging panel's `canStage`
+> check in §7.5) — the hub re-verifies both gates on `POST /events`
+> regardless. The "announcements/banner channel" default picks, in order:
+> a `channel_type: "banner"` channel, then one literally named
+> "announcements", then falls back to wherever the composer was opened
+> from. Categories and temp/spawned rooms are excluded from the picker
+> (`announcementChannelCandidates` in `utils/events.ts`).
 
 A raid organizer posts an event in `#raid-planning` but wants every
 squad sub-channel to see the card too. Propagation fans the
@@ -329,6 +343,16 @@ other's code path.
   who *sees* each card.)
 - `EventComposer.tsx` gains a "Also post in sub-channels" checkbox, shown
   only when the anchor channel has descendants.
+
+> **Implementation note (2026-07-18, clients)**: shipped as described.
+> "Has descendants" is a plain `channels.some(c => c.parent_id ===
+> anchorId)` (`channelHasDescendants` in `utils/events.ts`) rather than a
+> full tree walk — any descendant at all implies at least one direct
+> child, so the cheaper check is equivalent. The anchor used for this
+> check tracks whichever channel is currently selected (the fixed
+> `channelId` prop for *This channel* scope, or the picked Announcement
+> channel for *Whole hub* scope), so switching scope or picker selection
+> live-updates whether the checkbox appears.
 
 ## 7. Slot-based participant marshalling (voice-move)
 
@@ -596,6 +620,23 @@ earliest of:
 
 Creation is organizer-gated the same as the staging panel (§7.5 rule);
 the spawned rooms live under the event's anchor channel.
+
+> **Implementation note (2026-07-18, clients)**: web staging panel
+> (`StagingPanel.tsx` in `packages/ui`, wired from `EventStagingPanel.tsx`)
+> gained a "Spawn squad rooms" control — a count stepper (client-clamped to
+> `1..=20` via `clampSquadRoomCount`, mirroring the hub's own bound) and a
+> name-prefix field defaulting to the localized "Squad" — calling the new
+> `createEventSquadRooms(eventId, count, namePrefix?)` platform command
+> (`POST /events/:id/squad-rooms`). No client-side gating beyond what
+> already wraps the panel (organizer-only, §7.5's rule) — the new control
+> is just another action inside the existing gate. Spawned rooms need no
+> special handling to appear as move destinations: the panel's
+> `destinationChannels` already derives from the live `channels` prop
+> (verified, not a snapshot), so the normal channels-updated push that
+> follows a spawn is enough. The event's own rooms (`channel.event_id ===
+> this event`) are sorted first in the destination list
+> (`orderDestinationsForEvent`); no separate visual marker was added
+> beyond the ordering (called out as optional in the original ask).
 
 ### 7.6 Conflicts flagged against shipped behavior
 

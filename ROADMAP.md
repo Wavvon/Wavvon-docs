@@ -167,14 +167,12 @@ surfaces, welcome banner, survey→roles, …). Still open:
     clients `77dab02`, see [shipped-log.md](docs/shipped-log.md)) —
     queued assignments, voice-only presence, organizer staging panel.
     Needs the live pass with Phase 1.
-  - **Phase 3 - hub-wide + propagation + squad rooms**: IN PROGRESS
-    2026-07-18 (squad-room lifetime now tied to event end per the
-    updated events.md §7.5, not just empty-GC). Additive
-    `hub_wide` (read-gate bypass in `list_events`/`get_event`) and
-    `propagate_to_children` (card fan-out into descendants, read-gating
-    free) - independent of the move work, can go earlier if trivial;
-    plus optional auto-spawned squad temp-voice channels (reuse the
-    spawner GC). Server + web.
+  - **Phase 3 - hub-wide + propagation + squad rooms**: *SHIPPED
+    2026-07-18* (hub `08d873b`, clients `1f9d1d0`, see
+    [shipped-log.md](docs/shipped-log.md)) — hub_wide +
+    propagate_to_children + event-linked squad rooms with event-end
+    lifetime. Live e2e pass over all three phases IN PROGRESS (real hub
+    + multi-client Playwright specs).
 - **Join-to-create temporary voice channels** — *fully SHIPPED*: server
   (hub `3005fc5`), web UI (clients `fb607de`), `voice_ws.rs` spawner gap
   fixed 2026-07-04 (hub `1fc5aa6`), owner-rename UI 2026-07-05 (clients

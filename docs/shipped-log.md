@@ -4,6 +4,29 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Hub + web: events Phase 3 — hub-wide events, card propagation,
+  squad rooms (2026-07-18)**: completes the guild-scale delta
+  ([events.md](events.md) §5-§6, §7.5). `hub_wide` (create-time only,
+  needs hub-level `CREATE_EVENTS` on top of the anchor gate;
+  `list_events`/`get_event` read-gate bypassed for hub-wide rows) and
+  `propagate_to_children` (event + reminder cards fan out to the
+  anchor's descendants via a BFS subtree walk; one event row, delivery
+  gating per channel unchanged — tested). Squad rooms:
+  `POST /events/:id/squad-rooms` (count 1-20, prefix default "Squad")
+  creates temp voice channels under the anchor with `channels.event_id`
+  (nullable, deliberately NO FK — cleanup must distinguish
+  empty-delete-now from occupied-never-yank): delete_event cascades by
+  hand, the worker sweep deletes empty rooms of ended events, and
+  voice-join rejects NEW joins to ended-event rooms while occupants
+  drain (user ruling: lifetime tied to the event, never yank an
+  occupied room). Web: EventComposer scope control (This channel /
+  Whole hub + Announcement-channel relabel), sub-channel propagation
+  checkbox (only when the anchor has children), Hub-wide badge, and the
+  staging panel's squad-room spawner (rooms arrive via the live
+  channels push, event's rooms listed first as destinations). Hub: 12
+  new tests across three flow files, full suite green; web 246/246,
+  i18n ×4. Hub `08d873b`, clients `1f9d1d0`.
+
 - **Hub + web: voice-move Phase 2 — staging panel, queued assignments,
   voice-only presence (2026-07-18)**: the raid-marshalling core
   ([events.md](events.md) §7.3-§7.5). `event_move_assignments`
