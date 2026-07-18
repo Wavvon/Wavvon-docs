@@ -6,6 +6,41 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Passkey identity: refuse creation unless restore is proven at birth
+
+**Decision** (2026-07-18, user call): identity creation via passkey PRF
+performs a **restore self-test** (a scoped PRF sign-in immediately after
+creation) and **refuses to create the identity if it fails** — no
+identity, an error telling the user the stranded vault entry is safe to
+delete, and a route to the recovery-phrase flow. The self-test's output
+is also the **canonical seed source** (restores go through sign-in, so a
+create-time output that sign-in can't reproduce must never mint an
+identity).
+
+**Why**: live provider testing (owner, 2026-07-18) found real platforms
+where PRF works at creation but never at sign-in — Windows Hello 25H2
+fails every PRF-carrying `get()` — and providers that store the passkey
+while returning no PRF at all (Bitwarden extension, all browsers). An
+identity created there *looks* passkey-backed but the passkey can never
+restore it: a decoy that fails exactly when the user needs it.
+
+**Alternative considered — create with a warning** (shipped briefly the
+same day): keep the identity, derive from the create-output, show a
+"your phrase is the only recovery" banner with forced acknowledgment.
+Rejected by the user as dishonest UX ("what's the purpose of the
+passkey if we can't restore from it?") — the passkey button's contract
+is restore-by-passkey, and warnings don't fix a broken mental model.
+
+**Tradeoff accepted**: a genuinely-cancelled verification prompt is
+indistinguishable from a broken platform (both `NotAllowedError`), so a
+cancel also refuses creation — the message invites a retry. Healthy
+providers pay one extra authenticator prompt at signup; that's the cost
+of the invariant "every passkey identity has proven restore at birth."
+
+**Outcome**: clients `cc9a585` (supersedes the warn-and-acknowledge UI
+from `dcd004f`/`5459169` the same day). Provider matrix + platform bugs
+in [webauthn-auth.md](webauthn-auth.md).
+
 ## Voice-move: hub-requested leave-and-join with claim-based auto-consent and ephemeral voice-only presence
 
 **Decision** (2026-07-18, user call): event staging

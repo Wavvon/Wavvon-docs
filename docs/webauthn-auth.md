@@ -400,13 +400,15 @@ Constraints:
   fails inside the Windows dialog** ("Si è verificato un problema
   durante l'accesso con la passkey") — scoped and discoverable alike,
   while plain non-PRF assertions work fine. So a Windows Hello passkey
-  identity is real but the passkey can never restore it. Mitigation
-  shipped (clients `dcd004f`): identity creation always runs a scoped
-  verification `get()` — its output is canonical (restores go through
-  `get()`, so a create-only output must never be the seed source when
-  `get()` disagrees or works) — and on failure the identity is still
-  created with a prominent warning that the 24-word phrase is the only
-  recovery path. Platform bug; retest as Windows updates land.
+  identity would be real but the passkey could never restore it.
+  Policy shipped (clients `cc9a585`, superseding `dcd004f`'s brief
+  warn-and-create; see the decisions.md entry "Passkey identity: refuse
+  creation unless restore is proven at birth"): identity creation
+  always runs a scoped verification `get()` — its output is the
+  canonical seed source — and on failure creation is **refused**
+  (`PrfRestoreUnverifiedError`; the vault entry is flagged safe to
+  delete and the user is routed to the recovery-phrase flow). Platform
+  bug; retest as Windows updates land.
 - **The Bitwarden extension is not a third-party PRF provider on ANY
   browser (empirically confirmed 2026-07-18)**: raw
   `navigator.credentials.create()`/`get()` ceremonies with the PRF

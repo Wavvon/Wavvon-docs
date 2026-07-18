@@ -209,7 +209,9 @@ surfaces, welcome banner, survey→roles, …). Still open:
 - **W: passkey PRF provider matrix (owner-tested 2026-07-18)** — client
   hardening all SHIPPED: create-time robustness `234945e`, realm-safe
   buffers `695bb65`, honest provider advice `662c1b0`, and creation-time
-  recovery verification with the phrase-only warning `dcd004f`. Findings
+  recovery verification `dcd004f`, hardened to refuse-on-unverified
+  `cc9a585` (decisions.md: passkey identity must prove restore at
+  birth). Findings
   (details in [webauthn-auth.md](docs/webauthn-auth.md)): **Bitwarden
   extension** returns no third-party PRF on any browser (known upstream
   limitation); **Windows Hello** (25H2, post-KB5077181) delivers PRF at
