@@ -10,10 +10,17 @@ an accepted difference.
 web leads: a feature ships on web first, and desktop/android are brought to
 parity from there. This doc tracks the known gaps.
 
-The three clients each keep their own copy of the UI components and platform
-commands (only `packages/{core,ui,platform,i18n}` are shared, and
-`UserContextMenu.tsx` is **not** in `packages/ui` — each app has its own).
-So parity work usually means porting a change into each app's copy.
+**Sharing model (changed 2026-07-18 — see
+[decisions.md](decisions.md#shared-ui-components-hoist-from-web-into-packagesui-desktop-adapts)):**
+historically each client kept its own copy of the UI components and platform
+commands (only `packages/{core,ui,platform,i18n}` were shared), so parity
+meant porting a change into each app's copy. That model is retired: **web is
+the source of truth**, new components ship straight into `packages/ui`
+(prop-only; data access via callback props each app provides), and parity
+work on an existing component now means **hoisting the web copy into
+`packages/ui`** and adapting desktop — not hand-porting into desktop's
+diverged copy. First hoisted batch (2026-07-18): `BotAppLaunchCard`,
+`ImagePicker`, `BotCard`, `EmojiPicker`.
 
 ---
 

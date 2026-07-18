@@ -6,6 +6,43 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Shared UI components: hoist from web into packages/ui; desktop adapts
+
+**Decision** (2026-07-18, user call): stop maintaining per-app copies of UI
+components. The **web client is the source of truth** — going forward,
+components ship into `packages/ui` (prop-only, data access via callback
+props) instead of `apps/web/src/components`, and existing duplicated
+components are **hoisted from the web copy** whenever they're touched;
+desktop adapts by passing its own (Tauri `invoke`-based) loaders as props.
+Desktop-parity work changes meaning: instead of hand-porting a web feature
+into desktop's diverged copy, move the web component into `packages/ui` and
+point both apps at it — the last port that component ever needs.
+
+- **Why now**: an audit (2026-07-18) found only ~14 components shared in
+  `packages/ui` vs **61 duplicated by filename** across web/desktop, at an
+  average **73% divergence** — the July web-only feature run made the copies
+  race apart, and the parity backlog grows with every web feature.
+- **Alternative considered**: keep the documented per-app-copies model
+  (`client-parity.md`: "parity work usually means porting a change into each
+  app's copy"). Rejected — porting cost is paid on *every* feature forever;
+  hoisting pays it once. The plumbing (prop-only `packages/ui`,
+  `packages/platform` interface contract) already existed and was simply
+  under-used.
+- **Direction is one-way**: web wins on divergence, but strict desktop-side
+  improvements (i18n keys where web hardcoded English, `FocusTrap`) are
+  folded into the hoisted version rather than discarded.
+- **Not everything hoists**: state orchestrators (`App.tsx`,
+  `SettingsPage`) and components whose divergence is *feature* divergence in
+  both directions (e.g. `ChannelMessageList`, `DmView`) need a real parity
+  reconciliation first — those hoist during their parity pass, not
+  mechanically.
+
+**Outcome**: first slice shipped 2026-07-18 — `BotAppLaunchCard`,
+`ImagePicker`, `BotCard`, `EmojiPicker` hoisted; both app copies deleted.
+`client-parity.md` stance updated. Next candidates: `CreateHubWizard` (needs
+farm-command callback props), then per-component alongside each
+desktop-parity ROADMAP item.
+
 ## Presence: Invisible + "clear after" TTL; custom-text status removed
 
 **Decision** (2026-07-12, user call): the footer presence picker becomes

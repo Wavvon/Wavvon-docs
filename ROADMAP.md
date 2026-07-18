@@ -23,6 +23,17 @@ fixed, its entry moves to the shipped log.
   owner invite, first cross-internet voice test, friend onboards +
   ownership transfer, doc-test feedback, two-operator federation test.
 
+- [ ] **Shared-component consolidation (web → `packages/ui`)** — decided
+  2026-07-18 ([decisions.md](docs/decisions.md)): web is the source of
+  truth; new components ship into `packages/ui` (prop-only, loaders via
+  props), duplicated ones are hoisted from the web copy when touched, and
+  desktop-parity items are done by hoisting rather than porting. Batch 1
+  (BotAppLaunchCard, ImagePicker, BotCard, EmojiPicker) SHIPPED 2026-07-18
+  (clients `d5c9acd`, see [shipped-log.md](docs/shipped-log.md)).
+  Next candidates: `CreateHubWizard`, then per-component alongside each
+  desktop-parity item. Audit baseline: 61 duplicated components, 73% avg
+  divergence.
+
 ## 🚧 Blocked
 
 - **Windows code-signing** — blocked until the project reaches meaningful

@@ -4,6 +4,21 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Clients: shared-component consolidation, batch 1 (2026-07-18)**:
+  first slice of the new hoist-from-web policy (see
+  [decisions.md](decisions.md)) — `BotAppLaunchCard`, `ImagePicker`,
+  `BotCard`, `EmojiPicker` moved from per-app copies into `packages/ui`
+  as prop-only components (data access via callback props: web passes
+  `hubFetch` loaders, desktop passes Tauri `invoke` loaders); all 8
+  app-local copies deleted, net −538 lines (clients `d5c9acd`). BotCard
+  regains desktop's `FocusTrap` + `bot.card.*` i18n keys that web had
+  dropped; desktop's EmojiPicker gains web's `unicodeOnly` + SVG
+  composer trigger; `EMOJI_CATALOG` moved to `packages/ui`
+  (byte-identical copies). Shared bot/emoji types consolidated into
+  `packages/ui/src/types.ts`. Typecheck clean both apps; vitest 215/215
+  (web), 80/80 (desktop). Audit baseline recorded: 61 duplicated
+  components at 73% avg divergence.
+
 - **Hub + web: Invisible presence + "clear after" TTL (2026-07-12)**:
   the footer status picker is now Online / Away / Do Not Disturb /
   **Invisible** with an optional **clear-after** duration (Off/30m/1h/
