@@ -394,6 +394,15 @@ subkey and gets it certified by the master (as per the multi-device
 protocol). Per-device revocation is fully intact.
 
 Constraints:
+- **Firefox is not a PRF surface (verified live 2026-07-18)**:
+  Bitwarden documents the WebAuthn PRF extension as Chromium-only
+  (Chrome/Edge/Brave); on Firefox the Bitwarden extension creates and
+  stores the passkey but returns no PRF output on create *or* assert —
+  owner repro matched exactly. The client now surfaces this honestly
+  (`PrfOutputUnavailableError` → "provider didn't supply the secret…
+  entry is safe to delete", clients `234945e`) instead of stranding a
+  vault entry behind a generic "unsupported". Nothing to fix on our
+  side; revisit when Firefox/Bitwarden ship PRF.
 - Android PRF via Credential Manager requires Android 14+ (API 34)
   and a Bitwarden Android version that implements PRF. Users on
   older Android fall back to prompting for the phrase to derive

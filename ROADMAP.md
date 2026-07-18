@@ -206,13 +206,16 @@ surfaces, welcome banner, survey→roles, …). Still open:
 
 ## ⚠️ Known issues
 
-- **W: passkey PRF fix awaits real-provider retest** — the
-  strands-the-credential bug is FIXED (clients `234945e`, see
-  [shipped-log.md](docs/shipped-log.md)); owner retest pending on
-  Chrome native passkeys (expected-works baseline) and Firefox +
-  Bitwarden extension (the fix's target). Real-provider passkey flows
-  have never been manually verified (e2e uses the virtual
-  authenticator).
+- **W: passkey PRF fix awaits Chrome retest; Firefox+Bitwarden is an
+  upstream limitation** — the strands-the-credential bug is FIXED
+  (clients `234945e`, see [shipped-log.md](docs/shipped-log.md)).
+  Owner retest 2026-07-18 on Firefox + Bitwarden: both create and
+  sign-in now fail with the honest "provider didn't supply the secret"
+  errors — confirmed upstream: Bitwarden documents PRF as
+  Chromium-only; Firefox is not supported. Nothing to fix on our side
+  for Firefox; revisit when Firefox/Bitwarden ship PRF. Remaining:
+  owner retest on Chrome (native passkeys and Chrome + Bitwarden
+  extension — both expected to work).
 - **Live e2e suite: 18 pre-existing failures** — surfaced 2026-07-18 by
   the first full run since the harness was repaired (it had been broken
   since the invite-only default + account-naming changes of early
