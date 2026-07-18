@@ -528,6 +528,12 @@ staging_voice_grants: RwLock<HashMap<String /*pubkey*/, HashSet<String /*channel
   reject a join when the caller lacks effective `READ_MESSAGES`. Add:
   *…unless `staging_voice_grants[pubkey]` contains this channel.* That
   single bypass is the entire reveal.
+  *(Implementation note, 2026-07-18: the `voice_ws.rs` gate turned out
+  narrower than described — it enforces `READ_MESSAGES` only for bot
+  sessions and spawner-channel joins; a plain human `/voice/ws` join has
+  no read gate today. The grant bypass was added to the existing checks
+  only; the missing general gate is tracked as an H-series known issue
+  in ROADMAP and should gain the same grant bypass when fixed.)*
 - **Message routes — NO bypass.** `messages.rs` history, WS `subscribe`,
   the read-gated channel-list endpoint, and `list_events`/`get_event`
   read-gating **do not** consult `staging_voice_grants`. A voice-only
@@ -567,14 +573,29 @@ channel-scoped `CREATE_EVENTS`** (same rule as slot management,
   auto-applies on join. The panel shows assigned-but-absent members
   distinctly ("assigned, not yet in voice").
 
-**Optional: auto-spawned squad channels (Phase 3).** Reuse the temp-voice
+**Auto-spawned squad channels (Phase 3).** Reuse the temp-voice
 spawner ([temp-voice-channels.md](temp-voice-channels.md)): the panel can
 spawn N linked squad rooms and drop claimants into them. The rooms are
-ordinary temp channels (`is_temporary = TRUE`) and **auto-clean-up via
-the existing `empty_since` GC** when the raid disbands — no new
-lifecycle. Event linkage (a nullable `event_id` on the temp channel,
-additive) lets the panel list "this event's rooms"; deferred to Phase 3
-with the auto-spawn.
+ordinary temp channels (`is_temporary = TRUE`) with event linkage — a
+nullable `event_id` on the temp channel (additive) lets the panel list
+"this event's rooms".
+
+**Lifetime is tied to the event, not just emptiness** (user ruling,
+2026-07-18): squad rooms disappear when the event is over, not merely
+when they drain. Concretely, an event-linked temp room dies at the
+earliest of:
+
+- the normal `empty_since` GC (drained mid-raid → gone, as today);
+- **event end / event delete**: the same worker sweep that prunes
+  `event_move_assignments` (§7.3) marks the event's rooms for removal.
+  An occupied room is **not** yanked mid-conversation — it stops
+  accepting new joins and is deleted the moment it empties (its
+  `empty_since` grace is treated as already elapsed). An event with no
+  `ends_at` cleans up on event delete only, falling back to the
+  ordinary empty-GC meanwhile.
+
+Creation is organizer-gated the same as the staging panel (§7.5 rule);
+the spawned rooms live under the event's anchor channel.
 
 ### 7.6 Conflicts flagged against shipped behavior
 

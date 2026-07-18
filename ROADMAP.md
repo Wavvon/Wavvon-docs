@@ -163,13 +163,13 @@ surfaces, welcome banner, survey→roles, …). Still open:
     `move_members` permission + `voice_move` WS request/push +
     right-click "Move to channel…". Needs the live pass (real two-client
     move over a running hub).
-  - **Phase 2 - staging panel**: organizer panel on the event card
-    (claimants grouped by slot, drag onto voice channels, bulk
-    "move all slot"), queued `event_move_assignments` (auto-apply on
-    voice join, expire at event end, upsert overwrites), and
-    **voice-only presence** (ephemeral in-memory grant, one voice-join
-    read-gate bypass; message routes stay strict). Server + web.
-  - **Phase 3 - hub-wide + propagation + squad rooms**: additive
+  - **Phase 2 - staging panel**: *SHIPPED 2026-07-18* (hub `d0a1a53`,
+    clients `77dab02`, see [shipped-log.md](docs/shipped-log.md)) —
+    queued assignments, voice-only presence, organizer staging panel.
+    Needs the live pass with Phase 1.
+  - **Phase 3 - hub-wide + propagation + squad rooms**: IN PROGRESS
+    2026-07-18 (squad-room lifetime now tied to event end per the
+    updated events.md §7.5, not just empty-GC). Additive
     `hub_wide` (read-gate bypass in `list_events`/`get_event`) and
     `propagate_to_children` (card fan-out into descendants, read-gating
     free) - independent of the move work, can go earlier if trivial;
@@ -204,6 +204,21 @@ surfaces, welcome banner, survey→roles, …). Still open:
   web). See [`future-features.md`](docs/future-features.md).
 
 ## ⚠️ Known issues
+
+- **H: `/voice/ws` human joins have no read gate** — found 2026-07-18
+  during the voice-move Phase 2 work: `voice_ws.rs` enforces
+  `READ_MESSAGES` only for bot sessions and spawner-channel joins; a
+  plain human join through the web voice transport is not read-gated at
+  all (the desktop UDP path's `voice_join` IS gated). A web client
+  could join voice in a channel hidden from it by guessing the id.
+  Pre-existing, not introduced by voice-move (its grant bypass touched
+  only the existing checks). Fix: add the same effective-`READ_MESSAGES`
+  check (+ `staging_voice_grants` bypass) to the plain-join branch.
+- **Staging panel "voice-only" hint needs server data** — the §7.4
+  voice-only path works, but the panel can't show the designed
+  "voice-only" chip because a client can't see another member's channel
+  permissions. Small follow-up: a per-assignment `voice_only: bool` on
+  `GET /events/:id/assignments`, computed hub-side.
 
 - **Desktop: `get_pending_deep_link` command missing** — found 2026-07-11
   launching `npm run tauri dev`: shared frontend code invokes a Tauri

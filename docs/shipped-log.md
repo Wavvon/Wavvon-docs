@@ -4,6 +4,29 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Hub + web: voice-move Phase 2 — staging panel, queued assignments,
+  voice-only presence (2026-07-18)**: the raid-marshalling core
+  ([events.md](events.md) §7.3-§7.5). `event_move_assignments`
+  (additive; upsert = latest wins): a move to a target not in voice,
+  with an event context, queues instead of erroring, applies on every
+  voice join (row not consumed — drop-and-rejoin re-lands in the squad),
+  `auto` re-computed from RSVPs at application time (an assignment alone
+  is not consent), pruned by the reminder-worker sweep at event end.
+  Voice-only presence: in-memory `staging_voice_grants`, created before
+  the push when an event-context move targets an unreadable channel,
+  consumed only by the voice-join read gate, evicted on leave/disconnect
+  — message history/subscribe/channel list stay strict (tested);
+  no-event moves to unreadable destinations stay rejected. New
+  `GET /events/:id/assignments` (organizer-gated, anchor-scoped). Web:
+  "Staging" button on the event card → panel grouping claimants by slot
+  (+ Unassigned bucket) with live voice state, per-claimant and bulk
+  moves, assignment refetch; prop-only `StagingPanel`/`StagingSlotGroup`
+  in `packages/ui`; `events.staging.*` keys ×4 locales. Hub
+  `voice_move_flow.rs` at 10 tests, full suite green; web 230/230.
+  **Live pass pending** (same as Phase 1). Hub `d0a1a53`, clients
+  `77dab02`. Follow-ups → ROADMAP: `/voice/ws` human-join read gate
+  (pre-existing, H-series), voice-only hint chip needs server data.
+
 - **Hub + web: voice-move Phase 1 — the move primitive (2026-07-18)**:
   first slice of the events guild-scale delta
   ([events.md](events.md) §7): new channel-scoped `move_members`
