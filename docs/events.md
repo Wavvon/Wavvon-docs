@@ -394,10 +394,15 @@ Hub handling (new handler beside `handle_voice_whisper_start` in
    presence grant** (§7.4) so their imminent join passes the read gate.
 
 **Hub → target: the push.** New `ChatEvent` variant delivered
-**targeted-by-pubkey**, exactly like `WhisperSignal` (returns `""` from
-`channel_id()` so the channel-subscription filter never matches; the WS
-dispatch loop filters on the target pubkey — `connection.rs:274` is the
-`WhisperSignal` precedent):
+**targeted-by-pubkey**. *(Implementation note, 2026-07-18: the original
+draft cited `WhisperSignal` as "returns `""` from `channel_id()`" — the
+real `WhisperSignal` actually returns the sender's voice-channel id and
+rides the channel-subscription gate, which would be fragile here if the
+target ever unsubscribed. `ChatEvent::VoiceMove` as shipped does return
+`""` and is delivered through the hub-wide-bypass arm in
+`connection.rs` — same arm as `ChannelsUpdated`/`MemberOnline` — with an
+explicit `to_pubkey` filter inside it, guaranteeing delivery regardless
+of the target's subscription state.)*
 
 ```jsonc
 // hub → target client (WsServerMessage "voice_move")

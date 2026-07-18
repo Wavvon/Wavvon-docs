@@ -4,6 +4,29 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Hub + web: voice-move Phase 1 — the move primitive (2026-07-18)**:
+  first slice of the events guild-scale delta
+  ([events.md](events.md) §7): new channel-scoped `move_members`
+  permission; `voice_move` client→hub WS request (mover authorized via
+  `channel_permissions` on the destination; Phase-1 guards reject a
+  target not in voice or lacking read access to the destination) and a
+  targeted-by-pubkey hub→target push carrying
+  `target_channel_name`/`source_channel_id`/`auto` — delivered through
+  the hub-wide-bypass dispatch arm with an explicit pubkey filter, firmer
+  than the WhisperSignal precedent (which rides the subscription gate;
+  events.md corrected). Consent per the decisions.md model: `auto` only
+  with an RSVP-'going' event context, else the web client prompts
+  accept/decline (decline = no-op); auto-moves show a "rejoin previous
+  channel" toast. Web UI: right-click a voice participant → "Move to
+  channel…" (gated on `move_members`), new prop-only
+  `VoiceMoveMenu`/`VoiceMoveToast`/`VoiceMovePromptModal` in
+  `packages/ui`, `move_members` in the Roles admin + channel-overwrite
+  permission lists, `voice.move.*` keys in all four locales. Hub tests:
+  `voice_move_flow.rs` real-WS harness (happy path, auto-via-RSVP, three
+  rejections); web 221/221 with 6 new `decideVoiceMove` unit tests.
+  **Live pass pending** (real two-client move over a running hub). Hub
+  `b78aa67`, clients `50c1dbb`.
+
 - **Clients: shared-component consolidation, batch 1 (2026-07-18)**:
   first slice of the new hoist-from-web policy (see
   [decisions.md](decisions.md)) — `BotAppLaunchCard`, `ImagePicker`,

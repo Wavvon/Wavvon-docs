@@ -33,7 +33,6 @@ fixed, its entry moves to the shipped log.
   Next candidates: `CreateHubWizard`, then per-component alongside each
   desktop-parity item. Audit baseline: 61 duplicated components, 73% avg
   divergence.
-
 ## 🚧 Blocked
 
 - **Windows code-signing** — blocked until the project reaches meaningful
@@ -159,11 +158,11 @@ surfaces, welcome banner, survey→roles, …). Still open:
   — DESIGNED 2026-07-18 ([`events.md`](docs/events.md) §5-§7,
   [decisions.md](docs/decisions.md) voice-move entry). Three buildable
   slices, sized independently:
-  - **Phase 1 - move primitive**: `move_members` permission +
-    `voice_move` WS control message (client to hub request, hub to target
-    push via the `WhisperSignal` targeted-pubkey pattern) + right-click
-    "Move to channel" on a voice participant. Generic, no events. Server
-    + web.
+  - **Phase 1 - move primitive**: *SHIPPED 2026-07-18* (hub `b78aa67`,
+    clients `50c1dbb`, see [shipped-log.md](docs/shipped-log.md)) —
+    `move_members` permission + `voice_move` WS request/push +
+    right-click "Move to channel…". Needs the live pass (real two-client
+    move over a running hub).
   - **Phase 2 - staging panel**: organizer panel on the event card
     (claimants grouped by slot, drag onto voice channels, bulk
     "move all slot"), queued `event_move_assignments` (auto-apply on
