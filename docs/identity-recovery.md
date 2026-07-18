@@ -558,12 +558,15 @@ multi-device Phase 1 (master derivation) at minimum.
 
 ## What's deferred
 
-- **Backup auto-sync to the home hub list.** A backup is deliberately a
-  user-placed file, not personal-axis state on the home hubs — putting the
-  passphrase-wrapped seed on the home hubs is a tempting convenience but
-  concentrates the highest-value secret on hubs the threat model already
-  flags as observing/withholding surfaces. Revisit only with a strong
-  argument.
+- **Backup auto-sync to the home hub list.** *(Superseded 2026-07-19 by
+  [Part 3 — Hub-hosted identity vault](#part-3--hub-hosted-identity-vault),
+  which takes up this "revisit only with a strong argument" invitation as an
+  opt-in, passphrase-locked, handle-addressed vault.)* A backup is
+  deliberately a user-placed file, not personal-axis state on the home hubs
+  — putting the passphrase-wrapped seed on the home hubs is a tempting
+  convenience but concentrates the highest-value secret on hubs the threat
+  model already flags as observing/withholding surfaces. Part 3 accepts that
+  residual concentration risk explicitly rather than eliminating it.
 - **Cross-hub recovery propagation.** Recovering standing on every hub at
   once would need a global identity-mapping the federated model refuses.
   Per-hub, by hand, is the answer until something like portable
@@ -604,3 +607,13 @@ Wavvon-android.
 - `identity/src/lib.rs` (Wavvon-server) — the bound-bundle signing helper
   for attestations (master-key sign over `(hub_pubkey, old, new, nonce)`),
   shared so client and hub agree on the exact bytes.
+
+---
+# Part 3 — Hub-hosted identity vault
+
+Moved to its own doc: **[identity-vault.md](identity-vault.md)** — the
+passphrase-encrypted master-seed blob stored on the home hub(s),
+retrievable on a device with no key material (handle + passphrase only).
+Designed 2026-07-19 as the provider-independent successor to passkey PRF
+recovery. See that doc for the locator derivation, brute-force and
+enumeration bounds, data model, API shapes, and lifecycle.

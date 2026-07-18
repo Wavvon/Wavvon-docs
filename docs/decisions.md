@@ -6,6 +6,56 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Hub-hosted identity vault: opt-in, passphrase-locked, handle-addressed
+
+**Decision** (2026-07-19): add an **opt-in** recovery tier that stores the
+user's passphrase-encrypted master seed — the same `.wavvon-backup`
+envelope family — on their **home hub(s)** as personal-axis state,
+retrievable and decryptable on a fresh device that holds **no key
+material**. The device fetches by a **handle-derived locator**
+(`locator = HKDF(PBKDF2(passphrase, salt=f(handle)))`) computed entirely
+client-side, so the hub learns neither the handle nor the passphrase; the
+same single KDF pass also yields the AES key (domain-separated by HKDF
+label). Design: [identity-vault.md](identity-vault.md).
+
+**Trust model, stated honestly**: this is **strictly weaker** than the
+recovery phrase or the local backup file, because the ciphertext lives on a
+hub instead of in the user's sole custody. A hub operator (or a DB dump) can
+mount an **offline dictionary attack against the passphrase forever** — the
+KDF is the only wall, and server-side rate-limiting does nothing against the
+party that already holds the DB. We accept this and bound it: memory-hard
+KDF path (PBKDF2-100k now, Argon2id as vault-`v2`), a stronger passphrase
+warning at creation than the file flow uses, a 256-bit locator plus a PoW
+gate so the endpoint is never a *cheaper* passphrase oracle than local
+cracking, and key-authorized `purge`. What it buys over **PRF**: recovery
+that needs no passkey provider (Windows Hello / Bitwarden PRF proved
+unreliable — see the entry below) and no synced credential — just reach a
+hub. What it costs versus the **file**: the file is exposed only if the
+user's own storage is breached; the vault is exposed to every home-hub
+operator, always. Same crypto, wider exposure.
+
+**Alternatives considered**:
+- **Keep it deferred** (the prior [home-hub.md](home-hub.md) stance:
+  "revisit only with a strong argument"). The strong argument is the
+  opt-in + locator + KDF-hardness + purge package above; the concentration
+  risk is disclosed, not eliminated. That deferral is now marked
+  superseded.
+- **Shamir-split across the home hub list** (k-of-n shares; no single hub
+  holds a crackable blob). Genuinely reduces per-operator exposure, but
+  needs ≥k hubs online to recover and breaks the "remember one hub URL"
+  story. Deferred, not rejected.
+- **Server-side secret store (SVR / enclave-attested hardware brute-force
+  wall)** — the model that makes a weak PIN safe. Rejected for a
+  self-hosted federation: it presumes trusted attested hardware every
+  operator runs, contradicting "any operator can run a hub on anything." A
+  hub is a dumb store, not an HSM.
+
+**Tradeoff / outcome**: designed, not built. The residual concentration
+risk is the explicit price; mitigated most by self-hosting a home-hub slot.
+Buildable slices in [ROADMAP.md](../ROADMAP.md). Reads anonymous +
+PoW-gated; writes/deletes/purge master-signed (reuse the `put_prefs`
+pattern). Additive migration (`identity_vault_blobs`).
+
 ## Passkey identity: refuse creation unless restore is proven at birth
 
 **Decision** (2026-07-18, user call): identity creation via passkey PRF

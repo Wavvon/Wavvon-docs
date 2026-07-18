@@ -43,7 +43,7 @@ These shipped — the doc is the design rationale behind the code (see
     - [games-sdk.md](games-sdk.md) — postMessage API reference for third-party developers
 13. [multi-device.md](multi-device.md) — master+subkey identity, QR pairing protocol
 14. [e2e-encryption.md](e2e-encryption.md) — E2E encrypted DMs: X25519 from Ed25519 seed, static ECDH + AES-GCM, signed envelopes, group sender keys
-    - [identity-recovery.md](identity-recovery.md) — recovery UX beyond the phrase: passphrase-wrapped `.wavvon-backup` export/import + per-hub recovery contacts (vouch, not auto-grant)
+    - [identity-recovery.md](identity-recovery.md) — recovery UX beyond the phrase: passphrase-wrapped `.wavvon-backup` export/import (Part 1) + per-hub recovery contacts (Part 2, vouch not auto-grant) + pointer to the hub-hosted identity vault ([identity-vault.md](identity-vault.md), no-file recovery from a home hub)
     - [wire-format.md](wire-format.md) — canonical byte-level spec for all signed envelopes in the identity crate (multi-device + E2E DM + identity verification); test vectors for client implementors
 15. [server-tags.md](server-tags.md) — self-tags (discovery keywords) + portable signed hub badges
     - [hub-certifications.md](hub-certifications.md) — anti-spam Layer 2: hub-signs-user reputation certs, portable PoW credit
@@ -88,7 +88,7 @@ Reading order is for learning the system end-to-end. This section is for
 
 ### Identity & access
 - **Keypair, recovery phrase, auth** — [identity.md](identity.md)
-- **Identity backup & recovery contacts** — [identity-recovery.md](identity-recovery.md)
+- **Identity backup & recovery contacts** — [identity-recovery.md](identity-recovery.md); **hub-hosted vault** — [identity-vault.md](identity-vault.md)
 - **Multi-device pairing (QR, master+subkey)** — [multi-device.md](multi-device.md)
 - **Wire format spec (signed envelopes, byte sequences, test vectors)** — [wire-format.md](wire-format.md)
 - **Roles & permissions** — [data-model.md](data-model.md), [decisions.md](decisions.md)

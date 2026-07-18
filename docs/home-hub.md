@@ -65,6 +65,7 @@ members; reads can hit any.
 | Friend list (canonical, future) | Plaintext, master-signed | None |
 | Notification settings, read cursors (future) | Inside the prefs blob | Inherits prefs encryption |
 | Pairing-protocol short-lived state (offers, claims) | Plaintext, TTL'd | None — bound to one-shot tokens |
+| Identity vault blob (opt-in passphrase-wrapped master seed) | Opaque ciphertext, keyed by a handle-derived locator | AEAD under a passphrase-derived key; see [identity-vault.md](identity-vault.md) |
 
 Identity-bearing entries (certs, revocations, friend list) are signed
 by the **master** so any home hub can serve them without being

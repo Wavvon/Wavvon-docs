@@ -203,6 +203,29 @@ surfaces, welcome banner, survey→roles, …). Still open:
   account-scoped; cross-client archive compat (desktop↔web) deferred.
 - **Live captions in voice** — local STT, desktop-era (too heavy for
   web). See [`future-features.md`](docs/future-features.md).
+- **Hub-hosted identity vault** — DESIGNED 2026-07-19
+  ([identity-vault.md](docs/identity-vault.md),
+  [decisions.md](docs/decisions.md)): opt-in passphrase-wrapped master-seed
+  backup stored on the user's home hubs, recoverable on a fresh device with
+  no key material — handle-derived locator (hub learns neither handle nor
+  passphrase), anonymous PoW-gated reads, master-signed writes/purge.
+  Strictly weaker than phrase/file (hub-held ciphertext, offline-crackable);
+  bounded by KDF hardness, disclosed not solved. Three buildable slices:
+  - **Slice 1 — hub storage + endpoints**: `identity_vault_blobs` additive
+    migration + `hub/src/routes/vault.rs` (challenge/get/put/delete/purge)
+    + `VaultWrite`/`VaultDelete`/`VaultPurge` envelopes and the versioned
+    salt/enc/loc labels in `identity/`; PoW reuse from `identity/src/pow.rs`.
+    Happy-path + rejection tests.
+  - **Slice 2 — web create/update UX**: Settings → Security "Store an
+    encrypted backup on your home hubs" (passphrase + handle, stronger weak-
+    passphrase warning, generate-suggestion), write-to-all home hubs,
+    passphrase-change move (write-new + delete-old), delete/purge; vault
+    derivation in `packages/core` matching the identity crate byte-for-byte.
+  - **Slice 3 — fresh-device recovery UX**: welcome-screen "Restore from a
+    home hub" (hub URL + handle + passphrase → PoW → locator → fetch →
+    decrypt → mint identity + home-hub bootstrap), uniform failure message.
+  Depends on the home-hub personal-axis storage already partly built
+  (`prefs_blobs`, `home_hub_designations`). Argon2id (`v2`) deferred.
 
 ## ⚠️ Known issues
 
