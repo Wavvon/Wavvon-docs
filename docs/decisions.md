@@ -6,6 +6,73 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Voice-move: hub-requested leave-and-join with claim-based auto-consent and ephemeral voice-only presence
+
+**Decision** (2026-07-18, user call): event staging
+([events.md](events.md) §7) introduces moving a member between voice
+channels. A move is **not** a server-side yank — voice join is always
+client-initiated (desktop UDP after a `voice_join` handshake, web over a
+`/voice/ws` relay), so the hub instead **pushes a `voice_move` control
+message and the target's client runs its normal leave-and-join**. One
+mechanism covers both transports. The push is delivered targeted-by-pubkey
+using the shipped `WhisperSignal` pattern (a `ChatEvent` returning `""`
+from `channel_id()`, filtered on the recipient pubkey in the WS dispatch
+loop). A new channel-scoped `move_members` permission gates the mover.
+
+**Consent** follows the existing consent-spine posture (opt-in is
+established by a prior deliberate act, not a blanket grant):
+
+- **Auto-accept** when the target has claimed a slot or RSVP'd "going" on
+  the event driving the move — claiming a slot *is* opting into being
+  organized. The client shows a toast with a "Rejoin previous channel?"
+  escape hatch rather than a blocking modal, so bulk marshalling isn't
+  gated behind N confirmations.
+- **Prompt-or-decline** for a move with no event context (the generic
+  Phase-1 right-click primitive) or when the target hasn't
+  claimed/RSVP'd. Decline is a server no-op.
+
+**Voice-only presence**: a member moved into a channel they can't read is
+still moved, but gains **only** voice — roster presence, speak/hear, and
+the channel *name* in the voice HUD — and **no** `READ_MESSAGES` (no text
+history, no message stream, no sidebar entry). The organizer's consented
+move is the authorization, a deliberately narrower reveal than the
+404-hides-hidden-channels posture events read-gating uses. The grant is
+**ephemeral in-memory `AppState`** keyed by (pubkey, channel), created
+when the move targets an unreadable channel, consumed by the single
+voice-join read-gate bypass, and dropped by `leave_voice`. It never
+persists, never survives a restart, and **exactly one** enforcement point
+bypasses read-gating — the voice-join gate; message history, subscribe,
+channel list, and event read-gating all stay strict.
+
+**Alternatives considered**:
+
+- **Server-side forced move** (hub relocates the participant without the
+  client) — impossible cleanly: voice join is client-initiated on both
+  transports, so there is no server-authoritative "move" without inventing
+  a second, transport-specific control path. Request-to-join reuses the
+  join path both clients already run.
+- **A persisted DB grant for voice-only presence** — rejected: it would
+  need its own revocation and cleanup lifecycle and could outlive the
+  voice session it authorizes. In-memory state consumed by the join gate
+  and dropped on leave can't leak past the session and needs no migration.
+- **Full `READ_MESSAGES` on the destination during the move** — rejected:
+  it would leak the channel's text history and put it in the sidebar,
+  far more than the organizer consented to. The narrowest grant that
+  satisfies "be in this voice room" is voice-only.
+- **A blocking accept modal for every move** — rejected for slot
+  claimants: it defeats the point of marshalling dozens of raiders at
+  once. The slot claim is the consent; the toast escape hatch covers
+  misplacement.
+
+**Tradeoff / outcome**: designed, not built. Phasing in
+[ROADMAP.md](../ROADMAP.md): Phase 1 = `move_members` + `voice_move` +
+right-click move (generic primitive, no events); Phase 2 = staging panel
++ queued `event_move_assignments` + voice-only presence; Phase 3 =
+optional auto-spawned squad channels. Full design, SQL, WS/API shapes,
+and flagged conflicts (list_events/get_event read-gating, reminder
+worker, voice_ws auth, invisible-presence roster) in
+[events.md](events.md) §7.
+
 ## Shared UI components: hoist from web into packages/ui; desktop adapts
 
 **Decision** (2026-07-18, user call): stop maintaining per-app copies of UI

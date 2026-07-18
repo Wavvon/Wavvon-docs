@@ -155,6 +155,27 @@ surfaces, welcome banner, survey→roles, …). Still open:
   baseline RSVP-only). Calendar view (§4) still undesigned-priority,
   client-only. The events read-gating fix (H3) already landed in the
   security pass.
+- **Events guild-scale delta (hub-wide, propagation, voice-move staging)**
+  — DESIGNED 2026-07-18 ([`events.md`](docs/events.md) §5-§7,
+  [decisions.md](docs/decisions.md) voice-move entry). Three buildable
+  slices, sized independently:
+  - **Phase 1 - move primitive**: `move_members` permission +
+    `voice_move` WS control message (client to hub request, hub to target
+    push via the `WhisperSignal` targeted-pubkey pattern) + right-click
+    "Move to channel" on a voice participant. Generic, no events. Server
+    + web.
+  - **Phase 2 - staging panel**: organizer panel on the event card
+    (claimants grouped by slot, drag onto voice channels, bulk
+    "move all slot"), queued `event_move_assignments` (auto-apply on
+    voice join, expire at event end, upsert overwrites), and
+    **voice-only presence** (ephemeral in-memory grant, one voice-join
+    read-gate bypass; message routes stay strict). Server + web.
+  - **Phase 3 - hub-wide + propagation + squad rooms**: additive
+    `hub_wide` (read-gate bypass in `list_events`/`get_event`) and
+    `propagate_to_children` (card fan-out into descendants, read-gating
+    free) - independent of the move work, can go earlier if trivial;
+    plus optional auto-spawned squad temp-voice channels (reuse the
+    spawner GC). Server + web.
 - **Join-to-create temporary voice channels** — *fully SHIPPED*: server
   (hub `3005fc5`), web UI (clients `fb607de`), `voice_ws.rs` spawner gap
   fixed 2026-07-04 (hub `1fc5aa6`), owner-rename UI 2026-07-05 (clients

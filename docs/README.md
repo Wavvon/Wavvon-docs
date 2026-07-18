@@ -162,6 +162,7 @@ Reading order is for learning the system end-to-end. This section is for
 - **Quick channel switcher (Ctrl+K)** — [client.md](client.md)
 - **Hub drag-drop reorder, /info preview, clear local data** — [client.md](client.md)
 - **Client QoL (search, drafts, emojis, events, polls, threads)** — [client-qol.md](client-qol.md)
+- **Events (RSVP, role-slot sign-ups, reminders, hub-wide, propagation, voice-move staging)** — [events.md](events.md)
 
 ### Future direction (designed, not built)
 - **Anti-spam proof-of-work** — [future-features.md](future-features.md), [hub-certifications.md](hub-certifications.md)
