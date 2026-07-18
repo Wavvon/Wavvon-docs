@@ -394,26 +394,31 @@ subkey and gets it certified by the master (as per the multi-device
 protocol). Per-device revocation is fully intact.
 
 Constraints:
-- **Firefox + Bitwarden is not a PRF surface (empirically confirmed
-  2026-07-18)**: a raw `navigator.credentials.get()` with the PRF
-  extension, asserted against a Bitwarden-held passkey on Firefox,
-  returns a completely **empty** `getClientExtensionResults()` (zero
-  keys — not just missing `prf`), so the secret never reaches the page.
-  Confirmed with the owner's live console test after ruling out our own
-  handling (a realm-sensitive `instanceof ArrayBuffer` in
-  `bufferSourceToBytes` was found and fixed along the way, clients
-  `695bb65`, but was not the cause). Bitwarden's docs state PRF is
-  Chromium-only for its own passkey login; this test confirms the same
-  for Bitwarden as a third-party provider on Firefox. No matching
-  upstream issue found in bitwarden/clients at the time — worth filing.
-  The client surfaces the condition honestly
-  (`PrfOutputUnavailableError` → "provider didn't supply the secret…
-  entry is safe to delete", clients `234945e`). Nothing further to fix
-  on our side; revisit when Firefox/Bitwarden ship PRF. Gotcha while
-  testing: Bitwarden silently stops intercepting passkeys when the
-  vault is locked or the site is in its excluded domains — the ceremony
-  then falls through to Windows Hello, which looks like a Wavvon bug
-  but isn't.
+- **The Bitwarden extension is not a third-party PRF provider on ANY
+  browser (empirically confirmed 2026-07-18)**: raw
+  `navigator.credentials.create()`/`get()` ceremonies with the PRF
+  extension against a Bitwarden-held passkey return a completely
+  **empty** `getClientExtensionResults()` (zero keys — not even
+  `prf.enabled: false`) — owner-confirmed on **both Firefox and Chrome**
+  with the same extension and vault, so this is not a browser-boundary
+  issue. It matches a known limitation discussed on the Bitwarden
+  community forum ("Support for Storing PRF-Capable Passkeys"): their
+  PRF machinery currently serves only Bitwarden's own vault login;
+  community reports say third-party PRF works with Chrome's built-in
+  passkeys (Google Password Manager), 1Password, and Apple Passwords.
+  Consequences here: the client's PRF-missing error names working
+  providers and no longer suggests Bitwarden (clients `662c1b0`); this
+  doc's earlier "Bitwarden PRF everywhere" premise (§ above) is
+  aspirational until Bitwarden ships it. During the investigation a
+  realm-sensitive `instanceof ArrayBuffer` in `bufferSourceToBytes` was
+  found and fixed (clients `695bb65`) — real bug, not this cause.
+  Detectability gap worth reporting upstream: because create() returns
+  no `prf` member at all (instead of `enabled: false`), sites cannot
+  detect non-support before the credential is stored — users end up
+  with an orphaned vault entry. Testing gotcha: Bitwarden silently
+  stops intercepting passkeys when the vault is locked or the site is
+  excluded — the ceremony falls through to Windows Hello and
+  masquerades as an app bug.
 - Android PRF via Credential Manager requires Android 14+ (API 34)
   and a Bitwarden Android version that implements PRF. Users on
   older Android fall back to prompting for the phrase to derive

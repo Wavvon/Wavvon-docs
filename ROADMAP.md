@@ -206,16 +206,17 @@ surfaces, welcome banner, survey→roles, …). Still open:
 
 ## ⚠️ Known issues
 
-- **W: passkey PRF fix awaits Chrome retest; Firefox+Bitwarden is an
-  upstream limitation** — the strands-the-credential bug is FIXED
-  (clients `234945e`, see [shipped-log.md](docs/shipped-log.md)).
-  Owner retest 2026-07-18 on Firefox + Bitwarden: both create and
-  sign-in now fail with the honest "provider didn't supply the secret"
-  errors — confirmed upstream: Bitwarden documents PRF as
-  Chromium-only; Firefox is not supported. Nothing to fix on our side
-  for Firefox; revisit when Firefox/Bitwarden ship PRF. Remaining:
-  owner retest on Chrome (native passkeys and Chrome + Bitwarden
-  extension — both expected to work).
+- **W: passkey PRF — Bitwarden extension can't serve it (any browser);
+  Chrome-native retest remaining** — the strands-the-credential bug is
+  FIXED (clients `234945e`) and the misleading "try Bitwarden" advice
+  removed (`662c1b0`). Owner A/B 2026-07-18: the Bitwarden extension
+  returns empty extension results on BOTH Firefox and Chrome — a known
+  Bitwarden-as-provider limitation (community-forum tracked), not
+  browser-specific and not ours (details in
+  [webauthn-auth.md](docs/webauthn-auth.md)). Remaining: owner retest
+  on Chrome native passkeys (Google Password Manager / Windows Hello —
+  expected to work); optional upstream nudges (forum vote + a GitHub
+  issue for the missing `prf.enabled:false` on create).
 - **Live e2e suite: 18 pre-existing failures** — surfaced 2026-07-18 by
   the first full run since the harness was repaired (it had been broken
   since the invite-only default + account-naming changes of early
