@@ -394,15 +394,26 @@ subkey and gets it certified by the master (as per the multi-device
 protocol). Per-device revocation is fully intact.
 
 Constraints:
-- **Firefox is not a PRF surface (verified live 2026-07-18)**:
-  Bitwarden documents the WebAuthn PRF extension as Chromium-only
-  (Chrome/Edge/Brave); on Firefox the Bitwarden extension creates and
-  stores the passkey but returns no PRF output on create *or* assert —
-  owner repro matched exactly. The client now surfaces this honestly
+- **Firefox + Bitwarden is not a PRF surface (empirically confirmed
+  2026-07-18)**: a raw `navigator.credentials.get()` with the PRF
+  extension, asserted against a Bitwarden-held passkey on Firefox,
+  returns a completely **empty** `getClientExtensionResults()` (zero
+  keys — not just missing `prf`), so the secret never reaches the page.
+  Confirmed with the owner's live console test after ruling out our own
+  handling (a realm-sensitive `instanceof ArrayBuffer` in
+  `bufferSourceToBytes` was found and fixed along the way, clients
+  `695bb65`, but was not the cause). Bitwarden's docs state PRF is
+  Chromium-only for its own passkey login; this test confirms the same
+  for Bitwarden as a third-party provider on Firefox. No matching
+  upstream issue found in bitwarden/clients at the time — worth filing.
+  The client surfaces the condition honestly
   (`PrfOutputUnavailableError` → "provider didn't supply the secret…
-  entry is safe to delete", clients `234945e`) instead of stranding a
-  vault entry behind a generic "unsupported". Nothing to fix on our
-  side; revisit when Firefox/Bitwarden ship PRF.
+  entry is safe to delete", clients `234945e`). Nothing further to fix
+  on our side; revisit when Firefox/Bitwarden ship PRF. Gotcha while
+  testing: Bitwarden silently stops intercepting passkeys when the
+  vault is locked or the site is in its excluded domains — the ceremony
+  then falls through to Windows Hello, which looks like a Wavvon bug
+  but isn't.
 - Android PRF via Credential Manager requires Android 14+ (API 34)
   and a Bitwarden Android version that implements PRF. Users on
   older Android fall back to prompting for the phrase to derive
