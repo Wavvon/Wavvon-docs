@@ -31,54 +31,30 @@ fixed, its entry moves to the shipped log.
 
 ## 📌 Wishlist
 
-> **Big future pillars** (writeups in
-> [future-features.md](docs/future-features.md)): farm layer, cross-farm
-> cert relay (depends on farm), gaming + rich bots.
+> **Big future pillar** (writeup in
+> [future-features.md](docs/future-features.md)): cross-farm cert
+> relay — undesigned. (Farm layer and gaming + rich bots shipped
+> 2026-07-19; see the shipped log.)
 
-- **Farm layer** — serial routing, SSO, lifecycle supervision, and
-  agent-hosted restart all shipped; next slices per
-  [farm-model.md](docs/farm-model.md) as the pilot surfaces them.
-  Known softness: agent delegation (spawn + restart) is fire-and-forget
-  — a 200 means enqueued, not confirmed; add request/reply correlation
-  if it bites.
-- **Gaming + rich bots, deferred tail**
-  ([bot-capability-layer.md](docs/bot-capability-layer.md) §10–§11):
-  mini_app_session_closed hub event (if heartbeat lag hurts), roster
-  wire helper in bot-kit (when a roster-driven game exists), cross-hub
-  game-bot recommendation over alliances, per-channel media budget.
-  Phases 1–4 first slices all shipped 2026-07-19.
-- **Forum federation, deferred tail** — live WS push, cross-hub search,
-  signed attribution, federated reaction removal, descendant-share
-  policy inheritance ([forum.md](docs/forum.md) §9). All three main
-  phases (read / writes / retraction) shipped 2026-07-19.
 - **Project visibility push** — hosted demo hub, directory listings,
   launch post. Needed for adoption and the code-signing re-application.
 - **Passkey registration from desktop** — blocked by Tauri webview RP ID
   mismatch; needs a native WebAuthn plugin or system-browser handoff.
 - **Desktop parity backlog** — role categories/color/icon, role
   assignment + Roles admin tab, settings IA + profile model, presence
-  Invisible+TTL, named custom themes. Do by hoisting into `packages/ui`
-  (see consolidation above); details in
-  [`client-parity.md`](docs/client-parity.md).
-- **Events, remaining** — desktop UI (parallel `EventCard`/`EventComposer`
-  copies still RSVP-only), live gap: real cross-internet voice audio.
-  Calendar view (web) shipped 2026-07-19; §7.4 voice-only-presence e2e
-  shipped 2026-07-19.
-- **LAN / offline mode, native client half** — nearby-hubs mDNS
-  discovery UX and QR scanning are browser-impossible → desktop-era
-  ([lan-mode.md](docs/lan-mode.md) §5–§6). LAN hub-to-hub federation
-  assessed 2026-07-19 and kept deferred: needs fingerprint-pinning in
-  the federation client + a LAN trust model (client.rs is CA-TLS-only),
-  no demand until two LAN hubs exist, and web clients can't use LAN
-  discovery anyway. Web-feasible slice (invite `?fp=` fingerprint
-  verification) shipped 2026-07-19.
-- **Personal data export, gaps** — desktop↔web archive compat
-  (desktop-era). Prefs-blob decrypt on web + account-scoped custom
-  themes both shipped 2026-07-19 (paired devices still can't decrypt
-  the blob — no local entropy).
+  Invisible+TTL, named custom themes, events UI (calendar + full
+  RSVP), data-export archive compat, LAN discovery UX (mDNS + QR).
+  Do by hoisting into `packages/ui` (see consolidation above); details
+  in [`client-parity.md`](docs/client-parity.md).
 - **Live captions in voice** — local STT, desktop-era.
 - **Hub-hosted identity vault** — DESIGNED, **PARKED until after the
   pilot** (do NOT build; [identity-vault.md](docs/identity-vault.md)).
+
+> Demand-gated tails of shipped features live in their own docs, not
+> here: forum federation ([forum.md](docs/forum.md) §9 deferred list),
+> gaming/bots ([bot-capability-layer.md](docs/bot-capability-layer.md)
+> §10–§11), LAN federation ([lan-mode.md](docs/lan-mode.md) §6), farm
+> follow-ups ([farm-model.md](docs/farm-model.md)).
 
 ## ⚠️ Known issues
 
