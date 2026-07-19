@@ -4,6 +4,20 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Web: events calendar month view (2026-07-19)**: Month/List toggle in
+  `EventsPanel` rendering the already-fetched, read-gated event set on a
+  native-`Date` 6×7 grid (events.md §9; no date library, no server
+  change); day selection filters the card list; `getEvents` gained
+  optional `upcoming`/`limit` params. Prop-only `EventCalendar` +
+  pure `calendar.ts` helpers, hoistable to `packages/ui`. 270/270 web
+  tests. Clients `3d05a1a`.
+
+- **Web: game-emoji row in the Activities editor (2026-07-19)**: the
+  "game icons in Activities" wishlist item, shipped as a curated
+  game-emoji row inserting at the cursor's line start (decisions.md —
+  emoji over a game catalog; no schema/server/renderer change).
+  Clients `c9b94d0`.
+
 - **Web: data export decrypts the hub-synced prefs blob (2026-07-19)**:
   `SignedPrefsBlob` verify + HKDF/AES-256-GCM decrypt ported to
   `packages/core` with cross-language test vectors pinned from the Rust

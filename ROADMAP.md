@@ -54,9 +54,9 @@ fixed, its entry moves to the shipped log.
   (see consolidation above); details in
   [`client-parity.md`](docs/client-parity.md).
 - **Events, remaining** — desktop UI (parallel `EventCard`/`EventComposer`
-  copies still RSVP-only), calendar view (DESIGNED
-  [events.md](docs/events.md) §9, web-only, not built), live gaps: real
-  cross-internet voice audio, §7.4 voice-only browser assertion.
+  copies still RSVP-only), live gaps: real cross-internet voice audio,
+  §7.4 voice-only browser assertion (one e2e case; server gate already
+  shipped). Calendar view (web) shipped 2026-07-19.
 - **LAN / offline mode, client half** — nearby-hubs discovery UX,
   QR/fingerprint pinning, LAN federation ([lan-mode.md](docs/lan-mode.md) §5–§6).
 - **Personal data export, gaps** — account-scoped custom themes,
@@ -65,7 +65,6 @@ fixed, its entry moves to the shipped log.
 - **Live captions in voice** — local STT, desktop-era.
 - **Hub-hosted identity vault** — DESIGNED, **PARKED until after the
   pilot** (do NOT build; [identity-vault.md](docs/identity-vault.md)).
-- **Game icons in Activities** — attach game icons to Activities entries.
 
 ## ⚠️ Known issues
 

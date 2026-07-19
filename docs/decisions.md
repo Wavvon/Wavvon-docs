@@ -6,6 +6,28 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Game icons in Activities: curated emoji row, no game catalog
+
+**Decision** (2026-07-19): "attach game icons to Activities entries"
+ships as a **curated game-emoji row** in the profile editor's activities
+field — one click inserts the emoji at the start of the cursor's line.
+Entries stay what they already are (lines of the free-text `activities`
+field); emoji live in the text itself.
+
+**Alternatives considered**:
+- **Real per-game artwork** (icon picker backed by a game list). Rejected:
+  requires a game catalog, which is either a central authority (won't-do)
+  or the undesigned gaming/bot distribution layer (bot-capability-layer.md
+  Phase 4). Revisit as part of that layer, with bot-declared games.
+- **Token syntax** (`[icon:controller]` swapped to bundled SVGs at render).
+  Rejected: invents a private markup for marginal visual gain; breaks
+  copy-paste and every non-web surface until each implements the renderer.
+
+**Tradeoff**: emoji are generic (a controller, not *the* game's logo), but
+they need zero schema/server/renderer changes and degrade nowhere.
+
+**Outcome**: web shipped 2026-07-19.
+
 ## Events calendar: month grid over the already-fetched upcoming window, no date library
 
 **Decision** (2026-07-19): the events calendar view is a **Month / List
