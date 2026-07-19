@@ -4,6 +4,14 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Gaming + rich bots Phase 2: video/canvas grants (2026-07-19)**:
+  `can_inject_video` gated at `screen_share_start` for bots (effective
+  resolver + `WAVVON_BOTS_ALLOW_VIDEO` operator flag + READ_MESSAGES +
+  hub-wide concurrent bot-video budget, default 2 via
+  `WAVVON_BOT_VIDEO_STREAM_BUDGET`); human path untouched; admin panel
+  card notes the flag. Budget is coarse hub-wide (`ponytail:` marked).
+  Server `684bc97`, clients `761416b`.
+
 - **Forum federation phases 2–3: proxied writes + retraction
   (2026-07-19)**: alliance-shared forum channels accept remote writes
   per a per-share `forum_remote_write` policy (`none`/`replies_only`/

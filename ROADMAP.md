@@ -41,10 +41,11 @@ fixed, its entry moves to the shipped log.
   Known softness: agent delegation (spawn + restart) is fire-and-forget
   — a 200 means enqueued, not confirmed; add request/reply correlation
   if it bites.
-- **Gaming + rich bots Phases 2–4**
-  ([bot-capability-layer.md](docs/bot-capability-layer.md) §6):
-  video/canvas grants, multiplayer session/lobby helper, game-bot
-  distribution. Phase 1 (grants + modal + tic-tac-toe demo bot)
+- **Gaming + rich bots Phases 3–4**
+  ([bot-capability-layer.md](docs/bot-capability-layer.md) §10–§11,
+  both DESIGNED): lobby helper first slice (bot-kit crate + ttt
+  refactor), distribution play-badge slice. Phases 1–2 (grants, modal,
+  tic-tac-toe demo, video grants + operator flag + media budget)
   shipped 2026-07-19. Phase 3 (lobby helper) **designed 2026-07-19**
   ([§10](docs/bot-capability-layer.md)) — first slice is bot-side only
   (`wavvon-bot-kit`, no hub change); not built.
