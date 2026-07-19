@@ -46,9 +46,7 @@ fixed, its entry moves to the shipped log.
   mini_app_session_closed hub event (if heartbeat lag hurts), roster
   wire helper in bot-kit (when a roster-driven game exists), cross-hub
   game-bot recommendation over alliances, per-channel media budget.
-  Phases 1–4 first slices all shipped 2026-07-19. Phase 3 (lobby helper) **designed 2026-07-19**
-  ([§10](docs/bot-capability-layer.md)) — first slice is bot-side only
-  (`wavvon-bot-kit`, no hub change); not built.
+  Phases 1–4 first slices all shipped 2026-07-19.
 - **Forum federation, deferred tail** — live WS push, cross-hub search,
   signed attribution, federated reaction removal, descendant-share
   policy inheritance ([forum.md](docs/forum.md) §9). All three main
@@ -103,8 +101,9 @@ fixed, its entry moves to the shipped log.
   running hub hasn't been played yet.
 - **Windows installer unsigned** — SmartScreen warning; "More info → Run
   anyway". See the code-signing blocker.
-- **Bot deferred scope** — voice/screen-share injection, bot DMs,
-  bot-launched game modals: no timeline.
+- **Bot deferred scope** — bot DMs: no timeline. (Voice/video injection
+  and bot-launched game modals shipped 2026-07-19 as capability-layer
+  Phases 1–2.)
 
 ## 💤 Won't do
 
