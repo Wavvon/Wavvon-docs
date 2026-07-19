@@ -61,8 +61,6 @@ fixed, its entry moves to the shipped log.
 - **Invisible presence gaps (web)** — invisible users still show in a
   voice channel's participant list; no self-distinct indicator (user sees
   themselves offline in their own roster).
-- **Profile favorite-hubs federation** — per-hub only; cross-allied-hub
-  visibility needs a signed public-profile envelope.
 - **Discord importer needs a live run** — `export` with a real bot token
   + `apply` against a running hub never exercised live.
 - **Tic-tac-toe demo bot needs a live run** — unit/integration tested
