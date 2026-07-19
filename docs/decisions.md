@@ -6,6 +6,42 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Multiplayer lobby (gaming Phase 3): a bot-side convention, not hub surface
+
+**Decision** (2026-07-19): the multiplayer session/lobby helper is a
+**message convention plus a reusable bot-side Rust module (`wavvon-bot-kit`)
+layered over the shipped `mini_app_message` relay** — not new hub surface.
+The hub gains no roster, lobby, matchmaking, game state, or game registry;
+it stays a content-opaque relay (bot-capability-layer.md decision 4). Join
+discovery, roster, and turn/tick sync live in the bot; the mini-app renders
+`roster`/`state` and sends `hello`/`bye`/`ping`. Full design:
+[bot-capability-layer.md §10](bot-capability-layer.md).
+
+**Alternatives considered**:
+- **A hub-side lobby/matchmaking service** (roster query, session registry,
+  matchmaking API). Rejected: it is the removed games-platform spec
+  (gaming.md history, descoped 2026-06-26) re-entering through a side door,
+  and makes the hub the bottleneck for every new game — the exact thing the
+  bot-relay bet exists to avoid.
+- **A hub `mini_app_session_closed` lifecycle event now**, so the bot sees a
+  player close the modal (the one thing the relay can't express today —
+  `bot_app_dismiss` is bot→all, and the disconnect path at
+  `connection.rs:619-627` never notifies the bot). Deferred, not rejected:
+  it is generic session-lifecycle, not game-aware, so it *would* be
+  hub-appropriate — but a `bye`-on-unload + `ping` heartbeat convention
+  covers leave detection with zero hub work. Build the event only if the
+  ~30s heartbeat lag proves too slow.
+
+**Tradeoff**: leave detection is best-effort/heartbeat-latent (up to ~30s to
+notice a silent drop) instead of instant, in exchange for shipping Phase 3
+with no hub changes at all. Join discovery is already a convention because
+`bot_sessions` tracks the bot's own sessions, not a player roster.
+
+**Outcome**: designed 2026-07-19, not built. First buildable slice is
+bot-side only (generalize `ttt-bot`'s session map into `wavvon-bot-kit`);
+the sole potential hub change (`mini_app_session_closed`) is deferred behind
+the heartbeat convention.
+
 ## Game icons in Activities: curated emoji row, no game catalog
 
 **Decision** (2026-07-19): "attach game icons to Activities entries"

@@ -245,9 +245,10 @@ multiplayer machinery** — see §7. It is self-contained and testable
 Unlocks reference-stream / shared-canvas games.
 
 **Phase 3 — multiplayer session/lobby helper:** shared state, roster,
-matchmaking. Bot-owned, hub-relayed — the hub gains nothing game-aware
-([gaming.md](gaming.md) item 4, still undesigned here; this doc only
-guarantees the relay primitives it will sit on).
+matchmaking. Bot-owned, hub-relayed — the hub gains nothing game-aware.
+**Designed in §10** ([gaming.md](gaming.md) item 4): it is a convention +
+a reusable bot-side module over the shipped `mini_app_message` relay, not
+new hub surface.
 
 **Phase 4 — distribution:** how a hub discovers/adds a game-bot; overlaps
 the bot directory ([bots.md §4](bots.md)). Undesigned.
@@ -313,8 +314,8 @@ grants the admin toggled — which is the point of the capability layer.
 ## 9. Deferred
 
 - **Multiplayer session/lobby service** — shared state, matchmaking,
-  turn/tick sync. Bot-owned, hub-relayed; Phase 3, undesigned
-  ([gaming.md](gaming.md) item 4).
+  turn/tick sync. Bot-owned, hub-relayed; Phase 3, **now designed in §10**
+  ([gaming.md](gaming.md) item 4). Not built.
 - **Game distribution / discovery** — Phase 4 ([bots.md §4](bots.md)).
 - **Cross-hub / alliance game sessions** — single-hub only; federation of
   interactive sessions is out of scope ([gaming.md](gaming.md) federation
@@ -328,3 +329,115 @@ grants the admin toggled — which is the point of the capability layer.
   only if the webview sandbox proves unworkable.
 - **Standardized video frame container** — JPEG chunks suffice until a
   second implementor ([bot-media.md](bot-media.md) open question).
+
+---
+
+## 10. Phase 3 — multiplayer lobby helper (designed 2026-07-19, not built)
+
+The Phase 3 leg ([gaming.md](gaming.md) item 4). **The whole answer: a
+convention plus a reusable bot-side Rust module over the shipped
+`mini_app_message` relay ([bot-mini-apps.md](bot-mini-apps.md)).** The
+hub gains nothing game-aware — no lobby, roster, matchmaking, or game
+registry (decision 4). The tic-tac-toe bot's per-channel session map
+(`server/crates/ttt-bot/src/main.rs:143-147`) already *is* the two-player
+lobby; generalizing it to N players and documenting the wire convention
+is the deliverable.
+
+### What the hub already provides (sufficient — no build)
+
+Everything a lobby needs to *relay* is shipped, and the `payload` is
+opaque, so the whole protocol lives inside it with zero new wire types:
+
+- **Bidirectional relay** — `mini_app_message`
+  (`hub/src/routes/ws/handlers/mini_app.rs:200-246`): player→bot fans out
+  to every live WS session of the bot (`bot_sessions`); bot→player is
+  addressed by `to_pubkey`.
+- **Open/close lifecycle** — `bot_app_join` mints a channel+bot-scoped
+  token and opens the modal (`mini_app.rs:46-160`); `bot_app_dismiss`
+  closes every modal in the channel (`mini_app.rs:163-185`).
+- **Scoped tokens** — `scope='mini_app'`, admin/federation blocked, one
+  channel, 4h TTL (`mini_app.rs:108-141`). A lobby is just more of these.
+
+### The one genuine hub gap: the bot can't see a player leave
+
+`bot_app_join` sends `bot_app_open` only to the **joining client**, not
+the bot — and `bot_sessions` (`hub/src/state.rs:305`) holds the bot's
+*own* WS sessions keyed by bot pubkey, **not** a roster of joined
+players. So join discovery is already a bot-side convention (`hello`
+below) — fine, no change. Leaving is the gap: when a player closes the
+modal its `scope='mini_app'` session disconnects and the hub cleans it up
+(`hub/src/routes/ws/connection.rs:619-627`) **without telling the bot**;
+`bot_app_dismiss` is bot→all-clients, not a per-player leave.
+
+- **Default fix — convention, no hub change (ship this first).** Mini-app
+  sends `bye` on `beforeunload` (best-effort) + a `ping` heartbeat every
+  ~10s; the bot evicts a player unheard-from for ~30s. Covers crashes and
+  drops `bye` misses; zero hub work.
+- **Optional later hub event — the only justified hub addition.** A
+  generic `mini_app_session_closed { bot_id, channel_id, from_pubkey }`
+  pushed to `bot_sessions[bot_id]` from the disconnect path
+  (`connection.rs:619-627` already knows `mini_app_bot_id` /
+  `mini_app_channel_id`). It is *session lifecycle*, not game-aware, so it
+  keeps the hub dumb about games. Build only if the ~30s heartbeat lag is
+  too slow for real games. Deferred.
+
+### Message convention (inside the opaque `payload`)
+
+`payload` is a JSON object with a reserved `kind`. A small namespace is
+reserved for lobby lifecycle so bots/kits interop; every other `kind` is
+game-specific and passed straight through.
+
+| `kind` | Direction | Meaning |
+|---|---|---|
+| `hello` | player → bot | Modal opened. Bot adds `from_pubkey` to roster, replies `roster` + `state`. Doubles as the reconnect handshake — ttt already does this (`main.rs:491`). |
+| `bye` | player → bot | Closing (best-effort, on unload). |
+| `ping` | player → bot | Liveness heartbeat (~10s). |
+| `roster` | bot → player | Snapshot: `[{ pubkey, display_name?, ready?, slot? }]`. |
+| `state` | bot → player | Per-viewer game/lobby state (ttt's `main.rs:125-134`). |
+| *(other)* | either | Moves, chat, votes — bot-owned, hub-opaque. |
+
+### Lobby lifecycle
+
+1. **Launch** — bot posts the launch card (`game` field, §2) or
+   `bot_app_launch`.
+2. **Join** — Play → `bot_app_join` → modal → mini-app sends `hello`;
+   bot adds to roster, broadcasts `roster`.
+3. **Ready / matchmake** — bot-owned (N joined, all `ready`, teams,
+   countdown). Cross-channel matchmaking is possible since the bot sees
+   all its channels on one WS connection — but it is bot logic, never hub
+   logic.
+4. **Play** — game-specific `kind`s; bot validates, fans `state` (the ttt
+   move loop generalized, `main.rs:464-534`).
+5. **Leave** — `bye` or timeout removes a player; bot rebroadcasts
+   `roster`, decides pause/backfill/end.
+6. **End** — bot patches the launch card (`main.rs:550-562`) and
+   `bot_app_dismiss`.
+
+### Reusable bot-side module (this is the design)
+
+Generalize ttt's `Mutex<HashMap<channel_id, GameSession>>`
+(`main.rs:137-147`) into a `wavvon-bot-kit` module a game-bot depends on:
+
+- `Lobby<S>` — registry keyed by channel (or explicit lobby id), holding
+  a roster (`HashMap<pubkey, PlayerMeta>`) plus the author's state `S`.
+- Roster maintenance from `hello`/`bye`/heartbeat incl. timeout eviction
+  — the part every game re-implements.
+- `broadcast(kind, per_viewer_fn)` / `send_to(pubkey, ...)` wrapping
+  `mini_app_message` (the per-viewer loop at `main.rs:522-534`).
+- Reconnect/dedup for the relay's "last session per pubkey wins"
+  (`mini_app.rs:196-199`).
+
+The author writes only game state `S`, a move validator, and launch/end
+wiring. Tic-tac-toe re-expressed on the module is the regression test
+that the two-player case survived generalization.
+
+### Hub vs bot vs mini-app
+
+| Layer | Owns |
+|---|---|
+| **Hub** | Opaque relay + scoped tokens + session bookkeeping. No roster/lobby/matchmaking/game state. (Optional future: `mini_app_session_closed`.) |
+| **Bot process** | Lobby, roster, matchmaking, turn/tick sync, validation, all game state. Uses `wavvon-bot-kit`. |
+| **Mini-app** | UI: renders `roster`/`state`, sends `hello`/`bye`/`ping` + input. |
+
+Deferred beyond §9's list: cross-hub/alliance lobbies (single channel,
+as with every mini-app session); persistent match history (bot's own DB).

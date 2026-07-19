@@ -4,6 +4,14 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Web: account-scoped custom themes (2026-07-19)**: the theme library
+  (+active selection) moved from device-global localStorage into the
+  per-account scoped store — exports no longer leak other accounts'
+  themes and restores land account-isolated (themes were the one
+  restored field bypassing `setScoped`). No migration for the old
+  global key per the alpha no-backcompat rule. Long-term home remains
+  the prefs blob (custom-themes.md). Clients `ef738f6`.
+
 - **Web: §7.4 voice-only-presence e2e (2026-07-19)**:
   `e2e/live/53-voice-only-presence.spec.ts` (Wavvon-clients) closes the
   last events.md §7.4 gap — both halves (hub `staging_voice_grants`

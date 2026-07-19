@@ -44,7 +44,9 @@ fixed, its entry moves to the shipped log.
   ([bot-capability-layer.md](docs/bot-capability-layer.md) §6):
   video/canvas grants, multiplayer session/lobby helper, game-bot
   distribution. Phase 1 (grants + modal + tic-tac-toe demo bot)
-  shipped 2026-07-19.
+  shipped 2026-07-19. Phase 3 (lobby helper) **designed 2026-07-19**
+  ([§10](docs/bot-capability-layer.md)) — first slice is bot-side only
+  (`wavvon-bot-kit`, no hub change); not built.
 - **Forum post federation, write + retraction slices** —
   ([forum.md](docs/forum.md) §9 phases 2–3): proxied writes with
   `author_hub` attribution + origin-hub retraction. Read slice shipped
@@ -67,9 +69,10 @@ fixed, its entry moves to the shipped log.
   LAN federation is server-side deferred ([lan-mode.md](docs/lan-mode.md)
   §5–§6). Web-feasible slice (invite `?fp=` fingerprint verification)
   shipped 2026-07-19.
-- **Personal data export, gaps** — account-scoped custom themes,
-  desktop↔web archive compat. Prefs-blob decrypt on web shipped
-  2026-07-19 (paired devices still can't decrypt — no local entropy).
+- **Personal data export, gaps** — desktop↔web archive compat
+  (desktop-era). Prefs-blob decrypt on web + account-scoped custom
+  themes both shipped 2026-07-19 (paired devices still can't decrypt
+  the blob — no local entropy).
 - **Live captions in voice** — local STT, desktop-era.
 - **Hub-hosted identity vault** — DESIGNED, **PARKED until after the
   pilot** (do NOT build; [identity-vault.md](docs/identity-vault.md)).
