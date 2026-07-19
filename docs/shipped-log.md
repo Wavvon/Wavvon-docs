@@ -4,6 +4,16 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Forum post federation, read slice (2026-07-19)**: forum.md §9
+  phase 1 complete — alliance-shared forum channels are readable
+  cross-hub via a read-through proxy (`/alliances/:id/channels/:cid/
+  posts[/:id]`) backed by `FederationClient::get_forum_posts/get_forum_post`;
+  web renders them read-only through `ForumView` with alliance context.
+  Two-hub integration tests (happy path + unshared-channel rejection) in
+  `forum_flow.rs`; web command tests in `allianceForumRead.test.ts`.
+  Phases 2 (proxied writes) and 3 (retraction/moderation) remain
+  designed-not-built. Server `e424760`, clients `6e88c02`.
+
 - **Desktop: `npm run dev` launches the full Tauri shell (2026-07-19)**:
   the script only started Vite (no Tauri window), tripping people up
   expecting the real dev experience. `dev` now runs `tauri dev`; the

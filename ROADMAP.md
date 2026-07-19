@@ -40,8 +40,10 @@ fixed, its entry moves to the shipped log.
 - **Gaming + rich bots Phase 1** — DESIGNED
   ([bot-capability-layer.md](docs/bot-capability-layer.md)): capability
   grants + resolver + game modal → playable tic-tac-toe.
-- **Forum post federation, read slice** — DESIGNED
-  ([forum.md](docs/forum.md) §9): read-through proxy to the owning hub.
+- **Forum post federation, write + retraction slices** —
+  ([forum.md](docs/forum.md) §9 phases 2–3): proxied writes with
+  `author_hub` attribution + origin-hub retraction. Read slice shipped
+  2026-07-19.
 - **Project visibility push** — hosted demo hub, directory listings,
   launch post. Needed for adoption and the code-signing re-application.
 - **Passkey registration from desktop** — blocked by Tauri webview RP ID
