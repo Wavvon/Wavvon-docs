@@ -59,9 +59,9 @@ fixed, its entry moves to the shipped log.
   (see consolidation above); details in
   [`client-parity.md`](docs/client-parity.md).
 - **Events, remaining** — desktop UI (parallel `EventCard`/`EventComposer`
-  copies still RSVP-only), live gaps: real cross-internet voice audio,
-  §7.4 voice-only browser assertion (one e2e case; server gate already
-  shipped). Calendar view (web) shipped 2026-07-19.
+  copies still RSVP-only), live gap: real cross-internet voice audio.
+  Calendar view (web) shipped 2026-07-19; §7.4 voice-only-presence e2e
+  shipped 2026-07-19.
 - **LAN / offline mode, native client half** — nearby-hubs mDNS
   discovery UX and QR scanning are browser-impossible → desktop-era;
   LAN federation is server-side deferred ([lan-mode.md](docs/lan-mode.md)

@@ -4,6 +4,22 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Web: §7.4 voice-only-presence e2e (2026-07-19)**:
+  `e2e/live/53-voice-only-presence.spec.ts` (Wavvon-clients) closes the
+  last events.md §7.4 gap — both halves (hub `staging_voice_grants`
+  bypass, web's `target_channel_name` HUD hint) already existed; only the
+  browser assertion was missing. Along the way, corrected a stale
+  2026-07-18 events.md note claiming the general `/voice/ws` read gate
+  was missing (it now covers plain human joins, not just bots/spawners)
+  and documented a previously-uncalled-out rule the test surfaced: the
+  event-less Phase-1 right-click move rejects a move into an unreadable
+  channel outright rather than granting voice-only presence — only an
+  event-scoped staging-panel move can trigger §7.4, and since every
+  staged claimant/RSVP already holds `status = 'going'`, that move is
+  always `auto: true` (never the blocking accept/decline prompt).
+  Ran live against a fresh `wavvon_e2e` DB: suites 48, 49, 53 all pass.
+  Clients `e4a0a76`.
+
 - **Farm: hub lifecycle supervision (2026-07-19)**: a monitor task
   auto-restarts farm-local hubs offline >180s (exponential backoff
   10s·2^n capped 5min, gives up + disables after 5 attempts, heartbeat

@@ -551,12 +551,26 @@ staging_voice_grants: RwLock<HashMap<String /*pubkey*/, HashSet<String /*channel
   reject a join when the caller lacks effective `READ_MESSAGES`. Add:
   *…unless `staging_voice_grants[pubkey]` contains this channel.* That
   single bypass is the entire reveal.
-  *(Implementation note, 2026-07-18: the `voice_ws.rs` gate turned out
-  narrower than described — it enforces `READ_MESSAGES` only for bot
-  sessions and spawner-channel joins; a plain human `/voice/ws` join has
-  no read gate today. The grant bypass was added to the existing checks
-  only; the missing general gate is tracked as an H-series known issue
-  in ROADMAP and should gain the same grant bypass when fixed.)*
+  *(Implementation note, 2026-07-19: the 2026-07-18 note above was stale —
+  `voice_ws.rs` now enforces `READ_MESSAGES` on every plain human join too
+  (not just bot sessions and spawner-channel joins), with the
+  `staging_voice_grants` bypass covering the exact same `(pubkey,
+  channel_id)` pair the main hub WS path uses. Confirmed by
+  `e2e/live/53-voice-only-presence.spec.ts` (Wavvon-clients): a member
+  RSVP'd "going" on an event, moved via the staging panel into a channel
+  with `read_messages` denied for `@everyone`, gets voice (HUD shows the
+  channel name, organizer's roster shows the join) with the channel still
+  absent from their sidebar and no message pane. That e2e also confirms a
+  narrower, deliberate rule not previously called out here: the
+  event-less Phase-1 right-click "Move to channel…" primitive rejects a
+  move to a channel the target can't read outright ("Target cannot read
+  the destination channel") rather than granting voice-only presence — a
+  generic mod-tool move must not double as a channel-existence oracle.
+  §7.4 is reachable only through an event-scoped move (§7.5's staging
+  panel), and since every claimant/RSVP the panel can move already holds
+  `status = 'going'`, that path is always `auto: true` — the blocking
+  accept/decline prompt (§7.2) never coincides with a voice-only reveal
+  today.)*
 - **Message routes — NO bypass.** `messages.rs` history, WS `subscribe`,
   the read-gated channel-list endpoint, and `list_events`/`get_event`
   read-gating **do not** consult `staging_voice_grants`. A voice-only
