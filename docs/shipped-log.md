@@ -4,6 +4,20 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Web: live e2e suite deflaked to 76/76 (2026-07-19)**: the 18
+  pre-existing failures from the 2026-07-18 first-full-run were all spec
+  rot (app moved on, specs didn't) — none product regressions. Fixed
+  spec-side: the removed desktop-era "Join Voice" button → voice-channel
+  double-click (7 specs, plus adjacent camera/screen-share selector
+  drift), the settings-IA restructure (5 specs, incl. selecting the
+  joined hub before propagation edits since the default-profile context
+  is local-only), namespaced-localStorage reads (2), a hardcoded past
+  event date, and an alliance channel-share option-label prefix. Notably
+  `10-member-presence`'s "custom status text" case tested a field
+  deliberately removed from web 2026-07-12 — rewritten to assert DND-dot
+  propagation, not to re-add the input (verified live). No product code
+  touched, no assertions weakened, no skips. Clients `b5df011`.
+
 - **Hub: /voice/ws read gate closed (2026-07-19)**: the H-series gap
   from the voice-move Phase 2 pass — the web voice transport enforced
   `READ_MESSAGES` only for bots and spawner-channel joins, so a web

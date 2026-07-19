@@ -244,14 +244,6 @@ surfaces, welcome banner, survey→roles, …). Still open:
   get() fix). Optional upstream nudges remain (Bitwarden forum vote +
   GitHub issue on missing `prf.enabled:false`; Microsoft Feedback Hub
   for the Hello get() failure).
-- **Live e2e suite: 18 pre-existing failures** — surfaced 2026-07-18 by
-  the first full run since the harness was repaired (it had been broken
-  since the invite-only default + account-naming changes of early
-  July). Root causes, none from the events/voice-move work: 7 specs use
-  the removed desktop-era "Join Voice" header button, 4 hit the
-  settings-IA restructure, 2 hit localStorage key renames, 1 hardcoded
-  past date (05-events), 4 misc timing/selector rot. Suite is 57/76
-  green; fix these spec-side.
 - **Staging panel "voice-only" hint needs server data** — the §7.4
   voice-only path works, but the panel can't show the designed
   "voice-only" chip because a client can't see another member's channel
