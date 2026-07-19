@@ -4,6 +4,14 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Web: LAN hub fingerprint verification (2026-07-19)**: invites can
+  carry `?fp=`/`#fp=` (SHA-256 of the LAN hub's self-signed cert DER,
+  already exposed as `/info` `lan_fingerprint`); one shared
+  `verifyLanFingerprint` helper gates both the AddHubModal and first-run
+  WelcomeScreen joins, blocking on mismatch. The rest of lan-mode §5–§6
+  client work (mDNS discovery, QR scan, TLS pinning) is
+  browser-impossible and stays desktop-era. Clients `2f58602`.
+
 - **Web: events calendar month view (2026-07-19)**: Month/List toggle in
   `EventsPanel` rendering the already-fetched, read-gated event set on a
   native-`Date` 6×7 grid (events.md §9; no date library, no server

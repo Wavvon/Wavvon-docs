@@ -57,8 +57,11 @@ fixed, its entry moves to the shipped log.
   copies still RSVP-only), live gaps: real cross-internet voice audio,
   §7.4 voice-only browser assertion (one e2e case; server gate already
   shipped). Calendar view (web) shipped 2026-07-19.
-- **LAN / offline mode, client half** — nearby-hubs discovery UX,
-  QR/fingerprint pinning, LAN federation ([lan-mode.md](docs/lan-mode.md) §5–§6).
+- **LAN / offline mode, native client half** — nearby-hubs mDNS
+  discovery UX and QR scanning are browser-impossible → desktop-era;
+  LAN federation is server-side deferred ([lan-mode.md](docs/lan-mode.md)
+  §5–§6). Web-feasible slice (invite `?fp=` fingerprint verification)
+  shipped 2026-07-19.
 - **Personal data export, gaps** — account-scoped custom themes,
   desktop↔web archive compat. Prefs-blob decrypt on web shipped
   2026-07-19 (paired devices still can't decrypt — no local entropy).
