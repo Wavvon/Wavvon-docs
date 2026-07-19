@@ -505,6 +505,9 @@ An allied hub becomes a **write path into your forum**. Over
 
 ### Phasing
 
+All three phases SHIPPED 2026-07-19 (server `e424760`, `bdb8083`,
+`b2d7d46`; web `6e88c02`, `be9bdbe`).
+
 1. **Read-through GET (first slice, small)** — proxy post list, post
    detail, replies (reactions included, as alliance message reads already
    load them, [federation.md](federation.md)). Read-only makes remote
@@ -513,9 +516,11 @@ An allied hub becomes a **write path into your forum**. Over
 2. **Proxied writes** — create post/reply/reaction carrying
    `author_pubkey` + `author_hub`; additive columns; per-origin rate
    limit; the `forum_remote_write` policy.
-3. **Origin-hub retraction + moderation propagation** as above; pin/lock
-   stay owner-only.
-- Deferred: live WS push, cross-hub search, signed attribution.
+3. **Origin-hub retraction** as above; pin/lock stay owner-only.
+   Reactions excluded (no `author_hub` column; local-scope removal only).
+- Deferred: live WS push, cross-hub search, signed attribution,
+  federated reaction *removal* / reply-level federated reactions,
+  `include_descendants` policy inheritance (direct shares only today).
 
 ### Files this will touch
 

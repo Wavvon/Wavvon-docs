@@ -4,6 +4,17 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Forum federation phases 2–3: proxied writes + retraction
+  (2026-07-19)**: alliance-shared forum channels accept remote writes
+  per a per-share `forum_remote_write` policy (`none`/`replies_only`/
+  `posts_and_replies`, default `replies_only`) with `author_hub`
+  attribution and a per-origin-hub rate limiter; origin hubs can
+  retract their own users' content (double author_hub + author_pubkey
+  check, local tombstone semantics); pin/lock stay owner-only. Web
+  alliance forum view un-gates reply/react/compose per policy and
+  renders a via-hub author suffix. Deferred tail documented in
+  forum.md §9. Server `bdb8083`+`b2d7d46`, clients `be9bdbe`.
+
 - **Farm: agent-hosted hub restart (2026-07-19)**: new agent WS
   `restart_hub` command (stop-if-running then spawn); the force-restart
   route and the supervision monitor both delegate to the owning agent

@@ -48,10 +48,10 @@ fixed, its entry moves to the shipped log.
   shipped 2026-07-19. Phase 3 (lobby helper) **designed 2026-07-19**
   ([§10](docs/bot-capability-layer.md)) — first slice is bot-side only
   (`wavvon-bot-kit`, no hub change); not built.
-- **Forum post federation, write + retraction slices** —
-  ([forum.md](docs/forum.md) §9 phases 2–3): proxied writes with
-  `author_hub` attribution + origin-hub retraction. Read slice shipped
-  2026-07-19.
+- **Forum federation, deferred tail** — live WS push, cross-hub search,
+  signed attribution, federated reaction removal, descendant-share
+  policy inheritance ([forum.md](docs/forum.md) §9). All three main
+  phases (read / writes / retraction) shipped 2026-07-19.
 - **Project visibility push** — hosted demo hub, directory listings,
   launch post. Needed for adoption and the code-signing re-application.
 - **Passkey registration from desktop** — blocked by Tauri webview RP ID
