@@ -138,6 +138,8 @@ redundant entry if they agree.
 | `MUTE_MEMBERS` / `DEAFEN_MEMBERS` | `mute_members` |
 | `MODERATE_MEMBERS` (timeout) | `timeout_members` |
 | `CREATE_EVENTS` / `MANAGE_EVENTS` | `create_events` |
+| `MOVE_MEMBERS` | `move_members` (mapped 2026-07-19; shipped after this doc) |
+| `USE_SOUNDBOARD` | `use_soundboard` (mapped 2026-07-19; shipped after this doc) |
 | everything else | → `unmapped` list, reported |
 
 ### Channel permission overwrites
