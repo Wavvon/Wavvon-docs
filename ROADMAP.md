@@ -68,11 +68,6 @@ fixed, its entry moves to the shipped log.
 - **Passkey-PRF identity removed (2026-07-19)** — provider support too
   broken; surface pulled (clients `9afe8b0`). Hub-session passkey auth
   stays. Reinstatement notes in [webauthn-auth.md](docs/webauthn-auth.md).
-- **Desktop: `get_pending_deep_link` command missing** — shared frontend
-  invokes an unregistered Tauri command (startup unhandled rejection);
-  `wavvon://` deep links likely broken on desktop.
-- **Desktop: `npm run dev` doesn't launch Tauri** — only runs Vite; real
-  command is `npm run tauri dev`. Consider renaming the scripts.
 - **Settings account list doesn't refresh mid-session** — account added
   while Settings is open doesn't appear until Settings reopens.
 - **Invisible presence gaps (web)** — invisible users still show in a

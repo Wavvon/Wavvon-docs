@@ -4,6 +4,20 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Desktop: `npm run dev` launches the full Tauri shell (2026-07-19)**:
+  the script only started Vite (no Tauri window), tripping people up
+  expecting the real dev experience. `dev` now runs `tauri dev`; the
+  Vite-only variant moved to `dev:web`, which `tauri.conf.json`'s
+  `beforeDevCommand` now invokes to avoid recursion. Clients `4d727df`.
+
+- **Desktop: registered missing `get_pending_deep_link` command
+  (2026-07-19)**: the frontend called a Tauri command the Rust shell
+  never registered, causing an unhandled rejection on every startup. No
+  OS-level `wavvon://` scheme registration exists anywhere yet (no
+  `tauri-plugin-deep-link`, installer/registry/Info.plist/desktop-file
+  entry), so real deep-link capture is unimplemented — the command is a
+  stub returning null, just removing the startup error. Clients `c4794e6`.
+
 - **Clients: shared-component consolidation batch 2 — CreateHubWizard
   (2026-07-19)**: the farm-based create-hub wizard hoisted from both
   apps into one prop-only `packages/ui` component (more platform-coupled
