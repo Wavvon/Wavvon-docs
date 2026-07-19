@@ -4,6 +4,15 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Invisible presence gaps closed (2026-07-19)**: voice surfaces now
+  respect presence visibility — viewer-aware participant lists/rosters,
+  gated Joined/Left/Speaking broadcasts, mid-call invisible-toggle
+  handling, and gated `/voice/participants`, `/voice/active-users`,
+  `/voice/populations` (server-side, so nothing leaks on the wire);
+  the user's own roster row now shows a distinct invisible state with
+  a tooltip instead of plain offline. Hub integration test in
+  `voice_relay_flow.rs`. Server `2714c41`, clients `fc90c04`.
+
 - **Tic-tac-toe demo bot: first live run, passing (2026-07-19)**: new
   live e2e `54-ttt-game.spec.ts` — two browser contexts play a full
   game through the bot's modal against a live hub, 3/3 green. The run

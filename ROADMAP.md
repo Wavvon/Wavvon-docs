@@ -58,9 +58,6 @@ fixed, its entry moves to the shipped log.
 
 ## ⚠️ Known issues
 
-- **Invisible presence gaps (web)** — invisible users still show in a
-  voice channel's participant list; no self-distinct indicator (user sees
-  themselves offline in their own roster).
 - **Discord importer needs a live run** — `export` with a real bot token
   + `apply` against a running hub never exercised live.
 - **Admin external-bot panel is dead** — `ExternalBotSection` /
