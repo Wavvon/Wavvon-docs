@@ -37,9 +37,11 @@ fixed, its entry moves to the shipped log.
 
 - **Farm layer** — serial routing shipped; next slices: lifecycle/SSO per
   [farm-model.md](docs/farm-model.md).
-- **Gaming + rich bots Phase 1** — DESIGNED
-  ([bot-capability-layer.md](docs/bot-capability-layer.md)): capability
-  grants + resolver + game modal → playable tic-tac-toe.
+- **Gaming + rich bots Phases 2–4**
+  ([bot-capability-layer.md](docs/bot-capability-layer.md) §6):
+  video/canvas grants, multiplayer session/lobby helper, game-bot
+  distribution. Phase 1 (grants + modal + tic-tac-toe demo bot)
+  shipped 2026-07-19.
 - **Forum post federation, write + retraction slices** —
   ([forum.md](docs/forum.md) §9 phases 2–3): proxied writes with
   `author_hub` attribution + origin-hub retraction. Read slice shipped
@@ -85,6 +87,9 @@ fixed, its entry moves to the shipped log.
   visibility needs a signed public-profile envelope.
 - **Discord importer needs a live run** — `export` with a real bot token
   + `apply` against a running hub never exercised live.
+- **Tic-tac-toe demo bot needs a live run** — unit/integration tested
+  (grants, modal gate, relay), but a real two-browser game against a
+  running hub hasn't been played yet.
 - **Windows installer unsigned** — SmartScreen warning; "More info → Run
   anyway". See the code-signing blocker.
 - **Bot deferred scope** — voice/screen-share injection, bot DMs,

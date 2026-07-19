@@ -4,6 +4,19 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Gaming + rich bots Phase 1 (2026-07-19)**: the full
+  bot-capability-layer.md Phase 1 slice — `bot_capability_grants` +
+  `effective_capabilities()` resolver, admin grant/readback routes with
+  `capabilities_changed` push, `can_use_interactive_ui`-gated game modal,
+  hardened scoped tokens, `game` launch cards on messages, and the §7
+  tic-tac-toe demo bot (`crates/ttt-bot`: launch card, WS-relay moves,
+  result PATCH, embedded mini-app page). Building the demo exposed and
+  fixed three hub gaps: bot-authored `embeds` on PATCH, external-bot
+  `mini_app_url` registration, and the `mini_app_message` opaque relay
+  envelope (now documented in bot-mini-apps.md). Full server workspace
+  suite green (95 suites). Server `1df3971`+`7db2da8`+`86e62a6`,
+  clients `22aa2b7`. Live two-browser game still pending (known issue).
+
 - **Web: LAN hub fingerprint verification (2026-07-19)**: invites can
   carry `?fp=`/`#fp=` (SHA-256 of the LAN hub's self-signed cert DER,
   already exposed as `/info` `lan_fingerprint`); one shared

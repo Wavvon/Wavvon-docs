@@ -41,6 +41,15 @@ mini-app instances in the same channel) through the normal WS relay.
 **The hub sees only ordinary WS messages — it has no concept of
 canvas, game state, or drawing strokes.**
 
+The relay envelope (shipped 2026-07-19) is `mini_app_message`:
+`{ type: "mini_app_message", bot_id, channel_id, payload, to_pubkey? }`.
+`payload` is an opaque JSON-encoded string the hub never inspects. From
+a mini-app session, the hub forwards it to every active WS session of
+`bot_id`, tagged with the sender's `from_pubkey`; from the bot,
+`to_pubkey` selects which joined player's mini-app session receives it
+(no channel-wide broadcast surface). Reference use: the tic-tac-toe
+demo bot (`server/crates/ttt-bot`).
+
 ```
 [Player A mini-app] ──WS──▶ hub ──WS──▶ [bot server]
                                     └──WS──▶ [Player B mini-app]
