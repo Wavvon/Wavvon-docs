@@ -9,8 +9,8 @@ the guild delta: **role-slot sign-ups**, **reminders**, and a
 server-side** (hub `825b0da`, 2026-07-04); **web UI for slots +
 reminders SHIPPED** (clients, 2026-07-04, see §2's implementation note
 below); **calendar view DESIGNED, not implemented** (client-only,
-lowest priority — see §4). Desktop/Android UI for slots + reminders is
-queued next; see ROADMAP.
+lowest priority — full design §9, 2026-07-19). Desktop/Android UI for
+slots + reminders is queued next; see ROADMAP.
 
 **Guild-scale delta DESIGNED 2026-07-18:** **hub-level events** (§5),
 **propagation to sub-channels** (§6), and **slot-based participant
@@ -208,10 +208,9 @@ One reminder per event, a fixed offset before start.
 
 ## 4. Calendar view
 
-Client-only: a month/week toggle in `EventsPanel.tsx` rendering the
-already-fetched event list on a grid, timezone-localized like the
-existing list. No server change. Lowest priority of the three — ship
-slots + reminders first.
+Lowest priority of the three — ship slots + reminders first. The original
+one-line sketch (month/week toggle over the already-fetched list) is now
+fully designed in **§9** below.
 
 ## 5. Hub-level events
 
@@ -673,6 +672,70 @@ the spawned rooms live under the event's anchor channel.
   ids on `event_slots`.
 - **Cross-hub / alliance event federation** — same posture as forums:
   hub-local v1.
+
+## 9. Calendar view — design (2026-07-19)
+
+**Scope.** A **Month / List toggle** in `EventsPanel.tsx` (Wavvon-clients,
+`apps/web`). List is today's upcoming list, unchanged; Month renders the
+**same** hub-scoped, already-read-gated event set on a 6×7 grid, localized
+to the viewer's timezone like the list. Community-axis, hub-scoped:
+`list_events` already aggregates every event the caller can read across the
+hub's channels (plus `hub_wide`, §5), so the calendar needs no new
+aggregation — it reuses that one call. Client-only for the common case; one
+server gap is flagged below and deferred.
+
+### Component breakdown (prop-only, hoistable to `packages/ui`)
+
+- **`EventCalendar.tsx`** — pure presentational. Props
+  `{ events, month, onMonthChange, onSelectDay, selectedDay }`: renders the
+  month header (`‹ Month YYYY ›`), a weekday row, and a six-week grid; a day
+  cell shows a count/dot when events fall on it and is clickable. No
+  `@platform`, no fetch, no App-state closures — hoistable as-is. ~150 lines.
+- **`utils/calendar.ts`** — pure, unit-tested helpers: `monthGrid(year,
+  month): Date[]` (42 local-midnight days) and `eventsByDay(events): Map<
+  string /*YYYY-MM-DD local*/, HubEvent[]>`. Native `Date` only, no date
+  library — same primitive `EventCard` already uses (`new
+  Date(starts_at * 1000)`).
+- **`EventsPanel.tsx`** (edit) — gains `view: "list" | "month"` +
+  `viewMonth` state and the toggle. In month view it renders `EventCalendar`
+  above the existing `EventCard` list; selecting a day filters that list to
+  the day (no selection = the whole month's events). The detail reuses the
+  existing `EventCard` — no new detail component, RSVP/slot/staging
+  affordances unchanged.
+
+### Data flow
+
+1. `EventsPanel` fetches via `getEvents({ upcoming: true, limit: 100 })`.
+   The endpoint already supports both params (`ListEventsParams`,
+   `crates/hub/src/routes/events.rs:204`); only the `@platform` `getEvents`
+   wrapper needs to forward them (client-only). The result is already
+   read-gated + hub-wide-merged server-side.
+2. `EventCalendar` receives that array plus the viewed month; `eventsByDay`
+   buckets by **local start day**. Month nav emits `onMonthChange`; a day
+   click emits `onSelectDay`.
+3. The selected day filters the `EventCard` list under the grid.
+
+### Server gap (flagged, deferred)
+
+`list_events` has **no date-range query** — only `upcoming: bool` + `limit`
+(default 20, max 100, `events.rs:632`). So v1's grid is meaningful only for
+the **loaded upcoming window** (now → the 100th future event). Browsing to a
+**past month**, or a future month past that window, shows an empty grid.
+Closing it is additive: `from`/`to` (unix-seconds) fields on
+`ListEventsParams` + a `starts_at BETWEEN` branch in `list_events`
+(Wavvon-server), keeping the same read-gate/hub-wide filter. Deferred — v1
+ships client-only against the existing upcoming window; add the range query
+when past-month browsing is actually requested.
+
+### Out of scope
+
+- **Week view** — §4's original "month/week toggle"; v1 is Month + List only.
+- **Multi-day spanning** — an event with a later-day `ends_at` is bucketed by
+  its **start** day only, not drawn across cells.
+- **Past / far-future browsing** — bounded by the server gap above.
+- **Desktop/Android calendar** — web first (desktop is still RSVP-only,
+  ROADMAP).
+- Recurring events (already deferred, §8).
 
 ---
 

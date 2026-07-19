@@ -54,7 +54,8 @@ fixed, its entry moves to the shipped log.
   (see consolidation above); details in
   [`client-parity.md`](docs/client-parity.md).
 - **Events, remaining** — desktop UI (parallel `EventCard`/`EventComposer`
-  copies still RSVP-only), calendar view (undesigned), live gaps: real
+  copies still RSVP-only), calendar view (DESIGNED
+  [events.md](docs/events.md) §9, web-only, not built), live gaps: real
   cross-internet voice audio, §7.4 voice-only browser assertion.
 - **LAN / offline mode, client half** — nearby-hubs discovery UX,
   QR/fingerprint pinning, LAN federation ([lan-mode.md](docs/lan-mode.md) §5–§6).

@@ -6,6 +6,35 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Events calendar: month grid over the already-fetched upcoming window, no date library
+
+**Decision** (2026-07-19): the events calendar view is a **Month / List
+toggle inside `EventsPanel`** (Wavvon-clients, `apps/web`) that renders the
+**same** hub-scoped, already-read-gated event set the list fetches, on a
+native-`Date` 6×7 grid — no calendar library, no new dependency, and for v1
+**no server change**. A new prop-only `EventCalendar` + a pure
+`utils/calendar.ts` are hoistable to `packages/ui` as-is. Full design:
+[events.md](events.md) §9.
+
+**Alternatives considered**:
+- **A calendar library (a full month/week/agenda component).** Rejected:
+  the month-grid math is ~20 lines of `Date`, the components must stay
+  prop-only and ~200 lines to hoist into `packages/ui`, and a new dependency
+  contradicts the lazy/minimal rule for the lowest-priority events slice.
+- **Add a `from`/`to` date-range query to `list_events` first**, so the grid
+  can browse any month. Deferred, not rejected: it's the right eventual
+  shape (additive `ListEventsParams` fields + a `starts_at BETWEEN` branch)
+  but isn't needed to ship the common case (upcoming events on a month
+  grid), and building server surface for browsing nobody has asked for yet
+  is speculative.
+
+**Tradeoff / outcome**: v1's grid is meaningful only within the loaded
+upcoming window (now → the 100th future event); past-month and
+beyond-window browsing render empty and wait on the deferred range query.
+Accepted as the lazy first cut for the lowest-priority events feature —
+community-axis (hub-scoped), client-only, reuses the one read-gated
+`GET /events` call the list already makes.
+
 ## Hub-hosted identity vault: opt-in, passphrase-locked, handle-addressed
 
 > **PARKED 2026-07-19 (user call, same day as the design)**: not built,
