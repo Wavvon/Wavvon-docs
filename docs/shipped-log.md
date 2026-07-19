@@ -4,6 +4,15 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Farm: hub lifecycle supervision (2026-07-19)**: a monitor task
+  auto-restarts farm-local hubs offline >180s (exponential backoff
+  10s·2^n capped 5min, gives up + disables after 5 attempts, heartbeat
+  resets the counter); additive `hubs` columns + fleet-endpoint
+  visibility; admin `POST /farm/hubs/{id}/restart`. Audit dividend: farm
+  SSO and serial routing turned out already shipped and tested — the
+  ROADMAP "lifecycle/SSO" entry was half stale. Agent-hosted restart
+  deferred (agent WS protocol lacks a restart command). Server `d583e3e`.
+
 - **Gaming + rich bots Phase 1 (2026-07-19)**: the full
   bot-capability-layer.md Phase 1 slice — `bot_capability_grants` +
   `effective_capabilities()` resolver, admin grant/readback routes with
