@@ -4,6 +4,18 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Clients: shared-component consolidation batch 2 — CreateHubWizard
+  (2026-07-19)**: the farm-based create-hub wizard hoisted from both
+  apps into one prop-only `packages/ui` component (more platform-coupled
+  than batch 1, so `probeFarm`/`getFarmHubQuota`/`createHubOnFarm`/
+  `addHub` became callback props — web passes the `@platform` functions,
+  desktop passes `invoke()` adapters; `WsHandlers` stays out of
+  packages/ui via web's onAddHub closure). Farm types hoisted; both app
+  copies deleted. Reconciliation dividend: desktop's `friendlyJoinError`
+  became a shared `joinErrorKey()` now applied on both platforms — web
+  previously surfaced raw error strings. Typecheck clean both apps; web
+  245/245, desktop 80/80. Clients `0b45802`.
+
 - **Web: encrypted backup download offered at identity creation
   (2026-07-19)**: with PRF removed, the recovery story is phrase +
   `.wavvon-backup` file + pairing, but the file export lived only in

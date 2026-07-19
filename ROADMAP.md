@@ -29,10 +29,11 @@ fixed, its entry moves to the shipped log.
   props), duplicated ones are hoisted from the web copy when touched, and
   desktop-parity items are done by hoisting rather than porting. Batch 1
   (BotAppLaunchCard, ImagePicker, BotCard, EmojiPicker) SHIPPED 2026-07-18
-  (clients `d5c9acd`, see [shipped-log.md](docs/shipped-log.md)).
-  Next candidates: `CreateHubWizard`, then per-component alongside each
-  desktop-parity item. Audit baseline: 61 duplicated components, 73% avg
-  divergence.
+  (clients `d5c9acd`); batch 2 (`CreateHubWizard`, platform calls →
+  callback props) SHIPPED 2026-07-19 (clients `0b45802`) — see
+  [shipped-log.md](docs/shipped-log.md). Next: per-component alongside
+  each desktop-parity item. Audit baseline: 61 duplicated components,
+  73% avg divergence.
 ## 🚧 Blocked
 
 - **Windows code-signing** — blocked until the project reaches meaningful
