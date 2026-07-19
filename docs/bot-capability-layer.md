@@ -251,7 +251,9 @@ a reusable bot-side module over the shipped `mini_app_message` relay, not
 new hub surface.
 
 **Phase 4 — distribution:** how a hub discovers/adds a game-bot; overlaps
-the bot directory ([bots.md §4](bots.md)). Undesigned.
+the bot directory ([bots.md §4](bots.md)). **Designed in §11** — it needs
+almost no new machinery: adding is the shipped invite-by-pubkey flow,
+discovery reuses the two shipped opt-in surfaces.
 
 ---
 
@@ -316,7 +318,9 @@ grants the admin toggled — which is the point of the capability layer.
 - **Multiplayer session/lobby service** — shared state, matchmaking,
   turn/tick sync. Bot-owned, hub-relayed; Phase 3, **now designed in §10**
   ([gaming.md](gaming.md) item 4). Not built.
-- **Game distribution / discovery** — Phase 4 ([bots.md §4](bots.md)).
+- **Game distribution / discovery** — Phase 4, **now designed in §11**
+  ([bots.md §4](bots.md)). The buildable-now slice is a per-hub directory
+  render tweak; cross-hub game-bot recommendation is deferred-until-demand.
 - **Cross-hub / alliance game sessions** — single-hub only; federation of
   interactive sessions is out of scope ([gaming.md](gaming.md) federation
   angle, [bot-mini-apps.md](bot-mini-apps.md)).
@@ -441,3 +445,79 @@ that the two-player case survived generalization.
 
 Deferred beyond §9's list: cross-hub/alliance lobbies (single channel,
 as with every mini-app session); persistent match history (bot's own DB).
+
+---
+
+## 11. Phase 4 — distribution (designed 2026-07-19, not built)
+
+The Phase 4 leg ([gaming.md](gaming.md) item 6). **The whole answer:
+almost nothing new. A game-bot is structurally just a bot, so "add" is
+the shipped invite-by-pubkey flow and "discover" reuses the two shipped
+opt-in surfaces — no global bot index (ROADMAP won't-do, same ground the
+central hub registry was rejected on, [bots.md Tradeoffs](bots.md)).**
+
+### Adding a game-bot — already shipped, zero new surface
+
+A game-bot is a `users` row with `is_bot=1` that posts a `game`
+launch-card (§2) and is granted `can_use_interactive_ui` (§1). Adding
+one is exactly the existing sequence, with no game-specific step:
+
+1. Admin pastes the bot's pubkey → `POST /bots` mints an invite token
+   ([bots.md §2](bots.md)).
+2. Operator's bot accepts (`POST /bots/accept-invite`), declaring its
+   requested capabilities in `bot_meta`.
+3. Admin grants `can_use_interactive_ui` (+ any media grant) in the
+   Capabilities panel (§1). The bot can now launch its game modal.
+
+Nothing here knows it's a game — which is the point (decision 4).
+
+### Advertising a game-bot — reuse the pubkey-publish model
+
+An operator publishes their game-bot's pubkey wherever they publish it
+today ([bots.md §2](bots.md): site, README, DM). The one *reuse* worth
+naming: an operator who runs a **demo hub** where the bot lives can list
+that hub on Wavvon-discovery ([hub-discovery.md Layer 2](hub-discovery.md))
+with a `games` tag, so a user browsing the directory finds a hub they can
+join and try the bot in before inviting it to their own hub. That is the
+existing signed, opt-in, pubkey-keyed listing pattern verbatim — the
+directory indexes *hubs*, never bots, so no central bot registry appears.
+
+### Discovering a game-bot — the two shipped surfaces, unchanged
+
+| Scope | Surface (shipped) | What a game-bot adds |
+|---|---|---|
+| **Within a hub** | Hub-local bot directory ([bots.md §4, §10](bots.md)): member-facing bot card lists name, description, commands | The bot's `game` descriptor (§2) surfaces a **Play** affordance on its directory card, so a hub's own members can find and launch game-bots already invited — a client render tweak on data Phase 1 already carries. |
+| **Across hubs** | Wavvon-discovery hub listings ([hub-discovery.md Layer 2](hub-discovery.md)) | A `games` tag / bio mention on the *hub's* listing. Finding a game-bot = finding a hub that runs it, then trying it there. |
+
+### The one thin slice worth building now
+
+Only the **within-a-hub Play affordance** above, and only *after* Phase 1
+ships the `game` descriptor. It is a directory-render change in the client
+([bots.md §4/§10](bots.md) bot card) plus optionally persisting the `game`
+descriptor on `bot_profiles` so the card can show it without a live launch
+card in view — additive, no new route, no new hub concept. Buildable, but
+gated on Phase 1; nothing to build ahead of it.
+
+### Deferred-until-demand
+
+- **Cross-hub game-bot *recommendation* over alliances** — an allied hub
+  pulling and surfacing an ally's bot list as suggestions. This reuses
+  federation/alliance machinery ([alliances.md](alliances.md)) and stays
+  federated-not-centralized, so it *would* be design-appropriate — but it
+  invents a hub-to-hub bot-list read path with its own trust/staleness
+  questions for a benefit no one has asked for yet. Revisit when operators
+  actually want it.
+- **A game-bot showcase section on discovery listings** (structured
+  bot-cards on `/hub/<pubkey>` beyond a tag). Speculative; the `games` tag
+  + bio covers the first need.
+- **Any global/central bot directory** — rejected, not deferred. Same
+  reason as the central hub registry: it needs a coordinator Wavvon
+  refuses to be ([bots.md Tradeoffs](bots.md), [decisions.md](decisions.md)).
+
+### Hub vs discovery vs operator
+
+| Layer | Owns |
+|---|---|
+| **Hub** | Invite-by-pubkey, capability grants, the per-hub bot directory. No game registry, no cross-hub bot index (decision 4). |
+| **Wavvon-discovery** | Signed, opt-in *hub* listings keyed on hub pubkey. Indexes hubs, never bots; `games` tag is the only game-aware bit. |
+| **Bot operator** | Publishes the bot pubkey; optionally runs a listed demo hub. Distribution is out-of-band, exactly as bot invite already is. |

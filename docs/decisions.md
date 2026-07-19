@@ -6,6 +6,39 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Game-bot distribution (gaming Phase 4): reuse invite + discovery, no bot index
+
+**Decision** (2026-07-19): game-bot distribution needs **almost no new
+machinery**. A game-bot is structurally just a bot, so *adding* one is the
+shipped invite-by-pubkey flow ([bots.md §2](bots.md)) plus the Phase 1
+`can_use_interactive_ui` grant — no game-specific step. *Discovering* one
+reuses the two shipped opt-in surfaces unchanged: the per-hub bot directory
+([bots.md §4](bots.md)) within a hub, and Wavvon-discovery's signed,
+pubkey-keyed *hub* listings across hubs ([hub-discovery.md](hub-discovery.md)).
+The directory indexes hubs, never bots, so no global bot index appears. Full
+design: [bot-capability-layer.md §11](bot-capability-layer.md).
+
+**Alternatives considered**:
+- **A global/central game-bot directory** (a browseable index of bots you
+  could invite). Rejected outright, not deferred — same ground the central
+  hub registry was rejected on ([bots.md Tradeoffs](bots.md)): it needs a
+  coordinator Wavvon refuses to be, and is a ROADMAP won't-do.
+- **Cross-hub game-bot recommendation over alliances** (an ally surfacing
+  its bot list as suggestions). Deferred, not rejected: it reuses federation
+  and stays decentralized, so it *would* be design-appropriate — but it
+  invents a hub-to-hub bot-list read path with its own trust/staleness cost
+  for a benefit no operator has asked for. Revisit on demand.
+
+**Tradeoff**: discovery is coarse — a user finds a *hub* that runs a
+game-bot (via a `games` tag on its listing) and tries it there, rather than
+browsing bots directly. Accepted: it keeps the federated-not-centralized
+boundary clean and adds zero new indexed surface.
+
+**Outcome**: designed 2026-07-19, not built. The only buildable-now slice is
+a per-hub directory render tweak — a **Play** affordance on a bot's card
+from the Phase 1 `game` descriptor — and it is gated on Phase 1 landing
+first. Everything else is deferred-until-demand.
+
 ## Multiplayer lobby (gaming Phase 3): a bot-side convention, not hub surface
 
 **Decision** (2026-07-19): the multiplayer session/lobby helper is a
