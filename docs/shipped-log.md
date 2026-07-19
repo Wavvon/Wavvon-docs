@@ -4,6 +4,16 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Web: data export decrypts the hub-synced prefs blob (2026-07-19)**:
+  `SignedPrefsBlob` verify + HKDF/AES-256-GCM decrypt ported to
+  `packages/core` with cross-language test vectors pinned from the Rust
+  identity crate; the archive's prefs section now carries decrypted
+  blocked users + voice settings (gap_note remains only for paired
+  devices, which hold no local entropy). Bonus fix: designation/
+  device-cert/revocation fetches now use the derived master pubkey
+  instead of the device pubkey. Core 92/92, web 261/261. Clients
+  `276d86d`.
+
 - **Forum post federation, read slice (2026-07-19)**: forum.md §9
   phase 1 complete — alliance-shared forum channels are readable
   cross-hub via a read-through proxy (`/alliances/:id/channels/:cid/

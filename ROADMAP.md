@@ -59,8 +59,9 @@ fixed, its entry moves to the shipped log.
   cross-internet voice audio, §7.4 voice-only browser assertion.
 - **LAN / offline mode, client half** — nearby-hubs discovery UX,
   QR/fingerprint pinning, LAN federation ([lan-mode.md](docs/lan-mode.md) §5–§6).
-- **Personal data export, gaps** — prefs-blob decrypt on web,
-  account-scoped custom themes, desktop↔web archive compat.
+- **Personal data export, gaps** — account-scoped custom themes,
+  desktop↔web archive compat. Prefs-blob decrypt on web shipped
+  2026-07-19 (paired devices still can't decrypt — no local entropy).
 - **Live captions in voice** — local STT, desktop-era.
 - **Hub-hosted identity vault** — DESIGNED, **PARKED until after the
   pilot** (do NOT build; [identity-vault.md](docs/identity-vault.md)).

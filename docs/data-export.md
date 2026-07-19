@@ -21,20 +21,32 @@ DM history. Data sovereignty as a checkable feature, not a promise.
   distinct formats. **Cross-client compatibility (desktop reading a
   web archive, or vice versa) is deferred** — needs a shared envelope
   spec first if ever wanted.
-- **Prefs**: the web client has no decrypt path for the hub-synced,
-  E2E-encrypted prefs blob (`identity.rs`'s `/prefs` route) — nothing
-  in `packages/core` or any web/android module implements
-  `derive_blob_key`/AES-GCM for it yet. v1's `prefs` section is a
-  *local-only* snapshot (saved hub list, active theme, ignored users,
-  voice gains, mention-ping setting) with an explicit `gap_note` field
-  in the archive itself. Wiring the real prefs-blob decrypt is a
-  follow-up.
+- **Prefs**: closed. `packages/core/src/identity/master.ts` now ports
+  `derive_blob_key`/`decrypt_prefs` (HKDF-SHA256 + AES-256-GCM, byte-
+  identical to `apps/desktop/src-tauri/src/prefs_blob.rs` — pinned by a
+  vector generated directly against `wavvon_identity`/`prefs_blob.rs`
+  in `master.test.ts`/`wire.test.ts`, since no vector previously existed
+  in this doc). `apps/web/src/utils/dataExport.ts` fetches the
+  `SignedPrefsBlob` from `/identity/{master_pubkey}/prefs`, verifies its
+  signature, and decrypts it into `prefs.hub_synced` (blocked users,
+  cross-device voice settings) — `gap_note` is now only set for the one
+  remaining case a *paired* device can't do itself (no local entropy to
+  derive the blob key from; only the entropy-holding device can). A
+  404 (nothing published yet) is an empty `hub_synced: null`, not a gap.
+  Custom themes do **not** ride inside this blob — the desktop
+  `LocalPrefs` struct only carries `blocked_users`/`voice_settings`; they
+  stay a separate, already-covered archive section (§2, `themes`).
 - **Home hubs / devices**: `home_hubs.designations` and
   `devices.subkey_certs`/`revocations` are plaintext, signed records
   (not E2E ciphertext) fetched read-only from the active hub's existing
   `/identity/{pubkey}/...` routes — no new server surface. A missing
   designation (404, e.g. a single-hub user who never configured one)
-  is an empty result, not an abort.
+  is an empty result, not an abort. These routes are keyed by the
+  HKDF-derived **master** pubkey, not the device/canonical pubkey DMs
+  use — v1 originally queried them with the wrong (device) pubkey for
+  entropy-holding identities, silently returning empty designation/device
+  sections; fixed alongside the prefs-blob work since both need the same
+  `resolveMasterPubkey()`.
 - **DM attachments**: dropped from the exported message bodies (v1
   ships identity/direction/body only) rather than embedding or
   inventing a URL-reference scheme — see §6.
