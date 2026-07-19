@@ -60,13 +60,6 @@ fixed, its entry moves to the shipped log.
 
 - **Discord importer needs a live run** — `export` with a real bot token
   + `apply` against a running hub never exercised live.
-- **Flaky under full-suite load: `event_slots_flow.rs`** — DB pool
-  timeout when the whole hub crate's tests run concurrently against
-  one Postgres; passes in isolation. Test-infra, not product.
-- **Bot channel-scope UI doesn't show saved state** — the admin panel's
-  channel-access editor never fetches current scope on open (starts
-  empty even when a restriction is saved). Needs
-  `GET /admin/bots/:pubkey/channels` + client wiring.
 - **Windows installer unsigned** — SmartScreen warning; "More info → Run
   anyway". See the code-signing blocker.
 - **Bot deferred scope** — bot DMs: no timeline. (Voice/video injection

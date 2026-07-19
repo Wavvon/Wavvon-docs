@@ -4,6 +4,14 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Bot channel-scope readback + test-pool starvation fix
+  (2026-07-20)**: `GET /admin/bots/:pubkey/channels` (mirror of the
+  PUT) and the admin editor now pre-populates saved scope on open.
+  The `event_slots_flow` full-suite flake root-caused to per-test
+  pools starving each other (dozens of 5-connection pools, 30s acquire
+  timeout) — harness now uses 3 connections/60s; 71 suites green under
+  full load. Server `e1e9cae`, clients `c2eba95`.
+
 - **Admin external-bot panel wired to real routes (2026-07-19)**: the
   panel called routes that never existed (found by the live ttt run).
   Hub gained `GET /admin/bots/external` (management list incl.
