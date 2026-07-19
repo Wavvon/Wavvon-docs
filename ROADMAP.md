@@ -65,10 +65,13 @@ fixed, its entry moves to the shipped log.
   Calendar view (web) shipped 2026-07-19; §7.4 voice-only-presence e2e
   shipped 2026-07-19.
 - **LAN / offline mode, native client half** — nearby-hubs mDNS
-  discovery UX and QR scanning are browser-impossible → desktop-era;
-  LAN federation is server-side deferred ([lan-mode.md](docs/lan-mode.md)
-  §5–§6). Web-feasible slice (invite `?fp=` fingerprint verification)
-  shipped 2026-07-19.
+  discovery UX and QR scanning are browser-impossible → desktop-era
+  ([lan-mode.md](docs/lan-mode.md) §5–§6). LAN hub-to-hub federation
+  assessed 2026-07-19 and kept deferred: needs fingerprint-pinning in
+  the federation client + a LAN trust model (client.rs is CA-TLS-only),
+  no demand until two LAN hubs exist, and web clients can't use LAN
+  discovery anyway. Web-feasible slice (invite `?fp=` fingerprint
+  verification) shipped 2026-07-19.
 - **Personal data export, gaps** — desktop↔web archive compat
   (desktop-era). Prefs-blob decrypt on web + account-scoped custom
   themes both shipped 2026-07-19 (paired devices still can't decrypt
