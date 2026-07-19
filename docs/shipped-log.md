@@ -4,6 +4,19 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Web: encrypted backup download offered at identity creation
+  (2026-07-19)**: with PRF removed, the recovery story is phrase +
+  `.wavvon-backup` file + pairing, but the file export lived only in
+  Settings. The creation "generated" step (where the 24 words show) now
+  also offers an optional "Download encrypted backup" (passphrase +
+  confirm, shared strength meter) producing the just-created account's
+  `.wavvon-backup`; the user can still continue with only the phrase.
+  Refactor dividend: `encryptBackup` + `passphraseStrength` extracted to
+  shared utils, killing a third duplicate strength meter in
+  FullArchiveSection; envelope bytes unchanged (round-trip test). Verified
+  live in headless Chromium (affordance renders, download yields a valid
+  v2 envelope, Continue still works). Clients `16115fa`.
+
 - **Hub + web: staging panel voice-only hint chip (2026-07-19)**: the
   events.md §7.5 chip the panel couldn't show at Phase-2 time (a client
   can't see another member's channel perms). `GET /events/:id/assignments`
