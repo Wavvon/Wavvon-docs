@@ -41,12 +41,12 @@ fixed, its entry moves to the shipped log.
   Known softness: agent delegation (spawn + restart) is fire-and-forget
   — a 200 means enqueued, not confirmed; add request/reply correlation
   if it bites.
-- **Gaming + rich bots Phases 3–4**
-  ([bot-capability-layer.md](docs/bot-capability-layer.md) §10–§11,
-  both DESIGNED): lobby helper first slice (bot-kit crate + ttt
-  refactor), distribution play-badge slice. Phases 1–2 (grants, modal,
-  tic-tac-toe demo, video grants + operator flag + media budget)
-  shipped 2026-07-19. Phase 3 (lobby helper) **designed 2026-07-19**
+- **Gaming + rich bots, deferred tail**
+  ([bot-capability-layer.md](docs/bot-capability-layer.md) §10–§11):
+  mini_app_session_closed hub event (if heartbeat lag hurts), roster
+  wire helper in bot-kit (when a roster-driven game exists), cross-hub
+  game-bot recommendation over alliances, per-channel media budget.
+  Phases 1–4 first slices all shipped 2026-07-19. Phase 3 (lobby helper) **designed 2026-07-19**
   ([§10](docs/bot-capability-layer.md)) — first slice is bot-side only
   (`wavvon-bot-kit`, no hub change); not built.
 - **Forum federation, deferred tail** — live WS push, cross-hub search,

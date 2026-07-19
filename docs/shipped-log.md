@@ -4,6 +4,21 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Gaming Phase 3 first slice: bot-kit lobby module (2026-07-19)**:
+  new `crates/bot-kit` — `Lobby<S>` roster/liveness registry
+  (hello/bye/ping convention, injectable-clock timeout eviction,
+  reconnect dedup) + `broadcast`/`send_to` over `mini_app_message`;
+  ttt-bot refactored onto it as regression proof (board tests
+  untouched); zero hub surface added. Server `9c9ce24`.
+
+- **Gaming Phase 4 first slice: directory Play badge (2026-07-19)**:
+  bots self-declare a `game` descriptor on `bot_profiles` (same
+  plumbing as `mini_app_url`), surfaced on `GET /bots`; web bot cards
+  render a Play button launching through the existing `bot_app_join`
+  path. Drive-by fix: the bot card's profile fetch hit a nonexistent
+  route and 405'd on every open — now sourced from the directory list.
+  Server `549e9fb`, clients `ae82eb7` (+`761416b` capability note).
+
 - **Gaming + rich bots Phase 2: video/canvas grants (2026-07-19)**:
   `can_inject_video` gated at `screen_share_start` for bots (effective
   resolver + `WAVVON_BOTS_ALLOW_VIDEO` operator flag + READ_MESSAGES +
