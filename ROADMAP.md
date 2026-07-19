@@ -58,16 +58,9 @@ fixed, its entry moves to the shipped log.
 
 ## ⚠️ Known issues
 
-- **Passkey-PRF identity removed (2026-07-19)** — provider support too
-  broken; surface pulled (clients `9afe8b0`). Hub-session passkey auth
-  stays. Reinstatement notes in [webauthn-auth.md](docs/webauthn-auth.md).
-- **Settings account list doesn't refresh mid-session** — account added
-  while Settings is open doesn't appear until Settings reopens.
 - **Invisible presence gaps (web)** — invisible users still show in a
   voice channel's participant list; no self-distinct indicator (user sees
   themselves offline in their own roster).
-- **Flaky e2e: `account-switch.spec.ts` under parallel workers** — passes
-  solo; timing race. Deflake or mark serial.
 - **Profile favorite-hubs federation** — per-hub only; cross-allied-hub
   visibility needs a signed public-profile envelope.
 - **Discord importer needs a live run** — `export` with a real bot token

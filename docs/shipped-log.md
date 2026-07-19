@@ -4,6 +4,18 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Web: Settings account list refreshes mid-session (2026-07-19)**:
+  known issue closed — `identity/store.ts` gained a subscribe/notify
+  hook fired from the three roster mutation points (all add paths
+  funnel through `saveIdentity`); `SettingsPage` subscribes and
+  refetches. Clients `9771880`. Confirmed still green 2026-07-19
+  evening (287/287).
+
+- **Web: account-switch e2e deflaked (2026-07-19)**: known issue closed
+  — the parallel-worker timing race fixed in clients `2d93ad4`;
+  verified with the mocked e2e suite at 3× repeat under default
+  parallel workers, 30/30 green.
+
 - **Gaming Phase 3 first slice: bot-kit lobby module (2026-07-19)**:
   new `crates/bot-kit` — `Lobby<S>` roster/liveness registry
   (hello/bye/ping convention, injectable-clock timeout eviction,

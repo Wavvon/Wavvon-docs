@@ -6,6 +6,51 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Cross-allied-hub favorite-hubs: defer; reuse the existing envelope, don't mint a new one
+
+**Decision** (2026-07-19): **defer** cross-allied-hub visibility of a
+member's favorite hubs. When it is picked up, it reuses the **already-shipped**
+`wavvon/public-hub-profile/v1` envelope — no new wire format.
+
+**The premise was stale.** The known issue and the 2026-07-12 Hubs-tab entry
+below both say federation "needs a signed public-profile envelope that doesn't
+exist yet." It exists: `PublicHubProfile` in `server/crates/identity/src/wire.rs`
+(pubkey + `public_hubs[{hub_url, hub_name, joined_at}]` + issued_at, signed by
+the identity master key), with a test-vector layout in
+[wire-format.md](wire-format.md), stored/verified on the hub in
+`public_hub_profiles` (`hub/src/routes/profile.rs`, `GET`/`PUT /profile/{pubkey}`),
+and consumed end-to-end by the desktop context menu ("Their hubs",
+`fetch_public_profile`). What never happened is reconciliation: the web-shipped
+Hubs tab uses a *different, unsigned* per-hub `favorite_hubs` column
+(`GET /users/:pubkey/profile`), and nothing fetches either one across an
+alliance. So this is two parallel systems, not a missing primitive.
+
+**Why defer anyway**: alpha, no users asking, and the current delivery target
+is web-only ([project_delivery_target]) — while the one place the signed
+envelope is already wired (desktop) is future. The remaining work is real
+cross-repo plumbing (reconcile the two systems, alliance-fetch path, web
+render) for a cosmetic feature. The wire-format cost that originally justified
+deferring is already paid, but the integration cost isn't worth it now.
+
+**Decided path for when it returns** (so nobody mints `wavvon/favorite-hubs/v1`):
+publish the Hubs-tab `favorite_hubs` list *as* a `PublicHubProfile` on change,
+only when `show_hubs` is true (publication is the privacy gate — a hidden list
+is simply never signed/served, so the gate holds cross-hub with no server-side
+enforcement on the reader). Staleness: re-sign on change, keyed by `issued_at`,
+newest wins; **no TTL** (consistent with "TTL on the profile is wrong" below).
+An allied hub renders a member's favorites by fetching the owning hub's
+`GET /profile/{pubkey}` and calling `verify()` — same read-through-proxy shape
+as forum federation ([forum.md §9](forum.md)), no new trust infrastructure.
+
+**Alternatives**: mint a new `favorite_hubs` envelope (rejected — the existing
+one already carries a signed hub list; ladder says reuse); embed favorites in
+the per-hub profile and have allied hubs trust the serving hub's copy (rejected
+— unsigned, and it would put personal-axis data on a community hub as
+authoritative). Two soft spots to fix on pickup, noted in
+[federation.md](federation.md): `display_name`/`avatar` are in the struct but
+**not** in the signing bytes (unauthenticated today), and the envelope has no
+`icon` field that the Hubs tab's `{url,name,icon}` shape carries.
+
 ## Game-bot distribution (gaming Phase 4): reuse invite + discovery, no bot index
 
 **Decision** (2026-07-19): game-bot distribution needs **almost no new

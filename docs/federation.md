@@ -83,6 +83,43 @@ normal `POST /alliances/:id/join`, which fails for unsigned/forged
 tokens. Full design in [alliances.md](alliances.md) and rationale in
 [decisions.md](decisions.md).
 
+## Profile federation (favorite hubs) — deferred
+
+A member's favorite hubs are visible only on hubs where they're a member;
+an allied hub reading their messages in a shared channel can't show them.
+Federating this is **deferred** (alpha, no demand, web-only delivery) —
+see [decisions.md](decisions.md). The design below is settled so it isn't
+re-derived; it reuses machinery that already ships.
+
+**Do not mint a new envelope.** `wavvon/public-hub-profile/v1`
+(`PublicHubProfile` in `server/crates/identity/src/wire.rs`, spec in
+[wire-format.md](wire-format.md)) already carries a master-signed list of
+hubs and is stored/verified on the hub via `GET`/`PUT /profile/{pubkey}`
+(`hub/src/routes/profile.rs`, table `public_hub_profiles`). Today the
+desktop context menu is its only consumer; the web Hubs tab uses a
+separate, *unsigned* per-hub `favorite_hubs` column instead. The work is
+to reconcile these, not to add a primitive.
+
+**When picked up:**
+- **Publish**: when a user saves the Hubs tab with `show_hubs = true`, the
+  client re-signs a `PublicHubProfile` from the `favorite_hubs` list and
+  `PUT`s it. `show_hubs = false` ⇒ publish empty / don't publish. Publication
+  is the privacy gate, so the gate holds cross-hub with no reader-side
+  enforcement (the signed blob simply carries no hubs).
+- **Fetch**: an allied hub renders a non-member's favorites by fetching the
+  owning hub's `GET /profile/{pubkey}` and calling `verify()` before trust —
+  the read-through-proxy shape used for forum federation ([forum.md](forum.md) §9).
+- **Staleness**: re-sign on change; consumers keep the highest `issued_at`
+  and ignore older. No TTL (matches the "TTL on the profile is wrong"
+  decision in [decisions.md](decisions.md)).
+
+**Two soft spots to fix on pickup** (both in the identity crate):
+- `display_name` and `avatar` are struct fields but are **not** in
+  `PublicHubProfile::signing_bytes` — unauthenticated today. Either add them
+  (a `v2` tag) or drop them and take name/avatar from the profile row.
+- The envelope's `PublicHubEntry` has no `icon`; the Hubs tab's
+  `{url, name, icon}` does. Adding `icon` is also a `v2` bump.
+
 ## What federation does **not** do
 
 - **No global directory**. There's no DHT or seed-list mechanism in active
