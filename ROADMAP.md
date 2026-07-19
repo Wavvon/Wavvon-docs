@@ -63,9 +63,12 @@ fixed, its entry moves to the shipped log.
   themselves offline in their own roster).
 - **Discord importer needs a live run** — `export` with a real bot token
   + `apply` against a running hub never exercised live.
-- **Tic-tac-toe demo bot needs a live run** — unit/integration tested
-  (grants, modal gate, relay), but a real two-browser game against a
-  running hub hasn't been played yet.
+- **Admin external-bot panel is dead** — `ExternalBotSection` /
+  `BotCapabilitiesPanel` call `GET/POST/DELETE /admin/bots/external`
+  and `PUT /admin/bots/:pubkey/channels`, none of which exist on the
+  hub. Inviting an external bot works only via the raw REST recipe in
+  the ttt-bot README. Needs real hub routes + wiring (found by the
+  first live ttt run, 2026-07-19).
 - **Windows installer unsigned** — SmartScreen warning; "More info → Run
   anyway". See the code-signing blocker.
 - **Bot deferred scope** — bot DMs: no timeline. (Voice/video injection

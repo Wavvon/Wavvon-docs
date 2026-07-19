@@ -4,6 +4,17 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Tic-tac-toe demo bot: first live run, passing (2026-07-19)**: new
+  live e2e `54-ttt-game.spec.ts` — two browser contexts play a full
+  game through the bot's modal against a live hub, 3/3 green. The run
+  earned its keep: found and fixed (1) external bots 403'd by the human
+  invite-code gate on every default `invite_only` hub — the whole
+  documented bot flow was broken by default (server, regression-tested),
+  (2) board buttons clickable before first state (ttt-bot), (3) stale
+  Play CTA lingering after the result embed (web). Also exposed the
+  dead admin external-bot panel (new known issue). Server `d2d6cb5`,
+  clients `c77d1e6`.
+
 - **Web: Settings account list refreshes mid-session (2026-07-19)**:
   known issue closed — `identity/store.ts` gained a subscribe/notify
   hook fired from the three roster mutation points (all add paths
