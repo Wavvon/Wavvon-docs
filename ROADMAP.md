@@ -35,11 +35,12 @@ fixed, its entry moves to the shipped log.
 > [future-features.md](docs/future-features.md)): farm layer, cross-farm
 > cert relay (depends on farm), gaming + rich bots.
 
-- **Farm layer** — serial routing, SSO, and lifecycle supervision
-  (auto-restart) shipped; next slices per
-  [farm-model.md](docs/farm-model.md): agent-hosted hub restart (agent
-  WS protocol has no restart command yet), then whatever the pilot
-  surfaces.
+- **Farm layer** — serial routing, SSO, lifecycle supervision, and
+  agent-hosted restart all shipped; next slices per
+  [farm-model.md](docs/farm-model.md) as the pilot surfaces them.
+  Known softness: agent delegation (spawn + restart) is fire-and-forget
+  — a 200 means enqueued, not confirmed; add request/reply correlation
+  if it bites.
 - **Gaming + rich bots Phases 2–4**
   ([bot-capability-layer.md](docs/bot-capability-layer.md) §6):
   video/canvas grants, multiplayer session/lobby helper, game-bot

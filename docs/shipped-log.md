@@ -4,6 +4,13 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Farm: agent-hosted hub restart (2026-07-19)**: new agent WS
+  `restart_hub` command (stop-if-running then spawn); the force-restart
+  route and the supervision monitor both delegate to the owning agent
+  for `server_id` hubs (503 `agent_offline` when disconnected), same
+  backoff/give-up logic as farm-local. Fire-and-forget like spawn
+  delegation (200 = enqueued). Server `75edcd0`.
+
 - **Web: account-scoped custom themes (2026-07-19)**: the theme library
   (+active selection) moved from device-global localStorage into the
   per-account scoped store — exports no longer leak other accounts'
