@@ -4,6 +4,15 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Hub + web: staging panel voice-only hint chip (2026-07-19)**: the
+  events.md §7.5 chip the panel couldn't show at Phase-2 time (a client
+  can't see another member's channel perms). `GET /events/:id/assignments`
+  entries gain a hub-computed `voice_only: bool` (`!READ_MESSAGES` on the
+  assignment's target channel, per-row resolve — raid-sized bounded
+  list); the web staging panel folds it into the existing
+  `ClaimantVoiceStatus` and renders a warning-toned chip (label + tooltip
+  localized ×4). Hub `dabdd51`, clients `a98c05d`.
+
 - **Web: live e2e suite deflaked to 76/76 (2026-07-19)**: the 18
   pre-existing failures from the 2026-07-18 first-full-run were all spec
   rot (app moved on, specs didn't) — none product regressions. Fixed

@@ -244,11 +244,6 @@ surfaces, welcome banner, survey→roles, …). Still open:
   get() fix). Optional upstream nudges remain (Bitwarden forum vote +
   GitHub issue on missing `prf.enabled:false`; Microsoft Feedback Hub
   for the Hello get() failure).
-- **Staging panel "voice-only" hint needs server data** — the §7.4
-  voice-only path works, but the panel can't show the designed
-  "voice-only" chip because a client can't see another member's channel
-  permissions. Small follow-up: a per-assignment `voice_only: bool` on
-  `GET /events/:id/assignments`, computed hub-side.
 
 - **Desktop: `get_pending_deep_link` command missing** — found 2026-07-11
   launching `npm run tauri dev`: shared frontend code invokes a Tauri
