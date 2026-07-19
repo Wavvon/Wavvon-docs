@@ -60,12 +60,13 @@ fixed, its entry moves to the shipped log.
 
 - **Discord importer needs a live run** — `export` with a real bot token
   + `apply` against a running hub never exercised live.
-- **Admin external-bot panel is dead** — `ExternalBotSection` /
-  `BotCapabilitiesPanel` call `GET/POST/DELETE /admin/bots/external`
-  and `PUT /admin/bots/:pubkey/channels`, none of which exist on the
-  hub. Inviting an external bot works only via the raw REST recipe in
-  the ttt-bot README. Needs real hub routes + wiring (found by the
-  first live ttt run, 2026-07-19).
+- **Flaky under full-suite load: `event_slots_flow.rs`** — DB pool
+  timeout when the whole hub crate's tests run concurrently against
+  one Postgres; passes in isolation. Test-infra, not product.
+- **Bot channel-scope UI doesn't show saved state** — the admin panel's
+  channel-access editor never fetches current scope on open (starts
+  empty even when a restriction is saved). Needs
+  `GET /admin/bots/:pubkey/channels` + client wiring.
 - **Windows installer unsigned** — SmartScreen warning; "More info → Run
   anyway". See the code-signing blocker.
 - **Bot deferred scope** — bot DMs: no timeline. (Voice/video injection

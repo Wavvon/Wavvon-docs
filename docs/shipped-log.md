@@ -4,6 +4,15 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Admin external-bot panel wired to real routes (2026-07-19)**: the
+  panel called routes that never existed (found by the live ttt run).
+  Hub gained `GET /admin/bots/external` (management list incl.
+  pending/removed + local note) and `PUT /admin/bots/:pubkey/channels`
+  (first writer of the pre-existing `bot_channel_scope` table, bots.md
+  §14); invite/remove repointed at the working `/bots` routes; the
+  invite `note` field now actually persists. 33/33 bots tests, web
+  291/291. Server `d7939e5`, clients `300aa0d`.
+
 - **Invisible presence gaps closed (2026-07-19)**: voice surfaces now
   respect presence visibility — viewer-aware participant lists/rosters,
   gated Joined/Left/Speaking broadcasts, mid-call invisible-toggle
