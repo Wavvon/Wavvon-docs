@@ -362,9 +362,13 @@ point both apps at it — the last port that component ever needs.
 
 **Outcome**: first slice shipped 2026-07-18 — `BotAppLaunchCard`,
 `ImagePicker`, `BotCard`, `EmojiPicker` hoisted; both app copies deleted.
-`client-parity.md` stance updated. Next candidates: `CreateHubWizard` (needs
-farm-command callback props), then per-component alongside each
-desktop-parity ROADMAP item.
+`client-parity.md` stance updated. `CreateHubWizard` followed 2026-07-19.
+**Mechanical phase completed 2026-07-20** (clients `8500c63`): 41 more
+components hoisted in one pass; 12 remain app-local pending feature
+reconciliation (skip table + missing-command ledger in
+[client-parity.md](client-parity.md)). The "not everything hoists"
+carve-out proved out: `ChannelSidebar`, `HubAdminPage`, and
+`ChannelSettingsModal` all turned out to be bidirectional feature forks.
 
 ## Presence: Invisible + "clear after" TTL; custom-text status removed
 

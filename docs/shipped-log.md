@@ -4,6 +4,19 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Shared-component consolidation — mechanical phase complete
+  (2026-07-20)**: 41 of the 53 remaining duplicated components hoisted
+  into `packages/ui` as single prop-only implementations consumed by
+  both apps (web = source of truth, decisions.md 2026-07-18); both app
+  copies deleted; `packages/ui` gained a vitest runner (90 tests).
+  Desktop gained forum edit/delete/reactions (+8 Tauri commands),
+  the full events UI, working poll creation and lobby PoW (both were
+  broken), message context menu, spawner channels; web gained farm
+  Servers/Security tabs, hub notification-mode menu, user context
+  actions, and a hub custom-emoji rendering fix. 12 components remain
+  app-local pending real parity passes — skip list + follow-up ledger
+  in [client-parity.md](client-parity.md). Clients `8500c63`.
+
 - **Bot channel-scope readback + test-pool starvation fix
   (2026-07-20)**: `GET /admin/bots/:pubkey/channels` (mirror of the
   PUT) and the admin editor now pre-populates saved scope on open.

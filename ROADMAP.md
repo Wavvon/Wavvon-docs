@@ -18,10 +18,14 @@ fixed, its entry moves to the shipped log.
   reload), redeem owner invite, cross-internet voice test, friend
   onboards + ownership transfer, doc-test feedback, two-operator
   federation test.
-- [ ] **Shared-component consolidation (web → `packages/ui`)** — web is
-  the source of truth ([decisions.md](docs/decisions.md) 2026-07-18);
-  hoist per-component alongside each desktop-parity item. Audit
-  baseline: 61 duplicated components, 73% avg divergence.
+- [ ] **Component parity passes (consolidation tail)** — the mechanical
+  hoist shipped 2026-07-20 (41 components; see the shipped log). What
+  remains needs feature reconciliation, not hoisting: ChannelSidebar
+  (presence model already decided 2026-07-12 — converge desktop),
+  HubAdminPage, ChannelSettingsModal, ProfileTab, IdentityBackupSection,
+  ContentArea, SettingsPage, ChannelMessageList, DmView. Skip rationale
+  + missing-desktop-command ledger in
+  [client-parity.md](docs/client-parity.md).
 
 ## 🚧 Blocked
 
@@ -42,10 +46,10 @@ fixed, its entry moves to the shipped log.
   mismatch; needs a native WebAuthn plugin or system-browser handoff.
 - **Desktop parity backlog** — role categories/color/icon, role
   assignment + Roles admin tab, settings IA + profile model, presence
-  Invisible+TTL, named custom themes, events UI (calendar + full
-  RSVP), data-export archive compat, LAN discovery UX (mDNS + QR).
-  Do by hoisting into `packages/ui` (see consolidation above); details
-  in [`client-parity.md`](docs/client-parity.md).
+  Invisible+TTL, named custom themes, data-export archive compat, LAN
+  discovery UX (mDNS + QR). (Events UI shipped to desktop 2026-07-20
+  via the consolidation.) Do via the component parity passes above;
+  details in [`client-parity.md`](docs/client-parity.md).
 - **Live captions in voice** — local STT, desktop-era.
 - **Hub-hosted identity vault** — DESIGNED, **PARKED until after the
   pilot** (do NOT build; [identity-vault.md](docs/identity-vault.md)).
@@ -65,6 +69,11 @@ fixed, its entry moves to the shipped log.
 - **Bot deferred scope** — bot DMs: no timeline. (Voice/video injection
   and bot-launched game modals shipped 2026-07-19 as capability-layer
   Phases 1–2.)
+- **Recovery-contact rotation is a dead end** — desktop's rotation
+  request UI posts empty attestations and the hub has no
+  attestation-collection endpoint at all; the feature needs a design
+  pass before either client's UI can work (found during the 2026-07-20
+  consolidation; see [client-parity.md](docs/client-parity.md)).
 
 ## 💤 Won't do
 

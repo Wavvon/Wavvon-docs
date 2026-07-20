@@ -20,7 +20,52 @@ the source of truth**, new components ship straight into `packages/ui`
 work on an existing component now means **hoisting the web copy into
 `packages/ui`** and adapting desktop — not hand-porting into desktop's
 diverged copy. First hoisted batch (2026-07-18): `BotAppLaunchCard`,
-`ImagePicker`, `BotCard`, `EmojiPicker`.
+`ImagePicker`, `BotCard`, `EmojiPicker`. **The mechanical phase
+completed 2026-07-20** (clients `8500c63`): 41 more components hoisted;
+see "Consolidation status" below for what remains and why.
+
+---
+
+## Consolidation status (2026-07-20, clients `8500c63`)
+
+45 of the 61 audited duplicates are now single `packages/ui`
+implementations. The rest stay app-local because a mechanical hoist
+would drop shipped features — each needs a **feature reconciliation
+pass** first:
+
+| Component | Why skipped |
+|---|---|
+| `ChannelSidebar` | Fork both directions: web has resizable/drill-in/soundboard/spawner + TTL presence; desktop has whisper panel, global search entry, camera picker + custom-text presence. Presence is already decided (2026-07-12: TTL+Invisible won) — the pass converges desktop onto it. |
+| `HubAdminPage` | Web-only: moderation tab, native bots, audit log, soundboard. Desktop-only: lobby settings, challenge settings, badges tab, voice-mute/timeout member actions, public-listing toggle. |
+| `ChannelSettingsModal` | Web: permission-overwrite + bans tabs. Desktop: talk-power tab (no web/hub-HTTP equivalent), SVG icon upload. |
+| `ProfileTab` | Desktop still implements the profile-pool model that decisions.md records as deleted — architecture gap, not a props gap. |
+| `IdentityBackupSection` | Web: WebCrypto multi-account export over IndexedDB. Desktop: Rust file-path export. Different flows beyond a props boundary. |
+| `RecoveryContactsSection` | Blocked on backend design: desktop's rotation request posts empty attestations and the hub has **no attestation-collection endpoint** — see ROADMAP Known issues. |
+| `MicLevelMeter` | False twin — filename collision (web: mic test widget; desktop: VAD-threshold slider). No action needed. |
+| `App`, `SettingsPage`, `ChannelMessageList`, `DmView`, `ContentArea` | Pre-excluded orchestrators / feature-diverged (decisions.md 2026-07-18). |
+
+**Missing desktop Tauri commands ledger** (hoisted components expose
+these as optional props; desktop omits them until the commands exist):
+
+- `admin_get_bot_channel_scope` → `GET /admin/bots/:pubkey/channels`
+  (scope editor opens without saved restrictions pre-filled)
+- `report_message` → `POST /messages/:id/report`
+- poll route-shape mismatch: `vote_poll` returns no updated `Poll`;
+  `get_channel_polls` hits `/polls?channel_id=` vs the real
+  `/channels/:id/polls` (inline poll cards inert on desktop)
+- `create_channel` lacks the `spawner_name_template` param (spawner
+  channels get the hub default name)
+- role-category listing + own-profile field patching (profile card is
+  view-only / flat role list on desktop)
+- `list_user_roles` (worked around via `list_hub_members`)
+- event slots / staging / slot-claim params on `create_event` and
+  `rsvp_event`
+
+**Web-side follow-ups**: alliance push-invite / invite-code / join-code
+platform wrappers (`POST /alliances/{id}/push-invite`, `.../invite`,
+`.../join`) — desktop's UI for these was dropped in the hoist since
+web-truth lacked it; desktop `lobbyHubIds` badge derivation from
+`hubScope`.
 
 ---
 
