@@ -39,7 +39,11 @@ Settings parity passes.
    unified Profile tab renders the web surface and desktop's
    signed-publish control drops from Settings for now.
 
-**Outcome**: pending implementation (settings-ia.md §6 order).
+**Outcome**: shipped 2026-07-20 (clients `2cae216`) — desktop
+multi-account storage + switcher, the cross-platform `.wavvon-backup`
+format (shared test vector asserted byte-identical in TS and Rust), and
+the shared `SettingsShell` (8 tabs / 3 groups on both clients).
+Documented cuts in settings-ia.md §7.
 
 ## Cross-allied-hub favorite-hubs: defer; reuse the existing envelope, don't mint a new one
 

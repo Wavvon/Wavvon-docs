@@ -176,5 +176,22 @@ Alpha rules apply — **no client data migration, no back-compat**
    into the shared shell — the orchestrator carve-out
    ([decisions.md](decisions.md) 2026-07-18) shrinks to near-nothing.
 
-Deferred: backup file-format reconciliation; public-profile/favorite-hubs
-unification (2026-07-19 defer).
+Deferred: public-profile/favorite-hubs unification (2026-07-19 defer).
+
+## 7. Implementation outcome (2026-07-20, clients `2cae216`)
+
+All of §6 shipped in one pass. Documented cuts, tracked not hidden:
+
+- Desktop's **default-profile storage stays device-global** (`profile.json`),
+  not per-account — editing a non-active account's default profile edits the
+  shared file. Fix belongs with a per-account `local_store` namespacing pass.
+- Desktop's **Devices/Privacy tabs are active-account-only** — the Rust side
+  has no surface to read another account's passkeys/trusted devices/blocks
+  (web's IndexedDB model does). By design, not a missing prop.
+- `hiddenBadges` + follows-default lists are **unscoped localStorage** on
+  both clients (minor regression from web's account-scoped storage, traded
+  for one shared component; comment in source).
+- Desktop's account-switcher table is minimal (no drag-reorder) — permanent
+  divergence from web's fuller table (different account-storage models).
+- Desktop keeps `RecoveryContactsSection` in its Accounts tab (web surfaces
+  it via hub admin) until the attestation-endpoint design lands.

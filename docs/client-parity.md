@@ -41,13 +41,18 @@ and are now in `packages/ui`: `HubAdminPage` (+13 admin sections),
 `ChannelSidebar` (desktop converged onto TTL+Invisible presence per the
 2026-07-12 decision; gained voice-move, drill-in, spawner channels).
 
+**Update 2026-07-20 (clients `2cae216`)**: the settings-IA implementation
+([settings-ia.md](settings-ia.md)) closed `ProfileTab` (desktop's
+profile-pool deleted) and `IdentityBackupSection` (one cross-platform
+`.wavvon-backup` format, shared TS/Rust test vector), and shrank
+`SettingsPage` to thin app shells over the shared `SettingsShell`.
+Desktop is multi-account.
+
 | Component | Why skipped |
 |---|---|
-| `ProfileTab` | Desktop still implements the profile-pool model that decisions.md records as deleted — architecture gap, not a props gap. |
-| `IdentityBackupSection` | Web: WebCrypto multi-account export over IndexedDB. Desktop: Rust file-path export. Different flows beyond a props boundary. |
 | `RecoveryContactsSection` | Blocked on backend design: desktop's rotation request posts empty attestations and the hub has **no attestation-collection endpoint** — see ROADMAP Known issues. |
 | `MicLevelMeter` | False twin — filename collision (web: mic test widget; desktop: VAD-threshold slider). No action needed. |
-| `App`, `SettingsPage`, `ChannelMessageList`, `DmView`, `ContentArea` | Pre-excluded orchestrators / feature-diverged (decisions.md 2026-07-18). |
+| `App`, `ChannelMessageList`, `DmView`, `ContentArea` | Pre-excluded orchestrators / feature-diverged (decisions.md 2026-07-18). |
 
 **Missing desktop Tauri commands ledger** (hoisted components expose
 these as optional props; desktop omits them until the commands exist).

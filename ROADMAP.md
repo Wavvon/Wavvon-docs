@@ -19,13 +19,12 @@ fixed, its entry moves to the shipped log.
   onboards + ownership transfer, doc-test feedback, two-operator
   federation test.
 - [ ] **Component parity passes (consolidation tail)** — mechanical
-  hoist + the three big union passes (HubAdminPage,
-  ChannelSettingsModal, ChannelSidebar) shipped 2026-07-20 (shipped
-  log). Remaining: ProfileTab + IdentityBackupSection (need the
-  settings-IA/profile-model design), and the orchestrators
-  (ContentArea, SettingsPage, ChannelMessageList, DmView). Open
-  capability gaps live in the
-  [client-parity.md](docs/client-parity.md) ledger.
+  hoist, the three union passes, and the settings-IA implementation all
+  shipped 2026-07-20 (shipped log). Remaining: the orchestrators
+  (ContentArea, ChannelMessageList, DmView) and the open capability
+  gaps in the [client-parity.md](docs/client-parity.md) ledger
+  (notably desktop soundboard playback and per-account local_store
+  namespacing on desktop).
 
 ## 🚧 Blocked
 
@@ -44,12 +43,12 @@ fixed, its entry moves to the shipped log.
   launch post. Needed for adoption and the code-signing re-application.
 - **Passkey registration from desktop** — blocked by Tauri webview RP ID
   mismatch; needs a native WebAuthn plugin or system-browser handoff.
-- **Desktop parity backlog** — role categories/color/icon, role
-  assignment + Roles admin tab, settings IA + profile model, presence
-  Invisible+TTL, named custom themes, data-export archive compat, LAN
-  discovery UX (mDNS + QR). (Events UI shipped to desktop 2026-07-20
-  via the consolidation.) Do via the component parity passes above;
-  details in [`client-parity.md`](docs/client-parity.md).
+- **Desktop parity backlog** — role categories/color/icon (needs
+  desktop Tauri commands), named custom themes, data-export archive
+  compat, LAN discovery UX (mDNS + QR). (Shipped to desktop 2026-07-20
+  via consolidation + settings-IA: events UI, roles admin, presence
+  Invisible+TTL, settings IA + profile model, multi-account.) Details
+  in [`client-parity.md`](docs/client-parity.md).
 - **Live captions in voice** — local STT, desktop-era.
 - **Hub-hosted identity vault** — DESIGNED, **PARKED until after the
   pilot** (do NOT build; [identity-vault.md](docs/identity-vault.md)).

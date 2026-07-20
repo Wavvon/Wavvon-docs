@@ -4,6 +4,19 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Settings IA: desktop multi-account, cross-platform backup, shared
+  Settings shell (2026-07-20)**: implements
+  [settings-ia.md](settings-ia.md) (three user decisions, same day).
+  Desktop gained multi-account (`~/.wavvon` per-account dirs + registry,
+  switcher with guarded in-place remount, purge-on-remove). One
+  `.wavvon-backup` format (Argon2id + AES-256-GCM, one account per
+  file) implemented in both TS and Rust with a shared test vector
+  asserted byte-identical; `.voxback` + web's PBKDF2 envelope retired.
+  Both clients render the shared `SettingsShell` (8 tabs / 3 groups,
+  incl. a unified Notifications tab); desktop's deleted-model profile
+  pool removed. Closes the `ProfileTab` + `IdentityBackupSection`
+  parity items. Clients `2cae216`.
+
 - **Client feature-union parity passes (2026-07-20)**: the three
   components skipped by the mechanical consolidation as bidirectional
   forks — `HubAdminPage`, `ChannelSettingsModal`, `ChannelSidebar` —
