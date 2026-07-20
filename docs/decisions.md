@@ -6,6 +6,39 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Settings IA unification: desktop adopts multi-account; one cross-platform backup file; one Notifications tab
+
+**Decision** (2026-07-20, user calls; design in
+[settings-ia.md](settings-ia.md)): three calls that unblock the last
+Settings parity passes.
+
+1. **Desktop adopts web's multi-account model** ("multi-account yes! We
+   need that!"). `~/.wavvon/` restructures to per-account identity files +
+   an accounts registry; switcher + guarded in-place remount mirror web's
+   2026-07-11/12 multi-account decisions; account list stays device-local.
+   *Alternative considered* (architect recommendation): stay
+   single-identity with a degraded one-account rendering, since web is the
+   current delivery target. Rejected — multi-account is wanted on every
+   client, and adopting now avoids a permanent single-account conditional
+   the web code never exercises.
+2. **Backup: phrase-first UI + ONE cross-platform file format.** The user
+   rejected per-platform files outright ("the backup should be usable on
+   both web or desktop or any other kind of device"). The shared UI leads
+   with the 24-word phrase as the canonical backup; the encrypted file is
+   secondary but is **one format both clients read and write**: Argon2id
+   KDF (web via `@noble/hashes`, desktop via the existing `argon2` crate),
+   single JSON envelope, multi-account-capable, `.wavvon-backup`
+   extension. Desktop's `.voxback` (stale Voxply branding, incompatible
+   envelope) is retired; alpha rules — no importer for old files.
+3. **One Notifications tab on both clients** (mention ping + notify
+   sound; desktop's notify-sound moves out of Voice). Per-hub notify
+   *mode* stays in the sidebar. The signed-public-profile vs
+   favorite-hubs fork stays **deferred** per the 2026-07-19 decision; the
+   unified Profile tab renders the web surface and desktop's
+   signed-publish control drops from Settings for now.
+
+**Outcome**: pending implementation (settings-ia.md §6 order).
+
 ## Cross-allied-hub favorite-hubs: defer; reuse the existing envelope, don't mint a new one
 
 **Decision** (2026-07-19): **defer** cross-allied-hub visibility of a

@@ -102,18 +102,41 @@ The Tauri-side storage rework is the bulk of this; the React surface is
 already the shared web components once desktop supplies its `invoke`-based
 loaders as props.
 
-## 4. Open decisions (framed, not decided)
+## 4. Remaining decisions — DECIDED 2026-07-20 (user calls)
 
-### 4a. Backup story
-- **Phrase-first everywhere, platform export secondary** — the shared UI leads with "your 24-word phrase is the backup" (already the design ethos, e.g. the passkey-refuse decision), and the encrypted-file export is a secondary "also save a file" affordance behind a shared component with a platform export callback (web WebCrypto blob, desktop Tauri file).
-- **Keep per-platform flows behind one shared UI** — one `IdentityBackupSection` with an `exportBackup`/`importBackup` prop; web passes its multi-account WebCrypto impl, desktop its Rust file impl, files stay non-interchangeable.
+### 4a. Backup story — phrase-first + ONE cross-platform file format
 
-**Recommendation: phrase-first, with the file export behind a shared callback prop.** The phrase already *is* the canonical cross-platform backup (BIP39, both clients derive from it), so leading with it needs no format reconciliation and matches the recovery ethos; the encrypted file is a convenience, not the source of truth. This also lets us quietly retire the desktop `.voxback` extension and its stale KDF divergence as an implementation detail rather than a user-facing promise — reconciling the *file* formats is then deferrable, not blocking. Note: with desktop now multi-account (§3), desktop's `export_identity_backup` must grow from one identity to a selected-accounts set to match the shared component's contract.
+The user rejected per-platform files outright: "the backup should be
+usable on both web or desktop or any other kind of device."
 
-### 4b. Third fork — notification placement + the two public-profile systems
-Two genuine forks beyond plumbing:
-- **Notification settings location:** desktop buries "notify sound" in Voice; web has a Notifications tab. Both are personal-axis (local/home-hub state), so placement is pure IA. *Recommendation:* one **Notifications** tab (§2) — mention ping + notify sound together; respects "one fixed home per control" ([feedback_no_dynamic_ui]) and the two-axis rule (per-hub notify *mode* stays hub-side in the sidebar, not Settings).
-- **Public profile / favorite hubs:** desktop's Account tab publishes a *signed* `PublicHubProfile`; web's Profile Hubs tab writes an *unsigned* per-hub `favorite_hubs`. This is exactly the two-parallel-systems the **2026-07-19 decision deferred** — do **not** reconcile it in this pass. *Recommendation:* the unified Profile tab renders the web (Hubs-tab) surface; the desktop signed-publish control is dropped from the converged IA and the reconciliation stays deferred per that decision.
+- Shared UI leads with the 24-word phrase as the canonical backup
+  (phrase-first); the encrypted file is a secondary affordance.
+- The file is **one format both clients read and write**:
+  - KDF: **Argon2id** (65536 KiB, 3 iters, parallelism 1 — desktop's
+    existing params). Web implements via `@noble/hashes` (same family as
+    the crypto deps already in `packages/core`); desktop keeps the
+    `argon2` crate.
+  - Cipher: AES-256-GCM. Envelope: single JSON
+    `{version: 1, kdf: "argon2id", kdf_params, salt, nonce, ciphertext}`
+    (base64 fields). Plaintext: JSON array of accounts
+    `[{label, secret_key_hex}]` — multi-account-capable; a single-account
+    export is a one-element array.
+  - Extension: `.wavvon-backup`. Desktop's `.voxback` (stale Voxply
+    branding, incompatible envelope) is retired; alpha rules — no
+    importer for old files.
+  - The format lives in `packages/core` (TS) and desktop Rust must match
+    it exactly; add a shared test vector (fixed salt/nonce/passphrase →
+    ciphertext) asserted on both sides, wire-format.md style.
+
+### 4b. Notifications tab + public-profile defer — as recommended
+
+- One **Notifications** tab on both clients (mention ping + notify sound
+  together; desktop's notify-sound moves out of Voice). Per-hub notify
+  *mode* stays hub-side in the sidebar.
+- The signed `PublicHubProfile` vs unsigned `favorite_hubs` fork stays
+  **deferred** per the 2026-07-19 decision; the unified Profile tab
+  renders the web surface, desktop's signed-publish control drops from
+  Settings for now.
 
 ## 5. Migration notes
 
@@ -133,8 +156,7 @@ Alpha rules apply — **no client data migration, no back-compat**
 
 ## 6. Implementation sketch (rough order)
 
-1. **Decide 4a/4b** → record in `decisions.md` (separate task). §3 is already
-   decided.
+1. ~~Decide 4a/4b~~ — all decided 2026-07-20, recorded in `decisions.md`.
 2. **Desktop `~/.wavvon/` multi-account storage + switcher + in-place remount**
    (§3) — the Tauri-side rework; unblocks a non-degenerate shared
    `PerAccountProps` on desktop.
