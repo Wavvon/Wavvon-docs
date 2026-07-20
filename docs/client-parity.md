@@ -98,11 +98,6 @@ Remaining app-local, all by design:
   IndexedDB).
 - web `onOpenEditDescription` is a no-op at its `App.tsx` call site
   (pre-existing; desktop has the real handler).
-- **Web mounts `RecoveryContactsSection` only inside hub admin**, so a
-  non-admin member can't reach the requester/vouch cards there (desktop
-  mounts them in the Accounts tab for everyone). Found in the 2026-07-20
-  live smoke of the attestation flow — web needs a non-admin mount (e.g.
-  Settings → Accounts, like desktop).
 
 ---
 
