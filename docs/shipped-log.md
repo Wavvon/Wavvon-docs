@@ -4,6 +4,37 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Parity-gap ledger closed + orchestrators hoisted (2026-07-20)**:
+  every tracked capability gap from client-parity.md resolved in three
+  waves. Desktop gained: working inline polls (route fix), message
+  reporting, role categories, spawner naming, full events incl.
+  organizer staging, **soundboard playback** (Ogg-Opus demux + mixing
+  into the outbound stream post-denoise, no new deps), banner file
+  upload, own-profile editing, quick invite, per-account local-store
+  isolation (+ a voice-session leak on account switch fixed). Web
+  gained camera device selection and alliance push-invite/share-code.
+  Final orchestrators hoisted: `ChannelMessageList`, `DmView` (group-DM
+  E2E ack kept desktop-side via optional prop), and `ContentArea` as a
+  full hoist (~90% identical shell; thin per-app action wrappers);
+  hub-streams entry consolidated to the ChannelHeader button. 59 of 61
+  audited duplicates now shared; remainder by design (App,
+  PinnedMessages pair, one false twin). Clients `3088346`, `cf6b39d`,
+  `278fafe`.
+
+- **Recovery-contact attestation — end to end (2026-07-20)**: the
+  rotation-vouch flow works for the first time. The hub was counting
+  attestation signatures **without verifying them** (threshold
+  fabricatable from public contact pubkeys); it now verifies Ed25519
+  over the new `recovery-attestation/v1` envelope, requires a new-key
+  proof (`recovery-request/v1`) to open a request, exposes the split
+  GET/attest routes, and expires pending requests after 14 days
+  (decisions.md 2026-07-20). Wire encoding asserted byte-identical in
+  server Rust, desktop Rust, and TS with shared vectors.
+  `RecoveryContactsSection` unioned + hoisted with requester progress
+  and contact review card; desktop's swapped old/new pubkeys in
+  rotation requests fixed. Server `4240377`, clients `cf6b39d`. Design:
+  [recovery-attestation.md](recovery-attestation.md).
+
 - **Settings IA: desktop multi-account, cross-platform backup, shared
   Settings shell (2026-07-20)**: implements
   [settings-ia.md](settings-ia.md) (three user decisions, same day).

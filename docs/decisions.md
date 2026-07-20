@@ -21,8 +21,13 @@ was counting attestation signatures **without verifying them** — the
 signed `recovery-attestation/v1` envelope + hub-side Ed25519 verification
 is the substance of the fix.
 
-**Outcome**: pending implementation (identity crate → hub → clients;
-wire-format change, cross-repo byte-for-byte).
+**Outcome**: shipped same day — server `4240377` (envelope + verified
+attest flow + expiry, 15/15 flow tests), clients `cf6b39d` (TS + desktop
+Rust mirrors byte-identical to the vectors, unioned
+RecoveryContactsSection with requester/contact UI). One deviation: the
+new-key proof carries no nonce (the hub mints it after the request
+opens); distinct wire tags keep proof and attestation
+non-interchangeable.
 
 ## Settings IA unification: desktop adopts multi-account; one cross-platform backup file; one Notifications tab
 

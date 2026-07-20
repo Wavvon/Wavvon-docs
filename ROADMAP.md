@@ -18,13 +18,10 @@ fixed, its entry moves to the shipped log.
   reload), redeem owner invite, cross-internet voice test, friend
   onboards + ownership transfer, doc-test feedback, two-operator
   federation test.
-- [ ] **Component parity passes (consolidation tail)** — mechanical
-  hoist, the three union passes, and the settings-IA implementation all
-  shipped 2026-07-20 (shipped log). Remaining: the orchestrators
-  (ContentArea, ChannelMessageList, DmView) and the open capability
-  gaps in the [client-parity.md](docs/client-parity.md) ledger
-  (notably desktop soundboard playback and per-account local_store
-  namespacing on desktop).
+- [ ] **PinnedMessages union pass** — the one component pair still
+  app-local with a real gap (desktop admin unpin vs web; diverging
+  wire shapes). Everything else consolidated 2026-07-20 (shipped log;
+  status in [client-parity.md](docs/client-parity.md)).
 
 ## 🚧 Blocked
 
@@ -68,11 +65,10 @@ fixed, its entry moves to the shipped log.
 - **Bot deferred scope** — bot DMs: no timeline. (Voice/video injection
   and bot-launched game modals shipped 2026-07-19 as capability-layer
   Phases 1–2.)
-- **Recovery-contact rotation is a dead end** — desktop's rotation
-  request UI posts empty attestations and the hub has no
-  attestation-collection endpoint at all; the feature needs a design
-  pass before either client's UI can work (found during the 2026-07-20
-  consolidation; see [client-parity.md](docs/client-parity.md)).
+- **Store-crate recovery schema is dead scaffolding** — `crates/store`'s
+  `Migrate` trait defines a second, never-called copy of the recovery
+  schema, now drifted (no `nonce` column). Cleanup pass, no user impact
+  (found during the 2026-07-20 attestation work).
 
 ## 💤 Won't do
 

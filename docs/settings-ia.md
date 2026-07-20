@@ -182,9 +182,18 @@ Deferred: public-profile/favorite-hubs unification (2026-07-19 defer).
 
 All of §6 shipped in one pass. Documented cuts, tracked not hidden:
 
-- Desktop's **default-profile storage stays device-global** (`profile.json`),
-  not per-account — editing a non-active account's default profile edits the
-  shared file. Fix belongs with a per-account `local_store` namespacing pass.
+- ~~Desktop's default-profile storage stays device-global~~ — **fixed**: the
+  per-account `local_store` namespacing pass moved `default_profile` (and
+  every other local_store.rs per-user file — saved hubs, active-hub pointer,
+  voice gains, blocked/ignored users, pinned channels, collapsed categories,
+  notification mutes/prefs, unread state) into the active account's
+  directory, matched item-by-item against which localStorage keys web scopes
+  under `wavvon:acct:<pubkey>:*`. Voice device/profile settings and the theme
+  *slot* stay device-global (web leaves those unscoped too); the *skin* half
+  of appearance and the profile.json `theme` duplicate split accordingly.
+  Managing a *non-active* account's default profile is still not possible
+  from Settings — same active-account-only limitation as Devices/Privacy
+  below.
 - Desktop's **Devices/Privacy tabs are active-account-only** — the Rust side
   has no surface to read another account's passkeys/trusted devices/blocks
   (web's IndexedDB model does). By design, not a missing prop.

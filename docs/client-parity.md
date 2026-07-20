@@ -48,42 +48,56 @@ profile-pool deleted) and `IdentityBackupSection` (one cross-platform
 `SettingsPage` to thin app shells over the shared `SettingsShell`.
 Desktop is multi-account.
 
-| Component | Why skipped |
+**Update 2026-07-20 (clients, orchestrators pass)**: `ChannelMessageList` and
+`DmView` were hoisted (message-view pass). `ContentArea` followed as a full
+hoist into `packages/ui` — the two copies were a near-identical layout/dispatch
+shell over already-shared children (`ChannelHeader`, `ChannelMessageList`,
+`ChannelComposer`, `ForumView`, `DmView`, `AllianceView`, `EventsPanel`,
+`UserListGrouped`, `BotCard`, `UserProfileCard`, `PollComposer`); the
+per-platform pieces (forum/message-row/profile-card actions, event/poll/bot
+loaders, thread and hub-emoji fetchers, component-interaction sender) now
+travel in through a widened actions-prop surface, same pattern as
+`ForumActions`/`MessageRowActions`. `WelcomeInviteBanner` (was web-only) also
+hoisted and is now wired on desktop too via its existing `preview_hub_info`
+Tauri command. The desktop-only Events *modal overlay* and web's *tab strip*
+both stayed — `eventsPresentation: "tabs" | "modal"` prop, no shipped UX
+forced to change. The hub-streams entry point is now singular: the
+always-visible `ChannelHeader` button on both apps; the voice-footer toggle
+(`ChannelSidebar`'s `onToggleHubStreams`/`hubStreamsCount`, previously
+present on both apps, not just desktop) was removed as the redundant,
+context-dependent placement. `App` remains app-local (true orchestrator,
+holds all state).
+
+**Update 2026-07-20 (final — clients `3088346`/`cf6b39d`/`278fafe`,
+server `4240377`)**: the entire command/glue ledger below the line was
+**closed** in the gap-closing waves, and `RecoveryContactsSection` was
+unblocked (the hub gained the verified attestation flow —
+[recovery-attestation.md](recovery-attestation.md)) and hoisted with the
+new requester/contact UI. Desktop also gained soundboard playback (real
+voice-crate mixing), banner file upload, own-profile editing, quick
+invite, and per-account local-store isolation; web gained camera device
+selection and the alliance push-invite/share-code surface.
+
+Remaining app-local, all by design:
+
+| Component | Why |
 |---|---|
-| `RecoveryContactsSection` | Blocked on backend design: desktop's rotation request posts empty attestations and the hub has **no attestation-collection endpoint** — see ROADMAP Known issues. |
+| `App` | True state orchestrator (decisions.md 2026-07-18) — holds all component state, not a rendering shell. |
 | `MicLevelMeter` | False twin — filename collision (web: mic test widget; desktop: VAD-threshold slider). No action needed. |
-| `App`, `ChannelMessageList`, `DmView`, `ContentArea` | Pre-excluded orchestrators / feature-diverged (decisions.md 2026-07-18). |
+| `PinnedMessagesModal`/`PinnedMessages` | Feature-diverged pair (desktop has admin unpin, web doesn't; different `PinnedMessage` wire shapes) — the one remaining union pass, small. `ContentArea`'s `onShowPinned` lets each app render its own modal meanwhile. |
 
-**Missing desktop Tauri commands ledger** (hoisted components expose
-these as optional props; desktop omits them until the commands exist).
-Closed 2026-07-20 by the parity passes: `admin_get_bot_channel_scope`,
-`list_user_roles`. Still open:
+**Open capability notes** (small, tracked):
 
-- `report_message` → `POST /messages/:id/report`
-- poll route-shape mismatch: `vote_poll` returns no updated `Poll`;
-  `get_channel_polls` hits `/polls?channel_id=` vs the real
-  `/channels/:id/polls` (inline poll cards inert on desktop)
-- `create_channel` lacks the `spawner_name_template` param (spawner
-  channels get the hub default name)
-- role-category listing + own-profile field patching (profile card is
-  view-only / flat role list on desktop; admin role-category *editing*
-  UI also hidden on desktop for the same reason)
-- event slots / staging / slot-claim params on `create_event` and
-  `rsvp_event`
-- soundboard playback (needs voice-crate work: mixing a clip into the
-  outbound Opus stream, plus upload commands — admin tab hidden)
-- desktop banner *file* upload in channel settings (Tauri `upload_file`
-  takes a path, not a browser `File`; URL-based editing still works)
-- desktop quick-invite modal (non-admin `manage_channels` members can't
-  create invites; admin flow unaffected)
-- web camera device selection (`WebVideoSession` ignores deviceId;
-  shared picker prop ready when it supports it)
-
-**Web-side follow-ups**: alliance push-invite / invite-code / join-code
-platform wrappers (`POST /alliances/{id}/push-invite`, `.../invite`,
-`.../join`) — desktop's UI for these was dropped in the hoist since
-web-truth lacked it; desktop `lobbyHubIds` badge derivation from
-`hubScope`.
+- Soundboard ponytail ceilings: linear resampler, one-clip-at-a-time,
+  played-attribution chip not wired on desktop (needs the
+  `SoundboardPlayed` WS variant in desktop's `types.rs`/`ws.rs`).
+- Web camera *mid-call* device switching reuses the disable/enable
+  renegotiation path (no `replaceTrack`); fine for v1.
+- Desktop Devices/Privacy tabs are active-account-only (no Rust surface
+  for other accounts' state — permanent model difference vs web's
+  IndexedDB).
+- web `onOpenEditDescription` is a no-op at its `App.tsx` call site
+  (pre-existing; desktop has the real handler).
 
 ---
 
