@@ -40,12 +40,9 @@ fixed, its entry moves to the shipped log.
   launch post. Needed for adoption and the code-signing re-application.
 - **Passkey registration from desktop** — blocked by Tauri webview RP ID
   mismatch; needs a native WebAuthn plugin or system-browser handoff.
-- **Desktop parity backlog** — role categories/color/icon (needs
-  desktop Tauri commands), named custom themes, data-export archive
-  compat, LAN discovery UX (mDNS + QR). (Shipped to desktop 2026-07-20
-  via consolidation + settings-IA: events UI, roles admin, presence
-  Invisible+TTL, settings IA + profile model, multi-account.) Details
-  in [`client-parity.md`](docs/client-parity.md).
+- **Desktop parity backlog** — named custom themes, data-export archive
+  compat, LAN discovery UX (mDNS + QR). Details in
+  [`client-parity.md`](docs/client-parity.md).
 - **Live captions in voice** — local STT, desktop-era.
 - **Hub-hosted identity vault** — DESIGNED, **PARKED until after the
   pilot** (do NOT build; [identity-vault.md](docs/identity-vault.md)).
