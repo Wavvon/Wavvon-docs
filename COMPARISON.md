@@ -15,17 +15,18 @@ feature. Kept factual and up to date as features land.
 | **No account required** | ✅ keypair identity | ❌ email + account | ❌ email + account | ⚠️ optional guest | ❌ account | ❌ account |
 | **Voice channels** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Text channels** | ✅ | ✅ | ✅ | ✅ | ⚠️ basic | ⚠️ basic |
-| **Screen share** | ✅ desktop (web in progress) | ✅ | ✅ | ✅ | ❌ | ❌ |
+| **Screen share** | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
 | **E2E encrypted DMs (1:1)** | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
 | **E2E encrypted group DMs** | ✅ sender-key | ❌ | ❌ | ✅ | ❌ | ❌ |
 | **Multi-device** | ✅ QR pairing | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Account recovery without email** | ✅ phrase, backup file, recovery contacts | ❌ email reset | ❌ email reset | ⚠️ recovery key | ❌ | ⚠️ cert backup |
 | **Cross-community federation** | ✅ Alliances | ❌ | ❌ | ✅ rooms | ❌ | ❌ |
 | **Community roles & permissions** | ✅ | ✅ | ✅ | ✅ | ✅ | ⚠️ basic |
 | **Bots & webhooks** | ✅ | ✅ | ✅ | ✅ | ⚠️ limited | ❌ |
 | **In-community games / activities** | ✅ | ✅ Activities | ❌ | ❌ | ❌ | ❌ |
 | **Desktop client (native)** | ✅ Tauri | ✅ Electron | ✅ Electron | ✅ Electron | ✅ | ✅ |
-| **Browser client** | ⚠️ functional, parity in progress | ✅ | ✅ | ✅ | ❌ | ❌ |
-| **Mobile (iOS / Android)** | ⚠️ Android beta, no iOS | ✅ | ✅ | ✅ | ✅ | ⚠️ 3rd party |
+| **Browser client** | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| **Mobile (iOS / Android)** | ❌ planned | ✅ | ✅ | ✅ | ✅ | ⚠️ 3rd party |
 | **Free — no premium tier** | ✅ always free | ⚠️ Nitro upsell | ⚠️ message limits | ✅ | ⚠️ slot limits | ✅ |
 | **Data owned by the community** | ✅ | ❌ | ❌ | ✅ (self-hosted) | ✅ (self-hosted) | ✅ (self-hosted) |
 | **OpenTelemetry observability** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
@@ -56,14 +57,12 @@ The hub is a single static Linux binary (~30 MB musl). The desktop client is Tau
 
 | Limitation | Status |
 |---|---|
-| iOS client | Not started |
-| Android client | Beta — CI builds APKs; full feature parity work in progress |
+| No mobile clients | The early Android beta was removed (2026-07-12) rather than left to rot; a clean-slate mobile client is planned when mobile becomes the priority. No iOS work yet |
 | E2E forward secrecy | Sender-key (group) and static-ECDH (1:1) are shipped; Double Ratchet upgrade not yet started |
-| Windows installer unsigned | SmartScreen warning until Authenticode cert is procured (SignPath OSS application submitted) |
+| Voice media not E2E encrypted | Cross-internet voice is implemented on all clients but the first live over-the-internet test is still pending, and the hub relay currently sees plaintext audio; voice encryption is the next voice-stack phase |
+| Windows installer unsigned | SmartScreen warning ("More info → Run anyway"); free OSS code-signing programs require more project popularity than we have yet |
 | macOS DMG unsigned | Gatekeeper warning until Apple Developer signing is set up |
 | No push notifications | Clients must be open to receive messages |
-| Voice is LAN/local only today | The hub voice relay does not yet learn real client network addresses, so voice works when client and hub share a network/machine; cross-internet voice and voice encryption are the next voice-stack work |
-| Web client parity | The browser client is functional but behind the desktop client on some features (admin panel, screen-share viewing, in-channel search); active remediation in progress |
 
 ---
 
@@ -73,4 +72,4 @@ features as of the date below, and implies no affiliation with or
 endorsement by any of the products mentioned. Spotted an error? Please
 open an issue.*
 
-*Last updated: 2026-06-11 — v0.2.0*
+*Last updated: 2026-07-21 — v0.4.0*
