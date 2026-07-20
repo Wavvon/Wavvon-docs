@@ -70,6 +70,7 @@ These shipped — the doc is the design rationale behind the code (see
 - [home-hub.md](home-hub.md) — personal-axis state: home hub list, replication, DM canonicalization
 - [screen-share-modal.md](screen-share-modal.md) — unified desktop screen-share picker: Tauri `list_capture_sources` command, thumbnail grid, single-modal UX replacing the current two-step OS overlay
 - [nested-channels-ux.md](nested-channels-ux.md) — nested-channel UX gaps: channel permalinks (breadcrumb resolution), deep-nesting sidebar strategy (capped indent + drill-in), and channel permission overwrites (net-new file-system-style cascade — data model, resolver, routes, UI)
+- [settings-ia.md](settings-ia.md) — unified Settings information architecture + profile model: one tab structure both clients render from `packages/ui`, converging desktop off the deleted profile-pool and onto multi-account (decided 2026-07-20); unblocks the `ProfileTab` + `IdentityBackupSection` parity passes
 - [future-features.md](future-features.md) — anti-spam PoW, deferred bot scope, other backlog designs
 - [bot-capability-layer.md](bot-capability-layer.md) — the consent spine for the "Telegram-class bot runtime → games" pillar: capability request/grant model, interactive-UI runtime choice (declarative components vs sandboxed webview game modal), voice/video injection gates, abuse controls, phased first playable
 
