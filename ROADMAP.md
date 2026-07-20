@@ -18,14 +18,14 @@ fixed, its entry moves to the shipped log.
   reload), redeem owner invite, cross-internet voice test, friend
   onboards + ownership transfer, doc-test feedback, two-operator
   federation test.
-- [ ] **Component parity passes (consolidation tail)** — the mechanical
-  hoist shipped 2026-07-20 (41 components; see the shipped log). What
-  remains needs feature reconciliation, not hoisting: ChannelSidebar
-  (presence model already decided 2026-07-12 — converge desktop),
-  HubAdminPage, ChannelSettingsModal, ProfileTab, IdentityBackupSection,
-  ContentArea, SettingsPage, ChannelMessageList, DmView. Skip rationale
-  + missing-desktop-command ledger in
-  [client-parity.md](docs/client-parity.md).
+- [ ] **Component parity passes (consolidation tail)** — mechanical
+  hoist + the three big union passes (HubAdminPage,
+  ChannelSettingsModal, ChannelSidebar) shipped 2026-07-20 (shipped
+  log). Remaining: ProfileTab + IdentityBackupSection (need the
+  settings-IA/profile-model design), and the orchestrators
+  (ContentArea, SettingsPage, ChannelMessageList, DmView). Open
+  capability gaps live in the
+  [client-parity.md](docs/client-parity.md) ledger.
 
 ## 🚧 Blocked
 

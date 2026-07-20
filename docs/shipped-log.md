@@ -4,6 +4,20 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Client feature-union parity passes (2026-07-20)**: the three
+  components skipped by the mechanical consolidation as bidirectional
+  forks — `HubAdminPage`, `ChannelSettingsModal`, `ChannelSidebar` —
+  unified on the union of both clients' features and hoisted into
+  `packages/ui` (user decision: no shipped capability drops). Desktop
+  gained: permissions/bans tabs, richer invites, working audit log
+  (old copy read a shape the hub never sends), voice-move, drill-in +
+  spawner sidebar, TTL+Invisible presence (custom-text UI removed per
+  the 2026-07-12 decision). Web gained: talk-power tab, SVG channel
+  icons, public-listing toggle, member mute/timeout/voice-mute, a
+  cert_mode fix (old enum could 400 the hub), hub-icon picker (prop
+  existed, never rendered). Remaining gaps tracked in the
+  client-parity.md ledger. Clients `54a04c1`.
+
 - **Shared-component consolidation — mechanical phase complete
   (2026-07-20)**: 41 of the 53 remaining duplicated components hoisted
   into `packages/ui` as single prop-only implementations consumed by

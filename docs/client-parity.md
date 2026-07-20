@@ -33,11 +33,16 @@ implementations. The rest stay app-local because a mechanical hoist
 would drop shipped features — each needs a **feature reconciliation
 pass** first:
 
+**Update 2026-07-20 (clients `54a04c1`)**: the three bidirectional-fork
+components below the line were unified via feature-union parity passes
+(user decision: converge on the union; no shipped capability dropped)
+and are now in `packages/ui`: `HubAdminPage` (+13 admin sections),
+`ChannelSettingsModal` (permissions/bans/talk-power/icon tabs on both),
+`ChannelSidebar` (desktop converged onto TTL+Invisible presence per the
+2026-07-12 decision; gained voice-move, drill-in, spawner channels).
+
 | Component | Why skipped |
 |---|---|
-| `ChannelSidebar` | Fork both directions: web has resizable/drill-in/soundboard/spawner + TTL presence; desktop has whisper panel, global search entry, camera picker + custom-text presence. Presence is already decided (2026-07-12: TTL+Invisible won) — the pass converges desktop onto it. |
-| `HubAdminPage` | Web-only: moderation tab, native bots, audit log, soundboard. Desktop-only: lobby settings, challenge settings, badges tab, voice-mute/timeout member actions, public-listing toggle. |
-| `ChannelSettingsModal` | Web: permission-overwrite + bans tabs. Desktop: talk-power tab (no web/hub-HTTP equivalent), SVG icon upload. |
 | `ProfileTab` | Desktop still implements the profile-pool model that decisions.md records as deleted — architecture gap, not a props gap. |
 | `IdentityBackupSection` | Web: WebCrypto multi-account export over IndexedDB. Desktop: Rust file-path export. Different flows beyond a props boundary. |
 | `RecoveryContactsSection` | Blocked on backend design: desktop's rotation request posts empty attestations and the hub has **no attestation-collection endpoint** — see ROADMAP Known issues. |
@@ -45,10 +50,10 @@ pass** first:
 | `App`, `SettingsPage`, `ChannelMessageList`, `DmView`, `ContentArea` | Pre-excluded orchestrators / feature-diverged (decisions.md 2026-07-18). |
 
 **Missing desktop Tauri commands ledger** (hoisted components expose
-these as optional props; desktop omits them until the commands exist):
+these as optional props; desktop omits them until the commands exist).
+Closed 2026-07-20 by the parity passes: `admin_get_bot_channel_scope`,
+`list_user_roles`. Still open:
 
-- `admin_get_bot_channel_scope` → `GET /admin/bots/:pubkey/channels`
-  (scope editor opens without saved restrictions pre-filled)
 - `report_message` → `POST /messages/:id/report`
 - poll route-shape mismatch: `vote_poll` returns no updated `Poll`;
   `get_channel_polls` hits `/polls?channel_id=` vs the real
@@ -56,10 +61,18 @@ these as optional props; desktop omits them until the commands exist):
 - `create_channel` lacks the `spawner_name_template` param (spawner
   channels get the hub default name)
 - role-category listing + own-profile field patching (profile card is
-  view-only / flat role list on desktop)
-- `list_user_roles` (worked around via `list_hub_members`)
+  view-only / flat role list on desktop; admin role-category *editing*
+  UI also hidden on desktop for the same reason)
 - event slots / staging / slot-claim params on `create_event` and
   `rsvp_event`
+- soundboard playback (needs voice-crate work: mixing a clip into the
+  outbound Opus stream, plus upload commands — admin tab hidden)
+- desktop banner *file* upload in channel settings (Tauri `upload_file`
+  takes a path, not a browser `File`; URL-based editing still works)
+- desktop quick-invite modal (non-admin `manage_channels` members can't
+  create invites; admin flow unaffected)
+- web camera device selection (`WebVideoSession` ignores deviceId;
+  shared picker prop ready when it supports it)
 
 **Web-side follow-ups**: alliance push-invite / invite-code / join-code
 platform wrappers (`POST /alliances/{id}/push-invite`, `.../invite`,
