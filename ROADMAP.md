@@ -75,6 +75,11 @@ fixed, its entry moves to the shipped log.
 - **Maintain / converge the old Android client** — removed 2026-07-12;
   clean-slate rewrite when mobile is prioritized
   ([android-rewrite-notes.md](docs/android-rewrite-notes.md)).
+- **SQLite (or any second) hub storage backend** — PostgreSQL is the
+  only backend (decisions.md 2026-06-27 removed SQLite from the
+  workspace entirely). The store-trait split stays for error
+  normalization and keeping SQL out of handlers, not for backend
+  plurality.
 - **Load-aware DM routing across a user's hubs** — failover only.
 - **Concurrent mic test while in voice** — live meter covers it.
 - **Central authority of any kind** — no global directory, identity
