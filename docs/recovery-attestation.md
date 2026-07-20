@@ -117,20 +117,19 @@ propagation — two-axis and no-central-authority preserved.
   anything; the admin scopes the transfer and the owner role never rides
   along. Consistent with identity-recovery.md §"threshold-then-human".
 
-## 4. User decision points (frame, not decided)
+## 4. Decisions — DECIDED 2026-07-20 (user calls, all four)
 
-- **Notification channel.** Out-of-band request id (recommended — matches
-  the committed anti-spam stance and needs no new push infra) vs. a
-  DM-based notify to contacts vs. contact-side poll of an in-app pending
-  list. Recommend: out-of-band id for v1, optional best-effort in-app list.
-- **Threshold defaults / bounds.** Code allows `K` up to `N ≤ 5`; web UI
-  defaults `K = 2`. Recommend keeping default `K = 2` and advising distinct
-  trust circles. Product call on whether to *enforce* `K ≥ 2`.
-- **Request expiry window.** identity-recovery.md suggested 14 days; no
-  sweep exists today. Recommend a 14-day `expired` sweep.
-- **Prove new-key control on open.** Optionally require `rotate-key` to be
-  signed by `new_pubkey`. Recommend yes — cheap, stops opening requests for
-  a key you don't hold. Low priority; the admin is the backstop regardless.
+- **Notification channel: out-of-band request id** for v1. The hub never
+  pushes vouch requests (anti-spam stance holds); a best-effort in-app
+  pending list is a possible later nicety.
+- **Threshold: default `K = 2`, `K = 1` allowed.** The human admin review
+  is the backstop; owners with a single trustworthy contact aren't locked
+  out.
+- **Expiry: 14-day sweep** — pending requests flip to `expired` after 14
+  days (background sweep alongside the existing retention workers).
+- **New-key proof: required.** `rotate-key` must carry a signature by
+  `new_pubkey` over the request bundle, proving the requester holds the
+  key they're rotating to.
 
 ## 5. Implementation sketch and order
 

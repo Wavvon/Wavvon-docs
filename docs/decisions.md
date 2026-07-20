@@ -6,6 +6,24 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Recovery attestation: out-of-band id, K=2 default, 14-day expiry, new-key proof
+
+**Decision** (2026-07-20, user calls; design in
+[recovery-attestation.md](recovery-attestation.md)): the four open points
+of the attestation design, all resolved to the architect's
+recommendations. Contacts learn of a rotation request via an
+**out-of-band request id** (the hub never pushes vouch requests — no spam
+surface); threshold **defaults to K=2 with K=1 allowed** (admin review is
+the backstop); pending requests **expire after 14 days**; and opening a
+rotation request **requires a signature by the new key** (proves the
+requester holds it). Context: the audit behind the design found the hub
+was counting attestation signatures **without verifying them** — the
+signed `recovery-attestation/v1` envelope + hub-side Ed25519 verification
+is the substance of the fix.
+
+**Outcome**: pending implementation (identity crate → hub → clients;
+wire-format change, cross-repo byte-for-byte).
+
 ## Settings IA unification: desktop adopts multi-account; one cross-platform backup file; one Notifications tab
 
 **Decision** (2026-07-20, user calls; design in
