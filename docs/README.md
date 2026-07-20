@@ -44,6 +44,7 @@ These shipped — the doc is the design rationale behind the code (see
 13. [multi-device.md](multi-device.md) — master+subkey identity, QR pairing protocol
 14. [e2e-encryption.md](e2e-encryption.md) — E2E encrypted DMs: X25519 from Ed25519 seed, static ECDH + AES-GCM, signed envelopes, group sender keys
     - [identity-recovery.md](identity-recovery.md) — recovery UX beyond the phrase: passphrase-wrapped `.wavvon-backup` export/import (Part 1) + per-hub recovery contacts (Part 2, vouch not auto-grant) + pointer to the hub-hosted identity vault ([identity-vault.md](identity-vault.md), no-file recovery from a home hub)
+    - [recovery-attestation.md](recovery-attestation.md) — completes recovery contacts: the split request/attest flow, the `recovery-attestation/v1` signed envelope, and the signature-verification fix that makes the threshold real (design, decisions pending)
     - [wire-format.md](wire-format.md) — canonical byte-level spec for all signed envelopes in the identity crate (multi-device + E2E DM + identity verification); test vectors for client implementors
 15. [server-tags.md](server-tags.md) — self-tags (discovery keywords) + portable signed hub badges
     - [hub-certifications.md](hub-certifications.md) — anti-spam Layer 2: hub-signs-user reputation certs, portable PoW credit
