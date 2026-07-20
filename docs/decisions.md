@@ -27,8 +27,10 @@ Settings parity passes.
    with the 24-word phrase as the canonical backup; the encrypted file is
    secondary but is **one format both clients read and write**: Argon2id
    KDF (web via `@noble/hashes`, desktop via the existing `argon2` crate),
-   single JSON envelope, multi-account-capable, `.wavvon-backup`
-   extension. Desktop's `.voxback` (stale Voxply branding, incompatible
+   single JSON envelope, `.wavvon-backup` extension, **one account per
+   file** (user call, same day: the user picks which account to export;
+   import restores exactly that account — supersedes a multi-account-array
+   plaintext considered first). Desktop's `.voxback` (stale Voxply branding, incompatible
    envelope) is retired; alpha rules — no importer for old files.
 3. **One Notifications tab on both clients** (mention ping + notify
    sound; desktop's notify-sound moves out of Voice). Per-hub notify

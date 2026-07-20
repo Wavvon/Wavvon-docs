@@ -118,9 +118,11 @@ usable on both web or desktop or any other kind of device."
     `argon2` crate.
   - Cipher: AES-256-GCM. Envelope: single JSON
     `{version: 1, kdf: "argon2id", kdf_params, salt, nonce, ciphertext}`
-    (base64 fields). Plaintext: JSON array of accounts
-    `[{label, secret_key_hex}]` — multi-account-capable; a single-account
-    export is a one-element array.
+    (base64 fields). Plaintext: **one account** `{label, secret_key_hex}`
+    — backup files are per-account (user call 2026-07-20, superseding an
+    earlier multi-account-array draft): the user picks which account to
+    export, each export is its own file, and importing a file restores
+    exactly that account.
   - Extension: `.wavvon-backup`. Desktop's `.voxback` (stale Voxply
     branding, incompatible envelope) is retired; alpha rules — no
     importer for old files.
