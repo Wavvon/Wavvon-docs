@@ -14,7 +14,15 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   settings. Full desktop parity (new Tauri tag commands). Driving use
   case: community bug/feature-request tracker; a triage bot needs no
   new API (polls REST, retags via `manage_posts` role). 12 hub flow
-  tests. Server `a03176c`, clients `6097b37`.
+  tests. Server `a03176c`, clients `6097b37`. **E2E-verified same day**
+  driving the real web app against a live hub: tag CRUD in channel
+  settings, require-tag blocking untagged posts, chips, filter bar
+  (positive + negative). The drive caught and fixed two real client
+  bugs the suites missed: the birthday month select never sticking
+  (clients `1712b3b`) and — pre-existing since forum v1 — web calling
+  bare `/posts/{pid}` routes the hub never registered, so opening any
+  forum post on web 404ed (clients `488ac0a`; desktop was always
+  correct).
 
 - **Hub timezone + birthday badge (2026-07-21)**: hub-local clock
   (admin-set IANA `hub_timezone` in hub_settings, ☀️/🌙 `HubClock` in
@@ -26,7 +34,11 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   server-side, `hideBirthdays` viewer pref. 9 hub integration tests
   incl. roster gating. Announcement-message variant deferred
   (ROADMAP wishlist). Server `cb7e79c`, clients `66deab5`. Design:
-  decisions.md 2026-07-21.
+  decisions.md 2026-07-21. **E2E-verified same day** on the real web
+  app: admin timezone dropdown → ☀️ Tokyo clock in the sidebar; profile
+  month/day selects → 🎂 in the member list. The drive found the month
+  select never sticking (composeBirthday collapsed month-without-day
+  to ""); fixed in clients `1712b3b`.
 
 - **Parity-gap ledger closed + orchestrators hoisted (2026-07-20)**:
   every tracked capability gap from client-parity.md resolved in three
