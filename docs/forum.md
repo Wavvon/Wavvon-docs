@@ -379,9 +379,8 @@ column on `posts`/`post_replies` all exist and are wired end-to-end).
   channel): the type is fixed at creation. Conversion has to answer
   "what happens to the existing message stream / posts," which is its
   own design.
-- **Post tags / categories within a forum**: promoted to the roadmap
-  2026-07-21 (next feature; design pass pending). **Post drafts**:
-  wishlist, not designed.
+- **Post tags / categories within a forum**: designed — see section 10.
+  **Post drafts**: wishlist, not designed.
 - **Cross-channel / hub-wide forum search**: per-channel only in v1.
 
 ---
@@ -549,3 +548,211 @@ All Wavvon-server unless noted.
 - Wavvon-web `apps/web` (current delivery target) — alliance forum views
   call the alliance forum endpoints, render "author · hub"; mirrored to
   Wavvon-desktop / Wavvon-android afterward.
+
+---
+
+## 10. Post tags
+
+**Status**: designed, not built. Roadmap "next feature" 2026-07-21.
+
+Structured, admin-curated labels attached to posts within one forum
+channel, for filtering the post list (`Bug` / `Question` / `Guide`,
+`Patch notes` / `Discussion`, …). Not free-text keywords, not a
+cross-channel taxonomy.
+
+**Driving use case: a community bug/feature-request tracker.** A hub runs
+a forum channel where members file bugs and feature requests; admins tag
+each with `bug` / `feature-request` and triage status (`planned` /
+`done`), and a bot may read the channel to mirror reports into an external
+issue tracker. This shapes the recommendations below — it is the reason
+the model is admin-curated (a clean, filterable tag vocabulary the
+maintainers control) with moderator retagging (triage), and it adds the
+bot-access subsection §10.6.
+
+### Open questions (user call — recommended answer inline)
+
+- **Q1 — who defines tags?** *Recommend admin/moderator-curated per
+  channel, no free-form user tags.* Prior art: forum-channel tags in
+  comparable platforms are creator-defined sets picked from at post time,
+  not free typing — it keeps the list short and filter-useful and sidesteps
+  the moderation load of arbitrary user strings (slurs, near-duplicates,
+  spam facets). Wavvon already leans admin-curated; this matches. The
+  tracker use case seals it: `bug` / `feature-request` / `done` are only
+  useful as a controlled vocabulary the maintainers own — free-form would
+  give ten spellings of "bug" and break the filter that makes it a tracker.
+- **Q2 — cardinality + required?** *Recommend multiple tags per post,
+  capped at 5, with an optional per-channel "require at least one tag" flag,
+  default off.* Multiple is the norm (a post is both a `Bug` and
+  `Windows`, or a `feature-request` that is `planned`); the cap keeps rows
+  scannable; required-tag suits triage forums (force a `bug`/`feature`
+  choice at file time) but is wrong for casual ones, so it is a channel
+  toggle, not global.
+- **Q6 — permissions?** *Recommend: `manage_posts` defines/edits/deletes
+  tags; the post author assigns tags to their own post at create/edit (no
+  new permission beyond `create_posts`); `manage_posts` can retag anyone's
+  post.* Reuse the two existing forum permissions — a third `manage_tags`
+  knob is not worth it for a curation surface the same mods already own.
+  Moderator retag-anyone is exactly the tracker triage motion (a
+  maintainer marks a reported post `planned` → `done`), so it is core, not
+  an edge case.
+
+### 10.1 Data model
+
+Additive Postgres migrations in `hub/src/db/migrations.rs` (Wavvon-server),
+same conventions as §1.
+
+```
+CREATE TABLE IF NOT EXISTS forum_tags (
+    id          TEXT PRIMARY KEY,
+    channel_id  TEXT NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+    label       TEXT NOT NULL,
+    color       TEXT,                       -- optional hex, nullable
+    position    BIGINT NOT NULL DEFAULT 0,  -- admin display order
+    created_at  BIGINT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_forum_tags_channel ON forum_tags(channel_id, position);
+
+CREATE TABLE IF NOT EXISTS post_tags (
+    post_id  TEXT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+    tag_id   TEXT NOT NULL REFERENCES forum_tags(id) ON DELETE CASCADE,
+    PRIMARY KEY (post_id, tag_id)
+);
+CREATE INDEX IF NOT EXISTS idx_post_tags_tag ON post_tags(tag_id);
+
+ALTER TABLE channels ADD COLUMN forum_require_tag BOOLEAN NOT NULL DEFAULT FALSE;
+```
+
+**Definitions table + join table, not a JSON column on `posts`.** The
+`attachments`-JSON precedent (§1) fits opaque per-post blobs nobody queries
+across rows. Tags are the opposite: definitions must be enumerable and
+editable independently of any post (admin CRUD, color, order), and the list
+route filters *by* them. A join table gives an indexed `EXISTS` filter and
+FK cascade (delete a tag → its assignments vanish, no app-side sweep) for
+free; a JSON `tag_ids` array loses referential integrity and needs manual
+cleanup on tag delete. `forum_require_tag` only means anything on
+`channel_type='forum'` leaves, like the other forum columns.
+
+**Search story:** tags stay *out* of the `search_vector` generated column
+(§1 in code — Postgres tsvector + GIN, which superseded the FTS5 sketch
+these docs still describe). Tag filtering is a structured `WHERE` clause on
+the join, orthogonal to full-text `MATCH`; combining them is just both
+predicates on the list/search query.
+
+**Status labels are just tags (v1).** A tracker's `planned` / `in-progress`
+/ `done` are ordinary `forum_tags` rows a moderator sets via retag
+(`manage_posts`, Q6). v1 does **not** model a separate "status" tag *group*
+with single-select / mutual-exclusion / a distinct column — that is a
+second concept (a typed dimension on top of the flat set) for a workflow a
+convention already covers: define the status tags, give them a color band,
+retag as triage moves. Grouped/exclusive status tags are a §10.7 non-goal;
+revisit if flat tags prove too loose for real trackers.
+
+### 10.2 Hub routes
+
+Tag CRUD lives with channel admin (the channel-scoped admin route group,
+Wavvon-server); assignment and filtering extend the existing §2 routes.
+
+| Method + path | Purpose | Gate |
+|---|---|---|
+| `GET /channels/:cid/tags` | List tag definitions | read access |
+| `POST /channels/:cid/tags` | Create a tag | `manage_posts` |
+| `PATCH /tags/:tid` | Edit label/color/position | `manage_posts` |
+| `DELETE /tags/:tid` | Delete tag (cascades assignments) | `manage_posts` |
+
+- `CreatePostRequest` / `EditPostRequest` (`hub/src/routes/post_models.rs`)
+  gain `tag_ids: Option<Vec<String>>`. Server validates every id belongs to
+  this channel's tag set, enforces the ≤5 cap and `forum_require_tag`, and
+  replaces the post's assignments in the same transaction. Omitted on edit =
+  unchanged (respect the omitted-vs-null trap, CLAUDE.md).
+- `GET /channels/:cid/posts` (`PostListParams`) gains `tag: Option<String>`
+  — filter to posts carrying that tag id. Single-tag filter only in v1
+  (multi-tag AND/OR deferred). Pin ordering and cursor paging unchanged.
+- `PostSummary` / `PostDetail` gain `tags: Vec<TagRef>` where
+  `TagRef { id, label, color? }`, populated per post (one batched query over
+  the page, not N+1). `#[serde(default)]` so un-upgraded peers parse.
+
+### 10.3 Client UI
+
+All in `clients/packages/ui` (web is source of truth), prop-only per the
+package rules.
+
+- **Chips on rows** — `ForumPostRow` (`forum/ForumPostList.tsx`) renders
+  `post.tags` as small colored chips next to the title. New `.forum-tag-chip`
+  class in the shared `styles.css`.
+- **Filter bar** — `ForumPostList` header (which already holds the title +
+  "New post" button) gains a row of the channel's tag definitions as toggle
+  chips; selecting one sets the `tag` param and reloads via the existing
+  `load()` cursor path. "All" clears it.
+- **Tag picker** — `ForumComposer` (and the edit path) gains a multi-select
+  of the channel's definitions below the title field; reuse the existing
+  `settings-section` layout. Enforce the cap client-side; block submit when
+  `forum_require_tag` and none chosen.
+- **Admin** — tag management goes in `ChannelSettingsModal` (forum channels
+  only): a small list editor (label + color + reorder) mirroring the
+  role-category editor pattern, plus the require-tag checkbox.
+- **`ForumActions`** (`forum/ForumView.tsx`) gains `listTags`, `createTag`,
+  `editTag`, `deleteTag`; `createPost`/`editPost` take an optional `tagIds`;
+  `listPosts`/`listAlliancePosts` take an optional `tagId` filter. Desktop
+  wires these to `invoke()`, web to its `hubFetch` platform layer.
+
+### 10.4 Federation (§9 interaction)
+
+Tags are **channel-local community-axis metadata on the owning hub, passed
+through read-only** by the §9 read-through proxy. Alliance forum reads
+(`get_alliance_forum_posts` / `..._forum_post`) already ship whatever the
+owner's `PostSummary`/`PostDetail` carry, so `tags` and the owner's tag
+definitions flow to allied readers for free; filtering runs on the owner
+(the `tag` param proxies through). No `forum_tags` rows ever live on a
+reader hub — same as posts.
+
+Remote *writes* (the `posts_and_replies` policy) do **not** carry tags in
+v1: `FederatedCreatePostRequest` gains no tag field, so an allied author
+can't assign the owner's tags. The owner's `manage_posts` mods can tag a
+federated post locally. This matches §9's owner-sovereign curation stance
+(pin/lock are owner-only for the same reason). Remote tag assignment is
+deferred.
+
+### 10.6 Bot access (tracker use case)
+
+A bot is a `users` row with `is_bot=1` that authenticates and holds a
+session like any principal ([bot-capability-layer.md](bot-capability-layer.md)).
+So it already reaches the forum REST routes its channel access and roles
+permit — the §10.2 surface needs **no bot-specific addition**:
+
+- **Read posts + tags** — `GET /channels/:cid/posts`, `GET /posts/:pid`,
+  `GET /channels/:cid/tags` are gated on channel read access only. A bot
+  invited to the tracker channel reads reports and their tags today. (Full
+  post *bodies* over the *push* path would ride the same
+  `can_read_message_content` redaction as messages — see the v1 stance;
+  over REST there is no redaction, same as a member reading the channel.)
+- **Retag** — a bot granted a role carrying `manage_posts` retags any
+  post via the §10.2 assignment path (`PATCH /posts/:pid` with `tag_ids`),
+  exactly like a human moderator. This is the triage motion: bot reads a
+  new `bug` report, sets `planned` → `done`. No new permission; reuse Q6.
+
+**v1 stance — bots ride the same HTTP routes; no forum push events.** The
+bot event layer (`bots/events.rs` `emit_bot_event` + `bot_subscriptions`,
+Wavvon-server) dispatches audit-backed `message.*` events to subscribed
+bots, but `posts.rs` emits **only client WS** post/reply events (§3, §6) —
+it never calls the bot dispatch path, and there is no forum event type in
+the subscription registry. So a triage bot **polls** `GET
+/channels/:cid/posts` (sorted by `last_activity_at`, §2) in v1; it does not
+get pushed a new bug report. Adding push later is additive and cheap —
+emit `post.created` / `post.reply_created` through the existing
+`emit_bot_event` path and extend the `can_read_message_content` redaction
+to `post.*` — but it is a §10.7 non-goal until a bot actually needs
+sub-poll latency.
+
+### 10.7 Non-goals (v1)
+
+- Free-form / user-authored tags (Q1).
+- Multi-tag AND/OR filter combinations — single-tag filter only.
+- Tag-based notifications ("follow a tag") — no forum notification changes
+  (§6 stays as-is).
+- Cross-channel tag taxonomies or shared tag sets — tags belong to one
+  channel.
+- Federated (remote-hub) tag assignment (§10.4).
+- Tag icons/emoji or per-tag use-permissions — label + optional color only.
+- Grouped / single-select "status" dimension — status is flat tags (§10.1).
+- Forum push events to bots — triage bots poll the REST routes (§10.6);
+  `post.*` event dispatch is a later additive add.

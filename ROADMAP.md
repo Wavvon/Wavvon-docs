@@ -24,9 +24,10 @@ fixed, its entry moves to the shipped log.
   on the viewer's local day; triple opt-in (user shares / hub serves /
   viewer renders).
 - [ ] **Forum post tags** — next feature after hub timezone + birthday
-  badge lands. Needs a design pass first (admin-defined vs free-form,
-  single vs multi per post, filter UI) — promoted from the
-  [forum.md](docs/forum.md) deferred list.
+  badge lands. DESIGNED ([forum.md](docs/forum.md) §10): admin-curated
+  tags, multi-tag ≤5 + per-channel require-tag flag, `manage_posts` for
+  definitions/retag, bots ride existing REST (poll, no push in v1).
+  Driving use case: community bug/feature-request tracker channel.
 - [ ] **PinnedMessages union pass** — the one component pair still
   app-local with a real gap (desktop admin unpin vs web; diverging
   wire shapes). Everything else consolidated 2026-07-20 (shipped log;
