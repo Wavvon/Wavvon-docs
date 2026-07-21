@@ -18,8 +18,8 @@ fixed, its entry moves to the shipped log.
   reload), redeem owner invite, cross-internet voice test, friend
   onboards + ownership transfer, doc-test feedback, two-operator
   federation test.
-- [ ] **Forum post tags** — next feature after hub timezone + birthday
-  badge lands. DESIGNED ([forum.md](docs/forum.md) §10): admin-curated
+- [ ] **Forum post tags** — in implementation 2026-07-21. Design in
+  [forum.md](docs/forum.md) §10: admin-curated
   tags, multi-tag ≤5 + per-channel require-tag flag, `manage_posts` for
   definitions/retag, bots ride existing REST (poll, no push in v1).
   Driving use case: community bug/feature-request tracker channel.
