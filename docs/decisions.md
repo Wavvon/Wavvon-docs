@@ -6,6 +6,40 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Hub timezone + birthday badge: plain profile field, viewer-local day, triple opt-in
+
+**Decision** (2026-07-21, user idea + calls): two small, decoupled
+social features.
+
+1. **Hub timezone** is a `hub_settings` key (`hub_timezone`, IANA name)
+   set by admins; clients render an ambient hub-local clock with
+   `Intl.DateTimeFormat` (no deps, no server time math yet). It is
+   **flavor and a reference point for hub-wide daily features only** —
+   message and event timestamps stay rendered in the *viewer's* local
+   time. *Alternative considered*: rendering timestamps in hub time —
+   rejected, instants must read correctly for every viewer.
+2. **Birthday** is a plain nullable `users.birthday` column (`MM-DD`,
+   **never a year** — no age PII), riding the existing profile-field
+   rails over HTTP. Explicitly NOT a signed envelope / wire-format
+   change and NOT federated: shared per hub, deleted per hub.
+3. **The badge shows on the viewer's local calendar day** (client-side
+   MM-DD comparison). *Alternatives*: hub-timezone day (needs the hub
+   setting, confusing when the viewer's calendar disagrees) and
+   birthday-owner's timezone (requires sharing a timezone — more PII).
+   A birthday is a floating calendar date, not an instant; viewer-local
+   matches how humans treat it (and how Facebook renders it).
+4. **Triple opt-in, each enforced at its own layer**: user shares
+   (setting the field IS the consent; null by default), hub serves it
+   (`birthdays_enabled` setting; off = field never leaves the server),
+   viewer renders it (`hideBirthdays` in the synced prefs blob). Any
+   single "no" wins without coordination.
+5. **Badge first; announcement message deferred.** The worker-posted
+   "happy birthday" message needs a channel picker, a daily worker,
+   hub-midnight math, and chrono-tz — and cannot be un-delivered per
+   grumpy viewer. Demand-gated tail.
+
+**Outcome**: in implementation 2026-07-21.
+
 ## Recovery attestation: out-of-band id, K=2 default, 14-day expiry, new-key proof
 
 **Decision** (2026-07-20, user calls; design in

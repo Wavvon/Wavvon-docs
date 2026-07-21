@@ -18,6 +18,11 @@ fixed, its entry moves to the shipped log.
   reload), redeem owner invite, cross-internet voice test, friend
   onboards + ownership transfer, doc-test feedback, two-operator
   federation test.
+- [ ] **Hub timezone + birthday badge** — in implementation (design in
+  [decisions.md](docs/decisions.md) 2026-07-21): admin-set IANA hub
+  timezone + client clock; `MM-DD` birthday profile field with 🎂 badge
+  on the viewer's local day; triple opt-in (user shares / hub serves /
+  viewer renders).
 - [ ] **PinnedMessages union pass** — the one component pair still
   app-local with a real gap (desktop admin unpin vs web; diverging
   wire shapes). Everything else consolidated 2026-07-20 (shipped log;
@@ -43,16 +48,9 @@ fixed, its entry moves to the shipped log.
 - **Desktop parity backlog** — named custom themes, data-export archive
   compat, LAN discovery UX (mDNS + QR). Details in
   [`client-parity.md`](docs/client-parity.md).
-- **Hub timezone + local-time clock** — admin sets an IANA timezone in
-  `hub_settings`; clients show an ambient "hub local time" / day-night
-  indicator (`Intl.DateTimeFormat`, no deps). Reference point for future
-  hub-wide daily features; message/event timestamps stay viewer-local.
-- **Birthday badge (month+day, never year)** — optional field on the hub
-  member record (plain HTTP, no wire-format change); 🎂 badge rendered on
-  the viewer's local calendar day. Triple opt-in: user shares (field set =
-  consent), hub serves it (`hub_settings` toggle), viewer can hide (prefs
-  blob boolean). Announcement-message variant (worker + hub-midnight) is a
-  demand-gated tail.
+- **Birthday announcement message** — demand-gated tail of the birthday
+  badge: hub-configured channel + daily worker posting at hub-midnight
+  (needs chrono-tz). Only if a pilot community asks.
 - **Live captions in voice** — local STT, desktop-era.
 - **Hub-hosted identity vault** — DESIGNED, **PARKED until after the
   pilot** (do NOT build; [identity-vault.md](docs/identity-vault.md)).
