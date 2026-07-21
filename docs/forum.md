@@ -379,7 +379,8 @@ column on `posts`/`post_replies` all exist and are wired end-to-end).
   channel): the type is fixed at creation. Conversion has to answer
   "what happens to the existing message stream / posts," which is its
   own design.
-- **Post tags / categories within a forum** and **post drafts**:
+- **Post tags / categories within a forum**: promoted to the roadmap
+  2026-07-21 (next feature; design pass pending). **Post drafts**:
   wishlist, not designed.
 - **Cross-channel / hub-wide forum search**: per-channel only in v1.
 
