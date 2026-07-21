@@ -43,6 +43,16 @@ fixed, its entry moves to the shipped log.
 - **Desktop parity backlog** — named custom themes, data-export archive
   compat, LAN discovery UX (mDNS + QR). Details in
   [`client-parity.md`](docs/client-parity.md).
+- **Hub timezone + local-time clock** — admin sets an IANA timezone in
+  `hub_settings`; clients show an ambient "hub local time" / day-night
+  indicator (`Intl.DateTimeFormat`, no deps). Reference point for future
+  hub-wide daily features; message/event timestamps stay viewer-local.
+- **Birthday badge (month+day, never year)** — optional field on the hub
+  member record (plain HTTP, no wire-format change); 🎂 badge rendered on
+  the viewer's local calendar day. Triple opt-in: user shares (field set =
+  consent), hub serves it (`hub_settings` toggle), viewer can hide (prefs
+  blob boolean). Announcement-message variant (worker + hub-midnight) is a
+  demand-gated tail.
 - **Live captions in voice** — local STT, desktop-era.
 - **Hub-hosted identity vault** — DESIGNED, **PARKED until after the
   pilot** (do NOT build; [identity-vault.md](docs/identity-vault.md)).
