@@ -4,6 +4,18 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Forum post tags (2026-07-21)**: admin-curated per-channel tag
+  definitions ([forum.md](forum.md) §10) — `forum_tags` + `post_tags`
+  join, CRUD gated on `manage_posts`, ≤5 tags per post assigned by the
+  author (moderator retag = triage), single-tag list filter, optional
+  per-channel require-tag flag, tags pass through alliance reads
+  (owner-sovereign, no federated assignment). UI: chips on rows,
+  filter bar, composer/edit picker, `ForumTagManager` in channel
+  settings. Full desktop parity (new Tauri tag commands). Driving use
+  case: community bug/feature-request tracker; a triage bot needs no
+  new API (polls REST, retags via `manage_posts` role). 12 hub flow
+  tests. Server `a03176c`, clients `6097b37`.
+
 - **Hub timezone + birthday badge (2026-07-21)**: hub-local clock
   (admin-set IANA `hub_timezone` in hub_settings, ☀️/🌙 `HubClock` in
   the channel sidebar via `Intl.DateTimeFormat`, no new deps) and an

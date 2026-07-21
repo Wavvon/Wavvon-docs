@@ -553,7 +553,11 @@ All Wavvon-server unless noted.
 
 ## 10. Post tags
 
-**Status**: designed, not built. Roadmap "next feature" 2026-07-21.
+**Status**: SHIPPED 2026-07-21 (server `a03176c`, clients `6097b37`).
+The open questions below were resolved to the recommended answers
+(user call, 2026-07-21). One implementation note: the edit-path tag
+picker lives inline in `ForumPostDetail`'s edit block, not in
+`ForumComposer` — post editing never routed through the composer.
 
 Structured, admin-curated labels attached to posts within one forum
 channel, for filtering the post list (`Bug` / `Question` / `Guide`,
