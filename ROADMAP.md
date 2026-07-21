@@ -18,11 +18,6 @@ fixed, its entry moves to the shipped log.
   reload), redeem owner invite, cross-internet voice test, friend
   onboards + ownership transfer, doc-test feedback, two-operator
   federation test.
-- [ ] **Hub timezone + birthday badge** — in implementation (design in
-  [decisions.md](docs/decisions.md) 2026-07-21): admin-set IANA hub
-  timezone + client clock; `MM-DD` birthday profile field with 🎂 badge
-  on the viewer's local day; triple opt-in (user shares / hub serves /
-  viewer renders).
 - [ ] **Forum post tags** — next feature after hub timezone + birthday
   badge lands. DESIGNED ([forum.md](docs/forum.md) §10): admin-curated
   tags, multi-tag ≤5 + per-channel require-tag flag, `manage_posts` for

@@ -377,6 +377,33 @@ Definitive status for everything still not at parity:
   paired device attribute to its subkey. The community experience (messages,
   membership, roles, bans) is token-based and already canonical. Tracked.*
 
+- **Hub timezone + birthday badge — DONE (2026-07-21)** (see
+  [decisions.md](decisions.md#hub-timezone--birthday-badge-plain-profile-field-viewer-local-day-triple-opt-in)).
+  `HubAdminPage` Overview gained a timezone `<select>`
+  (`Intl.supportedValuesOf`, feature-detected — hidden with a fallback note
+  where unsupported) and a "Show member birthdays" toggle, wired to both
+  clients' hub-settings save/load. `HubClock` (packages/ui, member-facing,
+  no admin gate) mounts in the sidebar hub-header on both clients, sourced
+  from `/info` on web and from `get_hub_branding` on desktop (desktop had no
+  existing member-facing `/info` fetch to hang it off, so `get_hub_branding`
+  — previously admin-only by call site, not by permission — now doubles as
+  that source). The birthday profile field (month+day `<select>`s, never a
+  year) rides the existing `PATCH /me` clear-with-empty-string convention on
+  both clients; the 🎂 badge renders in the member list and message rows on
+  both. **Gap:** the viewer's `hideBirthdays` opt-out is per-device only on
+  both clients today — web stores it in scoped localStorage (like the
+  existing "hide silenced channels" toggle), desktop holds it in plain
+  in-memory state (like desktop's own existing "hide silenced" toggle,
+  neither persisted). The decision doc calls for this to live in the
+  encrypted hub-synced prefs blob (`packages/core` `PrefsBlobContents.
+  hide_birthdays`, mirrored in desktop's `prefs_blob::LocalPrefs`) for
+  cross-device consistency; the field exists on both sides of that wire
+  shape, but nothing populates it from a real local setting yet, and web has
+  no push path for that blob at all (only a read, used for backup export) —
+  a pre-existing gap this feature didn't create. Wiring an actual local
+  setting into the blob's push/pull round trip is future work if a user
+  actually complains about the badge following them cross-device.
+
 **Feature parity with desktop is complete** for the web client's scope. The
 remaining refinement is canonical-identity mapping for a paired device's DMs
 and DH key (see the pairing follow-up above) — an enhancement, not a gap.

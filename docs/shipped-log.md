@@ -4,6 +4,18 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Hub timezone + birthday badge (2026-07-21)**: hub-local clock
+  (admin-set IANA `hub_timezone` in hub_settings, ☀️/🌙 `HubClock` in
+  the channel sidebar via `Intl.DateTimeFormat`, no new deps) and an
+  opt-in `MM-DD` birthday (never a year) on the member profile with a
+  🎂 badge in member list + message rows on the viewer's local calendar
+  day. Triple opt-in enforced per layer: field-set = user consent,
+  `birthdays_enabled` hub setting gates every member-facing payload
+  server-side, `hideBirthdays` viewer pref. 9 hub integration tests
+  incl. roster gating. Announcement-message variant deferred
+  (ROADMAP wishlist). Server `cb7e79c`, clients `66deab5`. Design:
+  decisions.md 2026-07-21.
+
 - **Parity-gap ledger closed + orchestrators hoisted (2026-07-20)**:
   every tracked capability gap from client-parity.md resolved in three
   waves. Desktop gained: working inline polls (route fix), message

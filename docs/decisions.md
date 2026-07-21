@@ -38,7 +38,14 @@ social features.
    hub-midnight math, and chrono-tz — and cannot be un-delivered per
    grumpy viewer. Demand-gated tail.
 
-**Outcome**: in implementation 2026-07-21.
+**Outcome**: shipped same day — server `cb7e79c` (settings + `MM-DD`
+field + gated payloads, 9 flow tests), clients `66deab5` (HubClock,
+admin controls, profile selects, badge, viewer opt-out). One
+integration catch: the badge reads the member *roster* payload, which
+the first server pass didn't serve — caught in cross-half review, fixed
+before merge. The `hideBirthdays` pref rides device-local storage for
+now; the synced-prefs-blob push path doesn't exist yet on either client
+(pre-existing gap, noted in client-parity.md).
 
 ## Recovery attestation: out-of-band id, K=2 default, 14-day expiry, new-key proof
 
