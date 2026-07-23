@@ -69,13 +69,6 @@ fixed, its entry moves to the shipped log.
   `Migrate` trait defines a second, never-called copy of the recovery
   schema, now drifted (no `nonce` column). Cleanup pass, no user impact
   (found during the 2026-07-20 attestation work).
-- **9 live e2e spec files fail on a clean hub** — 04 role-categories, 12
-  role-assignment, 16 friends, 18 channel-bans, 34/40
-  webhooks-integrations, 37 long-channel-name, 42 invite-link, 46 badges.
-  Pre-existing UI/spec drift, confirmed 2026-07-23 against both current
-  and week-old client code; mostly stale selectors (e.g. renamed buttons),
-  needs per-spec triage.
-
 ## 💤 Won't do
 
 - **Maintain / converge the old Android client** — removed 2026-07-12;
