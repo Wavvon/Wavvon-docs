@@ -62,13 +62,14 @@ a sibling of the spawner, same depth — never violates
   ([nested-channels-ux.md](nested-channels-ux.md) §3.9).
 - **GC**: when the last participant leaves (the existing `leave_voice`
   path knows the roster), stamp `empty_since = now`. A
-  `temp_channel_worker` (existing worker pattern) sweeps every 30s and
-  deletes temp channels with `empty_since` older than **60s** — the
+  `temp_channel_worker` (existing worker pattern) sweeps every 10s and
+  deletes temp channels with `empty_since` older than **30s** — the
   grace period absorbs reconnects and "oops, wrong room" rejoins. A
-  join clears `empty_since`.
+  join clears `empty_since`. (Originally 30s sweep / 60s grace; tightened
+  2026-07-23 after pilot feedback that empty rooms lingered too long.)
 - **Boot sweep**: on startup the voice roster is empty by definition,
   so the worker's first pass stamps any temp channel without
-  `empty_since`, and they age out through the same 60s path — one code
+  `empty_since`, and they age out through the same grace path — one code
   path, no special boot logic.
 - Deleting the channel cascades its messages and permission overwrites
   (existing FK behavior). **Text in a temp room is ephemeral** — this
@@ -130,7 +131,7 @@ owner's name in the tooltip.
 - **Spawn as a sibling, not a child, of the spawner.** Keeps the
   spawner a leaf (no container/leaf blurring), inherits the same
   parent cascade, and can never violate the depth cap.
-- **60s empty-grace GC via a sweep worker, not instant delete.**
+- **30s empty-grace GC via a sweep worker, not instant delete.**
   Instant deletion destroys rooms on voice reconnects; the stamped
   `empty_since` + sweep also gives boot cleanup the same code path.
 - **Payload-free `channel_list_changed`.** Pushing channel objects

@@ -321,12 +321,18 @@ Definitive status for everything still not at parity:
   control, `voice.ts` now accepts 0x01 frames, and the **hub** gained
   pubkey-based whisper routing (`whisper_target_pubkeys` +
   `voice_ws.rs` `only_to` filter) so a web whisper actually reaches only its
-  targets. `e2e/live/21` verifies the control plane. *Follow-ups: (1)
-  **desktop→web** whisper audio still won't reach a web target (the UDP
-  relay in `main.rs` routes by SocketAddr, and web targets have a sentinel
-  addr) — needs the UDP `0x01` branch to also deliver to `voice_ws_senders`;
-  (2) role-type whisper targets route only via the UDP addr set, not the
-  pubkey set; (3) whisper-list save/load (named lists) not ported.*
+  targets. `e2e/live/21` verifies the control plane. *Follow-ups (1) and (2)
+  fixed 2026-07-23: **desktop→web** whisper audio now reaches a web target
+  (the UDP relay's `0x01` branch in `main.rs` also delivers to each resolved
+  target pubkey's `voice_ws_senders` entry, alongside the existing SocketAddr
+  delivery), and role-type whisper targets are now resolved into the pubkey
+  set too (`resolve_whisper_target_pubkeys`, shared by whisper-start and the
+  membership-change re-resolve), not just the UDP addr set. Follow-up (3)
+  also fixed 2026-07-23: web now wires the shared `WhisperPanel`
+  (users/channels/saved lists) via a web `useWhisper` hook, with whisper
+  lists persisted per-account/per-hub in localStorage
+  (`apps/web/src/utils/whisperLists.ts`); the users-only `WhisperBar` was
+  removed. Whisper is at full parity.*
 - **Hub-streams panel — DONE (2026-07-04).** `HubStreamsPanel` behind a 📡
   header button lists screen shares in other channels
   (`requestStreamList`/`subscribeStream`/`unsubscribeStream` over the WS
@@ -416,3 +422,19 @@ and DH key (see the pairing follow-up above) — an enhancement, not a gap.
   `PATCH /me` broadcasts no WebSocket event, so this affects all three
   clients equally. It's a **hub** change (add a member-updated broadcast +
   client handlers), tracked in `ROADMAP.md` Known issues, not here.
+
+## Gaps opened by the 2026-07-23 web bug batch (desktop TODO)
+
+- **Live hub branding (`hub_updated`)** — the hub now broadcasts a
+  payload-free `hub_updated` WS event after `PATCH /hub`, and web
+  refetches `/info` and refreshes its cached hub name+icon
+  (`refreshHubInfo` in `apps/web/src/platform/commands/hubs.ts`).
+  Desktop has no handler for the event — it still shows a stale hub
+  name/icon on non-acting devices until a hub reload.
+- **Unified channel icon picker** — web's shared `ChannelSettingsModal`
+  (packages/ui) now shows the color control only for categories and
+  merges emoji / predefined icons / hub SVG library / SVG upload into
+  one grid. Desktop still uses its own
+  `apps/desktop/src/components/ChannelAppearanceModal.tsx` duplicate
+  with the old four disconnected controls; converge it on the shared
+  modal when desktop is next prioritized.
