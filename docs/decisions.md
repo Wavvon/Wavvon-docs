@@ -6,6 +6,39 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Hub setup wizard: client-side channel templates after ownership
+
+**Decision** (2026-07-25, user feedback from first-run walkthrough): a
+fresh hub owner gets a **"How do you want to use this hub?"** wizard the
+first time they land in a hub they own that has **no channels** —
+template cards (Gaming, Community, Clan, Reading, plus Blank) that
+pre-create a channel structure (categories, text, voice, forum) through
+the ordinary channel-creation API. Without it the first owner faces an
+empty sidebar and members "never know where the channels are."
+
+- **Client-side only.** Templates are hardcoded data in `packages/ui`;
+  the wizard is just a loop of existing create-channel calls made with
+  the owner's own session. *Alternative considered*: server-side
+  bootstrap templates (the hub-creation-wizard.md §1 catalog, hub
+  redeems a template at first boot). Rejected for now — that path
+  needs the discovery catalog + bootstrap-token plumbing, while the
+  client loop ships today and produces the identical end state. The
+  server catalog remains the plan for farm/discovery-driven creation;
+  this wizard can consume it later without UX change.
+- **Trigger = owner + zero channels on entering the hub**, not "just
+  redeemed an owner invite" — this also covers WAVVON_OWNER_PUBKEY
+  bootstrap and hubs wiped after creation. Dismissing the wizard
+  (Blank) marks it done locally; it never re-nags.
+- Related same-round UX decision: **invite links are shared in the
+  plain `http(s)://host/join/<code>` form everywhere** (client
+  `buildInviteLink` + hub first-boot log). The
+  `wavvon://host/i/<serial>/<code>` deep link stays parse-accepted but
+  is no longer what users copy — it was "quite long and terrible to
+  use". The serial-carrying form returns when farm-hosted hubs need
+  serial routing in links.
+
+## Hub timezone + birthday badge: plain profile field, viewer-local day, triple opt-in
+
 ## Hub timezone + birthday badge: plain profile field, viewer-local day, triple opt-in
 
 **Decision** (2026-07-21, user idea + calls): two small, decoupled
