@@ -4,6 +4,27 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **DM liveness bug chain + web `useDms` extraction (2026-07-26)**:
+  second App.tsx hook-extraction slice (`useDms`, mirrors desktop's)
+  plus the first-ever DM e2e (`e2e/live/57`, two clients), which
+  surfaced four real pre-existing bugs, all fixed. Hub (server
+  `2f9e992`): `create_conversation` now announces itself via
+  `dm_member_changed`, and each WS connection keeps its connect-time
+  `my_conversations` snapshot live from MemberChanged events — before
+  this, a conversation created after a client connected was dead air
+  until reconnect (new `dm_live_membership_flow` test). Web (clients
+  `e3d45f7`): the WelcomeScreen first-join path now calls
+  `publishDhKey` like every other join path (a first-run user
+  otherwise had no DH key → plaintext fallback + undecryptable sends);
+  own sent messages now render (reload-after-send + per-message own-
+  plaintext stash — a ratchet can't decrypt its own envelopes);
+  `onDmMemberChanged` upserts new conversations and drops removed
+  ones. Core: `decryptDmDr`'s responder-init was gated on `ckr ==
+  null`, which also matches an *initiator* awaiting the first reply —
+  the reply got hijacked into a bogus re-init and never decrypted;
+  init now runs only for an empty session (matches the desktop Rust
+  impl; new two-way DR unit test).
+
 - **Web `useScreenShare` extraction (2026-07-26)**: first slice of the
   App.tsx hook-extraction effort (ROADMAP Next up) — outbound share
   session, viewer state, cross-channel hub-streams discovery, their WS
