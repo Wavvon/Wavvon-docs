@@ -4,6 +4,16 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Whisper reply key (2026-07-26)**: the whisper.md deferred "whisper
+  reply" item — a dedicated reply key (a *different* button from any
+  per-list bind, user ruling), bound from a Reply key row in the
+  whisper panel with hold/toggle mode, whispers back at the most
+  recent inbound whisperer; falls back to the latest inbox entry so
+  replying works after the whisper ended. Per-account persistence;
+  panel row hidden on clients that don't wire it (desktop). Pure
+  `pickReplyPubkey` unit-tested; e2e drives owner-whisper → held-key
+  reply → owner sees the indicator. Clients `b798a27`.
+
 - **Whisper Roles tab (2026-07-26)**: the hub resolved role-type
   whisper targets since whisper round 1, but the panel had no way to
   pick one — new Roles tab in the shared `WhisperPanel`, lazy-loaded

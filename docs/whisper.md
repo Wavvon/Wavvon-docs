@@ -343,8 +343,11 @@ WS messages.
 - **WebRTC P2P whisper** — truly E2E-private small-group whisper, hub sees
   no audio. Reserved as `packet_type = 0x02`; the hub relays only
   signaling, same posture as [`screen-share-webrtc.md`](screen-share-webrtc.md).
-- **Whisper reply** — recipient presses a key to whisper straight back to
-  the sender.
+- ~~**Whisper reply**~~ — shipped 2026-07-26 (web): a dedicated reply
+  key (bound from the whisper panel, hold or toggle — deliberately a
+  *different* button from any list bind) whispers back at the most
+  recent inbound whisperer; falls back to the latest inbox entry, so a
+  reply works after the whisper ended.
 - ~~**Whisper history indicator**~~ — shipped 2026-07-26 as the whisper
   inbox (web).
 - **Whisper to offline / text-only users** — async delivery as a DM.
