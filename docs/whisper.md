@@ -284,6 +284,8 @@ Wavvon-android):
 - Right-click a channel header -> **Whisper to channel**.
 - A dedicated whisper button in the voice controls opens a target
   selector listing users, channels, roles, and saved whisper lists.
+  (The Roles tab shipped 2026-07-26 on web, lazy-loading the hub's
+  role list; it hides on clients that don't wire the role-list prop.)
 
 **Whisper inbox (shipped 2026-07-26, web)**: inbound whispers accumulate
 in a small fixed overlay — "X is whispering" while live, "X whispered

@@ -4,6 +4,16 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Whisper Roles tab (2026-07-26)**: the hub resolved role-type
+  whisper targets since whisper round 1, but the panel had no way to
+  pick one — new Roles tab in the shared `WhisperPanel`, lazy-loaded
+  behind an optional `onListWhisperRoles` prop (hidden when absent, so
+  desktop is unaffected); web wires `listRoles`. e2e/live/21 drives a
+  real role-target whisper (role created + assigned via API, whisper
+  started from the Roles tab, role member sees the indicator). Whisper
+  target types are now all reachable from the UI: user, channel, role,
+  saved lists. Clients `3d23da1`.
+
 - **Voice-event resilience (2026-07-26)**: the two gaps recorded during
   the roster-bug hunt, closed same day. Hub: the main-WS voice-event
   arm now handles broadcast `Lagged` like the chat arm (warn + push the
