@@ -58,6 +58,14 @@ fixed, its entry moves to the shipped log.
 
 ## ⚠️ Known issues
 
+- **Whisper re-resolution pushes no indicator diffs** — on any
+  re-resolution trigger (voice join/leave, opt-out), the hub updates the
+  resolved target set but sends no `voice_whisper_started`/`stopped` to
+  the users added/dropped, contrary to what
+  [whisper.md](docs/whisper.md) originally specified — a mid-callout
+  joiner hears audio without the indicator (web inbox included). Found
+  2026-07-26 during whisper round 2; needs a design pass on the diffing
+  before implementing.
 - **Discord importer needs a live run** — `export` with a real bot token
   + `apply` against a running hub never exercised live.
 - **Windows installer unsigned** — SmartScreen warning; "More info → Run

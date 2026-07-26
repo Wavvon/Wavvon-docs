@@ -164,6 +164,12 @@ channel), the hub sends `voice_whisper_started` to the newcomer and
 `voice_whisper_stopped` to anyone who dropped out, so indicators stay
 correct without re-announcing to the whole set.
 
+> **Status (2026-07-26)**: this diffing is designed but **not
+> implemented** — re-resolution (join/leave/opt-out) updates the routing
+> state only; no started/stopped notifications are pushed to
+> added/dropped users. A mid-callout joiner hears the audio without the
+> indicator. Tracked in ROADMAP known issues; needs a design pass.
+
 ---
 
 ## UDP relay change
@@ -262,6 +268,15 @@ come and go — resolution happens fresh each time the list is activated.
   keyup. This is the raid-commander default.
 - **Toggle whisper** — click to start, click again to stop.
 
+**Keybinds (shipped 2026-07-26, web)**: each saved whisper list can be
+bound to a key from the Saved Lists tab of the whisper panel, with a
+per-list mode — **Hold** (PTT-style: whisper while held) or **Toggle**
+(press to start, press again to stop). Web keybinds are in-app only
+(active while the tab is focused), the same limitation as web
+push-to-talk; global background hotkeys need the desktop app. The
+`WhisperList.keybind` / `keybindMode` fields ride the existing per-hub
+list persistence.
+
 **Target selection UI** (Wavvon-desktop, mirrored in Wavvon-web /
 Wavvon-android):
 
@@ -269,6 +284,24 @@ Wavvon-android):
 - Right-click a channel header -> **Whisper to channel**.
 - A dedicated whisper button in the voice controls opens a target
   selector listing users, channels, roles, and saved whisper lists.
+
+**Whisper inbox (shipped 2026-07-26, web)**: inbound whispers accumulate
+in a small fixed overlay — "X is whispering" while live, "X whispered
+you" + time after it ends — and **stay until dismissed** (per-entry ✕ or
+Clear all). This covers the previously deferred "whisper history
+indicator": a recipient who was alt-tabbed still sees who whispered them.
+Session-only state; nothing is persisted.
+
+**Receive opt-out (shipped 2026-07-26)**: a user not in a raid can refuse
+whispers entirely — a "Don't receive whispers" checkbox in the whisper
+panel. Enforced **hub-side**: the client sends
+`voice_whisper_optout { enabled }` (see
+[`ws-protocol.md`](ws-protocol.md)) and the hub excludes opted-out
+pubkeys from every target resolution, including live re-resolution of
+in-progress sessions — an opted-out user receives neither the audio nor
+the `voice_whisper_started` signal, and a mid-callout opt-out drops them
+immediately. Sending whispers is unaffected. The flag is ephemeral on the
+hub; the client persists it per account and re-sends on every reconnect.
 
 **Visual indicators:**
 
@@ -310,8 +343,8 @@ WS messages.
   signaling, same posture as [`screen-share-webrtc.md`](screen-share-webrtc.md).
 - **Whisper reply** — recipient presses a key to whisper straight back to
   the sender.
-- **Whisper history indicator** — "X whispered to you 30s ago" when the
-  recipient was focused on another app.
+- ~~**Whisper history indicator**~~ — shipped 2026-07-26 as the whisper
+  inbox (web).
 - **Whisper to offline / text-only users** — async delivery as a DM.
 - **Per-hub max-targets enforcement** — an operator setting that caps the
   resolved target set for self-hosted bandwidth control (the ~200-target

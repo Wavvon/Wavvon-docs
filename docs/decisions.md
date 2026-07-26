@@ -6,6 +6,37 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Whisper round 2: inbox, per-list keybinds, hub-enforced receive opt-out
+
+**Decision** (2026-07-26, user request after trying whisper on web):
+three additions, web-first ([whisper.md](whisper.md) has the details):
+
+- **Whisper inbox** — inbound whispers land in a fixed overlay that
+  persists until dismissed (live "is whispering" → "whispered you" +
+  time). *Alternative considered*: transient toast — rejected, the whole
+  point is catching a whisper you missed while alt-tabbed. Session-only
+  state, no persistence.
+- **Per-list keybinds with Hold/Toggle mode** — the dormant
+  `WhisperList.keybind` field is now real; a `keybindMode` field picks
+  PTT-style hold or toggle per list. In-app keys on web (same limitation
+  as web PTT). *Alternative considered*: one global whisper key +
+  separate mode setting — rejected, a raid commander wants different
+  keys for different target lists, and per-list needed less UI surface.
+- **Receive opt-out is enforced on the hub, not the client** — new
+  `voice_whisper_optout { enabled }` WS message; opted-out pubkeys are
+  excluded from all target resolution (incl. live re-resolution), so
+  they get neither audio nor the started/stopped signals. *Alternative
+  considered*: client-side ignore (drop 0x01 frames locally) — rejected:
+  the hub would still waste bandwidth fanning out to them, the whisperer
+  would see a lying "delivered" target count, and a bystander refusing
+  whispers shouldn't even be observable as a target. Ephemeral hub
+  state; the client persists the pref per account and re-sends on every
+  reconnect (same posture as other per-session voice state).
+
+Tradeoff: whisper UX now diverges from desktop (gaps recorded in
+[client-parity.md](client-parity.md)); acceptable since web is the
+delivery target.
+
 ## Hub setup wizard: client-side channel templates after ownership
 
 **Decision** (2026-07-25, user feedback from first-run walkthrough): a

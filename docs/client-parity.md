@@ -332,7 +332,16 @@ Definitive status for everything still not at parity:
   (users/channels/saved lists) via a web `useWhisper` hook, with whisper
   lists persisted per-account/per-hub in localStorage
   (`apps/web/src/utils/whisperLists.ts`); the users-only `WhisperBar` was
-  removed. Whisper is at full parity.*
+  removed. Whisper is at full parity.* **Update 2026-07-26 — web pulled
+  ahead:** whisper inbox (`WhisperInbox` in packages/ui, persists until
+  dismissed), per-list keybinds with hold/toggle mode
+  (`apps/web/src/hooks/useWhisperKeybinds.ts`), and receive opt-out
+  (`voice_whisper_optout` WS message, hub-enforced; persisted per account
+  in `apps/web/src/utils/whisperOptout.ts`, re-sent on reconnect).
+  *Desktop gaps:* no keybind listener (the shared `WhisperPanel` shows the
+  bind UI but desktop doesn't act on it — a desktop hook could add global
+  hotkeys via Tauri), no `WhisperInbox` render, no opt-out wiring
+  (desktop `useWhisper` lacks the state + send-on-reconnect).
 - **Hub-streams panel — DONE (2026-07-04).** `HubStreamsPanel` behind a 📡
   header button lists screen shares in other channels
   (`requestStreamList`/`subscribeStream`/`unsubscribeStream` over the WS

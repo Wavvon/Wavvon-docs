@@ -174,6 +174,18 @@ Close the active whisper session. No payload fields:
 `{"type":"voice_whisper_stop"}`. Previously-resolved recipients receive
 [`voice_whisper_stopped`](#voice_whisper_stopped).
 
+#### `voice_whisper_optout`
+Opt out of (or back into) **receiving** whispers. While opted out, the
+sender's pubkey is excluded from every whisper target resolution (user,
+channel, and role targets alike), including live re-resolution of whisper
+sessions already in progress. Sending whispers is unaffected. The flag is
+ephemeral hub state keyed by pubkey — clients persist the preference
+locally and re-send it on every (re)connect. No reply message.
+
+| field | type | notes |
+|---|---|---|
+| `enabled` | boolean | `true` = stop receiving whispers |
+
 ### Proximity voice (zones)
 
 #### `voice_zone_create`

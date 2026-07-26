@@ -4,6 +4,23 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Whisper round 2 (2026-07-26)**: three whisper UX additions, web-first
+  ([whisper.md](whisper.md); rationale in decisions.md same date).
+  **Whisper inbox** — inbound whispers land in a persistent overlay
+  ("is whispering" → "whispered you" + time) until dismissed, covering
+  the deferred history-indicator item. **Per-list keybinds** — the
+  dormant `WhisperList.keybind` field is now real, bound from the Saved
+  Lists tab, with per-list Hold (PTT-style) or Toggle mode; in-app keys,
+  same scope as web push-to-talk. **Receive opt-out** — hub-enforced
+  `voice_whisper_optout` WS message; opted-out pubkeys are excluded from
+  all target resolution incl. live re-resolution, pref persisted
+  per-account and re-sent on reconnect, checkbox in the whisper panel.
+  Hub integration test `whisper_optout_flow.rs`; web vitest for the
+  inbox reducer. Desktop gaps recorded in
+  [client-parity.md](client-parity.md). Server `c77ff7a`, clients
+  `9513858`. Known issue found during the work: re-resolution pushes no
+  started/stopped diff notifications (ROADMAP).
+
 - **Forum post tags (2026-07-21)**: admin-curated per-channel tag
   definitions ([forum.md](forum.md) §10) — `forum_tags` + `post_tags`
   join, CRUD gated on `manage_posts`, ≤5 tags per post assigned by the
