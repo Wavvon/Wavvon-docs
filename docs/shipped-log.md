@@ -4,6 +4,15 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Desktop DM send path upgraded to DR v2 (2026-07-27)**: the last
+  DM-crypto parity gap — desktop's 1:1 send used the legacy v1
+  static-static scheme. It now `init_dr_session`s (idempotent; a
+  responder-inited session is reused) and sends the same v2 envelopes
+  web sends; the dead v1 `encrypt_dm` command was removed (v1 decrypt
+  stays for old history). A reverse cross-language vector (Rust
+  initiator → TS responder) completes the interop triangle. Clients
+  `fef2ca3`.
+
 - **Desktop DR receive side wired (2026-07-27)**: desktop could never
   decrypt an inbound DR v2 DM in a conversation it hadn't sent in
   first (`init_dr_session` existed but nothing called it; the decrypt

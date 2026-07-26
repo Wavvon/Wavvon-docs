@@ -99,8 +99,10 @@ real pin. Covered by `e2e/live/55`.)*
   envelope + the sender's published DH key (fetched in
   `get_dm_messages` only when no session exists). Pinned by a
   cross-language vector test (TS-initiator envelope → Rust responder).
-  Note: desktop still *sends* v1 envelopes (`encrypt_dm`) — upgrading
-  desktop's send path to DR v2 is the remaining DM-crypto parity item.
+  Desktop's *send* path upgraded to DR v2 the same day (clients
+  `fef2ca3`, dead v1 `encrypt_dm` command removed, reverse Rust→TS
+  vector added) — DM crypto is at full parity; both interop directions
+  are vector-pinned across the two test suites.
 
 - Soundboard ponytail ceilings: linear resampler, one-clip-at-a-time,
   played-attribution chip not wired on desktop (needs the
