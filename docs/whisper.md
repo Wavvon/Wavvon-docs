@@ -164,11 +164,11 @@ channel), the hub sends `voice_whisper_started` to the newcomer and
 `voice_whisper_stopped` to anyone who dropped out, so indicators stay
 correct without re-announcing to the whole set.
 
-> **Status (2026-07-26)**: this diffing is designed but **not
-> implemented** — re-resolution (join/leave/opt-out) updates the routing
-> state only; no started/stopped notifications are pushed to
-> added/dropped users. A mid-callout joiner hears the audio without the
-> indicator. Tracked in ROADMAP known issues; needs a design pass.
+Implemented 2026-07-26 (same-day fix of the gap found during whisper
+round 2): re-resolution diffs old vs new target sets on every trigger —
+voice join, voice leave (including raw WS disconnect), and receive
+opt-out — and session teardown (whisperer leaves voice or disconnects)
+notifies the previously-resolved recipients.
 
 ---
 

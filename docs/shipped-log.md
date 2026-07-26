@@ -4,6 +4,20 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Known-issue sweep (2026-07-26)**: two ROADMAP known issues closed.
+  **Whisper re-resolution diffing** — `re_resolve_whisper_sessions` now
+  diffs old vs new target pubkey sets and pushes `voice_whisper_started`
+  to added / `voice_whisper_stopped` to dropped recipients on every
+  trigger (voice join, leave, opt-out); teardown (whisperer leaves or
+  disconnects) notifies its recipients; and `leave_voice` itself now
+  re-resolves, covering a recipient dropping via raw WS disconnect —
+  a sub-gap found during the fix. 5 new hub flow tests. Server
+  `e73f7a7`. **Store-crate dead scaffolding** — never-called `Migrate`
+  trait + its drifted 650-line DDL duplicate deleted from
+  `crates/store` (found 2026-07-20; the "second recovery schema" was
+  in fact a full-schema copy). Deletion only, −684 lines. Server
+  `247d524`.
+
 - **Whisper round 2 (2026-07-26)**: three whisper UX additions, web-first
   ([whisper.md](whisper.md); rationale in decisions.md same date).
   **Whisper inbox** — inbound whispers land in a persistent overlay
