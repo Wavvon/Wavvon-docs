@@ -93,16 +93,14 @@ real pin. Covered by `e2e/live/55`.)*
 
 **Open capability notes** (small, tracked):
 
-- **Desktop DR receive side is broken for conversations where desktop
-  never sent first** (found 2026-07-27 during the DM audit):
-  `init_dr_session` is a registered Tauri command but no TS ever calls
-  it, and `get_dm_messages`' decrypt path can't responder-init (it's
-  sync, and the init needs the sender's published DH key fetched from
-  the hub) — every inbound encrypted DM renders "[decryption failed]".
-  Fix shape: plumb the sender-DH fetch into the receive path and init
-  the session there, like web's `decryptDmDr` does. The mirror bugs
-  that were fixable tonight (publish-on-join, own-plaintext stash)
-  shipped in clients `e38e861`.
+- ~~Desktop DR receive side broken for conversations where desktop
+  never sent first~~ — fixed 2026-07-27 (clients `9a60076`):
+  `decrypt_dm_dr_inner` responder-inits a missing session from the
+  envelope + the sender's published DH key (fetched in
+  `get_dm_messages` only when no session exists). Pinned by a
+  cross-language vector test (TS-initiator envelope → Rust responder).
+  Note: desktop still *sends* v1 envelopes (`encrypt_dm`) — upgrading
+  desktop's send path to DR v2 is the remaining DM-crypto parity item.
 
 - Soundboard ponytail ceilings: linear resampler, one-clip-at-a-time,
   played-attribution chip not wired on desktop (needs the

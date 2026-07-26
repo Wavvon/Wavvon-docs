@@ -21,10 +21,10 @@ fixed, its entry moves to the shipped log.
   wider-surfaced hook. Remaining: voice+video (one unit — the video
   session is created/torn down inside the voice lifecycle; riskiest,
   do last, after the cross-internet voice test).
-- [ ] **Desktop DR receive side** — desktop never responder-inits a DR
-  session, so inbound encrypted DMs to a desktop that never sent first
-  show "[decryption failed]" (client-parity.md, found 2026-07-27).
-  Needs the sender-DH fetch plumbed into the receive path.
+- [ ] **Desktop DM send path still v1** — desktop receives DR v2 now
+  (receive-side fix 2026-07-27, clients `9a60076`) but still sends
+  legacy v1 envelopes (`encrypt_dm`); upgrade the send path to DR v2
+  for full DM-crypto parity with web.
 
 - [ ] **Networked voice — first cross-internet test** — all four clients
   shipped; the live test over the pilot hub is pending. Phase 2 (voice

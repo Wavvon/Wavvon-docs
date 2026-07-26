@@ -4,6 +4,19 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Desktop DR receive side wired (2026-07-27)**: desktop could never
+  decrypt an inbound DR v2 DM in a conversation it hadn't sent in
+  first (`init_dr_session` existed but nothing called it; the decrypt
+  hard-failed on a missing session) — every web→desktop encrypted DM
+  rendered "[decryption failed]". `decrypt_dm_dr_inner` now
+  responder-inits a missing session from the envelope's ratchet key +
+  the sender's published DH key (fetched in `get_dm_messages` only
+  when no session exists; failed decrypts never persist state).
+  Pinned by a chain-equality unit test and a cross-language vector
+  (packages/core TS-initiator envelope decrypted by the Rust
+  responder). Desktop still *sends* v1 — tracked in ROADMAP. Clients
+  `9a60076`.
+
 - **Desktop DM parity fixes (2026-07-27)**: the mirror forms of two of
   the web DM bugs, fixed the same way (clients `e38e861`) —
   `publish_dh_key` ran only once at startup, so hubs joined mid-session
