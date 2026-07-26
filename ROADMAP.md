@@ -58,6 +58,13 @@ fixed, its entry moves to the shipped log.
 
 ## ⚠️ Known issues
 
+- **Voice event resilience (hub, minor)** — two robustness gaps found
+  while chasing the 2026-07-26 roster bug, neither yet observed
+  failing: the main-WS voice-event arm silently ignores broadcast
+  `Lagged` errors (`connection.rs` — chat arm warns + pushes a
+  `lagged` resync message; voice arm should match), and the web
+  `/voice/ws` join path broadcasts only `VoiceParticipantJoined` while
+  the UDP join path also broadcasts a healing `VoiceRosterUpdate`.
 - **Discord importer needs a live run** — `export` with a real bot token
   + `apply` against a running hub never exercised live.
 - **Windows installer unsigned** — SmartScreen warning; "More info → Run

@@ -4,6 +4,23 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Voice-roster presence bug + whisper e2e coverage (2026-07-26)**: a
+  member whose `/users` refetch snapshot raced their presence
+  registration was stamped offline forever, and web's
+  `visibleParticipants` filter then hid their **live voice presence**
+  from the sidebar and whisper panel (intermittent "user is in voice
+  but nobody sees them"). The filter existed to avoid outing invisible
+  users, but the hub has been authoritative for that since 2026-07-12
+  (invisible members omitted from ready frames, join/leave broadcasts,
+  rosters; mid-call toggle emits Left) — deleted it, raw
+  `voicePartByChannel` everywhere, and the `member_online` refetch now
+  stamps the triggering member online. Found (after unit suites and
+  the hub both checked out clean) by driving the real app; the hunt is
+  the 2026-07-20 lesson repeating. e2e/live/21 extended to cover
+  whisper round 2: inbox persistence, opt-out + mid-session opt-back-in
+  (exercises the re-resolution diff live), hold-mode keybind, plus a
+  roster-sync regression guard. Clients `6b00a7a`.
+
 - **Known-issue sweep (2026-07-26)**: two ROADMAP known issues closed.
   **Whisper re-resolution diffing** — `re_resolve_whisper_sessions` now
   diffs old vs new target pubkey sets and pushes `voice_whisper_started`
