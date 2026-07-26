@@ -42,6 +42,15 @@ fixed, its entry moves to the shipped log.
   Not worth extracting (checked 2026-07-27): message send/edit — thin
   glue over cross-cutting App state, a hook would just widen the
   surface. Desktop gets the same treatment after web.
+  **Convergence goal:** extracted hooks should ultimately be SHARED,
+  not mirrored — the web/desktop pairs (`useDms`, `useScreenShare`,
+  `useWhisper`, …) differ mainly in platform access (`invoke()` vs
+  HTTP commands), which can travel in via an injected actions object,
+  the same pattern packages/ui components already use. Once a pair's
+  logic converges, hoist it into packages/ui and delete both app
+  copies — that's the real payoff of the refactor: one implementation
+  of each subsystem, `App.tsx` reduced to state orchestration + wiring
+  (which stays app-local by design, decisions.md 2026-07-18).
 
 - [ ] **Networked voice — first cross-internet test** — all four clients
   shipped; the live test over the pilot hub is pending. Phase 2 (voice
