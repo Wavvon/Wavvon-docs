@@ -101,8 +101,9 @@ real pin. Covered by `e2e/live/55`.)*
 - Desktop Devices/Privacy tabs are active-account-only (no Rust surface
   for other accounts' state — permanent model difference vs web's
   IndexedDB).
-- web `onOpenEditDescription` is a no-op at its `App.tsx` call site
-  (pre-existing; desktop has the real handler).
+- ~~web `onOpenEditDescription` is a no-op at its `App.tsx` call site~~
+  — fixed 2026-07-26 (clients `0a1700e`): `EditDescriptionModal` hoisted
+  to packages/ui and wired on web (`e2e/live/56`).
 
 ---
 

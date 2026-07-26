@@ -4,6 +4,14 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Channel-description editing wired on web (2026-07-26)**: the
+  header's "Add a description" affordance called a no-op
+  `onOpenEditDescription` on web (parity note since the orchestrators
+  pass) — desktop's `EditDescriptionModal` hoisted unchanged into
+  packages/ui and wired on web with a `PATCH /channels/{id}` save
+  (empty clears). `e2e/live/56` drives add → edit from the header.
+  Clients `0a1700e`.
+
 - **PinnedMessages union pass (2026-07-26)**: the last feature-diverged
   app-local component pair is one shared `PinnedMessagesModal` in
   packages/ui — web's FocusTrap/Escape/aria modal shell + desktop's
