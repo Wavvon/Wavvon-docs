@@ -93,6 +93,17 @@ real pin. Covered by `e2e/live/55`.)*
 
 **Open capability notes** (small, tracked):
 
+- **Desktop DR receive side is broken for conversations where desktop
+  never sent first** (found 2026-07-27 during the DM audit):
+  `init_dr_session` is a registered Tauri command but no TS ever calls
+  it, and `get_dm_messages`' decrypt path can't responder-init (it's
+  sync, and the init needs the sender's published DH key fetched from
+  the hub) — every inbound encrypted DM renders "[decryption failed]".
+  Fix shape: plumb the sender-DH fetch into the receive path and init
+  the session there, like web's `decryptDmDr` does. The mirror bugs
+  that were fixable tonight (publish-on-join, own-plaintext stash)
+  shipped in clients `e38e861`.
+
 - Soundboard ponytail ceilings: linear resampler, one-clip-at-a-time,
   played-attribution chip not wired on desktop (needs the
   `SoundboardPlayed` WS variant in desktop's `types.rs`/`ws.rs`).

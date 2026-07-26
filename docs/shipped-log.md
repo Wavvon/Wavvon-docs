@@ -4,6 +4,18 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Desktop DM parity fixes (2026-07-27)**: the mirror forms of two of
+  the web DM bugs, fixed the same way (clients `e38e861`) —
+  `publish_dh_key` ran only once at startup, so hubs joined mid-session
+  never got the DH key until an app restart (now invoked after add-hub
+  and create-hub-wizard joins); and `get_dm_messages` DR-decrypted our
+  own outbound envelopes (guaranteed "[decryption failed]" on history
+  reload) — `send_dm` now stashes the plaintext per message id in the
+  per-account store and the read path uses it for own encrypted +
+  group messages. The desktop DR *receive* side (no responder init
+  ever wired) is a recorded gap in client-parity.md, for the next
+  desktop pass.
+
 - **DM liveness bug chain + web `useDms` extraction (2026-07-26)**:
   second App.tsx hook-extraction slice (`useDms`, mirrors desktop's)
   plus the first-ever DM e2e (`e2e/live/57`, two clients), which

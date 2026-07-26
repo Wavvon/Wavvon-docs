@@ -15,10 +15,16 @@ fixed, its entry moves to the shipped log.
   existing set; one cluster per pass, live e2e green after each.
   Done: screen-share+hub-streams (`useScreenShare`, clients `41e4b91`),
   DMs (`useDms`, clients `e3d45f7` — surfaced and fixed the DM-liveness
-  bug chain, see shipped log). Remaining, in rough risk order: message
-  send/edit, voice+video (one unit — the video session is created/torn
-  down inside the voice lifecycle; riskiest, do last, after the
-  cross-internet voice test).
+  bug chain, see shipped log). Message send/edit was dropped on
+  inspection (2026-07-27): ~50 lines of thin glue over cross-cutting
+  App state, not a cluster — extracting it trades App lines for a
+  wider-surfaced hook. Remaining: voice+video (one unit — the video
+  session is created/torn down inside the voice lifecycle; riskiest,
+  do last, after the cross-internet voice test).
+- [ ] **Desktop DR receive side** — desktop never responder-inits a DR
+  session, so inbound encrypted DMs to a desktop that never sent first
+  show "[decryption failed]" (client-parity.md, found 2026-07-27).
+  Needs the sender-DH fetch plumbed into the receive path.
 
 - [ ] **Networked voice — first cross-internet test** — all four clients
   shipped; the live test over the pilot hub is pending. Phase 2 (voice
