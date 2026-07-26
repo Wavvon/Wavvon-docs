@@ -18,10 +18,6 @@ fixed, its entry moves to the shipped log.
   reload), redeem owner invite, cross-internet voice test, friend
   onboards + ownership transfer, doc-test feedback, two-operator
   federation test.
-- [ ] **PinnedMessages union pass** — the one component pair still
-  app-local with a real gap (desktop admin unpin vs web; diverging
-  wire shapes). Everything else consolidated 2026-07-20 (shipped log;
-  status in [client-parity.md](docs/client-parity.md)).
 
 ## 🚧 Blocked
 

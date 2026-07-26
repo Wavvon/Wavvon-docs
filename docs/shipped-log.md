@@ -4,6 +4,17 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **PinnedMessages union pass (2026-07-26)**: the last feature-diverged
+  app-local component pair is one shared `PinnedMessagesModal` in
+  packages/ui — web's FocusTrap/Escape/aria modal shell + desktop's
+  admin Unpin and pinned-by metadata, data access via
+  `getPins`/`unpinMessage` callback props. Also fixed a real web bug:
+  web's flat `PinnedMessage` type never matched the hub's `PinResponse`
+  (nested `message` object), so the modal crashed on any real pin. New
+  `e2e/live/55` drives pin → modal render → unpin against a real hub.
+  Only `App` and the `MicLevelMeter` false twin remain app-local.
+  Clients `5918873`.
+
 - **Whisper reply key (2026-07-26)**: the whisper.md deferred "whisper
   reply" item — a dedicated reply key (a *different* button from any
   per-list bind, user ruling), bound from a Reply key row in the

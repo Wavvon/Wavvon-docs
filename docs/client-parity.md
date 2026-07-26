@@ -84,7 +84,12 @@ Remaining app-local, all by design:
 |---|---|
 | `App` | True state orchestrator (decisions.md 2026-07-18) — holds all component state, not a rendering shell. |
 | `MicLevelMeter` | False twin — filename collision (web: mic test widget; desktop: VAD-threshold slider). No action needed. |
-| `PinnedMessagesModal`/`PinnedMessages` | Feature-diverged pair (desktop has admin unpin, web doesn't; different `PinnedMessage` wire shapes) — the one remaining union pass, small. `ContentArea`'s `onShowPinned` lets each app render its own modal meanwhile. |
+
+*(`PinnedMessagesModal` was the last feature-diverged pair; its union
+pass shipped 2026-07-26, clients `5918873` — one shared modal with
+desktop's admin unpin + web's a11y shell, and a fix for web's
+wrong-vs-wire flat `PinnedMessage` type that crashed the modal on any
+real pin. Covered by `e2e/live/55`.)*
 
 **Open capability notes** (small, tracked):
 
