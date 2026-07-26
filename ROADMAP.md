@@ -10,6 +10,18 @@ fixed, its entry moves to the shipped log.
 
 ## 🔨 Next up
 
+- [ ] **Cut a release with the DM fix batch** — encrypted DMs never
+  actually worked cross-client before the 2026-07-26/27 fixes (hub
+  liveness, web bug chain, desktop DR receive + v2 send; shipped log).
+  Bump versions on develop, open the develop→main PR, user reviews +
+  merges. Do before the pilot friend onboards. Version number to be
+  decided at PR time.
+- [ ] **Desktop live-drive DM verification** — the DR interop is pinned
+  by cross-language vector tests, but no real desktop app was driven;
+  smoke-test a real web↔desktop DM exchange via the documented recipe
+  (Tauri dev + `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port`
+  + Playwright `connectOverCDP`). Consider a reusable desktop e2e
+  harness while at it — this gap is why the DM bugs survived so long.
 - [ ] **Web App.tsx hook extraction** — shrink the 3.5k-line orchestrator
   by moving cohesive state clusters into hooks, mirroring desktop's
   existing set; one cluster per pass, live e2e green after each.
@@ -49,8 +61,13 @@ fixed, its entry moves to the shipped log.
 - **Passkey registration from desktop** — blocked by Tauri webview RP ID
   mismatch; needs a native WebAuthn plugin or system-browser handoff.
 - **Desktop parity backlog** — named custom themes, data-export archive
-  compat, LAN discovery UX (mDNS + QR). Details in
-  [`client-parity.md`](docs/client-parity.md).
+  compat, LAN discovery UX (mDNS + QR), whisper gaps (keybind listener,
+  `WhisperInbox` render, opt-out wiring), `SoundboardPlayed` chip.
+  Details in [`client-parity.md`](docs/client-parity.md).
+- **Banner-channel management surface** — a bannerless banner channel
+  can't be renamed/deleted from the web sidebar (no gear, no context
+  menu); needs a small UX decision first
+  ([client-parity.md](docs/client-parity.md) tracked item 4).
 - **Birthday announcement message** — demand-gated tail of the birthday
   badge: hub-configured channel + daily worker posting at hub-midnight
   (needs chrono-tz). Only if a pilot community asks.
@@ -73,6 +90,14 @@ fixed, its entry moves to the shipped log.
 - **Bot deferred scope** — bot DMs: no timeline. (Voice/video injection
   and bot-launched game modals shipped 2026-07-19 as capability-layer
   Phases 1–2.)
+- **`GET /users` caps at 50 rows** — member lists silently truncate on
+  larger hubs (also forced the e2e suite onto a fresh DB, 2026-07-26);
+  needs pagination/search on the hub.
+- **Own encrypted DMs from another device show "[decryption failed]"**
+  — the own-plaintext stash is device-local by nature (a ratchet can't
+  decrypt its own envelopes), so a paired second device can't render
+  messages the first device sent. Edge of the tracked paired-device
+  canonical-DM follow-up (client-parity.md pairing item).
 ## 💤 Won't do
 
 - **Maintain / converge the old Android client** — removed 2026-07-12;
