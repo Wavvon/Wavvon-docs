@@ -22,17 +22,26 @@ fixed, its entry moves to the shipped log.
   (Tauri dev + `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port`
   + Playwright `connectOverCDP`). Consider a reusable desktop e2e
   harness while at it — this gap is why the DM bugs survived so long.
-- [ ] **Web App.tsx hook extraction** — shrink the 3.5k-line orchestrator
-  by moving cohesive state clusters into hooks, mirroring desktop's
-  existing set; one cluster per pass, live e2e green after each.
-  Done: screen-share+hub-streams (`useScreenShare`, clients `41e4b91`),
-  DMs (`useDms`, clients `e3d45f7` — surfaced and fixed the DM-liveness
-  bug chain, see shipped log). Message send/edit was dropped on
-  inspection (2026-07-27): ~50 lines of thin glue over cross-cutting
-  App state, not a cluster — extracting it trades App lines for a
-  wider-surfaced hook. Remaining: voice+video (one unit — the video
-  session is created/torn down inside the voice lifecycle; riskiest,
-  do last, after the cross-internet voice test).
+- [ ] **App.tsx refactor (web 3,485 lines / desktop 3,171)** — ongoing:
+  shrink both orchestrators by moving cohesive state clusters into
+  hooks (web mirrors desktop's hook names) and render blocks into
+  components; one slice per pass, full typecheck + relevant live e2e
+  green after each. Done on web: screen-share+hub-streams
+  (`useScreenShare`, clients `41e4b91`), DMs (`useDms`, `e3d45f7`).
+  Remaining candidate slices on web, roughly by risk:
+  - **hub lifecycle** — add/join/passkey/lobby/deep-link handlers +
+    `loadHubData` (several hundred lines, self-contained handlers);
+  - **WS handler registry** — the ~250-line frozen `stableHandlers`
+    memo → a `useWsHandlers` hook like desktop's (all deps are already
+    refs/stable setters, that's why the memo freeze works);
+  - **modal render tree** — the long tail of `{showX && <XModal/>}`
+    blocks → a `Modals` component fed by a props object;
+  - **voice+video** — one unit (the video session is created/torn down
+    inside the voice lifecycle); riskiest, do LAST, after the
+    cross-internet voice test.
+  Not worth extracting (checked 2026-07-27): message send/edit — thin
+  glue over cross-cutting App state, a hook would just widen the
+  surface. Desktop gets the same treatment after web.
 
 - [ ] **Networked voice — first cross-internet test** — all four clients
   shipped; the live test over the pilot hub is pending. Phase 2 (voice
