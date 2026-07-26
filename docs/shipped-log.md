@@ -4,6 +4,13 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Web `useScreenShare` extraction (2026-07-26)**: first slice of the
+  App.tsx hook-extraction effort (ROADMAP Next up) — outbound share
+  session, viewer state, cross-channel hub-streams discovery, their WS
+  arms, and the unmount teardown moved from `App.tsx` into
+  `hooks/useScreenShare.ts`, behavior unchanged (e2e/live/15 + 26
+  green). App.tsx 3646 → 3556 lines. Clients `41e4b91`.
+
 - **Channel-description editing wired on web (2026-07-26)**: the
   header's "Add a description" affordance called a no-op
   `onOpenEditDescription` on web (parity note since the orchestrators

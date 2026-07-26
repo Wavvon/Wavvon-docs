@@ -10,6 +10,14 @@ fixed, its entry moves to the shipped log.
 
 ## 🔨 Next up
 
+- [ ] **Web App.tsx hook extraction** — shrink the 3.5k-line orchestrator
+  by moving cohesive state clusters into hooks, mirroring desktop's
+  existing set; one cluster per pass, live e2e green after each.
+  Done: screen-share+hub-streams (`useScreenShare`, clients `41e4b91`).
+  Remaining, in rough risk order: DMs, message send/edit, voice+video
+  (one unit — the video session is created/torn down inside the voice
+  lifecycle; riskiest, do last, after the cross-internet voice test).
+
 - [ ] **Networked voice — first cross-internet test** — all four clients
   shipped; the live test over the pilot hub is pending. Phase 2 (voice
   encryption) is separate.
