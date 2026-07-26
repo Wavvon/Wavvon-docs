@@ -4,6 +4,18 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Voice-event resilience (2026-07-26)**: the two gaps recorded during
+  the roster-bug hunt, closed same day. Hub: the main-WS voice-event
+  arm now handles broadcast `Lagged` like the chat arm (warn + push the
+  `lagged` resync message — was silently dropped, making a missed
+  Joined permanent), and `/voice/ws` joins now broadcast a
+  `VoiceRosterUpdate` like the UDP path (sender_id map + heals missed
+  Joined events); new flow test
+  `voice_ws_join_broadcasts_roster_update`. Web: `lagged` gets a
+  dedicated `onLagged` handler resyncing channels + users + voice
+  roster (previously channels only). Server `454259a`, clients
+  `35ba88d`.
+
 - **Voice-roster presence bug + whisper e2e coverage (2026-07-26)**: a
   member whose `/users` refetch snapshot raced their presence
   registration was stamped offline forever, and web's
