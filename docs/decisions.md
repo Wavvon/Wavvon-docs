@@ -6,6 +6,41 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## App.tsx hook split + shared orchestration hooks in packages/ui
+
+**Decision** (2026-07-28, user asked to shrink both App.tsx files and
+reduce web/desktop duplication): both orchestrators were split into
+hooks with mirrored names (web gained desktop's `useVoice`/`useVideo`/
+`useWsHandlers` split plus `useAddHubFlow`/`useChannelCrud`; desktop
+gained `useAddHubFlow`/`useChannelCrud`/`useFarmAdmin`). Logic that was
+a verbatim copy in both apps moved to a new `packages/ui/src/hooks/`
+home as prop-injected hooks (`useVoiceMoveUx`, `usePresenceStatus`,
+`useHubSetupWizardGate`) — same injection discipline as the prop-only
+component rule. Web App.tsx went 3485 → 2383 lines, desktop 2975 → 2730
+(while gaining features, below). Clients commit `5db0f31`.
+
+*Alternative considered*: also unifying the same-named per-app hooks
+(`useDms`, `useScreenShare`, `useHubAdmin`, `useUnreadCounts`, …) —
+rejected: they have genuinely platform-bound bodies (desktop persists
+unread state to disk and drives the tray icon, native capture, local DM
+ratchet store); one shared hook would need a mega-injection surface
+that costs more than the duplication. Only verbatim-identical
+orchestration was hoisted. `useTypingIndicators` is a borderline future
+candidate (same logic, different dep plumbing).
+
+**ChannelContextMenu union** (same session, follows the 2026-07-20
+union rule): one shared prop-only `ChannelContextMenu` in packages/ui
+replaced web's inline menu and desktop's local component. Entries
+render iff their callback prop is wired; structural gating (category /
+channel type) lives in the component, permission gating in the app.
+Desktop gained copy-link, create event, create poll (shared composers
+over its existing `create_event_hub`/`create_poll` commands), temp-room
+owner rename, and root-level create channel/category; web gained
+notify-mode entries on categories (modes inherit down the tree).
+Desktop's plain "Rename" now opens the full shared ChannelSettingsModal
+(superset), and desktop now clears the voice-move name hint on voice
+leave (pre-existing quirk vs web, fixed while touching the same code).
+
 ## Whisper round 2: inbox, per-list keybinds, hub-enforced receive opt-out
 
 **Decision** (2026-07-26, user request after trying whisper on web):
