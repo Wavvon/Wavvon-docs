@@ -234,10 +234,13 @@ exist on web.
 
 ### 4. Banner-channel management
 
-- On web a bannerless banner channel renders as an empty sidebar row with no
-  context menu or settings gear, so it can't be renamed/deleted after
-  creation. Audit desktop/android and decide the intended management surface
-  (e.g. always expose the settings gear regardless of channel type).
+- **Banner rows manageable (FIXED, verified 2026-07-28).** The shared
+  `SortableChannelItem` banner branch renders the row's context-menu handler
+  plus an admin-gated name strip + settings gear (comment in the component
+  explains the affordance), and both clients now use the shared
+  `ChannelContextMenu`, which offers copy-link/edit/delete on banner
+  channels (notify modes intentionally hidden there — no messages). Desktop
+  additionally wires the menu's `onEditBanner` to its BannerEditModal.
 
 ### 5. Half-wired / dead on web
 
