@@ -2,6 +2,11 @@
 
 **Status: PROPOSAL, awaiting review.** Nothing here is decided; no
 `decisions.md` entry exists yet (the draft one is at the bottom).
+Phase 1 (containers — no new state mechanism, no decision required) was
+implemented 2026-07-29, clients commit `7eba1fe`: web App.tsx landed at
+1,689 lines (est. was ~1,650), desktop at 2,050 (est. ~1,900; the
+voice-move overlay cluster and modals were kept out of the sidebar
+container's scope). Phases 2–3 remain unimplemented pending review.
 
 Context: after the two App.tsx refactor passes (decisions.md 2026-07-28
 /29) web is 1,868 lines and desktop 2,274, and what's left is dominated
