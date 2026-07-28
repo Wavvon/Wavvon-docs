@@ -28,6 +28,18 @@ that costs more than the duplication. Only verbatim-identical
 orchestration was hoisted. `useTypingIndicators` is a borderline future
 candidate (same logic, different dep plumbing).
 
+**Pass 2** (2026-07-29, same session — user wanted the files smaller
+still): web landed at 1868 lines (useChannelMessages, useHubLifecycle,
+useAppKeybinds, static admin action objects hoisted to module scope,
+HubAdminContainer), desktop at 2274 (same treatment + its own
+useHubLifecycle; the ~400-line remaining difference is genuine desktop
+platform surface: Tauri listeners, native windows, screen-share
+overlay). Clients commit `1b567c8`. What remains in both files is prop
+threading through prop-only shared components — the floor of this
+architecture. Going lower means revisiting prop-only (context slices /
+a store), which is a separate design decision, deliberately NOT taken
+here.
+
 **ChannelContextMenu union** (same session, follows the 2026-07-20
 union rule): one shared prop-only `ChannelContextMenu` in packages/ui
 replaced web's inline menu and desktop's local component. Entries
