@@ -4,6 +4,16 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **AFK channel (2026-08-04)**: Discord/TeamSpeak-style auto-move of
+  idle voice users ([afk-channel.md](afk-channel.md)). Hub owner picks
+  an AFK channel + timeout in Hub admin → Overview (two `hub_settings`
+  keys via `PATCH /hub`); a 30s `afk_worker` stamps activity from
+  `voice_speaking` messages and pushes idle participants the existing
+  `voice_move` message with `auto: true` — no new wire messages, no
+  client push handling; clients only gained the settings UI. Pinned by
+  `afk_flow.rs` (settings round-trip, rejections, moved-once, skip
+  rules, speaking refresh). Server `efbef96`, clients `cc198c7`.
+
 - **Desktop DM send path upgraded to DR v2 (2026-07-27)**: the last
   DM-crypto parity gap — desktop's 1:1 send used the legacy v1
   static-static scheme. It now `init_dr_session`s (idempotent; a

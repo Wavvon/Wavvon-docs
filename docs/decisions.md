@@ -6,6 +6,25 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## AFK channel rides the voice-move primitive; idle = server-observed silence
+
+**Decision** (2026-08-04, user asked for Discord/TeamSpeak-style AFK
+auto-move): the AFK sweep ([afk-channel.md](afk-channel.md)) is a thin
+30s worker over machinery that already existed — it pushes the same
+`voice_move` control message the events staging tool uses (events.md
+§7.1, client obeys with leave-and-join; `auto: true` since an AFK user
+can't answer a prompt), and defines idle as "no `voice_speaking`
+message seen", stamped in a new in-memory `voice_last_active` map. Two
+new `hub_settings` keys, zero new wire messages, zero client push
+handling — clients only gained the admin UI.
+
+*Alternatives considered*: (a) TeamSpeak-style client-reported OS idle
+time — rejected: new wire messages on every client plus trusting the
+client, for marginal accuracy; (b) a dedicated server-side yank
+(forcibly rebinding the relay) — rejected: the voice-move contract is
+deliberately client-driven everywhere else, and a second move mechanism
+would fork that.
+
 ## App.tsx hook split + shared orchestration hooks in packages/ui
 
 **Decision** (2026-07-28, user asked to shrink both App.tsx files and

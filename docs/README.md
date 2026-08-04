@@ -130,6 +130,7 @@ Reading order is for learning the system end-to-end. This section is for
 - **Voice participant list in sidebar** — [client.md](client.md)
 - **Per-participant volume / proximity voice** — [voice-volume.md](voice-volume.md), [proximity-voice.md](proximity-voice.md)
 - **Whisper (targeted voice to users/channels/lists)** — [whisper.md](whisper.md)
+- **AFK channel (auto-move idle voice users)** — [afk-channel.md](afk-channel.md)
 - **Video / webcam in voice channels** — [video-voice.md](video-voice.md)
 - **Networked voice fix + voice encryption plan** (design only) — [voice-networking-design.md](voice-networking-design.md)
 - **Screen share** — [screen-share.md](screen-share.md) (v1 transport), [screen-share-webrtc.md](screen-share-webrtc.md) (v2 WebRTC)
