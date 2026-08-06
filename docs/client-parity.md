@@ -443,6 +443,18 @@ Definitive status for everything still not at parity:
 remaining refinement is canonical-identity mapping for a paired device's DMs
 and DH key (see the pairing follow-up above) — an enhancement, not a gap.
 
+- **Paired-device E2E (DMs + voice) on DESKTOP** (noted 2026-08-06,
+  found during voice transport v2): desktop pairing never provisions
+  the canonical DH scalar (its `PairingComplete` has no
+  `wrapped_dh_seed_hex`, unlike web's Mechanism A per
+  [multi-device.md](multi-device.md)), so a paired desktop account
+  can't unwrap DM or voice sender keys wrapped to the canonical
+  published DH key. Web handles both correctly
+  (`resolveDmSendAttribution` feeds DMs and, since v2, voice). Fix =
+  implement Mechanism A in desktop pairing (wire field + unwrap +
+  storage); fix points are marked in `src-tauri/src/voice_keys.rs` and
+  `dm.rs`.
+
 ---
 
 ## Related (not client-parity, but adjacent)

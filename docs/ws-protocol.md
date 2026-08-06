@@ -47,7 +47,7 @@ All protocol messages are JSON text frames. Both directions use an
 payload fields sit at the same level as `type` (serde `#[serde(tag = "type")]`):
 
 ```json
-{ "type": "voice_join", "channel_id": "abc", "udp_port": 50000 }
+{ "type": "voice_join", "channel_id": "abc" }
 ```
 
 Conventions:
@@ -121,13 +121,15 @@ forwarded to the owning bot's HTTP webhook (not over WS).
 ### Voice
 
 > Transport note: the events below are the channel-WS control plane and
-> apply to all clients. **Audio frames** travel out of band: native clients
-> (desktop, Android) use the UDP relay (the `udp_register_token` bind under
-> [`voice_joined`](#voice_joined)); the browser, which cannot open raw UDP,
-> uses a separate `/voice/ws` WebSocket relay (`hub/src/routes/voice_ws.rs`
-> in Wavvon-server) carrying the same Opus wire format. The control-plane
-> events here are identical regardless of which audio transport a participant
-> uses. See [voice.md](voice.md).
+> apply to all clients. **Audio datagrams** travel out of band over a
+> WebTransport session opened at `voice_wt_url?token=<voice_token>`
+> (both fields from [`voice_joined`](#voice_joined)) — one transport
+> for every client since voice transport v2
+> ([voice-transport-v2.md](voice-transport-v2.md)). Packets are E2E
+> AEAD-sealed; keys travel over THIS control plane via
+> [`voice_key_offer`](#voice_key_offer) /
+> [`voice_key_received`](#voice_key_received) /
+> [`voice_key_request`](#voice_key_request). See [voice.md](voice.md).
 
 #### `voice_join`
 Join a voice channel. May be rejected with an [`error`](#error) (context
@@ -143,7 +145,19 @@ video enabled).
 | field | type | notes |
 |---|---|---|
 | `channel_id` | string | |
-| `udp_port` | integer (u16) | legacy; ignored since hub v0.2.2 (the hub learns the real source address via the `udp_register_token` bind — see [`voice_joined`](#voice_joined)) |
+
+(An extra `udp_port` field from pre-v2 clients is ignored harmlessly.)
+
+#### `voice_key_offer`
+Distribute your wrapped voice sender key to other participants
+(voice transport v2 — [voice-transport-v2.md](voice-transport-v2.md)).
+The hub relays each bundle to its recipient as
+[`voice_key_received`](#voice_key_received) without reading it.
+
+| field | type | notes |
+|---|---|---|
+| `channel_id` | string | |
+| `bundles` | array | `{recipient_pubkey, ciphertext_hex, nonce_hex}` — X25519 static-static wrap, see [wire-format.md](wire-format.md) |
 
 #### `voice_leave`
 
@@ -562,9 +576,33 @@ Direct reply to a successful `voice_join`.
 | field | type | notes |
 |---|---|---|
 | `channel_id` | string | |
-| `hub_udp_port` | integer (u16) | UDP port the hub listens on for voice packets |
-| `participants` | array of [VoiceParticipant](#voiceparticipant) | current participants (including you) |
-| `udp_register_token` | string | 64 hex chars, single-use, 30 s TTL. Send `b"VXRG"` + the 64 ASCII chars (68 bytes) to `hub_udp_port`; the hub binds your real source address and replies `b"VXRA"` (4 bytes). Retry every ~500 ms until acked — **no audio is relayed to or from you until this bind completes**. Added in hub v0.2.2 (networked voice Phase 1). |
+| `participants` | array of [VoiceParticipant](#voiceparticipant) | current participants (including you — your own `sender_id` is your entry) |
+| `voice_token` | string | 64 hex chars, single-use, 30 s TTL. Open the WebTransport session at `voice_wt_url?token=<voice_token>` — accepting the session consumes the token and binds it to (channel, you). **No audio is relayed to or from you until the session is accepted.** |
+| `voice_wt_url` | string | absolute `https://host:port/voice` of the hub's WebTransport voice endpoint |
+| `voice_cert_hash` | string \| null | SHA-256 (hex) of the endpoint's self-signed cert for `serverCertificateHashes` / desktop pinning; `null` when the hub serves a CA-signed cert |
+
+#### `voice_key_received`
+Relayed voice sender-key bundle (voice transport v2). Unwrap with your
+DH scalar + the sender's published DH key.
+
+| field | type | notes |
+|---|---|---|
+| `channel_id` | string | |
+| `from_sender_id` | integer (u16) | |
+| `from_pubkey` | string | |
+| `ciphertext_hex` | string | |
+| `nonce_hex` | string | |
+
+#### `voice_key_request`
+Sent to existing participants when someone joins voice: wrap your
+current sender key for `new_pubkey` and reply with a one-bundle
+[`voice_key_offer`](#voice_key_offer).
+
+| field | type | notes |
+|---|---|---|
+| `channel_id` | string | |
+| `new_sender_id` | integer (u16) | |
+| `new_pubkey` | string | |
 
 #### `voice_participant_joined`
 Broadcast to the voice channel (not echoed to the joiner).

@@ -59,7 +59,15 @@ These are known gaps. Each shapes a future feature decision.
 - **Metadata leaks.** Even with E2E DM bodies, peers see
   who-talked-to-whom-when. Onion-routing the federation transport
   would fix this; out of scope.
-- **Voice plaintext on the hub relay.** Voice frames are Opus-encoded
+- ~~**Voice plaintext on the hub relay.**~~ **Resolved by voice
+  transport v2 (2026-08,
+  [voice-transport-v2.md](voice-transport-v2.md))**: voice packets are
+  E2E AES-256-GCM under per-sender keys wrapped X25519
+  static-static; the relay forwards headers only and holds no content
+  key — the operator cannot wiretap voice (paired-desktop caveat in
+  [client-parity.md](client-parity.md)). Original entry kept below for
+  history:
+  Voice frames are Opus-encoded
   but not encrypted to the hub, on both the UDP relay (desktop, Android)
   and the `/voice/ws` WebSocket relay (browser). The hub operator can
   passively wiretap voice on either path. **Mitigation: peer-to-peer
