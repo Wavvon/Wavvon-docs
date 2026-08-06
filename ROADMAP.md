@@ -10,10 +10,11 @@ fixed, its entry moves to the shipped log.
 
 ## 🔨 Next up
 
-- [ ] **Cut a release with the DM fix batch** — encrypted DMs never
-  actually worked cross-client before the 2026-07-26/27 fixes (hub
-  liveness, web bug chain, desktop DR receive + v2 send; shipped log).
-  Bump versions on develop, open the develop→main PR, user reviews +
+- [ ] **Cut a release: DM fix batch + voice transport v2** — both are
+  on develop unreleased: the 2026-07-26/27 DM fixes (encrypted DMs
+  never worked cross-client before them) and voice v2 (WebTransport +
+  E2E, 2026-08-07 — a breaking voice-wire change, alpha rules). Bump
+  versions on develop, open the develop→main PR, user reviews +
   merges. Do before the pilot friend onboards. Version number to be
   decided at PR time.
 - [ ] **Desktop live-drive DM verification** — the DR interop is pinned
@@ -22,35 +23,25 @@ fixed, its entry moves to the shipped log.
   (Tauri dev + `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port`
   + Playwright `connectOverCDP`). Consider a reusable desktop e2e
   harness while at it — this gap is why the DM bugs survived so long.
-- [ ] **App.tsx refactor (web 3,485 lines / desktop 3,171)** — ongoing:
-  shrink both orchestrators by moving cohesive state clusters into
-  hooks (web mirrors desktop's hook names) and render blocks into
-  components; one slice per pass, full typecheck + relevant live e2e
-  green after each. Done on web: screen-share+hub-streams
-  (`useScreenShare`, clients `41e4b91`), DMs (`useDms`, `e3d45f7`).
-  Remaining candidate slices on web, roughly by risk:
-  - **hub lifecycle** — add/join/passkey/lobby/deep-link handlers +
-    `loadHubData` (several hundred lines, self-contained handlers);
-  - **WS handler registry** — the ~250-line frozen `stableHandlers`
-    memo → a `useWsHandlers` hook like desktop's (all deps are already
-    refs/stable setters, that's why the memo freeze works);
-  - **modal render tree** — the long tail of `{showX && <XModal/>}`
-    blocks → a `Modals` component fed by a props object;
-  - **voice+video** — one unit (the video session is created/torn down
-    inside the voice lifecycle); riskiest, do LAST, after the
-    cross-internet voice test.
+- [ ] **App.tsx refactor — final slices + convergence (web 1,577
+  lines / desktop 1,908, counted 2026-08-07)** — the hook-extraction
+  phase is nearly done on web: screen-share (`useScreenShare`), DMs
+  (`useDms`), hub lifecycle (`useHubLifecycle` + `useAddHubFlow` /
+  `useChannelCrud`), WS registry (`useWsHandlers`), and voice+video
+  (`useVoice`/`useVideo`) have all landed (2026-07-28 split +
+  follow-ups; decisions.md). Remaining:
+  - **modal render tree** (web) — ~13 `{showX && <XModal/>}` blocks →
+    a `Modals` component fed by a props object;
+  - **desktop parity pass** on whatever web slices desktop still lacks;
+  - **convergence goal** — the real payoff: web/desktop hook pairs
+    (`useDms`, `useScreenShare`, `useWhisper`, …) differ mainly in
+    platform access (`invoke()` vs HTTP commands), which can travel in
+    via an injected actions object, the same pattern packages/ui
+    components use. Hoist converged pairs into packages/ui and delete
+    both app copies; App.tsx stays app-local state orchestration +
+    wiring by design (decisions.md 2026-07-18).
   Not worth extracting (checked 2026-07-27): message send/edit — thin
-  glue over cross-cutting App state, a hook would just widen the
-  surface. Desktop gets the same treatment after web.
-  **Convergence goal:** extracted hooks should ultimately be SHARED,
-  not mirrored — the web/desktop pairs (`useDms`, `useScreenShare`,
-  `useWhisper`, …) differ mainly in platform access (`invoke()` vs
-  HTTP commands), which can travel in via an injected actions object,
-  the same pattern packages/ui components already use. Once a pair's
-  logic converges, hoist it into packages/ui and delete both app
-  copies — that's the real payoff of the refactor: one implementation
-  of each subsystem, `App.tsx` reduced to state orchestration + wiring
-  (which stays app-local by design, decisions.md 2026-07-18).
+  glue over cross-cutting App state.
 
 - [ ] **Voice v2 cross-internet live test** — transport v2 shipped
   2026-08-07 (shipped log) and passed the local two-browser E2E drive;
@@ -82,8 +73,8 @@ fixed, its entry moves to the shipped log.
   ~3–4 days (2026-08-06 assessment): additive `servers.host` column +
   agent-advertised address in the WS `hello`; host-aware proxy
   (buffered + WS-bridge paths); agent passes bind/public host to
-  spawned hubs so `/info` advertises a correct `voice_udp_addr` (voice
-  stays direct UDP to the node); monitor drives remote hubs via
+  spawned hubs so `/info` advertises a correct `voice_wt_url` (voice
+  stays direct QUIC to the node); monitor drives remote hubs via
   heartbeats + the existing agent restart delegation. No hub or client
   changes. Prerequisites to settle first: private network farm↔nodes
   (WireGuard/VPC) instead of farm↔node TLS, and per-node Postgres
