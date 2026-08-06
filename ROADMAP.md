@@ -74,6 +74,20 @@ fixed, its entry moves to the shipped log.
 > relay — undesigned. (Farm layer and gaming + rich bots shipped
 > 2026-07-19; see the shipped log.)
 
+- **Farm multi-node data plane** — the farm proxy only reaches
+  farm-local hubs (`proxy.rs` hardcodes `127.0.0.1`; `servers` has no
+  host column), so agent-hosted hubs on remote nodes are
+  lifecycle-managed but unreachable through the farm domain. Estimated
+  ~3–4 days (2026-08-06 assessment): additive `servers.host` column +
+  agent-advertised address in the WS `hello`; host-aware proxy
+  (buffered + WS-bridge paths); agent passes bind/public host to
+  spawned hubs so `/info` advertises a correct `voice_udp_addr` (voice
+  stays direct UDP to the node); monitor drives remote hubs via
+  heartbeats + the existing agent restart delegation. No hub or client
+  changes. Prerequisites to settle first: private network farm↔nodes
+  (WireGuard/VPC) instead of farm↔node TLS, and per-node Postgres
+  (`db_path` is generated farm-side today). Design context:
+  [farm-impl.md](docs/farm-impl.md).
 - **Project visibility push** — hosted demo hub, directory listings,
   launch post. Needed for adoption and the code-signing re-application.
 - **Passkey registration from desktop** — blocked by Tauri webview RP ID
