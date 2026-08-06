@@ -115,6 +115,13 @@ fixed, its entry moves to the shipped log.
 
 ## ⚠️ Known issues
 
+- **Farm multi-hub voice UDP port collision** — farm/agent spawn env
+  never sets `WAVVON_VOICE_UDP_PORT` (`farm/src/hub_manager.rs:68`), so
+  every child hub defaults to UDP 3001 and the bind is fatal
+  (`hub/src/main.rs:1147`): the second hub on the same box crashes at
+  startup (and the monitor retries it forever). Fix: farm allocates +
+  persists a per-hub UDP port like `process_port` and passes it at
+  spawn; clients already learn it from `/info` `voice_udp_addr`.
 - **Discord importer needs a live run** — `export` with a real bot token
   + `apply` against a running hub never exercised live.
 - **Windows installer unsigned** — SmartScreen warning; "More info → Run
