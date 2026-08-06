@@ -44,7 +44,7 @@ Your identity is a cryptographic keypair — no email, no password, no central s
 Run a hub on a home server, a VPS, or a Docker container. Your hub can form Alliances with other hubs to share channels and voice — without either hub losing control of its own data.
 
 **Privacy by design**
-1:1 DMs and group DMs are end-to-end encrypted at the protocol level using a sender-key scheme. The hub operator stores opaque ciphertexts and never sees message content. Forward secrecy (Double Ratchet) is the next planned upgrade.
+1:1 DMs, group DMs, and channel voice are end-to-end encrypted at the protocol level. 1:1 DMs use a Double Ratchet (forward secrecy); group DMs and voice use sender-key schemes. The hub operator stores opaque ciphertexts — and relays opaque voice packets — without ever seeing content.
 
 **No business model that conflicts with users**
 No premium tiers, no telemetry, no ads. The software is free forever; operators pay for their own infrastructure, not a subscription.
@@ -59,7 +59,7 @@ The hub is a single static Linux binary (~30 MB musl). The desktop client is Tau
 | Limitation | Status |
 |---|---|
 | No mobile clients | The early Android beta was removed (2026-07-12) rather than left to rot; a clean-slate mobile client is planned when mobile becomes the priority. No iOS work yet |
-| E2E forward secrecy | Sender-key (group) and static-ECDH (1:1) are shipped; Double Ratchet upgrade not yet started |
+| E2E forward secrecy is partial | 1:1 DMs have it (Double Ratchet, shipped 2026-07); group DMs and voice use sender keys — voice keys rotate when someone leaves, but neither ratchets per-message |
 | Voice E2E on paired desktop devices | Voice (and DMs) are E2E, but a *paired* desktop device can't unwrap keys yet — desktop pairing doesn't provision the canonical DH scalar (tracked in client-parity) |
 | Windows installer unsigned | SmartScreen warning ("More info → Run anyway"); free OSS code-signing programs require more project popularity than we have yet |
 | macOS DMG unsigned | Gatekeeper warning until Apple Developer signing is set up |
@@ -73,4 +73,4 @@ features as of the date below, and implies no affiliation with or
 endorsement by any of the products mentioned. Spotted an error? Please
 open an issue.*
 
-*Last updated: 2026-07-21 — v0.4.0*
+*Last updated: 2026-08-07 — v0.4.0 (develop)*
