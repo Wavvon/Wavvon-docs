@@ -1,6 +1,7 @@
 # Voice Transport v2 — WebTransport + E2E encryption
 
-> **Status:** approved 2026-08-06, implementation in progress. Replaces
+> **Status:** SHIPPED 2026-08-07 (server `3d49c11`, clients `2ab799e`;
+> see [shipped-log.md](shipped-log.md)). Replaces
 > the raw-UDP relay (desktop) and the WebSocket Opus relay (web) with a
 > single WebTransport (QUIC) transport carrying E2E-encrypted audio.
 > Supersedes [voice-networking-design.md](voice-networking-design.md)

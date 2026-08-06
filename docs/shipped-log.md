@@ -4,6 +4,29 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Voice transport v2 — WebTransport + E2E encryption (2026-08-07)**:
+  one QUIC/WebTransport transport for web + desktop replacing BOTH the
+  raw-UDP relay (VXRG/VXRA) and the `/voice/ws` WS relay; per-packet
+  E2E AES-256-GCM under per-sender keys (X25519 static-static wrap,
+  `wavvon/voice-key/v1`) distributed over the previously-unwired
+  `voice_key_offer/received/request` signaling — the hub relay
+  forwards headers only and cannot listen. Rotating self-signed ECDSA
+  cert + `serverCertificateHashes`; canonical vectors pinned across
+  identity crate / packages-core TS / desktop Rust. Folded-in fixes:
+  farm/agent per-hub voice port at spawn (second hub on a box crashed
+  at bind), `can_speak_voice` + mini-app gates re-enforced on unified
+  voice_join, desktop `:3001` hardcode removed. The live two-browser
+  drive (bidirectional, zero drops) caught four bugs every unit suite
+  missed: web's opusscript needed a Node `Buffer` polyfill (web voice
+  SEND was silently broken since before v2), `voice_joined` carried no
+  sender_id, the web session ref was set after `start()` (early E2E
+  keys dropped), WT cert persistence raced across processes, and
+  `wavvon-hub migrate` ignored `WAVVON_DATABASE_URL`. Design:
+  [voice-transport-v2.md](voice-transport-v2.md). Known ceiling:
+  paired-desktop devices can't unwrap voice/DM keys yet
+  ([client-parity.md](client-parity.md)). Server `3d49c11`, clients
+  `2ab799e`.
+
 - **AFK channel (2026-08-04)**: Discord/TeamSpeak-style auto-move of
   idle voice users ([afk-channel.md](afk-channel.md)). Hub owner picks
   an AFK channel + timeout in Hub admin → Overview (two `hub_settings`

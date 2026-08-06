@@ -18,6 +18,7 @@ feature. Kept factual and up to date as features land.
 | **Screen share** | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
 | **E2E encrypted DMs (1:1)** | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
 | **E2E encrypted group DMs** | ✅ sender-key | ❌ | ❌ | ✅ | ❌ | ❌ |
+| **E2E encrypted voice** | ✅ per-packet AEAD, relay can't listen | ❌ | ❌ | ⚠️ P2P calls only | ❌ | ❌ |
 | **Multi-device** | ✅ QR pairing | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Account recovery without email** | ✅ phrase, backup file, recovery contacts | ❌ email reset | ❌ email reset | ⚠️ recovery key | ❌ | ⚠️ cert backup |
 | **Cross-community federation** | ✅ Alliances | ❌ | ❌ | ✅ rooms | ❌ | ❌ |
@@ -59,7 +60,7 @@ The hub is a single static Linux binary (~30 MB musl). The desktop client is Tau
 |---|---|
 | No mobile clients | The early Android beta was removed (2026-07-12) rather than left to rot; a clean-slate mobile client is planned when mobile becomes the priority. No iOS work yet |
 | E2E forward secrecy | Sender-key (group) and static-ECDH (1:1) are shipped; Double Ratchet upgrade not yet started |
-| Voice media not E2E encrypted | Cross-internet voice is implemented on all clients but the first live over-the-internet test is still pending, and the hub relay currently sees plaintext audio; voice encryption is the next voice-stack phase |
+| Voice E2E on paired desktop devices | Voice (and DMs) are E2E, but a *paired* desktop device can't unwrap keys yet — desktop pairing doesn't provision the canonical DH scalar (tracked in client-parity) |
 | Windows installer unsigned | SmartScreen warning ("More info → Run anyway"); free OSS code-signing programs require more project popularity than we have yet |
 | macOS DMG unsigned | Gatekeeper warning until Apple Developer signing is set up |
 | No push notifications | Clients must be open to receive messages |
