@@ -1,9 +1,11 @@
 # Networked Voice — Design Note
 
-> **Status:** design only, not implemented. Written 2026-06-11 in
+> **Status:** Phase 1 (token-gated bind) SHIPPED — the VXRG flow in
+> `hub/src/main.rs`. Phases 1.5 and 2 are **superseded** by
+> [voice-transport-v2.md](voice-transport-v2.md) (2026-08-06):
+> WebTransport replaces raw UDP (making the UDP-over-WS fallback moot)
+> and E2E AEAD ships with the new transport. Written 2026-06-11 in
 > response to audit finding H7 ([code-audit-2026-06-11.md](../code-audit-2026-06-11.md)).
-> Phase 1 (make networked voice work) and Phase 2 (encrypt it) are
-> separate initiatives; neither is scheduled yet.
 
 For how voice works today (Opus, UDP relay, denoise pipeline), see
 [voice.md](voice.md). For the federated/farm addressing context, see

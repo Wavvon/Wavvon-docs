@@ -6,6 +6,30 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Voice transport v2: WebTransport + E2E, replacing both relays outright
+
+**Decision** (2026-08-06, user chose "final version directly, no two
+versions"): voice moves to a single WebTransport (QUIC) transport with
+per-packet E2E AEAD for both clients — spec in
+[voice-transport-v2.md](voice-transport-v2.md). The raw-UDP relay
+(desktop) and the WS Opus relay (web) are deleted, not kept as
+fallbacks (alpha, no backcompat). Key choices: reuse the shipped
+voice_join token as the WT CONNECT credential; reuse the never-wired
+`voice_key_offer/received/request` signaling as the E2E key channel;
+AES-256-GCM with `salt[4]||ctr[8]` nonces (the old `seq:u16` wrapped
+in ~22 min); rotating self-signed ECDSA cert + `serverCertificateHashes`
+so hubs need no CA cert for voice. Folds in two latent bugs: the
+desktop `:3001` hardcode (ignores `voice_udp_addr`) and the farm spawn
+never passing a per-hub voice port.
+
+*Alternatives considered*: (a) AEAD over the existing raw UDP + keep
+the WS relay (the original Phase 2 plan) — rejected: two transports to
+encrypt and maintain, and web voice stays TCP-degraded; (b) WebRTC —
+rejected: screen-share v2 carries it for P2P video, but voice is
+hub-relayed by design and WebTransport needs no SDP/ICE machinery;
+(c) farm-level voice proxying — rejected again: extra hop and
+bandwidth funnel, voice stays direct-to-node.
+
 ## AFK channel rides the voice-move primitive; idle = server-observed silence
 
 **Decision** (2026-08-04, user asked for Discord/TeamSpeak-style AFK

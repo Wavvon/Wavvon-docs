@@ -52,9 +52,14 @@ fixed, its entry moves to the shipped log.
   of each subsystem, `App.tsx` reduced to state orchestration + wiring
   (which stays app-local by design, decisions.md 2026-07-18).
 
-- [ ] **Networked voice — first cross-internet test** — all four clients
-  shipped; the live test over the pilot hub is pending. Phase 2 (voice
-  encryption) is separate.
+- [ ] **Voice transport v2 — WebTransport + E2E (in progress,
+  2026-08-06)** — single QUIC/WebTransport transport for web + desktop
+  with per-packet E2E AEAD, replacing BOTH the raw-UDP and the WS Opus
+  relays (no fallbacks kept). Spec:
+  [voice-transport-v2.md](docs/voice-transport-v2.md). Folds in: the
+  desktop `:3001` hardcode fix and the farm per-hub voice-port spawn
+  fix (known issue below). The pending cross-internet live test happens
+  on this transport.
 - [ ] **First external operator pilot (videogamezone.eu)** — hub v0.3.1
   LIVE. Remaining: hostname fix (server_name edit + friend's nginx
   reload), redeem owner invite, cross-internet voice test, friend
@@ -121,7 +126,10 @@ fixed, its entry moves to the shipped log.
   (`hub/src/main.rs:1147`): the second hub on the same box crashes at
   startup (and the monitor retries it forever). Fix: farm allocates +
   persists a per-hub UDP port like `process_port` and passes it at
-  spawn; clients already learn it from `/info` `voice_udp_addr`.
+  spawn. (Correction 2026-08-06: the web client learns the voice
+  endpoint dynamically but the desktop client hardcodes `:3001` and
+  ignores `/info` `voice_udp_addr` — both addressed by voice transport
+  v2, Next up.)
 - **Discord importer needs a live run** — `export` with a real bot token
   + `apply` against a running hub never exercised live.
 - **Windows installer unsigned** — SmartScreen warning; "More info → Run

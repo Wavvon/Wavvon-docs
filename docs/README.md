@@ -132,7 +132,8 @@ Reading order is for learning the system end-to-end. This section is for
 - **Whisper (targeted voice to users/channels/lists)** — [whisper.md](whisper.md)
 - **AFK channel (auto-move idle voice users)** — [afk-channel.md](afk-channel.md)
 - **Video / webcam in voice channels** — [video-voice.md](video-voice.md)
-- **Networked voice fix + voice encryption plan** (design only) — [voice-networking-design.md](voice-networking-design.md)
+- **Voice transport v2 (WebTransport + E2E, in progress)** — [voice-transport-v2.md](voice-transport-v2.md)
+- **Networked voice fix + voice encryption plan** (Phase 1 shipped; Phases 1.5/2 superseded by voice-transport-v2) — [voice-networking-design.md](voice-networking-design.md)
 - **Screen share** — [screen-share.md](screen-share.md) (v1 transport), [screen-share-webrtc.md](screen-share-webrtc.md) (v2 WebRTC)
 - **Screen share unified modal (desktop, designed)** — [screen-share-modal.md](screen-share-modal.md)
 
