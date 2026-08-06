@@ -386,6 +386,59 @@ signature (master):
 
 ---
 
+### Voice sender-key wrap (voice-transport-v2)
+
+Not a signed envelope — an AEAD construction (sender authenticity comes
+from the static-static X25519 DH; only the claimed sender's static key
+can derive the wrap key). Canonical impl:
+`identity/src/voice.rs` (Wavvon-server); design in
+[voice-transport-v2.md](voice-transport-v2.md).
+
+```
+shared    : X25519(sender_scalar_from_ed25519_seed, recipient_x25519_pub)
+wrap_key  : HKDF-SHA256(ikm=shared, salt=channel_id UTF-8,
+                        info="wavvon/voice-key/v1")      (NO NUL — HKDF info)
+plaintext : sender_key[32] || nonce_salt[4] || key_id_be[4]   (40 bytes)
+ciphertext: AES-256-GCM(wrap_key, nonce[12], plaintext)  (+16-byte tag)
+```
+
+**Test vector** — sender seed `61..80`, recipient seed `81..a0`
+(recipient X25519 pub derived from seed), channel_id `"chan-vector-1"`,
+sender_key `c1..e0`, nonce_salt `aabbccdd`, key_id 99, wrap nonce
+`0102030405060708090a0b0c`:
+
+```
+ciphertext:
+  98c781916feb2ea99f7dbf23f15fd58bb9ab8613ec348ebe8c93814ee695a11d
+  e59ce0341e00d354b9ff665b5ab38d27a0ab526c71cf495e
+```
+
+### Voice packet seal (voice-transport-v2)
+
+```
+header    : key_id_be[4] || ctr_be[8] || ts_be[4]        (16 bytes, cleartext)
+nonce     : nonce_salt[4] || ctr_be[8]                   (12 bytes)
+packet    : header || AES-256-GCM(sender_key, nonce, aad=header, opus)
+```
+
+`ctr` is a per-sender-key monotonic u64; never reused under one key.
+The relay prepends `sender_id_be[2] || packet_type[1]` on the downlink
+and never reads past the header.
+
+**Test vectors** — sender_key `c1..e0`, nonce_salt `aabbccdd`,
+key_id 99, payload UTF-8 `"opus-frame-vector"`:
+
+```
+ctr=0, ts=1000:
+  000000630000000000000000000003e832dbc83526f73e83a90b59aaab331078
+  f359b00fcfab1fa0e6c514ea2034da79b2
+ctr=7, ts=5000:
+  0000006300000000000000070000138823adf6d5a771baa49d8de5ed1c99e5d5
+  f12e9fffa9ba4fb471ca80882171360024
+```
+
+---
+
 ### PublicHubProfile
 
 ```
