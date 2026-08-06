@@ -43,6 +43,16 @@ fixed, its entry moves to the shipped log.
   Not worth extracting (checked 2026-07-27): message send/edit — thin
   glue over cross-cutting App state.
 
+- [ ] **List-endpoint pagination (next session, decided 2026-08-07)**
+  — two shapes, both already in-repo, no third dialect: feeds keep the
+  existing cursor (`before` + `limit`, as `GET /messages` does);
+  table-like admin lists get `page`/`limit`/`total` mirroring the farm
+  console's `GET /farm/users`. First target: `GET /users` (drop the
+  hardcoded LIMIT 50 — the known issue below) + a `q` server-side
+  search param, consumed by the member sidebar and admin Users table.
+  Then a small audit of the other unbounded lists (bans, invites,
+  report queue; audit log likely cursor on its `seq`). ~1 day for
+  /users, ~1 more for the audit.
 - [ ] **Voice v2 cross-internet live test** — transport v2 shipped
   2026-08-07 (shipped log) and passed the local two-browser E2E drive;
   the over-the-internet test on the pilot hub is still pending, now on
@@ -115,8 +125,8 @@ fixed, its entry moves to the shipped log.
   and bot-launched game modals shipped 2026-07-19 as capability-layer
   Phases 1–2.)
 - **`GET /users` caps at 50 rows** — member lists silently truncate on
-  larger hubs (also forced the e2e suite onto a fresh DB, 2026-07-26);
-  needs pagination/search on the hub.
+  larger hubs (also forced the e2e suite onto a fresh DB, 2026-07-26).
+  Fix planned: the list-endpoint pagination item in Next up.
 - **Own encrypted DMs from another device show "[decryption failed]"**
   — the own-plaintext stash is device-local by nature (a ratchet can't
   decrypt its own envelopes), so a paired second device can't render
