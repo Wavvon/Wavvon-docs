@@ -18,7 +18,7 @@ feature. Kept factual and up to date as features land.
 | **Screen share** | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
 | **E2E encrypted DMs (1:1)** | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
 | **E2E encrypted group DMs** | ✅ sender-key | ❌ | ❌ | ✅ | ❌ | ❌ |
-| **E2E encrypted voice** | ✅ per-packet AEAD, relay can't listen | ❌ | ❌ | ⚠️ P2P calls only | ❌ | ❌ |
+| **E2E encrypted voice** | ✅ per-packet AEAD, relay can't listen | ❌ | ❌ | ⚠️ via Element Call | ❌ | ❌ |
 | **Multi-device** | ✅ QR pairing | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Account recovery without email** | ✅ phrase, backup file, recovery contacts | ❌ email reset | ❌ email reset | ⚠️ recovery key | ❌ | ⚠️ cert backup |
 | **Cross-community federation** | ✅ Alliances | ❌ | ❌ | ✅ rooms | ❌ | ❌ |
