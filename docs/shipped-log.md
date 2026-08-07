@@ -4,6 +4,21 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Member name colors (2026-08-07)**: colored nicknames in the message
+  stream and member list, from two sources — role color and a new
+  `users.name_color` profile field (PATCH `/me`, validated like
+  `accent_color`) — with a hub-owner `hub_settings` key
+  `name_color_mode` choosing the policy (`user_over_role`,
+  `role_over_user` default, `role_only`, `user_only`, `none`). The
+  null-cascade is resolved server-side once and shipped as a single
+  resolved `name_color` in roster/profile payloads and the
+  `member_updated` WS push; clients sanitize (`safeRoleColor`) and
+  render via a `color-mix` blend toward the theme text. Pinned by
+  `name_colors_flow.rs` (9 tests) + a live Playwright drive (role
+  color, colored message sender, mode flip via the real admin UI,
+  profile color after the flip). Design: decisions.md 2026-08-07.
+  Server `c49ba32`, clients `31ce9f3`.
+
 - **Voice transport v2 — WebTransport + E2E encryption (2026-08-07)**:
   one QUIC/WebTransport transport for web + desktop replacing BOTH the
   raw-UDP relay (VXRG/VXRA) and the `/voice/ws` WS relay; per-packet

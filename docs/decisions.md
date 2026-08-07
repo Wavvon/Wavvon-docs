@@ -6,7 +6,33 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
-## Voice transport v2: WebTransport + E2E, replacing both relays outright
+## Member name colors: hub-chosen priority between role color and profile color, resolved server-side
+
+**Decision** (2026-08-07, iterated with the user from "Discord role
+colors vs. free profile colors" to "both, owner decides"): nicknames in
+the message stream and member list are colored from two sources — the
+role's existing `color` and a new per-hub profile field
+`users.name_color` (nullable, beside `accent_color`, editable via the
+existing PATCH `/me`) — with a hub-wide `hub_settings` key
+`name_color_mode` choosing the policy: `user_over_role`,
+`role_over_user` (default), `role_only`, `user_only`, `none`. All five
+ship in alpha (values are additive/deletable strings). Resolution is a
+null-cascade (`role_over_user` = roleColor ?? userColor ?? neutral,
+etc.; roleColor = highest-priority colored role) computed **server-side
+once**, delivered as a single resolved `name_color` field in the roster
+and profile payloads — clients do no priority logic and the mode never
+needs public exposure. Rendering reuses the `safeRoleColor` +
+`color-mix`-toward-theme-text pipeline, so untrusted-hub colors stay
+sanitized and readable in both themes.
+
+*Alternatives considered*: (a) role colors only (Discord model) —
+rejected: the owner setting moves the impersonation/legibility tradeoff
+to the right decision-maker (the hub owner) instead of the platform;
+(b) a separate per-role badge color vs. name color — rejected: one
+color per role is the role's visual identity, and the existing
+color-mix blends already differentiate badge vs. name rendering;
+(c) client-side resolution — rejected: needs the mode + both raw colors
+exposed publicly and the cascade duplicated per client.
 
 **Decision** (2026-08-06, user chose "final version directly, no two
 versions"): voice moves to a single WebTransport (QUIC) transport with
