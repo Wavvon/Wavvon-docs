@@ -44,6 +44,15 @@ beats the cosmetic ordering of a rare case.
 converted; the remaining unbounded lists are inventoried in ROADMAP and
 convert to the same shape when someone actually hits one.
 
+**Corollary — a paginated endpoint needs a client that pages.** The first
+cut of this raised `/users` from 50 rows to a 200 default and stopped
+there, which would have left a hub of 250 members truncating its sidebar
+silently: the identical bug, relocated. Anything whose consumer wants the
+whole collection (member roster, channel list) walks pages to exhaustion
+on the client; the cursor exists so that walk is correct, not so the cap
+can be a bigger number. Both walks are bounded (40 pages) purely as a
+backstop against a server that stops advancing the cursor.
+
 ## Duplicate endpoints are folded, not versioned side by side
 
 **Decision** (2026-08-08): when two route families write the same table,

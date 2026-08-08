@@ -35,7 +35,15 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   **Pagination** — `GET /users` dropped its hardcoded `LIMIT 50` (member
   lists silently truncated above 50) for `limit` (default 200, max 500)
   plus a keyset `cursor` on `(display_name, public_key)`, collapsing two
-  near-identical SQL branches into one predicate-switched query;
+  near-identical SQL branches into one predicate-switched query. Both
+  clients then gained an actual page walk — web's `fetchAllUsers()`
+  behind the eight inline `/users` fetches, desktop's inside its single
+  `list_users` command — because a raised cap that still truncates
+  silently is the same bug at a larger number, and the sidebar wants the
+  whole roster. Also fixed while in there: the `q` cap truncated with
+  `&s[..64]`, a *byte* index, so a search of 22+ three-byte characters
+  (`€`, most CJK) panicked the handler outright — reachable by typing, in
+  a hub that ships in four locales;
   `GET /conversations/{id}/messages` took **no query params at all** and
   returned entire DM history on every open, while both clients had been
   sending `before`/`limit` all along — now honoured;
