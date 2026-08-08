@@ -145,10 +145,15 @@ fixed, its entry moves to the shipped log.
   clean-slate rewrite when mobile is prioritized
   ([android-rewrite-notes.md](docs/android-rewrite-notes.md)).
 - **SQLite (or any second) hub storage backend** — PostgreSQL is the
-  only backend (decisions.md 2026-06-27 removed SQLite from the
-  workspace entirely). The store-trait split stays for error
-  normalization and keeping SQL out of handlers, not for backend
-  plurality.
+  only backend, now with a **reasoned** entry behind it
+  ([decisions.md](docs/decisions.md), 2026-08-08) rather than the bare
+  `Status:` line the 2026-06-27 removal originally left. Short version:
+  a runtime-polymorphic dual backend silently broke revocation and
+  federated-ban checks, and two engines means two migration sets
+  forever. The store-trait split stays for error normalization and
+  keeping SQL out of handlers, not for backend plurality. The zero-ops
+  install story SQLite gave up is being recovered by bundling
+  PostgreSQL into the hub binary instead.
 - **Load-aware DM routing across a user's hubs** — failover only.
 - **Concurrent mic test while in voice** — live meter covers it.
 - **Central authority of any kind** — no global directory, identity

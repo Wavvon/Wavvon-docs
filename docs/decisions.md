@@ -6,6 +6,63 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## PostgreSQL is the only storage backend
+
+**Decision** (2026-08-08, ratifying what happened on 2026-06-27): Wavvon
+targets PostgreSQL and nothing else. No SQLite, no second engine, no
+runtime-selectable backend. Reopening this needs a new entry here, not a
+comment somewhere.
+
+This is written down because it never was. The archaeology: the founding
+decision was the *opposite* — "SQLite, not Postgres", argued on zero-ops for
+the operator, one-file backups, and single-tenant hubs, with an explicit
+escape hatch ("if we later want multi-tenant hub farms, the storage layer can
+change underneath"). The store-trait design that followed was about
+*decoupling*, not about Postgres: its stated motivation is that every handler
+ran raw SQL against `state.db` and errors were classified by sniffing
+`"UNIQUE"` in a message string. That design listed `wavvon-store-postgres` as
+a *"future community backend"*.
+
+Then Postgres landed alongside SQLite on `AnyPool` (2026-06-07), and twenty
+days later SQLite was deleted. The commit that did it is 24 lines of pure
+mechanics with no rationale, and the only record in this file was a `Status:`
+line appended to the store-trait entry. The won't-do entry added 2026-07-20
+says why *it* was written: a stale note "kept resurfacing the idea", so the
+door was closed — not because the merits were re-examined.
+
+**The real reasons, reconstructed and now stated properly:**
+
+- **Runtime-polymorphic dual backend was actively dangerous.** `AnyPool`'s
+  bool decoding silently failed against SQLite's integer booleans, which made
+  `COUNT(*) > 0` return false and **revocation and federated-ban checks pass
+  unconditionally**. A security hole produced by the abstraction itself, found
+  in `bfb1b93`. Two engines behind one pool means every type mismatch is a
+  silent wrong answer rather than an error.
+- **Full-text search had no shared query shape** — SQLite FTS5 vs Postgres
+  `tsvector`; the design doc listed it as "Undecided". (This one has since
+  dissolved on its own: Tantivy owns search now and the database is not
+  involved.)
+- **The farm is genuinely multi-tenant**, which is the exact case the founding
+  decision named as grounds for changing storage.
+- **109 test suites, CI service containers, and every migration** now assume
+  Postgres. That is sunk, but it is real.
+
+*Alternatives considered*: (a) keep SQLite for small self-hosters and Postgres
+for farms — rejected: this is precisely the dual-backend that produced the
+security bug, and the cost lands on every future query, not once; (b) an
+ORM/abstraction layer (`sea-orm`, `diesel`, or a hand-rolled one) to hide the
+difference — rejected: it does not remove the need for two sets of migrations,
+which is the actual expense; (c) revert to SQLite-only — rejected: the farm
+case stands and the migration cost is now paid.
+
+*Tradeoff*: Wavvon loses SQLite's zero-ops install story, which the founding
+decision valued and which is a genuine adoption cost for a self-hosted product
+competing with unzip-and-run incumbents. **Bundling PostgreSQL into the hub
+binary is the answer to that** — it restores the operator experience without
+reintroducing a second dialect, a second migration set, or a second set of
+type-decoding hazards. What it does not restore is "backup is one file";
+operators still use `pg_dump`.
+
 ## Cross-process config keys live in a shared crate, not in string literals
 
 **Decision** (2026-08-08): the name of any environment key that one Wavvon
