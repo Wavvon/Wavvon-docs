@@ -452,17 +452,34 @@ Definitive status for everything still not at parity:
 remaining refinement is canonical-identity mapping for a paired device's DMs
 and DH key (see the pairing follow-up above) — an enhancement, not a gap.
 
-- **Paired-device E2E (DMs + voice) on DESKTOP** (noted 2026-08-06,
-  found during voice transport v2): desktop pairing never provisions
-  the canonical DH scalar (its `PairingComplete` has no
-  `wrapped_dh_seed_hex`, unlike web's Mechanism A per
-  [multi-device.md](multi-device.md)), so a paired desktop account
-  can't unwrap DM or voice sender keys wrapped to the canonical
-  published DH key. Web handles both correctly
-  (`resolveDmSendAttribution` feeds DMs and, since v2, voice). Fix =
-  implement Mechanism A in desktop pairing (wire field + unwrap +
-  storage); fix points are marked in `src-tauri/src/voice_keys.rs` and
-  `dm.rs`.
+- ~~**Paired-device E2E (DMs + voice) on DESKTOP**~~ (noted 2026-08-06,
+  **implemented 2026-08-08**): desktop pairing never provisioned the
+  canonical DH scalar, so a paired desktop account could not unwrap DM
+  or voice sender keys wrapped to the canonical published DH key.
+  Mechanism A ([multi-device.md](multi-device.md)) is now implemented on
+  desktop: `PairingComplete` / `PairingStatus::Complete` carry
+  `wrapped_dh_seed_hex`, the enrolling device ECIES-wraps its canonical
+  X25519 scalar for the claiming subkey with the same `wrap_blob_key`
+  primitive `wrapped_blob_key_hex` already used, and the claiming device
+  unwraps it into `paired_identity.json`. Nothing new landed on the wire
+  — the hub, the `identity` crate and `packages/core` had all carried
+  this field since the web implementation; only desktop's mirror lagged.
+
+  Consumption went through **one** chokepoint rather than nine patched
+  call sites: `Identity::e2e_dh_secret()` returns the canonical scalar on
+  a paired device and the seed-derived one otherwise, and every DM and
+  voice-key path calls it. That shape is the point — the failure mode
+  here is silent (a wrong scalar produces an undecryptable message, not
+  an error), so "did we remember at this call site?" is exactly the
+  question that must not exist.
+
+  **Verification status:** four unit tests pin the properties that
+  matter — the unwrapped scalar reproduces the published DH pubkey, a
+  paired device and the enrolling device reach the same shared secret
+  with a third party, and a subkey-derived scalar demonstrably does not.
+  **A real desktop↔web pairing has still not been driven**, which is the
+  standing "Desktop live-drive DM verification" item in ROADMAP. Treat
+  paired-desktop E2E as implemented-but-undriven until that runs.
 
 ---
 
