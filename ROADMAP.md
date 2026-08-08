@@ -23,6 +23,11 @@ fixed, its entry moves to the shipped log.
   (Tauri dev + `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port`
   + Playwright `connectOverCDP`). Consider a reusable desktop e2e
   harness while at it — this gap is why the DM bugs survived so long.
+  **Now also covers paired-device E2E**: desktop pairing Mechanism A
+  shipped 2026-08-08 with unit tests pinning the crypto properties, but
+  no real desktop↔web *pairing* has been driven either. Both belong in
+  the same session — same harness, and a paired device is the case where
+  a wrong DH scalar fails silently rather than loudly.
 - [ ] **App.tsx refactor — final slices + convergence (web 1,577
   lines / desktop 1,908, counted 2026-08-07)** — the hook-extraction
   phase is nearly done on web: screen-share (`useScreenShare`), DMs
@@ -100,8 +105,9 @@ fixed, its entry moves to the shipped log.
 - **Desktop parity backlog** — named custom themes, data-export archive
   compat, LAN discovery UX (mDNS + QR). The whisper gaps, the
   `SoundboardPlayed` chip, `hub_updated`/`channels_updated`/
-  `member_updated` and the duplicate channel-appearance modal all closed
-  2026-08-08. Details in [`client-parity.md`](docs/client-parity.md).
+  `member_updated`, the duplicate channel-appearance modal and
+  paired-device E2E (pairing Mechanism A) all closed 2026-08-08.
+  Details in [`client-parity.md`](docs/client-parity.md).
 - **Banner-channel management surface** — a bannerless banner channel
   can't be renamed/deleted from the web sidebar (no gear, no context
   menu); needs a small UX decision first

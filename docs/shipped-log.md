@@ -4,6 +4,32 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Desktop pairing Mechanism A — paired-device E2E (2026-08-08)**: a
+  paired desktop account could not read encrypted DMs or unwrap voice
+  sender keys. Peers agree on E2E keys against the DH key published
+  under the roster pubkey (derived from `Identity` in
+  `dm.rs::publish_dh_key`), but a paired device holds only a subkey
+  seed, which derives a different scalar — so every shared secret came
+  out different, and silently: the symptom is an undecryptable message,
+  not an error. The enrolling device now ECIES-wraps its canonical
+  X25519 scalar for the claiming subkey (same `wrap_blob_key` primitive
+  `wrapped_blob_key_hex` already used) and the claiming device unwraps it
+  into `paired_identity.json`. **No new wire format** — the hub, the
+  `identity` crate and `packages/core` had carried `wrapped_dh_seed_hex`
+  since web shipped this; only desktop's mirror lagged. Consumption goes
+  through one chokepoint, `Identity::e2e_dh_secret()`, rather than the
+  nine call sites across `dm.rs`/`voice_keys.rs`/`ws.rs` — with a silent
+  failure mode, per-site correctness is the wrong thing to have to
+  remember. Degrades rather than fails: an older enroller or any
+  wrap/unwrap error leaves the device fully working for messages,
+  membership, roles and bans (all token-based) with no E2E, exactly as
+  before. Four tests pin the crypto properties (the unwrapped scalar
+  reproduces the published DH pubkey — which catches wrapping the
+  Ed25519 seed instead of the X25519 scalar; paired and enrolling devices
+  agree on a third party's shared secret; a subkey-derived scalar
+  demonstrably does not). **Not yet live-driven** — a real desktop↔web
+  pairing is still the standing ROADMAP item. Clients `ba7b41b`.
+
 - **List pagination + endpoint dedup + desktop WS/whisper parity
   (2026-08-08)**: three related cleanups.
   **Pagination** — `GET /users` dropped its hardcoded `LIMIT 50` (member
