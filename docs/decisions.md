@@ -6,6 +6,46 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Cross-process config keys live in a shared crate, not in string literals
+
+**Decision** (2026-08-08): the name of any environment key that one Wavvon
+process sets on another is a `pub const` in the tiny `wavvon-hub-env` crate,
+which the hub, the farm and the agent all depend on. No process spells such a
+name as a string literal.
+
+The farm and the agent launch hub child processes and configure them purely
+through `WAVVON_*` env vars. Both ends wrote those names as literals, and they
+drifted: the launchers set `WAVVON_HUB_DB` and `WAVVON_HUB_HTTP_PORT`, names
+the hub has never read. Nothing failed. A spawned hub ignored its carefully
+allocated port and bound the default 3000, so the farm's reverse proxy routed
+to a port nothing listened on and a second hub on the same box collided; and
+with no database key reaching it, every farm-hosted hub fell back to the same
+default database. The hub's `settings.rs` calls itself "single source of
+truth for every `WAVVON_*` env var the hub reads" — accurately, which is
+exactly why two other crates writing names it had never heard of went
+unnoticed.
+
+*Alternatives considered*: (a) have the farm and agent depend on
+`wavvon-hub` for its constants — rejected: pulls axum, sqlx and tantivy into
+a control-plane binary for a handful of strings, and inverts the dependency
+so the spawner compiles the spawned; (b) put the names in `wavvon-identity`
+— rejected, that crate is the wire-format authority and deliberately has no
+I/O or process concerns; (c) leave the literals and add a test asserting they
+match — rejected: it guards duplication rather than removing it, and the test
+still needs the same shared dependency to compare against.
+
+*Tradeoff*: a new crate for ~40 lines of constants. Worth it because the
+alternative failure is silent — this class of bug produces a working-looking
+system, not an error.
+
+**A shared symbol is not enough on its own.** The first guard written here
+asserted that every key in `SPAWNABLE` appears in the hub's `ENV_VAR_HELP`
+table, and it passed even after the constant was changed back to
+`WAVVON_HUB_HTTP_PORT` — both sides read the same symbol, so the assertion
+was tautological. The guard that works is behavioural: set each key, call
+`settings::load()`, assert the value arrives. That one fails with
+"`WAVVON_HUB_HTTP_PORT` is not read".
+
 ## List pagination: one cursor dialect, array responses, no envelope
 
 **Decision** (2026-08-08): every paginated hub list uses the shape

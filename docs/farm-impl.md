@@ -106,9 +106,31 @@ verifies session tokens.
 
 ### New DB tables on the farm
 
-The farm has its own SQLite database (`farm.db`), separate from any
-hub's `hub.db`. Schema lives in a new
-`farm/src/db/migrations.rs` (Wavvon-server).
+The farm has its own PostgreSQL database, separate from any hub's. Schema
+lives in `farm/src/db/migrations.rs` (Wavvon-server). Configure it with
+`WAVVON_DATABASE_URL` — note the `WAVVON_` prefix, since `settings::load()`
+reads every field through `config::Environment::with_prefix("WAVVON")`.
+
+> **Per-hub database provisioning is not implemented (as of 2026-08-08).**
+> The `hubs.db_path` column still holds a SQLite-era file path
+> (`{hubs_dir}/{hub_id}.db`) and nothing consumes it. The farm passes no
+> database variable to a spawned hub, so every farm-hosted hub falls back to
+> its own default `WAVVON_DATABASE_URL` — meaning **hubs on one box share a
+> database**. `spawn_hub` logs a warning per spawn saying so.
+>
+> This was previously invisible: the farm set `WAVVON_HUB_DB`, a name the hub
+> has never read, so the code looked like it handled provisioning. It also set
+> `WAVVON_HUB_HTTP_PORT` (hub reads `WAVVON_HTTP_PORT`), so spawned hubs
+> ignored their allocated port and bound the default 3000 — the reverse proxy
+> pointed at nothing and a second hub collided. The port half is fixed; both
+> ends now take their names from the `wavvon-hub-env` crate, and
+> `wavvon_hub::settings` has a test that sets each key and asserts it reaches
+> `Settings`, so a name the hub does not read fails the build.
+>
+> Closing the database half needs a decision this doc does not yet make: who
+> issues `CREATE DATABASE`, under which role, what happens on hub deletion,
+> and whether each hub gets its own credentials. It is the same prerequisite
+> the multi-node data plane lists as "per-node Postgres".
 
 #### `farms` (singleton)
 

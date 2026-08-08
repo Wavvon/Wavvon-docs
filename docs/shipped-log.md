@@ -4,6 +4,32 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Configurable DB pool + shared env-key contract (2026-08-08)**: the
+  PostgreSQL pool was `max_connections(5)` hardcoded in all three server
+  binaries with no way to change it; it is now
+  `WAVVON_DB_MAX_CONNECTIONS` on the hub and farm (and
+  `WAVVON_SEED_DB_MAX_CONNECTIONS` on seed, matching that crate's own env
+  convention), documented in the operator guide with the thing that
+  actually matters — the sum across every hub sharing one PostgreSQL
+  server has to stay under its `max_connections`.
+  Alongside it, the names of env keys that cross a process boundary moved
+  into a new `wavvon-hub-env` crate shared by hub, farm and agent. That
+  fixed three live bugs the literals had been hiding: farm and agent set
+  `WAVVON_HUB_HTTP_PORT` and `WAVVON_HUB_DB`, names the hub never reads,
+  so spawned hubs ignored their allocated port and bound the default 3000
+  (proxy → nothing, second hub → collision) and shared one database; the
+  farm's Dockerfile and compose set `WAVVON_FARM_HTTP_PORT`, also unread,
+  working only because it matched the default; and the farm needed *two*
+  differently-named database vars to start while `docker-compose.farm.yml`
+  set neither and defined no database service at all — the documented
+  quick start could not boot. Compose now provisions a PostgreSQL service
+  with a database each for farm and hub. Guarded by a behavioural test
+  that sets every spawnable key and asserts it reaches `Settings` (a
+  same-symbol assertion passed even with the bug reintroduced; this one
+  fails). Per-hub database provisioning is still unimplemented and now
+  logs a warning per spawn instead of looking handled —
+  [farm-impl.md](farm-impl.md).
+
 - **Desktop pairing Mechanism A — paired-device E2E (2026-08-08)**: a
   paired desktop account could not read encrypted DMs or unwrap voice
   sender keys. Peers agree on E2E keys against the DH key published

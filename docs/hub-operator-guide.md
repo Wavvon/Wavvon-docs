@@ -42,6 +42,25 @@ Every option also has a `WAVVON_<OPTION_NAME>` env var equivalent (e.g. `WAVVON_
 
 The hub binds to `0.0.0.0` on both ports. `hub_identity.json` is written to the process working directory; set `WorkingDirectory=` in your service unit to control where it lands. The database is PostgreSQL — configure with `WAVVON_DATABASE_URL`.
 
+### Database connection pool
+
+`WAVVON_DB_MAX_CONNECTIONS` (default `5`, also `db_max_connections` in
+`hub.toml`) sizes the PostgreSQL connection pool, for the primary and the
+read replica alike.
+
+It caps **concurrent database work, not concurrent users**. A connection is
+borrowed for the length of a single query and returned immediately —
+WebSockets, voice sessions and idle members hold none — so a small pool
+serves far more members than the number suggests. Raise it when requests
+start queueing: the symptom is `PoolTimedOut` in the hub log after ~30s,
+under load rather than at startup.
+
+The ceiling is PostgreSQL's own `max_connections` (default `100`). Count
+every client of that server — each hub, the farm, plus a few for `psql` and
+backups — and keep the total underneath it, or connections get refused
+outright. Several hubs on one PostgreSQL server is the case to watch: five
+hubs at the default already reach 25.
+
 ### CORS
 
 The REST API ships with CORS fully open (`*`) by default. This is safe: every protected endpoint requires a bearer token and there is no cookie-based credential, so there is no CSRF surface. Any origin can read public data or authenticate with its own keypair.
