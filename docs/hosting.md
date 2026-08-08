@@ -37,7 +37,10 @@ serve API-only by default; opt into the web client explicitly.
 - TLS — terminated at the hub or at a reverse proxy. Browser clients
   served over HTTPS cannot connect to a plain-`http://` hub.
 - A **PostgreSQL** database (set `WAVVON_DATABASE_URL`). The hub creates and
-  migrates the schema on first start.
+  migrates the *schema* on first start — but it does not create the database
+  itself, so one has to exist first. See
+  [Providing PostgreSQL](#providing-postgresql) below; the Docker Compose
+  methods provision it for you and you can skip that section.
 - Disk for inline attachments and the Tantivy search index. Community-scale
   is modest; attachments are each capped at 3 MB.
 
@@ -50,6 +53,113 @@ directory.
 > off-box and restrict it to the running user. Lose it without a backup
 > and the hub comes back as a *different* hub: alliance memberships break
 > until peers re-add it under the new key.
+
+---
+
+## Providing PostgreSQL
+
+**Using a Docker Compose method? Skip this** — the `db` service in the
+generated `docker-compose.yml` handles everything, and `wavvon-hub setup`
+generates the password for you.
+
+Every other method needs a database that already exists. The hub runs its
+own migrations to create tables, but it will not `CREATE DATABASE`, and it
+will refuse to start if it cannot connect.
+
+Whichever route you take, the end state is the same three things: a role, a
+database owned by it, and a `WAVVON_DATABASE_URL` the hub can reach.
+
+### Debian / Ubuntu
+
+```bash
+sudo apt update && sudo apt install -y postgresql
+sudo -u postgres createuser --pwprompt wavvon      # prompts for a password
+sudo -u postgres createdb -O wavvon wavvon
+```
+
+The Debian package starts the server and enables it at boot already. The
+hub then connects over the local TCP socket:
+
+```
+WAVVON_DATABASE_URL=postgres://wavvon:YOUR_PASSWORD@localhost:5432/wavvon
+```
+
+### RHEL / Fedora / Rocky / Alma
+
+```bash
+sudo dnf install -y postgresql-server postgresql
+sudo postgresql-setup --initdb                      # not done by the package
+sudo systemctl enable --now postgresql
+sudo -u postgres createuser --pwprompt wavvon
+sudo -u postgres createdb -O wavvon wavvon
+```
+
+Red Hat family ships `pg_hba.conf` defaulting to `ident` for local TCP,
+which rejects password auth. Either switch the `127.0.0.1/32` line to
+`scram-sha-256` and `sudo systemctl reload postgresql`, or connect over the
+Unix socket instead (see below).
+
+### Alpine
+
+```sh
+apk add postgresql postgresql-contrib
+rc-service postgresql setup
+rc-service postgresql start && rc-update add postgresql
+su postgres -c "createuser --pwprompt wavvon"
+su postgres -c "createdb -O wavvon wavvon"
+```
+
+### Arch
+
+```bash
+sudo pacman -S postgresql
+sudo -u postgres initdb -D /var/lib/postgres/data
+sudo systemctl enable --now postgresql
+sudo -u postgres createuser --pwprompt wavvon
+sudo -u postgres createdb -O wavvon wavvon
+```
+
+### Managed PostgreSQL (Neon, Supabase, RDS, DigitalOcean, Scaleway…)
+
+Provision a database in the provider's console and paste its connection
+string into `WAVVON_DATABASE_URL`. Two things to check:
+
+- **TLS.** Most managed providers require it; append `?sslmode=require`.
+- **Latency.** The hub issues many small queries per request. A database in
+  a different region than the hub will be felt. Same region, ideally same
+  datacentre.
+
+This is the least-work option if you are already paying for a VPS with a
+managed database available, and it moves backups onto the provider.
+
+### Connecting over a Unix socket instead of TCP
+
+Avoids passwords and keeps the database entirely off the network:
+
+```
+WAVVON_DATABASE_URL=postgres:///wavvon?host=/var/run/postgresql&user=wavvon
+```
+
+For this the hub's system user must match the PostgreSQL role name (peer
+authentication). Create the role with the same name as the `User=` in your
+systemd unit.
+
+### Verifying before you start the hub
+
+```bash
+psql "$WAVVON_DATABASE_URL" -c 'select version();'
+```
+
+If that prints a version, the hub will connect. If it does not, fix it
+here — the hub's failure message is less informative than psql's.
+
+### Sizing the connection pool
+
+`WAVVON_DB_MAX_CONNECTIONS` (default 5) sizes the hub's pool. It caps
+concurrent *queries*, not concurrent users. If you run several hubs against
+one PostgreSQL server, keep the sum of their pools under the server's
+`max_connections` (default 100) with headroom for `psql` and backups. See
+the [operator guide](hub-operator-guide.md#database-connection-pool).
 
 ---
 
@@ -257,6 +367,11 @@ wavvon-hub --version
 
 The cargo target is named `hub`; the install examples here keep the
 on-disk name `wavvon-hub` for clarity.
+
+**Database** — this method does not bring one. Set up PostgreSQL and a
+`WAVVON_DATABASE_URL` first: [Providing PostgreSQL](#providing-postgresql).
+Verify with `psql "$WAVVON_DATABASE_URL" -c 'select version();'` before
+starting the service, or the unit will just fail on boot.
 
 **systemd unit** — `/etc/systemd/system/wavvon-hub.service`:
 
