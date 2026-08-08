@@ -860,15 +860,8 @@ paths:
           required: true
           schema: { type: string }
 
-  /channels/{channel_id}/members:
-    get:
-      summary: List members currently in a voice channel
-      tags: [Channels]
-      parameters:
-        - name: channel_id
-          in: path
-          required: true
-          schema: { type: string }
+  # /channels/{channel_id}/members was removed 2026-08-08: it ignored its
+  # channel_id and returned the same rows as GET /users. Use /users.
 
   /voice/populations:
     get:
@@ -1070,12 +1063,25 @@ paths:
 
   /conversations/{conversation_id}/messages:
     get:
-      summary: List messages in a DM conversation
+      summary: List messages in a DM conversation (paginated)
+      description: >
+        Newest `limit` messages, returned oldest-first. Page backwards with
+        `before` = the `id` of the oldest row you already have. Before
+        2026-08-08 this took no query params and returned the entire history
+        on every call, though both clients were already sending these two.
       tags: [DMs]
       parameters:
         - name: conversation_id
           in: path
           required: true
+          schema: { type: string }
+        - name: limit
+          in: query
+          description: Page size, clamped to 1..100.
+          schema: { type: integer, default: 50, minimum: 1, maximum: 100 }
+        - name: before
+          in: query
+          description: Keyset cursor — the `id` of the oldest message already held.
           schema: { type: string }
       responses:
         "200":
@@ -1393,37 +1399,9 @@ paths:
       summary: Kick a user (manage_users)
       tags: [Moderation]
 
-  /moderation/channels/{channel_id}/bans:
-    get:
-      summary: List per-channel bans
-      tags: [Moderation]
-      parameters:
-        - name: channel_id
-          in: path
-          required: true
-          schema: { type: string }
-    post:
-      summary: Ban user from a channel (manage_channels)
-      tags: [Moderation]
-      parameters:
-        - name: channel_id
-          in: path
-          required: true
-          schema: { type: string }
-
-  /moderation/channels/{channel_id}/bans/{target_key}:
-    delete:
-      summary: Remove channel ban (manage_channels)
-      tags: [Moderation]
-      parameters:
-        - name: channel_id
-          in: path
-          required: true
-          schema: { type: string }
-        - name: target_key
-          in: path
-          required: true
-          schema: { type: string }
+  # Channel bans used to live here as well as under /channels/{id}/bans, with
+  # a weaker permission gate and no `reason` on write. Unified into
+  # /channels/{channel_id}/bans (2026-08-08).
 
   /moderation/voice-mutes:
     get:
@@ -1465,8 +1443,26 @@ paths:
 
   /users:
     get:
-      summary: List all users
+      summary: List hub members (paginated)
+      description: >
+        Members the hub knows, ordered by display name then public key.
+        Page with `cursor` — pass the `public_key` of the last row of the
+        previous page — until a short page comes back. Before 2026-08-08 this
+        capped at a hardcoded 50 rows with no way to reach row 51.
       tags: [Users]
+      parameters:
+        - name: q
+          in: query
+          description: Substring match on display name or public key (max 64 chars).
+          schema: { type: string }
+        - name: limit
+          in: query
+          description: Page size, clamped to 1..500.
+          schema: { type: integer, default: 200, minimum: 1, maximum: 500 }
+        - name: cursor
+          in: query
+          description: Keyset cursor — the `public_key` of the previous page's last row.
+          schema: { type: string }
       responses:
         "200":
           content:
@@ -2921,6 +2917,14 @@ paths:
         - name: status
           in: query
           schema: { type: string, default: pending, enum: [pending, reviewed] }
+        - name: limit
+          in: query
+          description: Page size, clamped to 1..200.
+          schema: { type: integer, default: 50, minimum: 1, maximum: 200 }
+        - name: cursor
+          in: query
+          description: Keyset cursor — the `id` of the previous page's last row.
+          schema: { type: string }
       responses:
         "200":
           content:
@@ -3760,9 +3764,15 @@ paths:
                     channel_id: { type: string }
                     pubkey: { type: string }
                     banned_by: { type: string }
-                    banned_at: { type: string }
+                    reason: { type: string, nullable: true }
+                    banned_at: { type: integer }
     post:
       summary: Ban a user from a channel (ban_members)
+      description: >
+        The only channel-ban write path. A duplicate family under
+        /moderation/channels/{id}/bans was folded in on 2026-08-08; this
+        route used to hardcode `reason` to null on insert, silently erasing
+        a reason written through the other one.
       tags: [Moderation]
       parameters:
         - name: channel_id
@@ -3777,6 +3787,7 @@ paths:
               required: [pubkey]
               properties:
                 pubkey: { type: string }
+                reason: { type: string, nullable: true }
 
   /channels/{channel_id}/bans/{pubkey}:
     delete:

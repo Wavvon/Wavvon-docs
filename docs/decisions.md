@@ -6,6 +6,101 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## List pagination: one cursor dialect, array responses, no envelope
+
+**Decision** (2026-08-08): every paginated hub list uses the shape
+`GET /messages` already had — a bare JSON array plus `limit` and a
+**keyset cursor** naming the last row the caller holds. No `{items,
+total, page}` envelope, no offset paging, no second dialect for
+"table-like" lists.
+
+This supersedes the plan recorded in ROADMAP on 2026-08-07, which called
+for two shapes: cursor for feeds, `page`/`limit`/`total` for admin
+tables, the latter said to mirror `GET /farm/users`. Two facts killed it
+on contact with the code. First, `GET /farm/users` is not `page`-based —
+it is `cursor`/`limit` with a `total`, so "mirror the farm console"
+already meant cursor. Second, the endpoint that motivated the split,
+`GET /users`, is not table-like *or* feed-like: the member sidebar wants
+the whole roster and the admin Users table wants a page, and both are
+served fine by a large default (200) with a cursor for the rare hub that
+exceeds it. Inventing a second dialect to serve one endpoint that did not
+need it was the whole cost of the plan.
+
+*Alternatives considered*: (a) the two-shape plan — rejected above;
+(b) an envelope carrying `total`, so a client can render "342 members" —
+rejected for now: nothing in either client displays a server-side total
+today, `total` costs a second `COUNT(*)` per request, and adding it later
+is additive whereas removing it is not; (c) offset paging — rejected, it
+skips and repeats rows when the underlying list mutates mid-scroll, which
+a member roster does constantly.
+
+*Tradeoff*: the keyset on `/users` orders by `COALESCE(display_name,'')`
+rather than raw `display_name`, so members with no display name sort
+first instead of last. Row-value comparison against a NULL yields NULL,
+which would drop those rows from every page — correctness of the walk
+beats the cosmetic ordering of a rare case.
+
+*Outcome*: `/users`, `/conversations/{id}/messages` and `/admin/reports`
+converted; the remaining unbounded lists are inventoried in ROADMAP and
+convert to the same shape when someone actually hits one.
+
+## Duplicate endpoints are folded, not versioned side by side
+
+**Decision** (2026-08-08): when two route families write the same table,
+one wins and the other is deleted outright — no `_v2` suffix left
+standing beside a `v1`, no deprecation window. Alpha rules
+([project alpha state](../ROADMAP.md)) make this cheap; keeping both is
+what is expensive.
+
+The concrete case: `/moderation/channels/{id}/bans` and
+`/channels/{id}/bans` both wrote `channel_bans`, but with different
+permission gates (`MUTE_MEMBERS` vs `BAN_MEMBERS`), different field names
+(`target_public_key` vs `pubkey`), and — the actual damage — the second
+hardcoded `reason = NULL` on insert. Desktop used the first, web the
+second. So a moderator's written ban reason survived exactly until
+someone re-banned that user from the other client, at which point it was
+silently erased. Two doors to one table is not redundancy, it is two
+half-specified behaviours that disagree, and the disagreement is invisible
+until it costs data.
+
+*Alternatives considered*: (a) keep both, make v2 write `reason` too —
+rejected: fixes this instance and leaves the shape that produced it,
+including the permission-gate split, where a `MUTE_MEMBERS` holder can
+place a channel ban a `BAN_MEMBERS` holder is required for; (b) keep both
+and make v1 a thin forward to v2 — rejected: same surface area to
+maintain, plus indirection, for a route no client would use.
+
+*Outcome*: `/channels/{id}/bans` is the only channel-ban API, gates on
+`BAN_MEMBERS`, and round-trips `reason` (pinned by a test). Desktop was
+repointed. `GET /channels/{id}/members` — which ignored its `channel_id`
+and returned the `/users` rows — went the same way.
+
+## Unknown WebSocket events must be loud
+
+**Decision** (2026-08-08): a client's catch-all arm for unmodelled server
+events logs the event type. It is never a bare no-op.
+
+Desktop's `WsServerMessage` enum ended in `#[serde(other)] Other`, matched
+as `Other => {}`. That single empty block is why four separate features —
+live hub branding, live channel list, live member profiles, and soundboard
+attribution chips — were shipped on web and quietly absent on desktop.
+Each was individually small; what made them a *class* of bug is that the
+absence produced no symptom a developer would see. Desktop even POSTed the
+soundboard `played` event, causing chips on everyone else's screen while
+showing none of its own.
+
+*Alternatives considered*: (a) removing the catch-all so unknown events
+fail to deserialize — rejected: a hub newer than the client is a normal
+federated state, and hard-failing the WS loop over an event the client
+does not care about is worse than ignoring it; (b) a doc note listing
+which events each client handles — rejected: that is a table that goes
+stale exactly as silently as the code did.
+
+*Outcome*: the fallthrough logs `unhandled hub event type "..."`. The four
+backed-up handlers were added at the same time, but the log line is the
+fix — it converts a silent divergence into something the next hub feature
+surfaces on first run.
+
 ## Member name colors: hub-chosen priority between role color and profile color, resolved server-side
 
 **Decision** (2026-08-07, iterated with the user from "Discord role

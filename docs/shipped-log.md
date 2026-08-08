@@ -4,6 +4,40 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **List pagination + endpoint dedup + desktop WS/whisper parity
+  (2026-08-08)**: three related cleanups.
+  **Pagination** — `GET /users` dropped its hardcoded `LIMIT 50` (member
+  lists silently truncated above 50) for `limit` (default 200, max 500)
+  plus a keyset `cursor` on `(display_name, public_key)`, collapsing two
+  near-identical SQL branches into one predicate-switched query;
+  `GET /conversations/{id}/messages` took **no query params at all** and
+  returned entire DM history on every open, while both clients had been
+  sending `before`/`limit` all along — now honoured;
+  `GET /admin/reports` gained the same. Pinned by `list_pagination_flow.rs`
+  (cursor walk with no gaps or repeats, clamping, search+limit composition,
+  DM backward paging, membership still enforced).
+  **Endpoint dedup** — channel bans existed as two route families over one
+  `channel_bans` table with different permission gates and field names, and
+  the `/channels/...` one hardcoded `reason = NULL` on insert, so a ban
+  placed with a reason lost it the moment anyone re-banned through the
+  other door; unified onto `/channels/{id}/bans` with `reason` preserved
+  (`channel_ban_round_trips_reason`). `GET /channels/{id}/members` was
+  deleted — it ignored its `channel_id` and returned the same rows as
+  `/users`; its only caller was ttt-bot, repointed to `/users?q=`.
+  **Desktop parity** — the real find: desktop's WS enum ended in
+  `#[serde(other)] Other` handled as `Other => {}`, so every unmodelled hub
+  event vanished silently. Four had piled up behind it (`hub_updated`,
+  `channels_updated`, `member_updated`, `soundboard_played`); all four are
+  handled now and the fallthrough **logs the unhandled type** so the next
+  one cannot hide. Whisper reached parity by hoisting rather than porting:
+  `useWhisperKeybinds`, the inbox reducer, and `useSoundboardChips` were
+  platform-free web-app-local code and moved to `packages/ui`, so desktop
+  got keybinds, reply bind, inbox and chips from the shared copies; opt-out
+  rides the existing `send_hub_ws_raw_to` and re-sends on reconnect beside
+  presence. Desktop's 193-line `ChannelAppearanceModal` was deleted (it
+  duplicated, worse, a tab of the shared `ChannelSettingsModal` the same
+  menu already opened), along with an orphaned hand-rolled `svgSanitize`.
+
 - **Member name colors (2026-08-07)**: colored nicknames in the message
   stream and member list, from two sources — role color and a new
   `users.name_color` profile field (PATCH `/me`, validated like

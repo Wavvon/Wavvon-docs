@@ -104,9 +104,9 @@ real pin. Covered by `e2e/live/55`.)*
   vector added) — DM crypto is at full parity; both interop directions
   are vector-pinned across the two test suites.
 
-- Soundboard ponytail ceilings: linear resampler, one-clip-at-a-time,
-  played-attribution chip not wired on desktop (needs the
-  `SoundboardPlayed` WS variant in desktop's `types.rs`/`ws.rs`).
+- Soundboard ponytail ceilings: linear resampler, one-clip-at-a-time.
+  ~~played-attribution chip not wired on desktop~~ — fixed 2026-08-08 (see
+  "Desktop WS event gap class" below).
 - Web camera *mid-call* device switching reuses the disable/enable
   renegotiation path (no `replaceTrack`); fine for v1.
 - Desktop Devices/Privacy tabs are active-account-only (no Rust surface
@@ -358,10 +358,19 @@ Definitive status for everything still not at parity:
   (`apps/web/src/hooks/useWhisperKeybinds.ts`), and receive opt-out
   (`voice_whisper_optout` WS message, hub-enforced; persisted per account
   in `apps/web/src/utils/whisperOptout.ts`, re-sent on reconnect).
-  *Desktop gaps:* no keybind listener (the shared `WhisperPanel` shows the
-  bind UI but desktop doesn't act on it — a desktop hook could add global
-  hotkeys via Tauri), no `WhisperInbox` render, no opt-out wiring
-  (desktop `useWhisper` lacks the state + send-on-reconnect).
+  *Desktop gaps — closed 2026-08-08.* `useWhisperKeybinds` and the inbox
+  reducer (`applyWhisperLogEvent` / `pickReplyPubkey`) were app-local on web
+  despite being entirely platform-free; both are now in `packages/ui`
+  (`hooks/useWhisperKeybinds.ts`, `utils/whisperInbox.ts`) and desktop uses
+  them unchanged, so it gained per-list keybinds, the reply bind, and the
+  `WhisperInbox` render for free. Receive opt-out needed no new WS plumbing
+  — desktop already had `send_hub_ws_raw_to` (used for the presence push),
+  so the frame rides that, re-sent on reconnect next to presence for the
+  same reason (the hub holds opt-out per connection). Persistence is a new
+  per-account `whisper_optout.json` via `local_store.rs`, matching
+  `dnd_settings`; desktop localStorage is **not** account-scoped, so the
+  web pattern could not be copied directly. Keybinds stay focused-only on
+  both clients — a Tauri global shortcut is still open if anyone asks.
 - **Hub-streams panel — DONE (2026-07-04).** `HubStreamsPanel` behind a 📡
   header button lists screen shares in other channels
   (`requestStreamList`/`subscribeStream`/`unsubscribeStream` over the WS
@@ -457,25 +466,38 @@ and DH key (see the pairing follow-up above) — an enhancement, not a gap.
 
 ---
 
-## Related (not client-parity, but adjacent)
+## Desktop WS event gap class — CLOSED 2026-08-08
 
-- **Profile changes don't propagate live** to other connected clients —
-  `PATCH /me` broadcasts no WebSocket event, so this affects all three
-  clients equally. It's a **hub** change (add a member-updated broadcast +
-  client handlers), tracked in `ROADMAP.md` Known issues, not here.
+Desktop's `WsServerMessage` enum ends in `#[serde(other)] Other`, and
+`ws.rs` handled that arm as `Other => {}`. Every hub event desktop did not
+model was therefore dropped **with no log line, no warning, nothing** — so
+features web shipped simply never arrived on desktop and nobody noticed.
+Four had accumulated behind it:
 
-## Gaps opened by the 2026-07-23 web bug batch (desktop TODO)
+| Event | What desktop was missing |
+|---|---|
+| `hub_updated` | Stale hub name/icon/timezone until a reload |
+| `channels_updated` | Stale channel list |
+| `member_updated` | Stale member names/avatars/name colors after any `PATCH /me` |
+| `soundboard_played` | No attribution chip — desktop *caused* chips on web clients but showed none itself |
 
-- **Live hub branding (`hub_updated`)** — the hub now broadcasts a
-  payload-free `hub_updated` WS event after `PATCH /hub`, and web
-  refetches `/info` and refreshes its cached hub name+icon
-  (`refreshHubInfo` in `apps/web/src/platform/commands/hubs.ts`).
-  Desktop has no handler for the event — it still shows a stale hub
-  name/icon on non-acting devices until a hub reload.
-- **Unified channel icon picker** — web's shared `ChannelSettingsModal`
-  (packages/ui) now shows the color control only for categories and
-  merges emoji / predefined icons / hub SVG library / SVG upload into
-  one grid. Desktop still uses its own
-  `apps/desktop/src/components/ChannelAppearanceModal.tsx` duplicate
-  with the old four disconnected controls; converge it on the shared
-  modal when desktop is next prioritized.
+All four variants are now modelled and handled, and **the fallthrough arm
+logs the unhandled `type`** so the next one surfaces instead of vanishing.
+That log line is the actual fix; the four handlers are just the backlog it
+had hidden. The chip reuses `useSoundboardChips`, hoisted into
+`packages/ui/src/hooks/` (it was network-free all along).
+
+*(The old "Related" note here claimed `PATCH /me` broadcast no WS event.
+That stopped being true when `MemberUpdated` landed — the hub had been
+broadcasting it and only web listened.)*
+
+## Gaps opened by the 2026-07-23 web bug batch
+
+- ~~**Unified channel icon picker**~~ — closed 2026-08-08 by deletion.
+  Desktop was rendering *both* the shared `ChannelSettingsModal` (with the
+  merged emoji / predefined / hub-SVG / upload grid) **and** its own
+  193-line `ChannelAppearanceModal` with the old four disconnected
+  controls, reachable only from the category context menu — a strictly
+  poorer duplicate of a tab the same menu already opened. Deleted, along
+  with the now-orphaned app-local `svgSanitize` (the shared one uses
+  DOMPurify).

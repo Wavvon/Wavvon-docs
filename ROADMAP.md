@@ -43,16 +43,19 @@ fixed, its entry moves to the shipped log.
   Not worth extracting (checked 2026-07-27): message send/edit — thin
   glue over cross-cutting App state.
 
-- [ ] **List-endpoint pagination (next session, decided 2026-08-07)**
-  — two shapes, both already in-repo, no third dialect: feeds keep the
-  existing cursor (`before` + `limit`, as `GET /messages` does);
-  table-like admin lists get `page`/`limit`/`total` mirroring the farm
-  console's `GET /farm/users`. First target: `GET /users` (drop the
-  hardcoded LIMIT 50 — the known issue below) + a `q` server-side
-  search param, consumed by the member sidebar and admin Users table.
-  Then a small audit of the other unbounded lists (bans, invites,
-  report queue; audit log likely cursor on its `seq`). ~1 day for
-  /users, ~1 more for the audit.
+- [ ] **List-endpoint pagination — remaining lists.** The first pass
+  landed 2026-08-08 (shipped log): `GET /users`, `GET /conversations/
+  {id}/messages` and `GET /admin/reports` all take `limit` + a keyset
+  cursor now. Two corrections to the 2026-08-07 plan that was written
+  here: `q` already existed on `/users`, and `GET /farm/users` is
+  `cursor`/`limit`/`total`, not `page`/`limit`/`total` — so there is
+  one cursor dialect in the repo, not two, and everything new follows
+  it. Still unbounded and worth a sweep when someone hits one:
+  `/moderation/bans`, `/moderation/mutes`, `/invites`, `/hub/pending`,
+  `/conversations`, `/channels/{id}/pins`, `/channels/{id}/polls`,
+  `/roles`, `/channels`, the banlist trio, `/emojis`, `/hub/icons`,
+  `/badges`. (`/admin/audit-log` was already properly paginated.) None
+  of these grow the way DM history does — hence not "next up".
 - [ ] **Voice v2 cross-internet live test** — transport v2 shipped
   2026-08-07 (shipped log) and passed the local two-browser E2E drive;
   the over-the-internet test on the pilot hub is still pending, now on
@@ -95,9 +98,10 @@ fixed, its entry moves to the shipped log.
 - **Passkey registration from desktop** — blocked by Tauri webview RP ID
   mismatch; needs a native WebAuthn plugin or system-browser handoff.
 - **Desktop parity backlog** — named custom themes, data-export archive
-  compat, LAN discovery UX (mDNS + QR), whisper gaps (keybind listener,
-  `WhisperInbox` render, opt-out wiring), `SoundboardPlayed` chip.
-  Details in [`client-parity.md`](docs/client-parity.md).
+  compat, LAN discovery UX (mDNS + QR). The whisper gaps, the
+  `SoundboardPlayed` chip, `hub_updated`/`channels_updated`/
+  `member_updated` and the duplicate channel-appearance modal all closed
+  2026-08-08. Details in [`client-parity.md`](docs/client-parity.md).
 - **Banner-channel management surface** — a bannerless banner channel
   can't be renamed/deleted from the web sidebar (no gear, no context
   menu); needs a small UX decision first
@@ -124,9 +128,6 @@ fixed, its entry moves to the shipped log.
 - **Bot deferred scope** — bot DMs: no timeline. (Voice/video injection
   and bot-launched game modals shipped 2026-07-19 as capability-layer
   Phases 1–2.)
-- **`GET /users` caps at 50 rows** — member lists silently truncate on
-  larger hubs (also forced the e2e suite onto a fresh DB, 2026-07-26).
-  Fix planned: the list-endpoint pagination item in Next up.
 - **Own encrypted DMs from another device show "[decryption failed]"**
   — the own-plaintext stash is device-local by nature (a ratchet can't
   decrypt its own envelopes), so a paired second device can't render
