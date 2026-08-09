@@ -22,27 +22,12 @@ fixed, its entry moves to the shipped log.
   three of its gaps were silent. Two closed already (shipped log): the serial
   claim, without which the proxy could route to nothing, and the public URL,
   without which a farm-hosted hub had no voice. What is left, in order:
-  - [ ] **Slug — indirizzi scelti dall'owner.** `hubs.slug`, free-form and
-    independent of the display name (`MangiaDaPippo`, not a slugification of
-    "Osteria di Pippo"). **Alias, never identity**: the pubkey stays the thing
-    the client pins, so a hub cannot be silently swapped under a name. Several
-    live at once, one flagged canonical. Case-insensitive and ASCII-only —
-    both prevent impersonation by look-alike, a risk that did not exist while
-    the address was a pubkey. Released slugs are held for a cooling-off period
-    (the same hub can always reclaim its own), then return to the pool: names
-    come back, but not the instant someone releases one.
-  - [ ] **Canonical URL pushed to clients.** The hub publishes its own URL in
-    `/info`; `refreshHubInfo` already runs on connect and on `hub_updated`, so
-    a rename propagates to connected clients on its own. `GET
-    /farm/hubs/by-pubkey/{pubkey}` is the fallback for a client that was
-    offline during the change — not the primary mechanism.
-  - [ ] **One database per hub.** Today every farm-spawned hub shares the
-    default one; the code logs a warning per spawn. Prerequisite for
-    multi-node, and wrong on a single node already.
-  - [ ] **Per-server capacity and placement.** `pick_agent` takes the first
-    entry it finds iterating a HashMap, and `CreateHubRequest` has no field
-    for choosing a server — so "server 1 holds 5 hubs, server 2 holds 3"
-    cannot be expressed at all.
+  - [ ] **A PostgreSQL role per hub.** Hubs are separated by database or by
+    schema now, but they all connect with the **same role** — so the
+    separation prevents collisions, not a compromised hub reading its
+    siblings. A role per hub, granted only its own space, is the only one of
+    these that is a security measure rather than hygiene. Works with either
+    layout. Worth doing before a farm hosts hubs it does not itself own.
   - [ ] **Wire certs + soft-flag between sibling hubs.** The anti-bot story,
     reusing what exists rather than inventing a farm-level one: on creation,
     subscribe a new hub to its siblings' ban lists as `soft-flag` and register

@@ -223,6 +223,19 @@ components:
             nothing". The list only ever grows — a string never changes
             spelling or meaning once published.
           example: [list.cursor, pairing.subkey, recovery.attestation, screenshare.v2, voice.wt]
+        canonical_url:
+          type: string
+          description: |
+            The address this hub says clients should use for it. Behind a farm
+            this is the hub's owner-chosen name (`https://farm.example/hub/
+            MangiaDaPippo`) and it **changes** when the hub is renamed —
+            re-read it whenever you refresh `/info` and update the address you
+            have stored.
+
+            Following it is safe because a hub is identified by `public_key`,
+            never by its address: you change *where* you look, not who you
+            believe you are talking to. Absent when the hub has no public
+            address.
         invite_only: { type: boolean }
         min_security_level: { type: integer }
         min_pow_level: { type: integer }

@@ -4,6 +4,121 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Hub placement — capacity per server (2026-08-09)**: choosing which node a
+  new hub went on was `map.iter().next()` — the first entry of a HashMap
+  iteration, an arbitrary connected agent, with no notion of how many hubs it
+  already held. "This server holds five hubs, that one holds three" could not
+  be expressed: there was nowhere to say it and nothing that would have read
+  it, and `CreateHubRequest` had no field for naming a server either.
+  `servers.max_hubs` and `farms.max_local_hubs` now cap each node — including
+  the farm's own process, which is a real placement target and not a fallback
+  that skips the accounting. A request may name a server; unnamed, the
+  **emptiest** node wins, so hubs spread instead of piling onto whichever one
+  hashed first, with ties going to an agent so the farm stays free for the work
+  only it can do.
+  Placement is **refused, never overflowed**: a named server that is full is a
+  409 rather than a quiet redirect elsewhere, because an operator who named one
+  wants that one and would find out much later and much more confusingly. Same
+  for everything being full — with an error that says to raise a cap or
+  register another server.
+  One ordering bug found by its own test: the first version chose *after*
+  inserting the hub row, so the new hub counted against its own node and a node
+  capped at one refused the very first hub placed on it. The decision happens
+  before the row exists now, which also removes the rollback the old order
+  needed.
+
+- **Somewhere of its own for each hub — database *or* schema (2026-08-09)**:
+  the farm passed **no** database
+  configuration to the hubs it spawned, so every one of them fell back to the
+  same default URL and **they all shared a single database** — each hub reading
+  and writing every other community's channels, users and messages. The code
+  logged a warning per spawn saying exactly this; `hubs.db_path` was a
+  SQLite-era file path nothing consumed, and the parameter carrying it was
+  threaded through every spawn path unused.
+  Each hub now gets its own database on the farm's own PostgreSQL server,
+  created on first spawn and recorded on the row, so the work happens once. The
+  dead `db_path` parameter became `db_url` rather than gaining a new one beside
+  it. `CREATE DATABASE` takes no bind parameters, so the name is formatted in —
+  guarded by an identifier check that hub ids can never fail today, present so
+  that a future change to id generation breaks loudly there instead of quietly
+  becoming an injection point.
+  **A provisioning failure refuses the hub** — creation returns an error and
+  the row is rolled back, a startup sweep skips that hub, a restart reports it.
+  Falling back to the shared default is the bug this replaced, and it is
+  exactly the sort of fallback that hides for months. Hubs that predate the
+  column are provisioned on their next spawn or restart, so an admin restart
+  doubles as the repair path.
+  Farm tests hand the harness a real base URL, because there is no "skip it in
+  tests" path that still exercises the refusal, and their teardown drops the
+  hub databases a test created — they are not children of the farm database and
+  nothing else would ever remove them.
+  **Second layout, added the same day**: a database each needs `CREATEDB`, and
+  a managed PostgreSQL plan routinely grants one database and no such right —
+  so the first version could not create a *single* hub in an entire class of
+  hosting. `hub_isolation` = `database` (default) | `schema` picks between one
+  database per hub and one **schema** per hub inside the farm's own database,
+  selected via `search_path` on the connection. The hub needs no idea which is
+  in use: all of its SQL names tables unqualified, verified before relying on
+  it, so PostgreSQL places them without a line of hub code changing.
+  The one place that did assume `public` was `db/dump.rs` — mine, from the day
+  before — and left alone it would have dumped **zero tables and called the
+  backup a success** for every schema-isolated hub. It reads `current_schema()`
+  now and passes `--schema` to `pg_dump` explicitly rather than trusting the
+  connection's path, since in schema mode a hub's siblings live in the same
+  database and the default would take everyone's or nobody's.
+  Stated rather than implied, because it is easy to assume otherwise: **neither
+  layout contains a hostile hub.** Every hub connects with the same role, so a
+  compromised hub process can reach its siblings' data under both. Real
+  containment needs a PostgreSQL role per hub — orthogonal to this choice,
+  works with either, and is the only one of the three that is a security
+  measure. On the roadmap as such.
+
+- **Hub slugs — owner-chosen addresses (2026-08-09)**: a hub on a farm was
+  reachable only at `/hub/<64 hex chars>`. It now also answers at a name its
+  owner picks — `https://farm.example/hub/MangiaDaPippo` — deliberately *not*
+  a slugification of the display name, which stays free to be "Osteria di
+  Pippo" with spaces and emoji and to change without disturbing anyone's
+  bookmark.
+  **The slug is an alias; the pubkey stays the identity.** That is the whole
+  design and it buys one property nothing else does: a client compares the key
+  it expects against `/info.public_key` and notices if a name now points
+  somewhere else. Were the slug the identity there would be nothing to compare
+  against and the farm's mapping would have to be taken on faith — which a
+  self-hosted federated product cannot ask of anyone. Both addresses resolve
+  through one lookup function over two key spaces that cannot overlap
+  (`normalize` refuses anything shaped like a key), not two route families
+  that could drift apart.
+  Two naming rules earn their place, and both guard risks that **did not exist
+  while the address was a pubkey**: matching is case-insensitive (the slug is
+  stored lowercase as the primary key, so `MangiaDaPippo` and the all-lowercase
+  variant cannot be two owners) and ASCII-only (a Cyrillic "а" renders
+  identically to the Latin one; refused at the door rather than analysed).
+  Slugs are released, never deleted. Releasing stops resolution and frees a
+  quota slot, but the row stays: for a cooling-off window only the hub that
+  gave the name up may reclaim it, after which it returns to the pool. Names do
+  come back — just not the instant somebody lets one go, which is exactly when
+  inheriting their inbound links is worth most. How many a hub may hold at once
+  and how long the window lasts are farm policy, beside `max_hubs_per_user`.
+  Releasing the canonical slug promotes the next one rather than refusing, so
+  a hub can never end up holding names while advertising none.
+  Alongside it, **`canonical_url` on `/info`**: the hub publishes its current
+  address and the client follows it, keyed on the pubkey. A rename now reaches
+  every client that reconnects instead of stranding them. The hub learns its
+  own name from the **heartbeat response** — an env var is fixed at spawn and
+  could never carry a later rename, whereas the heartbeat is already a
+  standing farm→hub channel and gets there within one interval.
+  Client side, a bug the round-trip test caught immediately: `parseHubInput`
+  built `hubUrl` from the origin alone, so
+  `https://farm.example/hub/pippo/join/abc` parsed to the **farm's root with
+  no invite code** — pasting a farm invite link into Add-hub would have
+  reached nothing. A hub on a farm lives *under* a path, so its base URL
+  includes that prefix; the parser splits `/hub/<slug>` off the front now and
+  parses the remainder as an ordinary hub path. Standalone hubs are untouched
+  (empty prefix). `buildInviteLink` needed no such fix once the client's
+  stored address carries the slug — its unused `hubSerial` argument, and the
+  props threading it through four components, were deleted rather than left
+  ignored.
+
 - **A farm-hosted hub had no public address (2026-08-09)**: `voice_wt_url`,
   the first-boot invite link and the WebAuthn relying party all derive from
   `WAVVON_PUBLIC_URL`. That key was a string literal the farm and agent never
