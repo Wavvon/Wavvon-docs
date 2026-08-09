@@ -17,42 +17,23 @@ fixed, its entry moves to the shipped log.
   versions on develop, open the develop→main PR, user reviews +
   merges. Do before the pilot friend onboards. Version number to be
   decided at PR time.
-- [ ] **`wavvon-hub db` — one dump/restore path for backup, moves and
-  upgrades** — decision:
+- [ ] **`db move --to <url>` / `--from <url>`** — the remaining slice of
   [One mechanism moves the data](docs/decisions.md#one-mechanism-moves-the-data-logical-dumprestore).
-  Three features that looked separate share one implementation, so build
-  it once and well.
-  - [ ] `db export [FILE]` / `db import FILE` over the active database,
-    using the hub's own PostgreSQL binaries when embedded.
-  - [ ] `db move --to <url>` / `--from <url>` for adopting or giving up an
-    external server. **Copies only** — the operator then flips
-    `WAVVON_DATABASE_URL` and restarts, so a bad destination is undone by
-    changing one variable back.
-  - [ ] Guard rails, all refusing rather than half-writing: destination
-    empty, `target_major >= source_major`, dump file retained and its path
-    printed, row counts compared after restore.
-  - [ ] Fold `wavvon-hub backup` onto it so the archive finally contains
-    the database.
-  - Counter-intuitive bit worth keeping in the code comments: since
-    bundled PostgreSQL follows upstream, **embedded is usually the newer
-    side**, so "move to my own PostgreSQL" is the direction most likely to
-    be refused — distributions ship older majors.
+  The mechanism and its guard rails shipped 2026-08-09 under
+  `backup`/`restore` (`db/dump.rs`); `move` is the thin wrapper that runs
+  both against two URLs, for adopting or giving up an external server.
+  **Copies only** — the operator then flips `WAVVON_DATABASE_URL` and
+  restarts, so a bad destination is undone by changing one variable back.
+  Deliberately waiting for embedded PostgreSQL: until there is an embedded
+  side, "move" is `backup` then `restore` against a different URL, which
+  the two commands already do.
 
 - [ ] **Make the upgrade path whole** — upgrading is documented
   (`hosting.md` "Upgrades (per method)", operator guide "Upgrade path")
   and the mechanism is sound: replace the binary or pull the image,
   restart, additive migrations run on startup. Verified additive — 136
   `CREATE TABLE IF NOT EXISTS`/`ALTER TABLE`, **zero** `DROP`/`TRUNCATE`.
-  Three gaps behind it, all sharpened by bundling PostgreSQL:
-  - [ ] **`wavvon-hub backup` does not back up the database.** It writes
-    `hub_identity.json` plus a metadata file and nothing else
-    (`main.rs:1388`, with a comment saying to use `pg_dump` separately).
-    The name promises more than it delivers, and "take a backup first"
-    in the upgrade docs is therefore not actionable via the tool that
-    looks like it does it. With embedded PostgreSQL the operator will
-    not even have `pg_dump` on PATH — it lives in our version-scoped
-    install dir. `backup` should dump the database using whichever
-    binaries the hub is using, embedded or external.
+  Two gaps behind it, both sharpened by bundling PostgreSQL:
   - [ ] **Rollback is undefined.** Additive migrations suggest an older
     binary tolerates a newer schema, but a new `NOT NULL` column without
     a default would break its inserts. Untested and undocumented — either

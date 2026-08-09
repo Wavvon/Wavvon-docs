@@ -18,22 +18,39 @@ update, and none change the federation wire format except the new
 > design backs), [data-model.md](data-model.md) (schema), and
 > [federation.md](federation.md) (why key rotation must preserve trust).
 
+> **All four features here have shipped.** This is the design record — kept
+> for the reasoning, not as a status board. Where the shipped behaviour
+> diverged from the plan it is called out inline. For how to actually use
+> them, go to the [operator guide](hub-operator-guide.md).
+
 ---
 
 ## 1. Hub backup & restore
 
-**Status: designed, not started.**
+**Status: shipped.**
 
 **Decision**: two CLI subcommands, `wavvon-hub backup [<out-path>]` and
-`wavvon-hub restore <path>`, that operate on durable state only. Backup
-produces a single portable `.tar.gz` containing exactly three files:
+`wavvon-hub restore <path> [--force]`, that operate on durable state only.
+Backup produces a single portable `.tar.gz`:
 
-- `hub.db` — the SQLite database (all messages, channels, roles,
-  members, certs, sessions).
-- `hub_identity.json` — the hub's Ed25519 keypair (loaded at
-  `main.rs:124`).
-- `backup_meta.json` — `{ timestamp, hub_pubkey, wavvon_version }`, for
-  identity verification on restore and operator sanity-checking.
+- `database.dump` — a `pg_dump` custom-format archive of the whole database.
+- `hub_identity.json` — the hub's Ed25519 keypair.
+- `uploads/` — the attachments directory (`WAVVON_UPLOADS_DIR`).
+- `backup_meta.json` — `{ timestamp, wavvon_version, pg_server_version_num,
+  row_counts, uploads_included }`. The last three are read back at restore
+  time: the version decides whether the restore is even possible, and the
+  counts are compared afterwards.
+
+> **How this shipped vs how it was planned.** Two things changed.
+> *The storage engine*: this was written for SQLite, which is gone —
+> PostgreSQL is the only backend ([decisions.md](decisions.md)), so the
+> archive carries a logical dump instead of a database file, and backup and
+> restore shell out to `pg_dump`/`pg_restore`.
+> *The delivery*: for a long time `backup` shipped as the identity file and
+> the meta stub only, with a comment telling operators to run `pg_dump`
+> themselves — so the command the upgrade docs told them to run before every
+> upgrade did not take a backup. Closed 2026-08-09, together with uploads,
+> which had never been in the archive at all.
 
 **What is deliberately *not* backed up**: voice packets and all
 ephemeral in-memory state — `voice_channels`, `active_game_sessions`,
@@ -49,48 +66,63 @@ responsible for securing it (file permissions, encrypted volume, or
 piping the archive through their own `gpg`/`age`). The doc and the CLI
 output both state this loudly.
 
-**Restore behaviour** (`wavvon-hub restore <path>`):
+**Restore behaviour** (`wavvon-hub restore <path> [--force]`). Every step
+refuses rather than half-writes, in cost order — the check that cannot be
+waived runs first, so failing it is free:
 
-1. Extract the archive to a staging directory (never operate on live
-   files mid-extraction).
-2. Read `backup_meta.json` and compare its `hub_pubkey` to the current
-   on-disk `hub_identity.json`. If they differ, warn loudly — restoring
-   a *different* hub's identity over this one changes who this hub is to
-   the federation. Proceed only with an explicit `--force` (or an
-   interactive confirm); otherwise abort.
-3. Run forward-only, additive migrations on the staged DB (same
-   migration set as the `migrate` subcommand) so a backup taken on an
-   older binary restores cleanly onto a newer one.
-4. Atomically replace the live `hub.db` and `hub_identity.json` with the
-   staged copies, then exit.
+1. Extract the archive to a staging directory (never operate on live files
+   mid-extraction).
+2. **Direction.** Compare the archive's `pg_server_version_num` to the
+   destination server's. A dump restores into an equal or newer major only;
+   below that, `pg_restore` cannot parse it. Not overridable — `--force`
+   would only produce a mangled database.
+3. **Emptiness.** Refuse a destination that already has tables: restoring
+   over a live hub merges two communities into one. `--force` waives this,
+   and only this.
+4. `pg_restore --exit-on-error`. Without that flag `pg_restore` reports every
+   failure and still exits 0, so a restore that dropped half the schema looks
+   exactly like one that worked.
+5. **Verify.** Re-count every table and compare against the archive's
+   `row_counts`. A short table is named, and the operator is told not to
+   start the hub against that database. Extra tables in the destination are
+   fine: migrations run on startup and a newer binary legitimately adds them.
+6. Copy `hub_identity.json` and merge `uploads/` back into place.
 
 The operator restarts the hub manually after restore. Restore does **not**
 hot-swap a running process — it expects the hub to be stopped, which
 avoids the in-flight-write problem entirely.
 
-**Alternative considered — live hot backup via SQLite WAL** (online
-backup API / `VACUUM INTO` against a running hub). Rejected for v1:
-operationally complex (WAL checkpoint coordination, snapshot
-consistency with concurrent writers) for a class of operator who is
-overwhelmingly a single self-hoster who can afford a few seconds of
-downtime. A plain file copy with the hub shut down is simpler and
-correct. The WAL path stays open as a v2 if a no-downtime requirement
-materializes for farm operators.
+**Still not implemented from the original plan**: the `hub_pubkey`
+comparison in step 2 of the old design — restoring one hub's identity over
+another's changes who this hub is to the federation, and nothing warns. Worth
+adding; the archive would need to carry `hub_pubkey` in its metadata again.
 
-**Implementation side** (Wavvon-server): new subcommand arms in
-`hub/src/main.rs` alongside `migrate`; the archive build/extract and
-meta-file verify also live in `hub/src/main.rs` (no separate module
-was needed). No new DB tables, no route changes.
+**Not backed up, deliberately**: the Tantivy search index (derived from the
+messages table; rebuild via `POST /admin/search/reindex`) and all ephemeral
+in-memory state — voice channels, game sessions, video channels, screen
+shares, online users. Those are cleared on every restart by design; a
+restored hub comes back with empty voice rooms, which is correct.
 
-**Not in scope for v1**: scheduled/automatic backups (operators use
-`cron` + the CLI), remote/object-storage destinations, and incremental
-backups.
+**No encryption at rest.** The archive contains `hub_identity.json` — the
+hub's *signing key*. The backup file is therefore as sensitive as the live
+identity file, and securing it is the operator's job (file permissions,
+encrypted volume, or piping it through their own `gpg`/`age`).
+
+**Implementation side** (Wavvon-server): subcommand arms in
+`hub/src/main.rs` alongside `migrate`; the dump/restore mechanism itself in
+`hub/src/db/dump.rs`, shared with the embedded↔external moves and embedded
+major upgrades that bundled PostgreSQL will need — see
+[decisions.md](decisions.md), "One mechanism moves the data". No new DB
+tables, no route changes.
+
+**Not in scope**: scheduled/automatic backups (operators use `cron` + the
+CLI), remote/object-storage destinations, and incremental backups.
 
 ---
 
 ## 2. Data retention policy
 
-**Status: designed, not started.**
+**Status: shipped.**
 
 **Decision**: an opt-in, per-channel auto-purge of old messages,
 configured by a hub admin and executed by a nightly background job.
@@ -146,7 +178,7 @@ source of truth to enforce against.
 
 ## 3. Prometheus `/metrics` endpoint
 
-**Status: designed, not started.**
+**Status: shipped.**
 
 **Decision**: a `GET /metrics` route returning the standard Prometheus
 text exposition format, with **no auth**. Operators front this the way
@@ -196,7 +228,7 @@ one that unblocks the most operators with the least setup.
 
 ## 4. Hub key rotation
 
-**Status: designed, not started.**
+**Status: shipped.**
 
 **Problem**: the hub's Ed25519 keypair (`hub_identity.json`) is a single,
 long-lived identity. Peers, alliances, and certificate verifiers trust

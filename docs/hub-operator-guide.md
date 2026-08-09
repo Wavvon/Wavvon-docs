@@ -112,36 +112,52 @@ See [hub-creation-wizard.md](hub-creation-wizard.md) for the template schema.
 
 ## Backup and restore
 
-The hub state is split between the **PostgreSQL database** and the identity file:
+A hub is three things, and `wavvon-hub backup` puts all three in one file:
 
-| What | Contents | Notes |
-|------|----------|-------|
-| PostgreSQL database | All community data (messages, roles, certs, sessions, …) | Back up with `pg_dump`. |
-| `hub_identity.json` | Hub Ed25519 key pair | **Critical** — back this up off-site. Loss = hub identity loss. |
+| What | Contents | In the archive as |
+|------|----------|-------------------|
+| PostgreSQL database | All community data (messages, roles, certs, sessions, …) | `database.dump` |
+| `hub_identity.json` | Hub Ed25519 key pair | `hub_identity.json` |
+| Uploads directory | Attachments (`WAVVON_UPLOADS_DIR`, default `./uploads/`) | `uploads/` |
 
-**Backup procedure** (while hub is running):
+The Tantivy search index is deliberately **not** included — it is derived
+from the messages table. Rebuild it after a restore with `POST
+/admin/search/reindex` (or leave it; the hub builds it as it goes).
 
-```bash
-# PostgreSQL dump — safe while hub is online
-pg_dump "$WAVVON_DATABASE_URL" -F c -f /backup/hub-$(date +%F).dump
+> `hub_identity.json` is the one thing no amount of data recovers. Whoever
+> holds it can impersonate your hub to federation peers, and losing it means
+> the hub comes back as a *different* hub. Keep a copy off-box.
 
-# Copy the identity file
-cp hub_identity.json /backup/hub_identity.json
-```
-
-**Restore procedure**:
-
-1. Stop the hub process.
-2. Restore the database: `pg_restore -d "$WAVVON_DATABASE_URL" /backup/hub-DATE.dump`
-3. Copy `hub_identity.json` back to the working directory.
-4. Start the hub.
-
-Also available via the CLI subcommand:
+**Backup** — safe while the hub is running:
 
 ```bash
-wavvon-hub backup --out /backup/hub.tar.gz
-wavvon-hub restore --from /backup/hub.tar.gz
+wavvon-hub backup /backup/hub-$(date +%F).tar.gz
 ```
+
+**Restore** — into an **empty** database:
+
+```bash
+# 1. Stop the hub.
+# 2. Point WAVVON_DATABASE_URL at an empty database (or drop and recreate it).
+wavvon-hub restore /backup/hub-2026-08-09.tar.gz
+# 3. Start the hub. Migrations run on startup as usual.
+```
+
+Restore refuses rather than half-writing:
+
+- **Destination not empty** → refuses. Restoring over an existing hub would
+  merge two communities into one. `--force` overrides, if that is genuinely
+  what you meant.
+- **Destination PostgreSQL older than the source's major** → refuses, and
+  says both versions. A dump restores into an equal or newer major only.
+  This one is not overridable: past it `pg_restore` cannot parse the archive.
+- **Row counts do not match afterwards** → reports which tables are short and
+  tells you not to start the hub against that database.
+
+**Requirement**: `backup` and `restore` shell out to `pg_dump` /
+`pg_restore`. They are in the official Docker image; on a bare-binary install
+run `apt install postgresql-client` (or equivalent), or set
+`WAVVON_PG_BIN_DIR` to the directory holding them.
 
 ---
 

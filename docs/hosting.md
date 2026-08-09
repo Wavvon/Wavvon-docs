@@ -586,33 +586,29 @@ Point an uptime monitor (Uptime Kuma, Prometheus blackbox, …) at
 
 ## Backups
 
-The hub has two things to back up: the **PostgreSQL database** and
-**`hub_identity.json`** (the hub's Ed25519 federation key, in the working
-directory — `/data` in the Docker image).
-
-**Database** — use `pg_dump` while the hub is running:
+One command, one file — the database, `hub_identity.json` (the hub's Ed25519
+federation key) and the uploads directory:
 
 ```bash
 #!/bin/sh
 # nightly cron — bare-binary example
 set -e
-DEST="/var/backups/wavvon/$(date +%Y%m%d-%H%M)"; mkdir -p "$DEST"
-pg_dump "$WAVVON_DATABASE_URL" -F c -f "$DEST/hub.dump"
-cp /var/lib/wavvon/hub_identity.json "$DEST/"
-find /var/backups/wavvon -maxdepth 1 -type d -mtime +30 -exec rm -rf {} +
+mkdir -p /var/backups/wavvon
+wavvon-hub backup "/var/backups/wavvon/hub-$(date +%Y%m%d-%H%M).tar.gz"
+find /var/backups/wavvon -maxdepth 1 -type f -mtime +30 -delete
 ```
 
-Under Docker, run `pg_dump` against the Postgres container:
+Under Docker, run it in the hub container and copy the archive out:
 
 ```bash
-docker compose exec db pg_dump -U wavvon wavvon -F c -f /tmp/hub.dump
-docker compose cp db:/tmp/hub.dump ./hub.dump
-docker compose cp hub:/data/hub_identity.json ./hub_identity.backup.json
+docker compose exec hub wavvon-hub backup /data/hub-backup.tar.gz
+docker compose cp hub:/data/hub-backup.tar.gz ./hub-backup.tar.gz
 ```
 
-The `wavvon-hub backup` / `restore` subcommands back up `hub_identity.json`
-only (the database must be backed up separately with `pg_dump`). Full
-backup/restore procedure and the `hub_identity.json` warning live in the
+Safe while the hub is running. It needs `pg_dump` — present in the official
+image; on a bare-binary install, `apt install postgresql-client` (or set
+`WAVVON_PG_BIN_DIR`). Restore, its guard rails and the `hub_identity.json`
+warning are in the
 [operator guide](hub-operator-guide.md#backup-and-restore).
 
 ---

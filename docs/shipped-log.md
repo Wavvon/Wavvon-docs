@@ -4,6 +4,41 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **`wavvon-hub backup` now backs the hub up (2026-08-09)**: it used to
+  write `hub_identity.json` and a metadata stub, with a comment in the source
+  telling operators to run `pg_dump` themselves — so "take a backup first" in
+  the upgrade docs pointed at a tool that did not take one, and the operator
+  guide documented `--out` / `--from` flags that never existed. Uploads had
+  never been in the archive either, so a restored hub came back with every
+  attachment a broken link. The archive now carries `database.dump` (a
+  `pg_dump` custom-format dump), `hub_identity.json` and `uploads/`. The
+  Tantivy index stays out on purpose: it is derived from the messages table
+  and rebuilt by `POST /admin/search/reindex`.
+  The mechanism is `db/dump.rs`, built as the shared one the dump/restore
+  decision calls for — embedded↔external moves and embedded major upgrades
+  will use the same code. Every path refuses rather than half-writing, in
+  cost order: direction first (`target_major >= source_major`, not
+  overridable, because past it `pg_restore` cannot parse the archive), then
+  emptiness (refuse a destination that already has tables — restoring over a
+  live hub merges two communities; `--force` waives only this), then
+  `pg_restore --exit-on-error` (without it `pg_restore` reports every failure
+  and still exits 0, so a half-dropped schema looks like success), then a
+  per-table row-count comparison against counts recorded at backup time,
+  naming any short table and saying not to start the hub against that
+  database. Extra tables in the destination are fine — migrations run on
+  startup and a newer binary legitimately adds them.
+  Two things the change needed beyond the code: `postgresql-client` in the
+  hub's Docker image (`pg_dump` was simply not there, so the command would
+  have failed on the box the operator runs it on), and the same in CI, where
+  `WAVVON_REQUIRE_PG_TOOLS=1` turns the integration test's
+  tools-not-found skip into a failure — a test that skips itself is a test
+  that can stop running unnoticed. That test round-trips a real migrated
+  schema and asserts the `posts` `tsvector GENERATED ALWAYS` column survives,
+  the one piece of schema that is not plain DDL.
+  Still missing from the original design: the archive no longer carries
+  `hub_pubkey`, so restoring one hub's identity over another's is not warned
+  about — recorded in [hub-operations.md](hub-operations.md) §1.
+
 - **Capability advertising (2026-08-09)**: `GET /info` now carries
   `capabilities: Vec<String>`, and the web client decides what to offer by
   testing membership in it — never by comparing version strings. Decision:
