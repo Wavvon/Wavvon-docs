@@ -28,17 +28,11 @@ fixed, its entry moves to the shipped log.
     siblings. A role per hub, granted only its own space, is the only one of
     these that is a security measure rather than hygiene. Works with either
     layout. Worth doing before a farm hosts hubs it does not itself own.
-  - [ ] **Wire certs + soft-flag between sibling hubs.** The anti-bot story,
-    reusing what exists rather than inventing a farm-level one: on creation,
-    subscribe a new hub to its siblings' ban lists as `soft-flag` and register
-    them as trusted cert issuers. Gives portable PoW credit inside a farm and
-    "this user has history" as a **warning, not a block** — which is what
-    keeps it clear of the recorded won't-do on global negative reputation.
-    Two prerequisites: `soft-flag` is selectable today and **surfaces
-    nowhere**, so it is indistinguishable from not subscribing; and an hub
-    must be able to unsubscribe (sovereignty — a compromised sibling has to be
-    cuttable). Auto-wiring carries the PoW credit only, never good standing:
-    one complacent hub would otherwise become a pass factory for the farm.
+  - [ ] **Surface a member's history in the clients.** The hub side shipped
+    (`GET /moderation/history/{pubkey}`, plus `policy` on the entries list),
+    but no client asks. Until one does, a moderator has to know the endpoint
+    exists — which is most of the way back to `soft-flag` meaning nothing. The
+    natural home is the member context menu and the admin user view.
   - [ ] **A real end-to-end run in CI** — create a hub from the farm, join it
     from the web client, send a message, enter voice. This is the test that
     would have caught all three silent gaps on the day they were written.

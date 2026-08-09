@@ -4,6 +4,39 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Sibling hubs vouch for each other; `soft-flag` became visible
+  (2026-08-09)**: a farm now reports a hub's siblings in the heartbeat
+  response, and each hub wires them in — subscribing to their ban lists in
+  `soft-flag` and adding them to `cert_trusted_issuers`. Somebody vouched for
+  on one hub of a farm is not a stranger on the next, and somebody with history
+  arrives with it attached. Built from the federation primitives that already
+  exist rather than a farm-level reputation store, which decisions.md rules
+  out: the trust decision stays local to each hub, and the farm only saves its
+  owner from wiring it by hand.
+  **Once per sibling, and recorded whether or not it took.** An owner who
+  unsubscribes stays unsubscribed — a compromised sibling has to be cuttable,
+  and a setting the farm silently reverts every minute is not a setting. What
+  it never touches is what a hub *requires*: trusting an issuer means its
+  certificates can be read, not that they clear a bar the owner set. Granting
+  good standing automatically would turn one complacent hub into a pass factory
+  for the whole farm. Suspended hubs and hubs that have never claimed a serial
+  are not offered — the first because suspending it meant something, the second
+  because an unverifiable issuer is not an issuer.
+  The other half was making `soft-flag` mean anything. It has been selectable
+  since federated ban lists shipped and the admission check correctly ignores
+  it, but nothing could ask **"does this member have history?"**, and the raw
+  entries list did not say which policy an entry came from — so an advisory
+  entry and a blocking one looked identical and meant opposite things.
+  Choosing `soft-flag` was indistinguishable from not subscribing at all. `GET
+  /moderation/history/{pubkey}` (ban-members permission) answers the question
+  with source, policy, reason and date, resolved against the master pubkey so a
+  paired device does not read as a clean record; the entries list carries
+  `policy` too. Deliberately not a judgement: another hub's ban is another
+  hub's decision, and the moderator gets the facts and makes their own.
+  Entries whose source is gone are listed as `policy: "unknown"` rather than
+  dropped — hiding rows would make the list quietly disagree with the table it
+  claims to show.
+
 - **Hub placement — capacity per server (2026-08-09)**: choosing which node a
   new hub went on was `map.iter().next()` — the first entry of a HashMap
   iteration, an arbitrary connected agent, with no notion of how many hubs it
