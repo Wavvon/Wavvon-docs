@@ -51,6 +51,37 @@ fixed, its entry moves to the shipped log.
     served by hub A talks to hubs B and C, so there is no "update
     together" — see the capabilities decision.
 
+- [ ] **Make the upgrade path whole** — upgrading is documented
+  (`hosting.md` "Upgrades (per method)", operator guide "Upgrade path")
+  and the mechanism is sound: replace the binary or pull the image,
+  restart, additive migrations run on startup. Verified additive — 136
+  `CREATE TABLE IF NOT EXISTS`/`ALTER TABLE`, **zero** `DROP`/`TRUNCATE`.
+  Three gaps behind it, all sharpened by bundling PostgreSQL:
+  - [ ] **`wavvon-hub backup` does not back up the database.** It writes
+    `hub_identity.json` plus a metadata file and nothing else
+    (`main.rs:1388`, with a comment saying to use `pg_dump` separately).
+    The name promises more than it delivers, and "take a backup first"
+    in the upgrade docs is therefore not actionable via the tool that
+    looks like it does it. With embedded PostgreSQL the operator will
+    not even have `pg_dump` on PATH — it lives in our version-scoped
+    install dir. `backup` should dump the database using whichever
+    binaries the hub is using, embedded or external.
+  - [ ] **`wavvon-hub admin` reads the wrong env var** — `main.rs:470`
+    takes `DATABASE_URL` only and falls back to the hardcoded default,
+    ignoring `WAVVON_DATABASE_URL`. So `admin users set-owner`, the
+    ownership bootstrap, silently targets a different database on a
+    correctly-configured hub. The identical bug in `migrate` was found
+    and fixed during voice v2 (shipped log); `admin` was missed.
+  - [ ] **Rollback is undefined.** Additive migrations suggest an older
+    binary tolerates a newer schema, but a new `NOT NULL` column without
+    a default would break its inserts. Untested and undocumented — either
+    state a supported downgrade window or say plainly that there is none.
+  - [ ] Document the embedded-PostgreSQL dimension once it lands: an
+    upgrade may now also carry a PostgreSQL major upgrade.
+  - Note the coupling to the capability work: upgrading a hub also swaps
+    the web client it serves, so it changes the client version for every
+    user who loads the page from that hub.
+
 - [ ] **Bundle PostgreSQL into the hub binary** — the zero-prerequisite
   install story; removes Docker (or a hand-rolled `createdb`) as a
   precondition for self-hosting. Feasibility verified 2026-08-08:
