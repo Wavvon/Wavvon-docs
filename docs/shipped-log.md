@@ -4,6 +4,24 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Farm/agent-spawned hubs outlived their supervisor (2026-08-09)**: tokio
+  does not kill a child when its `Child` handle drops — it detaches it. Both
+  `hub_manager.rs` files stored the handle and relied on `stop_hub` being
+  called, so any path that skipped it (a panic, a test ending, the process
+  exiting) left a `wavvon-hub` running with nothing supervising it: still
+  holding its allocated port, still writing to the default database every
+  other spawned hub shares. The agent's field name — `_child`,
+  underscore-prefixed, held purely for ownership — shows the intent was always
+  "this dies with the manager"; `kill_on_drop(true)` makes it true.
+  Found because `cargo test --workspace` hung for the better part of an hour
+  on an orphaned hub whose parent was already gone. That is the visible
+  symptom; the real one is a fleet node quietly losing track of a hub that
+  keeps serving and keeps writing — the same family as the two failures
+  CLAUDE.md records for this pair (the env-key drift and the silent WS
+  fallthrough), a supervisor losing its process without noticing. The suite
+  completes now: 80 test binaries, zero failures, and a watcher sampling every
+  60s across the whole run never saw a surviving hub process.
+
 - **Rollback is defined now (2026-08-09)**: "additive migrations" implied an
   older binary tolerates a newer schema, but nothing said so and nothing
   checked it. Split into the two halves, because they have different answers.
