@@ -28,18 +28,13 @@ fixed, its entry moves to the shipped log.
   side, "move" is `backup` then `restore` against a different URL, which
   the two commands already do.
 
-- [ ] **Make the upgrade path whole** — upgrading is documented
-  (`hosting.md` "Upgrades (per method)", operator guide "Upgrade path")
-  and the mechanism is sound: replace the binary or pull the image,
-  restart, additive migrations run on startup. Verified additive — 136
-  `CREATE TABLE IF NOT EXISTS`/`ALTER TABLE`, **zero** `DROP`/`TRUNCATE`.
-  Two gaps behind it, both sharpened by bundling PostgreSQL:
-  - [ ] **Rollback is undefined.** Additive migrations suggest an older
-    binary tolerates a newer schema, but a new `NOT NULL` column without
-    a default would break its inserts. Untested and undocumented — either
-    state a supported downgrade window or say plainly that there is none.
-  - [ ] Document the embedded-PostgreSQL dimension once it lands: an
-    upgrade may now also carry a PostgreSQL major upgrade.
+- [ ] **Upgrade path — the embedded-PostgreSQL dimension.** The rest of
+  this item closed 2026-08-09 (shipped log): `backup` takes a real backup,
+  and rollback is stated — schema downgrade is safe by construction and now
+  enforced by a test, data downgrade is not guaranteed, so the pre-upgrade
+  archive is the supported way back. What remains has to wait for bundling:
+  an upgrade may then also carry a **PostgreSQL major** upgrade, which is a
+  different failure surface and needs its own paragraph in `hosting.md`.
   - Note the coupling to the capability work: upgrading a hub also swaps
     the web client it serves, so it changes the client version for every
     user who loads the page from that hub.

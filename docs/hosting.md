@@ -616,7 +616,11 @@ warning are in the
 ## Upgrades (per method)
 
 Migrations run automatically on startup and are additive only (no
-down-migrations); take a backup first for a major version.
+down-migrations). **Run `wavvon-hub backup` first** — every time, not only
+for a major. The schema downgrades safely by construction, but data the new
+version wrote may not be readable by the old one, so that archive is the
+supported way back:
+[Rollback](hub-operator-guide.md#rollback).
 
 | Method | Upgrade |
 |---|---|

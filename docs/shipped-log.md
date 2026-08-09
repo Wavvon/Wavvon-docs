@@ -4,6 +4,26 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Rollback is defined now (2026-08-09)**: "additive migrations" implied an
+  older binary tolerates a newer schema, but nothing said so and nothing
+  checked it. Split into the two halves, because they have different answers.
+  *Schema*: safe by construction, and now by rule rather than by luck — every
+  `ADD COLUMN ... NOT NULL` in `migrations.rs` carries a `DEFAULT`, so an
+  older binary, whose inserts omit columns it does not know about, keeps
+  writing against a newer schema. All 35 satisfied it already; a source-level
+  test in `tests/migrations.rs` pins it, and it was verified to fail on an
+  injected violation rather than merely pass. `information_schema` cannot
+  answer this — it cannot distinguish a column added by `ALTER TABLE` from
+  one in the original `CREATE TABLE`, and the latter are legitimately `NOT
+  NULL` without a default.
+  *Data*: no guarantee, and this is the half that actually bites. The newer
+  binary may have written a channel type, field or envelope version the older
+  one has no code for; it will not error, it will ignore or misrender. So the
+  supported rollback is "restore the backup you took before upgrading" —
+  which is only a real answer because `backup` now takes a real backup. Both
+  upgrade docs were reordered to make taking one step 1, every time, not just
+  for majors.
+
 - **`wavvon-hub backup` now backs the hub up (2026-08-09)**: it used to
   write `hub_identity.json` and a metadata stub, with a comment in the source
   telling operators to run `pg_dump` themselves — so "take a backup first" in
