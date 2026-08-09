@@ -69,6 +69,20 @@ will refuse to start if it cannot connect.
 Whichever route you take, the end state is the same three things: a role, a
 database owned by it, and a `WAVVON_DATABASE_URL` the hub can reach.
 
+### Minimum PostgreSQL version
+
+| Wavvon | Minimum PostgreSQL |
+|---|---|
+| 0.x — current | **14** |
+
+The hub checks this on startup and refuses to run below it, naming both
+versions, rather than failing partway through applying the schema.
+
+The floor rises only when a feature actually requires a newer server — never
+on a schedule — and any rise is called out in the release notes. Anything
+below 14 is already past upstream end-of-life and receiving no security
+fixes, which is why the floor starts there.
+
 ### Debian / Ubuntu
 
 ```bash

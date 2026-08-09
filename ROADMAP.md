@@ -51,6 +51,27 @@ fixed, its entry moves to the shipped log.
     served by hub A talks to hubs B and C, so there is no "update
     together" — see the capabilities decision.
 
+- [ ] **`wavvon-hub db` — one dump/restore path for backup, moves and
+  upgrades** — decision:
+  [One mechanism moves the data](docs/decisions.md#one-mechanism-moves-the-data-logical-dumprestore).
+  Three features that looked separate share one implementation, so build
+  it once and well.
+  - [ ] `db export [FILE]` / `db import FILE` over the active database,
+    using the hub's own PostgreSQL binaries when embedded.
+  - [ ] `db move --to <url>` / `--from <url>` for adopting or giving up an
+    external server. **Copies only** — the operator then flips
+    `WAVVON_DATABASE_URL` and restarts, so a bad destination is undone by
+    changing one variable back.
+  - [ ] Guard rails, all refusing rather than half-writing: destination
+    empty, `target_major >= source_major`, dump file retained and its path
+    printed, row counts compared after restore.
+  - [ ] Fold `wavvon-hub backup` onto it so the archive finally contains
+    the database.
+  - Counter-intuitive bit worth keeping in the code comments: since
+    bundled PostgreSQL follows upstream, **embedded is usually the newer
+    side**, so "move to my own PostgreSQL" is the direction most likely to
+    be refused — distributions ship older majors.
+
 - [ ] **Make the upgrade path whole** — upgrading is documented
   (`hosting.md` "Upgrades (per method)", operator guide "Upgrade path")
   and the mechanism is sound: replace the binary or pull the image,
@@ -95,9 +116,10 @@ fixed, its entry moves to the shipped log.
   - [ ] Version-scoped `installation_dir` (`<root>/pg/<version>/`) and an
     explicit `data_dir` — the crate defaults to `~/.theseus/postgresql`
     and a **tempdir**, neither of which is acceptable for a server.
-  - [ ] Major-upgrade path: compare `PG_VERSION`, dump first, `pg_upgrade`
-    with the retained previous binaries, keep the old data dir until
-    success, refuse with instructions when it cannot be done safely.
+  - [ ] Major-upgrade path: compare `PG_VERSION`, then dump/restore via
+    the retained previous binaries (not `pg_upgrade` — see the
+    dump/restore decision), keep the old data dir until success, refuse
+    with instructions when it cannot be done safely.
   - [ ] `--doctor` reports which mode is active and where the data lives.
   - [ ] Verify `wavvon-hub backup`/`restore` against the embedded instance.
   - [ ] Test `initdb` on musl — locale support there is limited and it

@@ -98,6 +98,58 @@ produced no symptom at all. See
 [Unknown WebSocket events must be loud](#unknown-websocket-events-must-be-loud);
 that logging arm is the first piece of skew handling in the codebase.
 
+## One mechanism moves the data: logical dump/restore
+
+**Decision** (2026-08-08): every operation that moves a hub's data uses the
+same logical `pg_dump` → restore path. Three things that looked like separate
+features are one piece of code:
+
+- **Backup.** `wavvon-hub backup` today writes `hub_identity.json` and nothing
+  else, while telling operators to run `pg_dump` separately — which they will
+  not be able to do at all once PostgreSQL is bundled and the binaries live in
+  our install directory. It dumps the database, using whichever binaries the
+  hub is actually using.
+- **Embedded ↔ external moves.** An operator adopting their own PostgreSQL, or
+  giving one up, gets `wavvon-hub db move --to/--from <url>` rather than a
+  documented `pg_dump` incantation.
+- **Embedded major upgrades.** Dump with the retained old binaries, `initdb`
+  the new major, restore. This replaces `pg_upgrade` in the bundling entry
+  above.
+
+**Direction is constrained by version, not by which side is "ours".** A dump
+restores into an equal or newer major and *not* into an older one — a newer
+server's dump may contain syntax an older one cannot parse. The rule is
+therefore `target_major >= source_major`, checked before anything is written,
+and this cuts against intuition once bundled PostgreSQL follows upstream: the
+embedded instance will usually be the *newer* side, so "move my data to my own
+PostgreSQL" is the direction likely to be refused, because distributions ship
+older majors.
+
+**Migration copies; it does not switch modes.** `db move` writes the data and
+stops. The operator then sets or unsets `WAVVON_DATABASE_URL` and restarts.
+The source is left intact, so a destination that misbehaves is undone by
+changing one variable back.
+
+*Alternatives considered*: (a) migrate automatically when
+`WAVVON_DATABASE_URL` appears — rejected, and this was the original proposal:
+setting that variable means "point at this database", not "copy my data into
+it". An operator restoring from backup or aiming at a replica would have data
+written over something they did not nominate, at startup, with no
+confirmation. What is right about the idea is that the operator should not
+need to know `pg_dump` — hence a one-line command that does everything, not an
+implicit trigger; (b) `pg_upgrade` for the embedded major upgrade — rejected:
+faster on large databases and the standard tool, but it is a third code path
+with its own build-option sensitivities, for data volumes a community hub does
+not reach. One well-tested path beats two. Revisit if someone arrives with a
+database large enough to care; (c) physical file copy — rejected: only valid
+between identical majors, which is the case that needs no help.
+
+*Tradeoff*: dump/restore is O(data) where `pg_upgrade --link` is nearly O(1),
+so a very large hub sees real downtime on a major upgrade. Accepted for now;
+the guard rails matter more than the speed. Every path refuses rather than
+half-writes: destination must be empty, version must be compatible, the dump
+file is kept and its location printed, and row counts are compared afterwards.
+
 ## The hub bundles PostgreSQL, and never touches one it did not create
 
 **Decision** (2026-08-08): the hub binary ships PostgreSQL inside it
@@ -123,20 +175,25 @@ path is the wrong trade. What made pinning tempting is real but narrow: SQL
 does not change between majors, the *on-disk data directory format* does, and
 a newer server refuses to start on an older data directory by design.
 
-The constraint that makes the upgrade tractable, and that dictates the
-layout: `pg_upgrade` needs **both** versions' binaries present at once. So the
-install directory is version-scoped and the previous version is not deleted:
+The constraint that dictates the layout: reading an old data directory at all
+requires that major's own binaries, so the install directory is version-scoped
+and the previous version is not deleted:
 
 ```
-<data_root>/pg/18.4.0/   binaries (kept)
+<data_root>/pg/18.4.0/   binaries (kept — needed to read the old data)
 <data_root>/pg/19.1.0/   binaries (new)
 <data_root>/pgdata/      data, carrying its own PG_VERSION
 ```
 
 On startup the hub compares `PG_VERSION` against what it bundles and either
-starts, migrates (logical dump first as the safety net, old data directory
-retained until success), or **refuses with instructions** when it cannot do so
+starts, migrates, or **refuses with instructions** when it cannot do so
 safely. It never half-migrates and never guesses.
+
+> **Amended 2026-08-08**: the migration step was originally specified as
+> `pg_upgrade`. It is now the logical dump/restore described in
+> [One mechanism moves the data](#one-mechanism-moves-the-data-logical-dumprestore)
+> — same retained-binaries requirement, but one code path shared with backup
+> and with embedded↔external moves instead of a third bespoke one.
 
 **External PostgreSQL gets a declared minimum, per Wavvon version.** Not a
 pin, not a supported-combinations matrix: one floor, checked at startup with a
