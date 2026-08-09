@@ -692,8 +692,9 @@ Settings parity passes.
    single JSON envelope, `.wavvon-backup` extension, **one account per
    file** (user call, same day: the user picks which account to export;
    import restores exactly that account — supersedes a multi-account-array
-   plaintext considered first). Desktop's `.voxback` (stale Voxply branding, incompatible
-   envelope) is retired; alpha rules — no importer for old files.
+   plaintext considered first). Desktop's earlier format, with an
+   incompatible envelope, is retired; alpha rules — no importer for old
+   files.
 3. **One Notifications tab on both clients** (mention ping + notify
    sound; desktop's notify-sound moves out of Voice). Per-hub notify
    *mode* stays in the sidebar. The signed-public-profile vs

@@ -1586,7 +1586,7 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   known issue.
 
 - **Desktop + docs: wire test vectors regenerated for wavvon tags
-  (2026-07-11)**: the Voxply→Wavvon bulk rename (clients `032028d`)
+  (2026-07-11)**: the bulk rename to Wavvon (clients `032028d`)
   updated envelope tag string literals but not the hex-encoded test
   vectors — 20 of desktop's 38 wire vector tests had been failing since,
   and `wire-format.md`'s vectors were equally stale. Desktop vectors
@@ -1674,12 +1674,19 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   Clients release.sh fixed (pre-monorepo tauri.conf path, changelog-wiping
   git-cliff mode) and CHANGELOG.md introduced. **videogamezone pilot**
   wiped and reinstalled per owner decision: `ghcr.io/wavvon/hub:0.3.1` +
-  postgres:16 sidecar in `~/voxply` (vhost symlink pins the dir; db
-  container named wavvon-db — plain "db" belongs to the neighbouring govd
-  bot), `WAVVON_PUBLIC_URL` set, fresh hub identity, first-boot owner
-  invite minted and handed to the owner. Hostname is still
-  voxply.videogamezone.eu until the vhost server_name gains the wavvon
-  alias + friend's nginx reload.
+  postgres:16 sidecar in `~/voxply` (db container named wavvon-db — plain
+  "db" belongs to the neighbouring govd bot), `WAVVON_PUBLIC_URL` set,
+  fresh hub identity, first-boot owner invite minted and handed to the
+  owner.
+  > **The last two pre-rename names in this repo, and both are live
+  > facts rather than stale text.** The pilot's directory is still
+  > `~/voxply` — the vhost symlink pins it, so renaming it is a change on
+  > the friend's VPS, not here — and the hostname is still
+  > `voxply.videogamezone.eu` until its `server_name` gains the wavvon
+  > alias and the friend reloads nginx. Editing either line would make
+  > this record wrong about a machine that is running right now. Both
+  > disappear from the docs the moment the server changes; tracked as the
+  > pilot's hostname fix in [ROADMAP](../ROADMAP.md).
 
 - **Server v0.3.1 released — first working release pipeline since v0.2.0
   (2026-07-06)**: `wavvon-hub-linux-x86_64`, `wavvon-hub-linux-aarch64`
@@ -1699,7 +1706,7 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   its notes fold into v0.3.1. Dependabot PRs #10–#14 merged along the
   way. Closes the "no release assets since v0.2.1" known issue.
 
-- **Public-facing cleanup after the Voxply→Wavvon rename (2026-07-06)**
+- **Public-facing cleanup after the rename to Wavvon (2026-07-06)**
   (docs `674cfd3`+assets, server `1c99dd8`, clients `3020ada`, discovery
   `037d403`): every `github.com/Wavvon/Wavvon` link now points at
   `Wavvon-docs` and `Wavvon-client` at `Wavvon-clients` — the renames had
@@ -1708,8 +1715,8 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   PostgreSQL (not SQLite), `WAVVON_DATABASE_URL` documented, compose
   gained the postgres:16 sidecar, crate table matches the workspace.
   Client READMEs no longer claim voice is desktop-only. **README assets
-  regenerated** — the old screenshots/join-flow GIF still showed "Voxply
-  HQ"; recaptured against a demo-seeded hub as "Wavvon HQ" with the
+  regenerated** — the old screenshots/join-flow GIF still showed the
+  pre-rename hub name; recaptured against a demo-seeded hub as "Wavvon HQ" with the
   current UI, via a new committed capture harness
   (`apps/web/e2e/capture/`). Release-pipeline failure diagnosed →
   ROADMAP known issue (needs the next tag).
@@ -2004,7 +2011,7 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
     `e2e/live/11`.
   - **`packages/core` crypto test vectors regenerated** (2026-07-04,
     clients `fb97442`) — `src/identity/crypto.test.ts` asserted pre-rename
-    `"voxply/…"` wire tags and was excluded from the suite; regenerated the
+    wire tags and was excluded from the suite; regenerated the
     DhKeyRecord + DM-envelope vectors against the canonical
     `wavvon-identity` values and re-enabled it.
   - **Hub switch / fresh load left the message pane empty** (2026-07-04,
@@ -2250,7 +2257,7 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   (no overflow-menu precedent existed, so an icon button); breadcrumb
   header with clickable category crumbs scrolling the sidebar.
   `packages/core` gained its own vitest script (17 new tests) — which
-  surfaced the stale `voxply/` crypto test vectors now in ROADMAP
+  surfaced the stale pre-rename crypto test vectors now in ROADMAP
   Known issues. First-run zero-hub permalink carry-through
   deliberately not wired (edge case; `AddHubModal` path only).
 

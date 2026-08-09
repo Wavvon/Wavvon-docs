@@ -44,7 +44,7 @@ one file via `Identity::default_path()`; no account concept):
 
 **Two model forks that break a mechanical hoist:**
 - **Profile:** desktop = deleted pool; web = single default + hub-authoritative card.
-- **Backup:** web `IdentityBackupSection` = multi-account WebCrypto **PBKDF2-SHA256**, `.wavvon-backup`, envelope `{kdf,cipher}` base64, selects which accounts to include. Desktop = Rust **Argon2id**, single identity, `.voxback` (old Voxply name — stale branding), envelope `{version,salt,nonce,ciphertext}` hex, file-path in/out. **The two files are not interchangeable** (different KDF and schema).
+- **Backup:** web `IdentityBackupSection` = multi-account WebCrypto **PBKDF2-SHA256**, `.wavvon-backup`, envelope `{kdf,cipher}` base64, selects which accounts to include. Desktop = Rust **Argon2id**, single identity, envelope `{version,salt,nonce,ciphertext}` hex, file-path in/out. **The two files are not interchangeable** (different KDF and schema).
 
 ## 2. Proposed unified tab structure
 
@@ -123,8 +123,8 @@ usable on both web or desktop or any other kind of device."
     earlier multi-account-array draft): the user picks which account to
     export, each export is its own file, and importing a file restores
     exactly that account.
-  - Extension: `.wavvon-backup`. Desktop's `.voxback` (stale Voxply
-    branding, incompatible envelope) is retired; alpha rules — no
+  - Extension: `.wavvon-backup` on both clients. Desktop's earlier
+    format, with an incompatible envelope, is retired; alpha rules — no
     importer for old files.
   - The format lives in `packages/core` (TS) and desktop Rust must match
     it exactly; add a shared test vector (fixed salt/nonce/passphrase →
