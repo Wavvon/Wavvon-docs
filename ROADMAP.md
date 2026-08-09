@@ -17,6 +17,50 @@ fixed, its entry moves to the shipped log.
   versions on develop, open the develop→main PR, user reviews +
   merges. Do before the pilot friend onboards. Version number to be
   decided at PR time.
+- [ ] **Finish the farm — single node, end to end.** Decided 2026-08-09 in
+  conversation; the farm was "quasi tutto costruito, niente collaudato" and
+  three of its gaps were silent. Two closed already (shipped log): the serial
+  claim, without which the proxy could route to nothing, and the public URL,
+  without which a farm-hosted hub had no voice. What is left, in order:
+  - [ ] **Slug — indirizzi scelti dall'owner.** `hubs.slug`, free-form and
+    independent of the display name (`MangiaDaPippo`, not a slugification of
+    "Osteria di Pippo"). **Alias, never identity**: the pubkey stays the thing
+    the client pins, so a hub cannot be silently swapped under a name. Several
+    live at once, one flagged canonical. Case-insensitive and ASCII-only —
+    both prevent impersonation by look-alike, a risk that did not exist while
+    the address was a pubkey. Released slugs are held for a cooling-off period
+    (the same hub can always reclaim its own), then return to the pool: names
+    come back, but not the instant someone releases one.
+  - [ ] **Canonical URL pushed to clients.** The hub publishes its own URL in
+    `/info`; `refreshHubInfo` already runs on connect and on `hub_updated`, so
+    a rename propagates to connected clients on its own. `GET
+    /farm/hubs/by-pubkey/{pubkey}` is the fallback for a client that was
+    offline during the change — not the primary mechanism.
+  - [ ] **One database per hub.** Today every farm-spawned hub shares the
+    default one; the code logs a warning per spawn. Prerequisite for
+    multi-node, and wrong on a single node already.
+  - [ ] **Per-server capacity and placement.** `pick_agent` takes the first
+    entry it finds iterating a HashMap, and `CreateHubRequest` has no field
+    for choosing a server — so "server 1 holds 5 hubs, server 2 holds 3"
+    cannot be expressed at all.
+  - [ ] **Wire certs + soft-flag between sibling hubs.** The anti-bot story,
+    reusing what exists rather than inventing a farm-level one: on creation,
+    subscribe a new hub to its siblings' ban lists as `soft-flag` and register
+    them as trusted cert issuers. Gives portable PoW credit inside a farm and
+    "this user has history" as a **warning, not a block** — which is what
+    keeps it clear of the recorded won't-do on global negative reputation.
+    Two prerequisites: `soft-flag` is selectable today and **surfaces
+    nowhere**, so it is indistinguishable from not subscribing; and an hub
+    must be able to unsubscribe (sovereignty — a compromised sibling has to be
+    cuttable). Auto-wiring carries the PoW credit only, never good standing:
+    one complacent hub would otherwise become a pass factory for the farm.
+  - [ ] **A real end-to-end run in CI** — create a hub from the farm, join it
+    from the web client, send a message, enter voice. This is the test that
+    would have caught all three silent gaps on the day they were written.
+  - Multi-node (`servers.host`, agent-advertised address, host-aware proxy)
+    stays in the wishlist below: it needs a decision on private networking
+    farm↔nodes first, and none of the above depends on it.
+
 - [ ] **`db move --to <url>` / `--from <url>`** — the remaining slice of
   [One mechanism moves the data](docs/decisions.md#one-mechanism-moves-the-data-logical-dumprestore).
   The mechanism and its guard rails shipped 2026-08-09 under

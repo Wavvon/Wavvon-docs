@@ -4,6 +4,58 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **A farm-hosted hub had no public address (2026-08-09)**: `voice_wt_url`,
+  the first-boot invite link and the WebAuthn relying party all derive from
+  `WAVVON_PUBLIC_URL`. That key was a string literal the farm and agent never
+  set, and could not have: the URL of a farm-hosted hub is
+  `{farm}/hub/{pubkey}`, and the pubkey does not exist until the hub's first
+  boot. So every farm-spawned hub started with no public URL, which meant no
+  `voice_wt_url` at all — **voice was not degraded on farm-hosted hubs, it was
+  absent** — plus an invite link pointing at localhost and no passkeys.
+  Resolved where both halves are actually held: the hub derives its own from
+  `FARM_URL` + its pubkey, via a pure `effective_public_url()` with its own
+  tests. An explicit `WAVVON_PUBLIC_URL` still wins, for an operator fronting
+  the farm with their own domain, and the key now lives in `hub-env` so a
+  launcher *can* set it without spelling it. A hub that ends up with no public
+  URL says so at startup instead of losing three features quietly.
+  Two things fixed on the way. `--doctor` printed a localhost invite link for
+  a hub actually reachable at `https://farm/hub/<key>`; it now loads the
+  identity (read, never create) and prints the real one. And `rp_origin` was
+  built from the whole public URL including its path — fine while every hub
+  sat at a domain root, wrong the moment one lives under `/hub/<key>`, since
+  WebAuthn compares origins. It takes the origin explicitly now, which also
+  fixes the pre-existing case of a hub behind any path-prefixing proxy.
+  Not fixed, and worth naming: on a **multi-node** farm the derived host is
+  the farm's, not the agent node's, so voice would point at the wrong machine.
+  Consistent with the state of multi-node routing generally — the proxy still
+  hardcodes `127.0.0.1` — and it belongs with that work.
+
+- **A farm-spawned hub could never become routable (2026-08-09)**:
+  `hubs.hub_pubkey` is the serial the farm's reverse proxy resolves
+  `/hub/<serial>` on, and **nothing ever wrote it** — not the INSERT, not any
+  UPDATE. The column was created nullable and stayed NULL for the life of
+  every row. Every consequence was silent: the proxy found no row so every
+  farm-routed request 404'd; `/farm/heartbeat` only accepts hubs whose pubkey
+  is already in `hubs`, so it rejected every heartbeat a spawned hub sent; and
+  the monitor, reading liveness from those heartbeats, concluded each hub was
+  down, restarted it on an exponential backoff, and finally disabled its own
+  auto-restart. A farm could create, spawn, supervise and delete hubs it was
+  structurally unable to send one request to.
+  The missing piece was a bootstrap handshake, and it has the same shape as
+  the public-URL bug: the farm allocates the row before the process exists so
+  it cannot know the key, and the hub does not know which row is its own. The
+  farm now hands its row id over at spawn (`WAVVON_FARM_HUB_ID`, in `hub-env`
+  rather than as a literal) and the hub echoes it on every heartbeat; the farm
+  binds pubkey to row on first contact. `WHERE hub_pubkey IS NULL` makes the
+  claim strictly one-shot — a hub can take an unclaimed row and nothing else,
+  which is the property that makes it safe on an unauthenticated endpoint, and
+  it has its own test. A row already bound to a different key is left alone
+  and logged: that is a restored identity or a duplicated id, and both want a
+  human rather than a silent rebind.
+  `serial_routing_flow.rs` did not catch this because it seeds `hub_pubkey` by
+  hand — it proves the proxy works *given* a serial, which is a different
+  claim from "a real hub ever gets one".
+
 - **Farm/agent-spawned hubs outlived their supervisor (2026-08-09)**: tokio
   does not kill a child when its `Child` handle drops — it detaches it. Both
   `hub_manager.rs` files stored the handle and relied on `stop_hub` being
