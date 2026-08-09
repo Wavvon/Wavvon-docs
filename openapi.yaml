@@ -388,6 +388,25 @@ components:
         reply_to_id: { type: string, description: "Omitted on top-level replies" }
         is_deleted: { type: boolean }
 
+    ForumTag:
+      type: object
+      properties:
+        id: { type: string }
+        channel_id: { type: string }
+        label: { type: string }
+        color: { type: string, nullable: true }
+        position: { type: integer }
+        created_at: { type: integer }
+
+    BotChannelScope:
+      type: object
+      properties:
+        bot_pubkey: { type: string }
+        channel_ids:
+          type: array
+          items: { type: string }
+          description: Empty means hub-wide access.
+
     Error:
       type: object
       properties:
@@ -1101,6 +1120,25 @@ paths:
                   items: { $ref: '#/components/schemas/Attachment' }
                 is_encrypted: { type: boolean }
 
+  /conversations/{conversation_id}:
+    get:
+      summary: One conversation the caller is a member of
+      description: >-
+        Membership is enforced by the query, so a non-member gets the same 404
+        as a nonexistent id — an id alone never confirms a conversation exists.
+      tags: [DMs]
+      parameters:
+        - name: conversation_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Conversation' }
+        "404": { description: No such conversation, or the caller is not a member }
+
   # ── Friends ───────────────────────────────────────────────────────────────
 
   /friends:
@@ -1597,6 +1635,208 @@ paths:
           required: true
           schema: { type: string }
 
+  # Alliance-shared forum channels. Read-through proxies to the owning hub —
+  # a locally-owned channel delegates to the local /channels/{id}/posts
+  # handlers, a peer-owned one is resolved by walking alliance members and
+  # proxied over federation. Same response shapes either way, so a client uses
+  # one set of types. The owning hub stays authoritative; nothing replicates.
+  # See forum.md §9.
+
+  /alliances/{alliance_id}/channels/{channel_id}/posts:
+    get:
+      summary: List posts in an alliance-shared forum channel
+      tags: [Alliances, Forum]
+      parameters:
+        - name: alliance_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: channel_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: cursor
+          in: query
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50, maximum: 100 }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  posts:
+                    type: array
+                    items: { $ref: '#/components/schemas/PostSummary' }
+                  cursor: { type: string, description: "Omitted on the last page" }
+        "403": { description: Channel is not shared with the caller, or remote writes are off }
+        "409": { description: Channel is not a forum }
+    post:
+      summary: Create a post in an alliance-shared forum channel
+      description: >-
+        Subject to the owning channel's `forum_remote_write` policy —
+        `none`, `replies_only` (rejects this) or `posts_and_replies`.
+      tags: [Alliances, Forum]
+      parameters:
+        - name: alliance_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: channel_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, body]
+              properties:
+                title: { type: string }
+                body: { type: string }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PostDetail' }
+        "403": { description: forum_remote_write_disabled / forum_remote_write_posts_disabled }
+
+  /alliances/{alliance_id}/channels/{channel_id}/posts/{post_id}:
+    get:
+      summary: One post with its replies, from an alliance-shared forum channel
+      tags: [Alliances, Forum]
+      parameters:
+        - name: alliance_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: channel_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: post_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PostDetail' }
+    delete:
+      summary: Retract a post the caller's hub authored
+      description: >-
+        The owning hub honours this only when the post's `author_hub` is the
+        calling hub **and** its author matches — a hub can retract its own
+        users' content, never anyone else's.
+      tags: [Alliances, Forum]
+      parameters:
+        - name: alliance_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: channel_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: post_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204": { description: Retracted }
+        "403": { description: The post belongs to another hub or another author }
+
+  /alliances/{alliance_id}/channels/{channel_id}/posts/{post_id}/replies:
+    post:
+      summary: Reply to a post in an alliance-shared forum channel
+      tags: [Alliances, Forum]
+      parameters:
+        - name: alliance_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: channel_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: post_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body: { type: string }
+                reply_to_id: { type: string, description: For threaded replies }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReplyView' }
+        "403": { description: Remote writes disabled on the owning channel }
+
+  /alliances/{alliance_id}/channels/{channel_id}/posts/{post_id}/replies/{reply_id}:
+    delete:
+      summary: Retract a reply the caller's hub authored
+      tags: [Alliances, Forum]
+      parameters:
+        - name: alliance_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: channel_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: post_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: reply_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204": { description: Retracted }
+        "403": { description: The reply belongs to another hub or another author }
+
+  /alliances/{alliance_id}/channels/{channel_id}/posts/{post_id}/reactions:
+    post:
+      summary: React to a post in an alliance-shared forum channel
+      tags: [Alliances, Forum]
+      parameters:
+        - name: alliance_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: channel_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: post_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [emoji]
+              properties:
+                emoji: { type: string }
+      responses:
+        "204": { description: Reaction applied }
+
   # ── Lobby ─────────────────────────────────────────────────────────────────
 
   /lobby/status:
@@ -1785,6 +2025,126 @@ paths:
               type: object
               properties:
                 webhook_url: { type: string, nullable: true }
+
+  /admin/bots/external:
+    get:
+      summary: List every external bot row (admin view)
+      description: >-
+        Unlike `GET /bots` — the member-facing directory of accepted,
+        non-removed bots — this includes pending invites, removed bots, and the
+        admin-only local note. See bots.md §4.
+      tags: [Bots]
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    public_key: { type: string }
+                    display_name: { type: string, nullable: true }
+                    local_note: { type: string, nullable: true }
+                    approval_status: { type: string }
+                    last_seen_at: { type: integer, nullable: true }
+
+  /admin/bots/{pubkey}/capabilities:
+    get:
+      summary: A bot's requested, granted and effective capabilities
+      description: >-
+        The three sets side by side. `requested` is the bot's own declaration,
+        `granted` is what an admin allowed, and `effective` is their
+        intersection — the only set any runtime gate trusts. Not derivable from
+        the PUT response, which echoes `granted` only.
+        See bot-capability-layer.md §1.
+      tags: [Bots]
+      parameters:
+        - name: pubkey
+          in: path
+          required: true
+          schema: { type: string }
+          description: >-
+            An external bot or a self-service bot — grants are keyed on the bare
+            pubkey and do not care which.
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  requested:
+                    type: array
+                    items: { type: string }
+                    description: Self-declared. Always empty for a self-service bot.
+                  granted: { type: array, items: { type: string } }
+                  effective: { type: array, items: { type: string } }
+    put:
+      summary: Replace a bot's granted capabilities
+      description: >-
+        Writes the granted side only. Granting a capability the bot never
+        requested is inert until the bot also declares it.
+      tags: [Bots]
+      parameters:
+        - name: pubkey
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [capabilities]
+              properties:
+                capabilities: { type: array, items: { type: string } }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bot_pubkey: { type: string }
+                  capabilities: { type: array, items: { type: string } }
+
+  /admin/bots/{pubkey}/channels:
+    get:
+      summary: A bot's channel scope
+      description: An empty list means hub-wide access. See bots.md §14.
+      tags: [Bots]
+      parameters:
+        - name: pubkey
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BotChannelScope' }
+    put:
+      summary: Replace a bot's channel scope (atomic)
+      description: An empty or omitted `channel_ids` resets to hub-wide access.
+      tags: [Bots]
+      parameters:
+        - name: pubkey
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                channel_ids: { type: array, items: { type: string } }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BotChannelScope' }
 
   # ── Bots (bot API) ────────────────────────────────────────────────────────
 
@@ -2092,6 +2452,164 @@ paths:
                   status: { type: string, enum: [started, already_running] }
         "401": { description: Missing/invalid token }
         "403": { description: Caller lacks admin permission }
+
+  # Hub-to-hub forum write-through (forum.md §9 phases 2–3). Called by a peer
+  # hub on behalf of one of its users, not by a client — authentication is the
+  # peer-hub signature, not a member bearer token, and `author_pubkey` is the
+  # remote user the calling hub asserts. Every route is gated by the owning
+  # channel's `forum_remote_write` policy: `none`, `replies_only`, or
+  # `posts_and_replies`.
+
+  /federation/forum/channels/{channel_id}/posts:
+    post:
+      summary: A peer hub creates a post in a shared forum channel
+      description: Requires `forum_remote_write = posts_and_replies`.
+      security: []
+      tags: [Federation, Forum]
+      parameters:
+        - name: channel_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [author_pubkey, title, body]
+              properties:
+                author_pubkey: { type: string, description: The remote user the calling hub asserts }
+                title: { type: string }
+                body: { type: string }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PostDetail' }
+        "400": { description: author_pubkey_required / title_required / body_required }
+        "403": { description: channel_not_shared_with_caller / forum_remote_write_disabled / forum_remote_write_posts_disabled }
+        "409": { description: Channel is not a forum }
+        "429": { description: Per-peer federated forum rate limit }
+
+  /federation/forum/channels/{channel_id}/posts/{post_id}:
+    delete:
+      summary: A peer hub retracts one of its own users' posts
+      description: >-
+        Honoured only when the post's `author_hub` matches the calling peer
+        **and** its `author_pubkey` matches the assertion — a hub can retract
+        its own users' content, never anyone else's.
+      security: []
+      tags: [Federation, Forum]
+      parameters:
+        - name: channel_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: post_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [author_pubkey]
+              properties:
+                author_pubkey: { type: string }
+      responses:
+        "204": { description: Retracted }
+        "403": { description: The post belongs to another hub or another author }
+
+  /federation/forum/channels/{channel_id}/posts/{post_id}/replies:
+    post:
+      summary: A peer hub replies to a post in a shared forum channel
+      description: Allowed under `replies_only` as well as `posts_and_replies`.
+      security: []
+      tags: [Federation, Forum]
+      parameters:
+        - name: channel_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: post_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [author_pubkey, body]
+              properties:
+                author_pubkey: { type: string }
+                body: { type: string }
+                reply_to_id: { type: string, description: For threaded replies }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReplyView' }
+        "403": { description: forum_remote_write_disabled }
+        "429": { description: Per-peer federated forum rate limit }
+
+  /federation/forum/channels/{channel_id}/posts/{post_id}/replies/{reply_id}:
+    delete:
+      summary: A peer hub retracts one of its own users' replies
+      security: []
+      tags: [Federation, Forum]
+      parameters:
+        - name: channel_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: post_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: reply_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [author_pubkey]
+              properties:
+                author_pubkey: { type: string }
+      responses:
+        "204": { description: Retracted }
+        "403": { description: The reply belongs to another hub or another author }
+
+  /federation/forum/channels/{channel_id}/posts/{post_id}/reactions:
+    post:
+      summary: A peer hub adds one of its users' reactions to a post
+      security: []
+      tags: [Federation, Forum]
+      parameters:
+        - name: channel_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: post_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [author_pubkey, emoji]
+              properties:
+                author_pubkey: { type: string }
+                emoji: { type: string }
+      responses:
+        "204": { description: Reaction applied }
+        "403": { description: forum_remote_write_disabled }
 
   # ── Auth (session renewal) ────────────────────────────────────────────────
 
@@ -3267,6 +3785,74 @@ paths:
         "409":
           description: Slot has claimants
 
+  /events/{event_id}/assignments:
+    get:
+      summary: Every move assignment for an event
+      description: >-
+        Requires `read_messages` on the event's anchor channel plus organizer
+        or `move_members`. 404 (not 403) when the event does not exist or the
+        caller cannot read its anchor — an id alone must not confirm a hidden
+        channel exists. See events.md §7.4.
+      tags: [Events]
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    user_pubkey: { type: string }
+                    target_channel_id: { type: string }
+                    assigned_by: { type: string }
+                    created_at: { type: integer }
+                    voice_only:
+                      type: boolean
+                      description: >-
+                        Computed per row, not stored: the member lacks
+                        `read_messages` on the target, so a move would land them
+                        in voice-only presence. The client cannot see another
+                        member's permissions, so the hub resolves it.
+        "403": { description: Caller can read the channel but is neither organizer nor mover }
+
+  /events/{event_id}/squad-rooms:
+    post:
+      summary: Auto-spawn temp squad voice channels
+      description: >-
+        Creates `count` temp voice-capable channels named "<prefix> 1"…"<prefix>
+        N", parented under the event's anchor and tagged with the event id so
+        clients can identify them and the reminder worker can sweep them at
+        event end. Needs organizer/`create_events` **and** `move_members` on the
+        anchor. See events.md §7.5.
+      tags: [Events]
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [count]
+              properties:
+                count: { type: integer, minimum: 1, maximum: 20 }
+                name_prefix: { type: string, default: Squad }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Channel' }
+
   # ── Polls ─────────────────────────────────────────────────────────────────
 
   /channels/{channel_id}/polls:
@@ -3730,6 +4316,92 @@ paths:
           in: path
           required: true
           schema: { type: string }
+
+  /channels/{channel_id}/tags:
+    get:
+      summary: List a forum channel's tag definitions
+      description: >-
+        Tag definitions live on the channel; assigning and filtering by them
+        rides the post routes. See forum.md §10.2.
+      tags: [Forum]
+      parameters:
+        - name: channel_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ForumTag' }
+        "409": { description: Channel is not a forum }
+    post:
+      summary: Create a tag definition (manage_posts)
+      tags: [Forum]
+      parameters:
+        - name: channel_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [label]
+              properties:
+                label: { type: string, description: 1–50 characters }
+                color: { type: string, nullable: true }
+                position: { type: integer, default: 0 }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ForumTag' }
+        "409": { description: Channel is not a forum }
+
+  /tags/{tag_id}:
+    patch:
+      summary: Edit a tag definition (manage_posts)
+      description: >-
+        No channel in the path — it is resolved from the tag row. `label` and
+        `position` follow the usual "absent means unchanged" rule; `color` is
+        tri-state, so omitting it leaves the colour alone while sending `null`
+        clears it.
+      tags: [Forum]
+      parameters:
+        - name: tag_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                label: { type: string }
+                color: { type: string, nullable: true }
+                position: { type: integer }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ForumTag' }
+        "404": { description: tag_not_found }
+    delete:
+      summary: Delete a tag definition (manage_posts)
+      description: Idempotent — deleting an already-deleted tag is 204.
+      tags: [Forum]
+      parameters:
+        - name: tag_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204": { description: Deleted, or already gone }
 
   # ── Channel-scoped moderation (pubkey field) ──────────────────────────────
 
@@ -4383,6 +5055,66 @@ paths:
           in: path
           required: true
           schema: { type: string }
+
+  /recovery/rotation-request/{id}:
+    get:
+      summary: The bundle a recovery contact signs, plus progress
+      description: >-
+        No session required: a contact learns the request id out of band and may
+        not hold an account on this hub at all. See recovery-attestation.md §2.
+      security: []
+      tags: [Recovery]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  hub_pubkey: { type: string }
+                  old_pubkey: { type: string }
+                  new_pubkey: { type: string }
+                  nonce: { type: string }
+                  status: { type: string, enum: [pending, ready_for_review, approved, rejected] }
+                  attestation_count: { type: integer }
+                  threshold: { type: integer }
+
+  /recovery/rotation-request/{id}/attest:
+    post:
+      summary: A recovery contact vouches for an open rotation request
+      description: >-
+        The signature is over the canonical `wavvon/recovery-attestation/v1`
+        bundle bytes. Signed with the **roster** identity key the hub knows the
+        contact by, never a derived multi-device master key. Deduped per
+        contact; reaching the owner's threshold flips the request from
+        `pending` to `ready_for_review` for admin action.
+      security: []
+      tags: [Recovery]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [attester, signature]
+              properties:
+                attester: { type: string, description: Contact's public key, hex }
+                signature: { type: string, description: Ed25519 signature over the bundle, hex }
+      responses:
+        "204": { description: Attestation recorded }
+        "400": { description: Bad signature, or the attester is the old or new key }
+        "403": { description: Attester is not a designated contact for this owner }
+        "409": { description: Request is no longer accepting attestations }
 
   # ── Incoming webhooks ─────────────────────────────────────────────────────
 
