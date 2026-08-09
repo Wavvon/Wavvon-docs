@@ -4,6 +4,27 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Every hub on a farm loaded the same identity (2026-08-09)**: a hub
+  resolves `hub_identity.json` and its search index relative to the process
+  working directory, and a spawned child inherits its parent's. The farm never
+  set one, so every hub it spawned read the **same identity file** — the first
+  to boot created it and every other adopted its key.
+  One pubkey across a whole farm. That key is the hub's identity in
+  federation, the serial the proxy routes on, and the signature under every
+  badge, certification and ban list it issues. Two hubs claiming to be the same
+  hub is not a degraded mode. Each hub now runs in `<hubs_dir>/<hub_id>`; the
+  `hubs_dir` setting existed and was carried around for a SQLite-era path
+  nothing consumed.
+  Found by adding an end-to-end test for **schema isolation**, which shipped
+  the same morning with unit tests for the URL it builds and nothing that had
+  ever run a hub behind one. Its failure mode was the worst kind: had the
+  driver ignored the `options` parameter, every hub would have migrated into
+  `public` and shared it again — the exact bug per-hub isolation replaced,
+  wearing the appearance of a fix. The test asserts the tables land in
+  `hub_<id>` and that `public` stays empty. Also learned there: schema
+  isolation keeps the base URL's database, so a farm's `WAVVON_DATABASE_URL`
+  must name one.
+
 - **A farm-managed hub refused every WebSocket (2026-08-09)**:
   `validate_ws_token` tried the sessions table, then bot tokens, then returned
   401 — it never verified a **farm-issued** token. Against a farm-managed hub
