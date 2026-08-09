@@ -4,6 +4,25 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **A farm-managed hub refused every WebSocket (2026-08-09)**:
+  `validate_ws_token` tried the sessions table, then bot tokens, then returned
+  401 — it never verified a **farm-issued** token. Against a farm-managed hub
+  the client authenticates *at the farm* (`authBaseUrl` follows
+  `/info.farm_url`) and opens its socket with that token, so a farm-hosted hub
+  served HTTP and refused every socket: no messages, no presence, no voice
+  signalling, nothing real-time. HTTP working made the hub look alive; the
+  socket simply never connected.
+  The fourth bug of the same family found the same way — something that only
+  breaks between the farm and a real hub, which nothing had ever put together.
+  Farm-token verification is now one function used by both the HTTP middleware
+  and the WebSocket handshake. It was seventy lines inline in the middleware,
+  and copying it into the socket path would have recreated the exact
+  duplication this repo has already paid for twice.
+  Found by extending `farm_hub_e2e` to open a real socket through the farm's
+  bridge — the last thing about a farm-hosted hub that cannot be verified by
+  reading: a path-prefixed Upgrade, handed to another process, authenticated
+  with a token the hub did not issue.
+
 - **The farm→hub path has a test with real processes (2026-08-09)**: every
   other farm test mocked the hub — `e2e_server_agent` a mock agent,
   `serial_routing_flow` a stub HTTP server, the rest seeded rows by hand. That

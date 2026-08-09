@@ -28,16 +28,16 @@ fixed, its entry moves to the shipped log.
     siblings. A role per hub, granted only its own space, is the only one of
     these that is a security measure rather than hygiene. Works with either
     layout. Worth doing before a farm hosts hubs it does not itself own.
-  - [ ] **Surface a member's history in the clients.** The hub side shipped
-    (`GET /moderation/history/{pubkey}`, plus `policy` on the entries list),
-    but no client asks. Until one does, a moderator has to know the endpoint
-    exists — which is most of the way back to `soft-flag` meaning nothing. The
-    natural home is the member context menu and the admin user view.
-  - [ ] **Extend the end-to-end run to a client.** `farm_hub_e2e` covers the
-    farm→hub half with real processes (shipped). The other half — join from
-    the web client, send a message, enter voice — needs a browser, and the
-    Playwright recipes for both already exist (`project_web_voice_e2e_recipe`,
-    `run-web`). Wiring them to a farm-created hub is the remaining piece.
+  - [ ] **Playwright in CI, against a farm-created hub.** `farm_hub_e2e` now
+    covers the farm→hub path with real processes, including a real WebSocket
+    through the proxy — which is what a browser would have exercised, and how
+    the farm-token socket bug was found. What is genuinely missing is browser
+    CI: the 60 live specs under `apps/web/e2e/live/` run only against a
+    manually started hub on `localhost:3000` (`HUB_URL` is a hard-coded
+    const), and no workflow runs Playwright at all. That is its own piece of
+    infrastructure — postgres, hub, vite, browsers — not a loose end of the
+    farm work. Start by making the live suite's hub URL configurable so it can
+    point at `/hub/<slug>`.
   - Multi-node (`servers.host`, agent-advertised address, host-aware proxy)
     stays in the wishlist below: it needs a decision on private networking
     farm↔nodes first, and none of the above depends on it.
