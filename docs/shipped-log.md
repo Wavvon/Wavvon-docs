@@ -83,10 +83,23 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   could have restarted onto a new version). Read through
   `hubSupports(hubId, cap)` / `activeHubSupports(cap)`; unknown means false,
   so a feature is absent rather than erroring on a route that isn't there.
-  First real consumer is `fetchAllUsers`, which walks keyset pages: against a
-  pre-pagination hub the cursor is ignored and every page is the same full
-  roster, so the loop would have returned 40 copies of every member — it now
-  makes one plain request there, which on such a hub *is* the complete list.
+  **That collapse is right for rendering and wrong for choosing a request
+  strategy**, which the first consumer proved immediately. `fetchAllUsers`
+  walks keyset pages, and against a pre-pagination hub the cursor is ignored
+  and every page is the same full roster, so the loop would have returned 40
+  copies of every member — one plain request there *is* the complete list,
+  since the endpoint was unbounded. But gating that on `hubSupports` sent the
+  same unparameterised request to a hub merely *saved by an older client
+  build*, silently keeping its first 200 members: the exact truncation
+  pagination existed to fix, at a bigger number. So `hubCapabilities()`
+  returns `string[] | null`, and the null is load-bearing — `[]` is a hub that
+  answered and advertised nothing (a fact about the hub), `null` is a hub we
+  have not asked (a fact about us). The shortcut fires only on the former;
+  unknown pages, which is correct against a new hub and merely a few wasted
+  round trips against an old one. Those are bounded by a stall guard rather
+  than by the page cap: the keyset uses a strict `>`, so a hub honouring the
+  cursor can never return a page ending on the key just sent, and one that
+  does is ignoring it.
   Backstop for the feature whose author forgets to gate it: an unrouted path
   answers with exactly `"Not Found"` (the non-HTML branch of the SPA
   fallback), distinguishable from a handler's own 404, and `checkResponse`
