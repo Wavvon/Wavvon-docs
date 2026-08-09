@@ -17,6 +17,62 @@ fixed, its entry moves to the shipped log.
   versions on develop, open the develop→main PR, user reviews +
   merges. Do before the pilot friend onboards. Version number to be
   decided at PR time.
+- [ ] **Declared minimum external PostgreSQL + startup check** — smallest
+  piece of the DB work and independent of the rest. Decision:
+  [decisions.md](docs/decisions.md#the-hub-bundles-postgresql-and-never-touches-one-it-did-not-create).
+  - [ ] `SHOW server_version_num` on connect; below the floor the hub
+    stops with "Wavvon X requires PostgreSQL ≥ N, found M" instead of
+    failing on a half-applied migration (nothing checks this today).
+  - [ ] Floor starts at **PG 14**. The code's real floor is PG 12, set by
+    one `tsvector GENERATED ALWAYS AS (...) STORED` column in
+    `migrations.rs:1390` — so 14 costs nothing now.
+  - [ ] Version→minimum table in `hosting.md`, next to the new
+    "Providing PostgreSQL" section. The floor rises only when a feature
+    needs it, never on a schedule.
+  - [ ] CI job against the declared floor, not only `postgres:16-alpine`
+    — otherwise "we support 14" is an untested claim.
+
+- [ ] **Capability advertising + additive-wire rule** — the compatibility
+  work that the web-client distribution model actually forces. Decisions:
+  [capabilities](docs/decisions.md#hub-capabilities-are-advertised-not-inferred-from-a-version-number),
+  [additive wire](docs/decisions.md#wire-changes-are-additive-removals-wait-for-a-major).
+  - [ ] `capabilities: Vec<String>` on `GET /info`, populated with what
+    clients currently have to infer. `/info` is already a capability
+    document in all but name (`farm_url`, `challenge_mode`, `cert_mode`,
+    `birthdays_enabled` all drive client branching).
+  - [ ] `refreshHubInfo` (`hubs.ts:153`) keeps `version` + `capabilities`
+    instead of discarding them; both become per-hub state beside name and
+    icon.
+  - [ ] Feature gating per hub, adopted feature by feature — no big bang.
+  - [ ] Safety net: an unexpected 404 on a known endpoint degrades to
+    "this hub is older, feature unavailable", not a raw error.
+  - Why this matters here and not elsewhere: each hub bakes its own web
+    client into its Docker image, and that client is multi-hub. The copy
+    served by hub A talks to hubs B and C, so there is no "update
+    together" — see the capabilities decision.
+
+- [ ] **Bundle PostgreSQL into the hub binary** — the zero-prerequisite
+  install story; removes Docker (or a hand-rolled `createdb`) as a
+  precondition for self-hosting. Feasibility verified 2026-08-08:
+  `postgresql_embedded` 0.21.0 publishes **both** musl targets the
+  release workflow builds (`x86_64` 24.8 MB, `aarch64` 24.6 MB), and its
+  `bundled` feature embeds the archive at compile time rather than
+  downloading at runtime — which LAN mode would not survive.
+  - [ ] Embedded mode when `WAVVON_DATABASE_URL` is unset; plain client
+    when set. Removes today's silent fallback to
+    `postgres://postgres:postgres@localhost:5432/wavvon`.
+  - [ ] Version-scoped `installation_dir` (`<root>/pg/<version>/`) and an
+    explicit `data_dir` — the crate defaults to `~/.theseus/postgresql`
+    and a **tempdir**, neither of which is acceptable for a server.
+  - [ ] Major-upgrade path: compare `PG_VERSION`, dump first, `pg_upgrade`
+    with the retained previous binaries, keep the old data dir until
+    success, refuse with instructions when it cannot be done safely.
+  - [ ] `--doctor` reports which mode is active and where the data lives.
+  - [ ] Verify `wavvon-hub backup`/`restore` against the embedded instance.
+  - [ ] Test `initdb` on musl — locale support there is limited and it
+    likely needs `--locale=C`.
+  - Not restored by this: SQLite's one-file backup. Still `pg_dump`.
+
 - [ ] **Desktop live-drive DM verification** — the DR interop is pinned
   by cross-language vector tests, but no real desktop app was driven;
   smoke-test a real web↔desktop DM exchange via the documented recipe
@@ -76,6 +132,12 @@ fixed, its entry moves to the shipped log.
 - **Windows code-signing** — blocked until the project reaches meaningful
   popularity. Ship unsigned with the documented SmartScreen workaround.
   See [`code-signing.md`](docs/code-signing.md).
+  **Consequence worth naming**: with the desktop client not seriously
+  distributable, web is the only real channel — which is why the
+  capability/version-skew work above is product scope rather than a 1.0
+  nicety. A desktop client is structurally immune to that skew (the user
+  owns its version, it inherits nothing from a hub), so signing would
+  relieve pressure there too.
 
 ## 📌 Wishlist
 
@@ -98,6 +160,19 @@ fixed, its entry moves to the shipped log.
   (WireGuard/VPC) instead of farm↔node TLS, and per-node Postgres
   (`db_path` is generated farm-side today). Design context:
   [farm-impl.md](docs/farm-impl.md).
+- **Hosted web client (`app.wavvon.io`)** — undesigned, deliberately.
+  Would decouple the client version from any single hub and be the
+  canonical entry point for public hubs; deployment alongside the
+  discovery site is the obvious home, though they are different
+  artifacts (discovery is Next.js, the client a static Vite SPA).
+  Enabled by CORS already defaulting to `*` (bearer-token API, no CSRF
+  surface), so it can talk to arbitrary hubs with no per-hub setup.
+  **It can never be the only channel**: an HTTPS page cannot call an
+  `http://` hub, which rules out LAN mode, self-signed hubs, and trying
+  Wavvon before buying a domain — so the hub-served copy stays. That
+  constraint is recorded in
+  [decisions.md](docs/decisions.md#hub-capabilities-are-advertised-not-inferred-from-a-version-number);
+  the hosted client itself is not decided.
 - **Project visibility push** — hosted demo hub, directory listings,
   launch post. Needed for adoption and the code-signing re-application.
 - **Passkey registration from desktop** — blocked by Tauri webview RP ID

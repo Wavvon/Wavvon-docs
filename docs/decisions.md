@@ -6,6 +6,166 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Hub capabilities are advertised, not inferred from a version number
+
+**Decision** (2026-08-08): `GET /info` gains `capabilities: Vec<String>`, and
+clients decide what to render by testing membership in that list — never by
+comparing version strings. `version` stays in `/info`, but for display and for
+a "this hub is very old" warning, not for deciding whether to draw a button.
+
+Capabilities are **per-hub state**, held alongside name, icon and timezone in
+the same record. This is not a new architecture: the client already keeps
+channels, roles and permissions per hub, and `refreshHubInfo` already fetches
+`/info` per hub — it currently discards the `version` it receives.
+
+This matters more in Wavvon than in most federated products because of how the
+web client is distributed. Each hub bakes a web client into its own Docker
+image and serves it, and that client is **multi-hub**: the copy served by
+hub A talks to hubs B and C as well. There is no "client and server update
+together" — the client's version is decided by whichever hub the user happened
+to open, and bears no relation to the hubs it then talks to. Matrix and
+similar have one client per homeserver; Wavvon has one client across many.
+
+`/info` is already a capability document without the name: `farm_url` means
+"delegate `/auth/*` to the farm", and `challenge_mode`, `invite_only`,
+`cert_mode`, `min_pow_level` and `birthdays_enabled` all drive client
+branching today. The array formalises a pattern already in force.
+
+*Alternatives considered*: (a) gate on the version number — rejected: it ties
+the client to a release timeline, breaks on forks, backports and custom
+builds, and requires the client to carry a "which version introduced what"
+mapping nobody will maintain; (b) probe endpoints and treat 404 as absence —
+rejected as the primary mechanism: it makes a missing feature and a broken
+hub indistinguishable, and costs a failed round trip per feature. It stays as
+the *safety net*: an unexpected 404 on a known endpoint degrades to "this hub
+is older, feature unavailable" rather than a raw error.
+
+*Tradeoff*: every new feature must remember to add its capability string, and
+the list grows monotonically. Accepted — it is one line in the same commit
+that adds the feature, and a forgotten capability fails visibly (the feature
+never appears) rather than silently.
+
+*Corollary — two web client channels, both permanent.* A hosted client
+(`app.wavvon.io`) would decouple the client version from any hub and is the
+right canonical entry point for public hubs. It **cannot replace** the
+hub-served copy: a page served over HTTPS cannot call an `http://` hub, which
+rules out LAN mode, self-signed hubs, and anyone trying Wavvon before buying a
+domain. Keeping both is also the honest position for a self-hosted federated
+product — a hub that stops working when our domain does would contradict the
+premise. The hosted client itself is not decided here; the constraint that it
+cannot be the only channel is.
+
+## Wire changes are additive; removals wait for a major
+
+**Decision** (2026-08-08): once 1.0 ships, the hub's HTTP and WebSocket
+surface only ever grows. No endpoint is removed or repurposed, no response
+field is deleted or has its meaning changed, no validation is tightened, no
+enum value is retired. Removals accumulate for a major release.
+
+This is what makes the benign direction of version skew actually benign. Of
+the two directions, only one breaks:
+
+| | Effect |
+|---|---|
+| New client → old hub | **Breaks.** Calls endpoints that do not exist |
+| Old client → new hub | **Harmless**, *if and only if* the server is additive |
+
+The additive rule buys the second row unconditionally. Capability advertising
+handles the first. Neither alone is enough.
+
+Serde already enforces much of this by construction: nearly every field on
+`InfoResponse` carries `#[serde(default)]`, so an old client parsing a new
+hub's `/info` ignores what it does not know and defaults what is absent. The
+rule generalises that from an accident of the type definitions to a contract.
+
+*Alternatives considered*: (a) version the API by path (`/v1/`, `/v2/`) —
+rejected: it multiplies the surface to maintain and test, and self-hosted hubs
+update on their own schedule so old versions can never be retired on a
+timetable we control; (b) negotiate a protocol version at connect and branch
+server-side — rejected: the branching lands in the hub for every skew
+combination, which is the N×M matrix this avoids; (c) guarantee a supported
+combination matrix — rejected outright: nobody can test it and it grows
+quadratically.
+
+*Tradeoff*: dead fields and superseded endpoints accumulate until a major.
+Accepted; the alternative is breaking installations we do not control. **This
+rule is not yet in force** — the project is in alpha with an explicit
+no-backcompat policy and one external operator. It binds from 1.0.
+
+*Precedent, learned the hard way*: desktop's WebSocket enum swallowed four hub
+events for months behind a silent catch-all arm — a version-skew failure that
+produced no symptom at all. See
+[Unknown WebSocket events must be loud](#unknown-websocket-events-must-be-loud);
+that logging arm is the first piece of skew handling in the codebase.
+
+## The hub bundles PostgreSQL, and never touches one it did not create
+
+**Decision** (2026-08-08): the hub binary ships PostgreSQL inside it
+(`postgresql_embedded`, `bundled` feature — the archive is embedded at
+compile time, not fetched at runtime). Mode is chosen by the absence of
+configuration:
+
+- **`WAVVON_DATABASE_URL` unset** → the hub installs, initialises, starts and
+  supervises its own PostgreSQL. Zero prerequisites: download a binary, run
+  it, you have a hub.
+- **`WAVVON_DATABASE_URL` set** → the hub is a plain client. It runs schema
+  migrations and nothing else. It does not upgrade, tune, restart or in any
+  way manage a database it did not create.
+
+This restores the operator experience the founding "SQLite, not Postgres"
+decision valued — and gave up on 2026-06-27 — without a second dialect, a
+second migration set, or the type-decoding hazards that made dual-backend
+dangerous ([PostgreSQL is the only storage backend](#postgresql-is-the-only-storage-backend)).
+
+**Bundled PostgreSQL follows upstream; it is not pinned.** Major versions
+carry security and performance work and standing still to avoid an upgrade
+path is the wrong trade. What made pinning tempting is real but narrow: SQL
+does not change between majors, the *on-disk data directory format* does, and
+a newer server refuses to start on an older data directory by design.
+
+The constraint that makes the upgrade tractable, and that dictates the
+layout: `pg_upgrade` needs **both** versions' binaries present at once. So the
+install directory is version-scoped and the previous version is not deleted:
+
+```
+<data_root>/pg/18.4.0/   binaries (kept)
+<data_root>/pg/19.1.0/   binaries (new)
+<data_root>/pgdata/      data, carrying its own PG_VERSION
+```
+
+On startup the hub compares `PG_VERSION` against what it bundles and either
+starts, migrates (logical dump first as the safety net, old data directory
+retained until success), or **refuses with instructions** when it cannot do so
+safely. It never half-migrates and never guesses.
+
+**External PostgreSQL gets a declared minimum, per Wavvon version.** Not a
+pin, not a supported-combinations matrix: one floor, checked at startup with a
+clear message, documented in a table in `hosting.md`. The floor starts at
+**PostgreSQL 14** — the oldest release still receiving upstream security
+patches as of 2026-08 — and rises only when a feature genuinely requires it,
+never on a schedule. The code's actual floor today is PG 12, set by a single
+`tsvector GENERATED ALWAYS AS (...) STORED` column in `migrations.rs`, and
+nothing checks it: an operator on an older server currently gets a syntax
+error from a half-applied migration instead of a sentence telling them why.
+
+*Alternatives considered*: (a) pin the bundled major indefinitely — rejected:
+trades away security updates to avoid work that is routine once the
+both-binaries constraint is designed for; (b) auto dump/restore on every major
+change without keeping old binaries — rejected: it cannot read the old data
+directory at all, which is the whole problem; (c) require an external
+PostgreSQL always (status quo) — rejected: it is the single largest adoption
+tax on a self-hosted product competing with unzip-and-run incumbents; (d)
+manage the operator's external database too — rejected: we have no title to
+it, usually no permission, and on managed providers no filesystem access.
+
+*Tradeoff*: ~25 MB added to each release binary, plus one superseded
+PostgreSQL install left on disk after an upgrade. The SQL Wavvon writes is
+also now bounded by the **oldest supported external** version, not by the
+bundled one — bundling PG 19 does not license PG 19 syntax while PG 14 is
+still supported. That is ongoing discipline, not a one-time decision.
+
+*Not restored*: SQLite's "backup is one file". Operators still use `pg_dump`.
+
 ## PostgreSQL is the only storage backend
 
 **Decision** (2026-08-08, ratifying what happened on 2026-06-27): Wavvon
