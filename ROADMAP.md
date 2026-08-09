@@ -33,9 +33,11 @@ fixed, its entry moves to the shipped log.
     but no client asks. Until one does, a moderator has to know the endpoint
     exists — which is most of the way back to `soft-flag` meaning nothing. The
     natural home is the member context menu and the admin user view.
-  - [ ] **A real end-to-end run in CI** — create a hub from the farm, join it
-    from the web client, send a message, enter voice. This is the test that
-    would have caught all three silent gaps on the day they were written.
+  - [ ] **Extend the end-to-end run to a client.** `farm_hub_e2e` covers the
+    farm→hub half with real processes (shipped). The other half — join from
+    the web client, send a message, enter voice — needs a browser, and the
+    Playwright recipes for both already exist (`project_web_voice_e2e_recipe`,
+    `run-web`). Wiring them to a farm-created hub is the remaining piece.
   - Multi-node (`servers.host`, agent-advertised address, host-aware proxy)
     stays in the wishlist below: it needs a decision on private networking
     farm↔nodes first, and none of the above depends on it.

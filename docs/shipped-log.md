@@ -4,6 +4,32 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **The farm→hub path has a test with real processes (2026-08-09)**: every
+  other farm test mocked the hub — `e2e_server_agent` a mock agent,
+  `serial_routing_flow` a stub HTTP server, the rest seeded rows by hand. That
+  is why three separate bugs lived in this path for months without a single red
+  test: each one exists only *between* the farm and a real `wavvon-hub`
+  process. `farm_hub_e2e` creates a hub through the farm's own API, lets the
+  binary start, and asks the farm's proxy for its `/info` — checking that the
+  serial got claimed, that the hub knows its canonical slug address, that it
+  has a voice endpoint (which needs a public URL it could only derive itself),
+  that its database is its own, and that the key behind the address is the key
+  the farm recorded. It skips when the binary is not built and CI sets
+  `WAVVON_REQUIRE_E2E=1` to turn that skip into a failure.
+  **It found a crash on its first run.** A farm reached at an IP derives an
+  `rp_id` of `127.0.0.1`; WebAuthn requires an effective *domain*, and the
+  builder's `.expect()` killed the hub at startup. Farm-hosted hubs had been
+  safe from it only because they previously had no public URL at all and fell
+  back to `localhost` — deriving one exposed it. A relying party the browser
+  would refuse now disables passkeys with a loud warning instead of taking the
+  process down: losing passkeys on a hub that could never have offered them is
+  correct, refusing to boot is not, and on a farm it costs a community per
+  misconfigured address.
+  Also from writing it: the heartbeat skipped its first tick, so a freshly
+  spawned hub said nothing for a full minute — and the first heartbeat is what
+  claims its serial. For that minute the farm had a hub it could not route to
+  and a monitor with no evidence it was alive. It announces on boot now.
+
 - **Sibling hubs vouch for each other; `soft-flag` became visible
   (2026-08-09)**: a farm now reports a hub's siblings in the heartbeat
   response, and each hub wires them in — subscribing to their ban lists in
