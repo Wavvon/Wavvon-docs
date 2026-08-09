@@ -4,6 +4,78 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Capability advertising (2026-08-09)**: `GET /info` now carries
+  `capabilities: Vec<String>`, and the web client decides what to offer by
+  testing membership in it — never by comparing version strings. Decision:
+  [decisions.md](decisions.md#hub-capabilities-are-advertised-not-inferred-from-a-version-number).
+  This matters more here than in most federated products because of how the
+  web client is distributed: each hub bakes a client into its own image and
+  serves it, and that client is multi-hub, so its version is decided by
+  whichever hub the user happened to open and bears no relation to the hubs
+  it then talks to.
+  Hub side: `capabilities.rs` holds one sorted list with a "add your string
+  here, in the same commit" rule; unit tests pin sorting, uniqueness and one
+  spelling convention, and an integration test pins that the strings reach
+  `/info` unauthenticated and never change spelling (renaming one is a
+  removal, and removals wait for a major). Seeded with the five cases where a
+  newer client would otherwise call a route an older hub lacks, or silently
+  get a worse answer: `list.cursor`, `pairing.subkey`,
+  `recovery.attestation`, `screenshare.v2`, `voice.wt`.
+  Client side: capabilities and version are per-hub state beside name and
+  icon — live in `HubSession`, persisted in `SavedHub` so the UI is right on
+  the first frame after a reload, refreshed by `refreshHubInfo` (which
+  already runs on connect and on every `hub_updated`, exactly when a hub
+  could have restarted onto a new version). Read through
+  `hubSupports(hubId, cap)` / `activeHubSupports(cap)`; unknown means false,
+  so a feature is absent rather than erroring on a route that isn't there.
+  First real consumer is `fetchAllUsers`, which walks keyset pages: against a
+  pre-pagination hub the cursor is ignored and every page is the same full
+  roster, so the loop would have returned 40 copies of every member — it now
+  makes one plain request there, which on such a hub *is* the complete list.
+  Backstop for the feature whose author forgets to gate it: an unrouted path
+  answers with exactly `"Not Found"` (the non-HTML branch of the SPA
+  fallback), distinguishable from a handler's own 404, and `checkResponse`
+  turns that into "this hub is running an older version" instead of a bare
+  `Not Found`. Desktop still discards the field —
+  [client-parity.md](client-parity.md).
+  Alongside it, `openapi.yaml`'s `HubInfo` schema was corrected (it still
+  described a `hub_name`/`require_invite` shape the hub has not served in a
+  long time) and the deleted `/voice/ws` endpoint removed from the spec —
+  voice v2 deleted it, and `POST /bots/{id}/voice/join` returns `ws_url:
+  "/ws"`, not the `voice_ws_url` the spec claimed.
+
+- **Declared minimum PostgreSQL, enforced before migrations
+  (2026-08-09)**: the hub ran its own schema migrations with no idea what
+  server it was pointed at. Below the floor, migrations failed partway
+  through and the operator got a `CREATE TABLE` syntax error and a
+  half-applied schema instead of a sentence saying their PostgreSQL is too
+  old. `db/version.rs` now declares **PostgreSQL 14** and checks
+  `server_version_num` on both entry points (the `migrate` subcommand and
+  server startup). The comparison and the message are a pure function so
+  they are testable without a server of every vintage; the message renders
+  both versions humanly (`160004` → `"16.4"`) and names the remedy. CI runs
+  the test matrix against `14-alpine` as well as `16-alpine` — testing only
+  the newest would leave "we support 14" a claim nobody checks, which is
+  how the floor stayed undeclared this long. The floor rises only when a
+  feature needs it, never on a schedule; the table lives in
+  [hosting.md](hosting.md) §Providing PostgreSQL. Also folded the
+  hardcoded connection string into one `DEFAULT_DATABASE_URL` — it had five
+  copies in hub production code, and it is a superuser credential in
+  source. Every caller that falls back to it now says so on stderr:
+  silently operating on whatever answers at localhost is the failure mode
+  behind the `admin` bug below.
+
+- **`wavvon-hub admin` ignored `WAVVON_DATABASE_URL` (2026-08-09)**: the
+  `admin` subcommand resolved its database from the unprefixed
+  `DATABASE_URL` only, falling back to the built-in default. On a hub
+  configured the documented way every admin subcommand therefore targeted a
+  different database, silently — including `admin users set-owner`, the
+  ownership bootstrap on a fresh hub, which would report success against a
+  database the hub does not use. The identical bug in `migrate` was fixed
+  during voice v2; `admin` was missed because each subcommand resolved the
+  URL independently — the same duplicated-literal pattern that produced the
+  farm/agent env mismatch. Both go through one `cli_database_url()` now.
+
 - **Configurable DB pool + shared env-key contract (2026-08-08)**: the
   PostgreSQL pool was `max_connections(5)` hardcoded in all three server
   binaries with no way to change it; it is now

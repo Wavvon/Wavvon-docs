@@ -17,40 +17,6 @@ fixed, its entry moves to the shipped log.
   versions on develop, open the develop→main PR, user reviews +
   merges. Do before the pilot friend onboards. Version number to be
   decided at PR time.
-- [ ] **Declared minimum external PostgreSQL + startup check** — smallest
-  piece of the DB work and independent of the rest. Decision:
-  [decisions.md](docs/decisions.md#the-hub-bundles-postgresql-and-never-touches-one-it-did-not-create).
-  - [ ] `SHOW server_version_num` on connect; below the floor the hub
-    stops with "Wavvon X requires PostgreSQL ≥ N, found M" instead of
-    failing on a half-applied migration (nothing checks this today).
-  - [ ] Floor starts at **PG 14**. The code's real floor is PG 12, set by
-    one `tsvector GENERATED ALWAYS AS (...) STORED` column in
-    `migrations.rs:1390` — so 14 costs nothing now.
-  - [ ] Version→minimum table in `hosting.md`, next to the new
-    "Providing PostgreSQL" section. The floor rises only when a feature
-    needs it, never on a schedule.
-  - [ ] CI job against the declared floor, not only `postgres:16-alpine`
-    — otherwise "we support 14" is an untested claim.
-
-- [ ] **Capability advertising + additive-wire rule** — the compatibility
-  work that the web-client distribution model actually forces. Decisions:
-  [capabilities](docs/decisions.md#hub-capabilities-are-advertised-not-inferred-from-a-version-number),
-  [additive wire](docs/decisions.md#wire-changes-are-additive-removals-wait-for-a-major).
-  - [ ] `capabilities: Vec<String>` on `GET /info`, populated with what
-    clients currently have to infer. `/info` is already a capability
-    document in all but name (`farm_url`, `challenge_mode`, `cert_mode`,
-    `birthdays_enabled` all drive client branching).
-  - [ ] `refreshHubInfo` (`hubs.ts:153`) keeps `version` + `capabilities`
-    instead of discarding them; both become per-hub state beside name and
-    icon.
-  - [ ] Feature gating per hub, adopted feature by feature — no big bang.
-  - [ ] Safety net: an unexpected 404 on a known endpoint degrades to
-    "this hub is older, feature unavailable", not a raw error.
-  - Why this matters here and not elsewhere: each hub bakes its own web
-    client into its Docker image, and that client is multi-hub. The copy
-    served by hub A talks to hubs B and C, so there is no "update
-    together" — see the capabilities decision.
-
 - [ ] **`wavvon-hub db` — one dump/restore path for backup, moves and
   upgrades** — decision:
   [One mechanism moves the data](docs/decisions.md#one-mechanism-moves-the-data-logical-dumprestore).
@@ -87,12 +53,6 @@ fixed, its entry moves to the shipped log.
     not even have `pg_dump` on PATH — it lives in our version-scoped
     install dir. `backup` should dump the database using whichever
     binaries the hub is using, embedded or external.
-  - [ ] **`wavvon-hub admin` reads the wrong env var** — `main.rs:470`
-    takes `DATABASE_URL` only and falls back to the hardcoded default,
-    ignoring `WAVVON_DATABASE_URL`. So `admin users set-owner`, the
-    ownership bootstrap, silently targets a different database on a
-    correctly-configured hub. The identical bug in `migrate` was found
-    and fixed during voice v2 (shipped log); `admin` was missed.
   - [ ] **Rollback is undefined.** Additive migrations suggest an older
     binary tolerates a newer schema, but a new `NOT NULL` column without
     a default would break its inserts. Untested and undocumented — either

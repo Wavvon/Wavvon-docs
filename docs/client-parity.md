@@ -518,3 +518,20 @@ broadcasting it and only web listened.)*
   poorer duplicate of a tab the same menu already opened. Deleted, along
   with the now-orphaned app-local `svgSanitize` (the shared one uses
   DOMPurify).
+
+## Capability advertising — web only (2026-08-09)
+
+`GET /info` advertises `capabilities`, and **web** reads it: per-hub, cached
+in the session and persisted in `SavedHub`, queried through
+`hubSupports(hubId, cap)` / `activeHubSupports(cap)`
+(`apps/web/src/platform/session.ts`). Desktop's `hub_session.rs` fetches
+`/info` and discards the field.
+
+Not a bug on desktop today, and structurally less urgent there: a desktop
+client's version is owned by the user and inherits nothing from a hub, so it
+does not have web's problem of the client version being decided by whichever
+hub happened to serve the page. It still talks to hubs older than itself, so
+the gap closes when a desktop feature actually needs to branch on a hub's
+version — parse `capabilities` into the session record and mirror
+`hubSupports`. Rationale: decisions.md, "Hub capabilities are advertised, not
+inferred from a version number".

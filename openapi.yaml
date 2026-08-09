@@ -197,13 +197,40 @@ components:
 
     HubInfo:
       type: object
+      description: |
+        Only the fields clients branch on are listed; `/info` carries more
+        (badges, LAN trust material, welcome banner, voice endpoint…) and is
+        additive by rule, so ignore what you do not recognise.
       properties:
-        hub_name: { type: string }
-        hub_url: { type: string }
-        hub_icon: { type: string, nullable: true }
-        require_invite: { type: boolean }
+        name: { type: string }
+        icon: { type: string, nullable: true }
+        public_key:
+          type: string
+          description: The hub's Ed25519 identity, hex. This is the hub's ID.
+        version:
+          type: string
+          description: |
+            For display and "this hub is very old" warnings **only**. Never
+            decide whether a feature exists by comparing this — use
+            `capabilities`.
+        capabilities:
+          type: array
+          items: { type: string }
+          description: |
+            What this hub can do, e.g. `voice.wt`, `list.cursor`. Test
+            membership to decide what to offer; absent or empty means a hub
+            predating capability advertising, which reads correctly as "knows
+            nothing". The list only ever grows — a string never changes
+            spelling or meaning once published.
+          example: [list.cursor, pairing.subkey, recovery.attestation, screenshare.v2, voice.wt]
+        invite_only: { type: boolean }
         min_security_level: { type: integer }
+        min_pow_level: { type: integer }
         challenge_mode: { type: string, enum: [off, click, puzzle, both] }
+        farm_url:
+          type: string
+          nullable: true
+          description: When set, send `/auth/*` here instead of to the hub.
 
     MeInfo:
       type: object
@@ -877,43 +904,6 @@ paths:
     get:
       summary: Participants in the caller's current voice channel
       tags: [Voice]
-
-  /voice/ws:
-    get:
-      summary: Voice WebSocket endpoint
-      description: |
-        Upgrades to a WebSocket for real-time audio relay. Authenticate with
-        the `token` query parameter (same session token used for `/ws`); the
-        upgrade is rejected silently on invalid or expired credentials.
-
-        On successful upgrade the server sends a `voice_ws_ready` JSON text
-        frame containing the assigned `sender_id` (u16) and the current
-        `participants` list.  After that, the client sends binary audio
-        frames (`[seq:u16][ts:u32][opus…]`) and receives fan-out frames
-        (`[sender_id:u16][type:u8][opus…]`) from other participants.
-        The connection also carries UDP-sourced audio for peers that joined
-        via the UDP voice path.
-
-        Closing the WebSocket triggers the same leave-voice teardown as the
-        UDP flow.
-      security: []
-      tags: [Voice, WebSocket]
-      parameters:
-        - name: token
-          in: query
-          required: true
-          schema: { type: string }
-          description: Session token from `POST /auth/verify`.
-        - name: channel_id
-          in: query
-          required: true
-          schema: { type: string }
-          description: ID of the voice channel to join.
-      responses:
-        "101":
-          description: Switching Protocols — voice WebSocket established.
-        "401":
-          description: Invalid or expired token (connection closed immediately).
 
   # ── Messages ──────────────────────────────────────────────────────────────
 
@@ -4869,10 +4859,12 @@ paths:
     post:
       summary: Bot joins a voice channel
       description: >
-        Tells the hub which voice channel the bot wants to join. Returns the
-        `/voice/ws` path the bot should connect to using its bearer token and
-        `channel_id` as query parameters. The bot then streams Opus frames in
-        the same binary format as desktop/Android clients.
+        Tells the hub which voice channel the bot wants to join. Returns
+        `ws_url` — the main hub WebSocket (`/ws`), which the bot connects to
+        with its bearer token before sending
+        `{"type":"voice_join","channel_id":…}`. The dedicated `/voice/ws`
+        connection point this used to return was deleted by voice transport
+        v2; bots ride the main socket now.
       tags: [Bots]
       parameters:
         - in: path
@@ -4896,7 +4888,7 @@ paths:
               schema:
                 type: object
                 properties:
-                  voice_ws_url: { type: string, example: /voice/ws }
+                  ws_url: { type: string, example: /ws }
                   channel_id: { type: string }
         "403": { description: "Caller is not the bot identified by {id}" }
         "404": { description: Channel not found }
