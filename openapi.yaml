@@ -3030,6 +3030,38 @@ paths:
                     added_at: { type: integer }
                     synced_at: { type: integer }
 
+  /moderation/history/{pubkey}:
+    get:
+      summary: What other hubs have said about this member
+      description: >-
+        Entries from subscribed federated ban lists that name this member,
+        soft-flag ones included — those do not block admission and exist to be
+        read. Resolved against the member master pubkey where they have one,
+        matching admission, so a paired device does not show a clean record.
+        Requires ban_members.
+      tags: [Federation]
+      parameters:
+        - name: pubkey
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entries:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        source_hub_pubkey: { type: string }
+                        policy: { type: string, enum: [hard-reject, soft-flag] }
+                        reason: { type: string, nullable: true }
+                        added_at: { type: integer }
+
   /admin/banlist/overrides:
     get:
       summary: List local ban list overrides (admin)
