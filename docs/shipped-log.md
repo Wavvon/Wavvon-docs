@@ -4,6 +4,45 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Two hubs could be handed the same port (2026-08-19)**: `allocate_port`
+  and `allocate_voice_port` returned the first gap above the base port,
+  scanning `self.hubs` — the map of children this farm process spawned
+  *successfully*. Nothing was reserved at allocation time, so anything that
+  allocated without landing in that map got the same number again: a hub whose
+  spawn failed had its ports written to its row but never entered the map, and
+  every agent-hosted hub, always, because it runs on another node and never
+  enters that map at all. `process_port` is what the proxy routes on, so two
+  rows sharing one is two hubs at one address — the same silent shape as the
+  shared identity and the shared database before it. Occupied ports now come
+  from the `hubs` table, which all four allocation sites write to, unioned
+  with the local children; suspended hubs keep theirs, since resuming onto a
+  taken port is the same collision, later. The test that asserts exactly this
+  (`allocate_and_spawn_yields_distinct_ports_and_persists_voice_port`) was
+  written on 2026-08-07 and had never run in CI — clippy failed ahead of it.
+
+- **`restore` failed on every PostgreSQL 14 client (2026-08-19)**: pg_dump 14
+  and older write `CREATE SCHEMA public` into the archive. Every destination
+  database already has `public`, so that TOC entry failed, and
+  `--exit-on-error` — which exists precisely so a half-restore cannot pass for
+  a whole one — turned it into a failed restore. 14 is the floor the hub
+  declares, so this was the low end of the supported range: `wavvon-hub
+  restore` could not restore on Ubuntu 22.04, whose client tools are 14.
+  pg_dump 15+ stopped emitting the line, which is why every local run passed
+  and only CI ever saw it. Fixed with `--clean --if-exists`, whose drops are
+  guarded and therefore no-ops into the empty database a restore normally
+  targets. Reproduced against real 14 and 16 servers before and after.
+
+- **CI dumped a 16 server with a 14 client (2026-08-19)**: the workflow
+  installed the `postgresql-client` meta-package, which on ubuntu-22.04 is 14,
+  so the 16 half of the matrix could not run pg_dump at all — a client will not
+  dump a server newer than itself. Installing `postgresql-client-16` was not
+  enough either: `/usr/bin/pg_dump` is `pg_wrapper`, which resolves to the
+  version of the default cluster on the runner rather than the newest client
+  installed. The client is now pinned to the matrix version with
+  `/usr/lib/postgresql/<major>/bin` on PATH — pinned rather than "newest
+  everywhere" on purpose, since the 14 job is the only place an old pg_dump
+  `CREATE SCHEMA public` line is exercised at all.
+
 - **Every hub on a farm loaded the same identity (2026-08-09)**: a hub
   resolves `hub_identity.json` and its search index relative to the process
   working directory, and a spawned child inherits its parent's. The farm never
