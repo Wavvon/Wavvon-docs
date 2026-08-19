@@ -10,13 +10,6 @@ fixed, its entry moves to the shipped log.
 
 ## 🔨 Next up
 
-- [ ] **Cut a release: DM fix batch + voice transport v2** — both are
-  on develop unreleased: the 2026-07-26/27 DM fixes (encrypted DMs
-  never worked cross-client before them) and voice v2 (WebTransport +
-  E2E, 2026-08-07 — a breaking voice-wire change, alpha rules). Bump
-  versions on develop, open the develop→main PR, user reviews +
-  merges. Do before the pilot friend onboards. Version number to be
-  decided at PR time.
 - [ ] **Finish the farm — single node, end to end.** Decided 2026-08-09 in
   conversation; the farm was "quasi tutto costruito, niente collaudato" and
   three of its gaps were silent. Two closed already (shipped log): the serial
