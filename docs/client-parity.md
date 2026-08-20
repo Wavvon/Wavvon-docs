@@ -1,14 +1,17 @@
 # Client feature parity
 
-**Principle:** the three clients — **web** (`apps/web`), **desktop**
-(`apps/desktop`, Tauri) and **android** (`apps/android`, Tauri mobile
-wrapping the web platform layer) — should offer the same features. A
-capability landing in one client but not the others is a bug to track, not
-an accepted difference.
+**Principle:** the two clients — **web** (`apps/web`) and **desktop**
+(`apps/desktop`, Tauri) — should offer the same features. A capability landing
+in one but not the other is a bug to track, not an accepted difference.
 
-**Priority:** the **web client is the first product users will touch**, so
-web leads: a feature ships on web first, and desktop/android are brought to
-parity from there. This doc tracks the known gaps.
+**Priority:** the **web client is the first product users will touch**, so web
+leads: a feature ships on web first, and desktop is brought to parity from
+there. This doc tracks the known gaps.
+
+> The Android client (`apps/android`) was removed 2026-07-12 and its column
+> dropped from this doc 2026-08-20. A clean-slate rewrite happens when mobile
+> is prioritized — see [android-rewrite-notes.md](android-rewrite-notes.md).
+> Nothing here tracks mobile.
 
 **Sharing model (changed 2026-07-18 — see
 [decisions.md](decisions.md#shared-ui-components-hoist-from-web-into-packagesui-desktop-adapts)):**
@@ -126,45 +129,45 @@ Legend: ✅ present · ❌ missing · ➖ n/a or native-only · `?` not audited.
 
 Everything here is **portable** (no native API) unless marked native-only.
 
-| Feature | Web | Desktop | Android |
-|---|:--:|:--:|:--:|
-| **Real-time media** | | | |
-| Start a screen share (outbound) | ✅ (2026-07-04) | ✅ | ? |
-| View someone's screen share | ✅ | ✅ | ? |
-| Camera / webcam video (`VideoGrid`) | ✅ (2026-07-04) | ✅ | ? |
-| Whisper (targeted voice) | ✅ (2026-07-04) | ✅ | ? |
-| Hub-streams panel (cross-channel) | ✅ (2026-07-04) | ✅ | ? |
-| Mic level meter | ✅ (2026-07-04) | ✅ | ? |
-| In-app push-to-talk | ✅ (2026-07-04) | ✅ | ? |
-| Global (unfocused) PTT hotkey | ➖ native | ✅ | ➖ |
-| Audio-profile applied to live session | ✅ (2026-07-04) | ✅ | ? |
-| **Identity / profile / social** | | | |
-| Avatar image upload + crop | ✅ (2026-07-04) | ✅ | ? |
-| Friends (requests/list/remove) | ✅ (2026-07-04) | ✅ | ? |
-| Multi-profile + per-hub assignment | ✅ (2026-07-04) | ✅ | ? |
-| "My certifications" viewer (member) | ✅ (2026-07-04) | ✅ | ? |
-| Home-hub list management | ✅ (2026-07-04) | ✅ | ? |
-| Multi-device pairing + device list/revoke | ✅ (2026-07-04) | ✅ | ? |
-| **Hub admin** | | | |
-| Assign/remove roles — right-click menu | ✅ (2026-07-04) | ✅ | ❌ **TODO** |
-| Create / delete roles + edit permissions | ✅ (2026-07-04) | ✅ | ❌ **TODO** |
-| Role appearance (color/icon) + categories | ✅ | partial | ❌ |
-| Alliances (create/leave) + invite inbox | ✅ (2026-07-04) | ✅ | ? |
-| Alliance channel-sharing | ✅ (2026-07-04) | ✅ | ? |
-| Onboarding: approval queue + lobby/challenge settings | ✅ (2026-07-04) | ✅ | ? |
-| Onboarding survey builder + member survey | ✅ (2026-07-04) | ✅ | ? |
-| Hub audit log | ✅ (2026-07-04) | ✅ | ? |
-| Hub icon library | ✅ (2026-07-04) | ✅ | ? |
-| Native bot admin / create | ✅ (2026-07-04) | ✅ | ? |
-| Channel bans | ✅ (2026-07-04) | ✅ | ? |
-| Channel appearance (color/icon) | ✅ (2026-07-04) | ✅ | ? |
-| Kick / Ban / Mute — right-click menu | ✅ | ✅ | ❌ |
-| Presence status (away / DND / custom) | ✅ (2026-07-05) | ✅ (2026-07-11) | ❌ |
-| Banner-channel rename/delete from sidebar | ❌ | ? | ? |
+| Feature | Web | Desktop |
+|---|:--:|:--:|
+| **Real-time media** | | |
+| Start a screen share (outbound) | ✅ (2026-07-04) | ✅ |
+| View someone's screen share | ✅ | ✅ |
+| Camera / webcam video (`VideoGrid`) | ✅ (2026-07-04) | ✅ |
+| Whisper (targeted voice) | ✅ (2026-07-04) | ✅ |
+| Hub-streams panel (cross-channel) | ✅ (2026-07-04) | ✅ |
+| Mic level meter | ✅ (2026-07-04) | ✅ |
+| In-app push-to-talk | ✅ (2026-07-04) | ✅ |
+| Global (unfocused) PTT hotkey | ➖ native | ✅ |
+| Audio-profile applied to live session | ✅ (2026-07-04) | ✅ |
+| **Identity / profile / social** | | |
+| Avatar image upload + crop | ✅ (2026-07-04) | ✅ |
+| Friends (requests/list/remove) | ✅ (2026-07-04) | ✅ |
+| Multi-profile + per-hub assignment | ✅ (2026-07-04) | ✅ |
+| "My certifications" viewer (member) | ✅ (2026-07-04) | ✅ |
+| Home-hub list management | ✅ (2026-07-04) | ✅ |
+| Multi-device pairing + device list/revoke | ✅ (2026-07-04) | ✅ |
+| **Hub admin** | | |
+| Assign/remove roles — right-click menu | ✅ (2026-07-04) | ✅ |
+| Create / delete roles + edit permissions | ✅ (2026-07-04) | ✅ |
+| Role appearance (color/icon) + categories | ✅ | partial |
+| Alliances (create/leave) + invite inbox | ✅ (2026-07-04) | ✅ |
+| Alliance channel-sharing | ✅ (2026-07-04) | ✅ |
+| Onboarding: approval queue + lobby/challenge settings | ✅ (2026-07-04) | ✅ |
+| Onboarding survey builder + member survey | ✅ (2026-07-04) | ✅ |
+| Hub audit log | ✅ (2026-07-04) | ✅ |
+| Hub icon library | ✅ (2026-07-04) | ✅ |
+| Native bot admin / create | ✅ (2026-07-04) | ✅ |
+| Channel bans | ✅ (2026-07-04) | ✅ |
+| Channel appearance (color/icon) | ✅ (2026-07-04) | ✅ |
+| Kick / Ban / Mute — right-click menu | ✅ | ✅ |
+| Presence status (away / DND / custom) | ✅ (2026-07-05) | ✅ (2026-07-11) |
+| Banner-channel rename/delete from sidebar | ❌ | ? |
 
 ### Where web is ahead of desktop (parity is bidirectional)
 
-Web should not regress these; desktop/android should catch up:
+Web should not regress these; desktop should catch up:
 events with role slots + reminders, soundboard, full encrypted
 data-export archive, channel permission-overwrite tab, role categories +
 per-role color/icon, the quiet-hours schedule (deferred everywhere; DND
@@ -198,12 +201,6 @@ exist on web.
   `useHubAdmin.ts` (`invoke("assign_role"/"unassign_role")`). Behavior is
   close but not identical to web — desktop filters only `builtin-owner`;
   web also filters `builtin-everyone` and by priority. **Align the two.**
-- **Android — TODO.** `apps/android/src/components/UserContextMenu.tsx` has
-  Send DM / Add friend / Copy key / block but **no role controls** (and no
-  Kick/Ban/Mute). Port the web section: add
-  `assignRoleToUser`/`removeRoleFromUser`/`listUserRoles` to
-  `apps/android/src/platform/commands/roles.ts` (HTTP adapter, same as web),
-  then add the Roles section to the android context menu.
 
 ### 2. Create / delete hub roles + edit permissions (admin UI)
 
@@ -215,7 +212,6 @@ exist on web.
   `apps/web/e2e/live/13-role-admin.spec.ts`. *(New controls use plain
   English, not i18n, to match desktop and avoid a 4-locale coverage gap —
   a follow-up is to add `hub.admin.roles.*` keys across all locales.)*
-- **Android — TODO.** Port the same into `apps/android`'s `RolesSection`.
 
 ### 3. Presence status
 
@@ -223,9 +219,6 @@ exist on web.
   **Desktop — DONE (2026-07-11,** clients `81de52c`): hub-synced picker
   with custom text, DND notification gating, global broadcast +
   re-apply on reconnect, member-list status dots.
-- **Android — TODO.** No picker, no `member_status` handling, no DND
-  gating. It wraps the web platform adapter, so much of web's plumbing
-  may apply; audit first.
 - **Fixed 2026-07-04:** newly-joined members now appear in an already-loaded
   web client's member list live (`onMemberOnline` refetches `/users` for an
   unknown pubkey) — previously they only showed after a reload.
@@ -272,9 +265,8 @@ exist on web.
   preview + health), and `DiscoverPage` (`/api/hubs`) and `SkinsGallery`
   (`/api/skins`) call it directly. Error messages surface via each screen's
   existing error UI.
-- **Follow-up:** apply the same timeout treatment in desktop/android
-  network paths (their fetches live in the Tauri Rust layer / their own
-  platform adapters); audit for other bare `fetch`/`invoke` calls that can
+- **Follow-up:** apply the same timeout treatment in desktop
+  network paths (its fetches live in the Tauri Rust layer); audit for other bare `fetch`/`invoke` calls that can
   hang.
 
 ### 7. Outbound screen share (web) — DONE (2026-07-04)

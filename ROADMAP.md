@@ -10,141 +10,93 @@ fixed, its entry moves to the shipped log.
 
 ## 🔨 Next up
 
-- [ ] **Finish the farm — single node, end to end.** Decided 2026-08-09 in
-  conversation; the farm was "quasi tutto costruito, niente collaudato" and
-  three of its gaps were silent. Two closed already (shipped log): the serial
-  claim, without which the proxy could route to nothing, and the public URL,
-  without which a farm-hosted hub had no voice. What is left, in order:
-  - [ ] **A PostgreSQL role per hub.** Hubs are separated by database or by
-    schema now, but they all connect with the **same role** — so the
-    separation prevents collisions, not a compromised hub reading its
-    siblings. A role per hub, granted only its own space, is the only one of
-    these that is a security measure rather than hygiene. Works with either
-    layout. Worth doing before a farm hosts hubs it does not itself own.
-  - [ ] **Playwright in CI, against a farm-created hub.** `farm_hub_e2e` now
-    covers the farm→hub path with real processes, including a real WebSocket
-    through the proxy — which is what a browser would have exercised, and how
-    the farm-token socket bug was found. What is genuinely missing is browser
-    CI: the 60 live specs under `apps/web/e2e/live/` run only against a
-    manually started hub on `localhost:3000` (`HUB_URL` is a hard-coded
-    const), and no workflow runs Playwright at all. That is its own piece of
-    infrastructure — postgres, hub, vite, browsers — not a loose end of the
-    farm work. Start by making the live suite's hub URL configurable so it can
-    point at `/hub/<slug>`.
-  - Multi-node (`servers.host`, agent-advertised address, host-aware proxy)
-    stays in the wishlist below: it needs a decision on private networking
-    farm↔nodes first, and none of the above depends on it.
+- [ ] **A PostgreSQL role per hub.** Farm-spawned hubs get a database or a
+  schema of their own, but they all connect with the **same role** — so the
+  separation prevents collisions, not a compromised hub reading its siblings.
+  `farm/src/db/provision.rs` says so in its own header. A role per hub,
+  granted only its own space, works with either layout. Worth doing before a
+  farm hosts hubs it does not itself own.
 
-- [ ] **`db move --to <url>` / `--from <url>`** — the remaining slice of
-  [One mechanism moves the data](docs/decisions.md#one-mechanism-moves-the-data-logical-dumprestore).
-  The mechanism and its guard rails shipped 2026-08-09 under
-  `backup`/`restore` (`db/dump.rs`); `move` is the thin wrapper that runs
-  both against two URLs, for adopting or giving up an external server.
-  **Copies only** — the operator then flips `WAVVON_DATABASE_URL` and
-  restarts, so a bad destination is undone by changing one variable back.
-  Deliberately waiting for embedded PostgreSQL: until there is an embedded
-  side, "move" is `backup` then `restore` against a different URL, which
-  the two commands already do.
-
-- [ ] **Upgrade path — the embedded-PostgreSQL dimension.** The rest of
-  this item closed 2026-08-09 (shipped log): `backup` takes a real backup,
-  and rollback is stated — schema downgrade is safe by construction and now
-  enforced by a test, data downgrade is not guaranteed, so the pre-upgrade
-  archive is the supported way back. What remains has to wait for bundling:
-  an upgrade may then also carry a **PostgreSQL major** upgrade, which is a
-  different failure surface and needs its own paragraph in `hosting.md`.
-  - Note the coupling to the capability work: upgrading a hub also swaps
-    the web client it serves, so it changes the client version for every
-    user who loads the page from that hub.
+- [ ] **Browser e2e in CI.** No workflow runs Playwright at all. The 57 live
+  specs under `apps/web/e2e/live/` only ever run against a hub someone started
+  by hand — `HUB_URL` is a hard-coded const in `e2e/live/helpers/live.ts` — so
+  the suite that covers the real app is the one nobody runs. Its own piece of
+  infrastructure (postgres, hub, vite, browsers). Start by making that URL
+  configurable, which also lets the suite point at a farm-hosted
+  `/hub/<slug>`.
 
 - [ ] **Bundle PostgreSQL into the hub binary** — the zero-prerequisite
-  install story; removes Docker (or a hand-rolled `createdb`) as a
-  precondition for self-hosting. Feasibility verified 2026-08-08:
-  `postgresql_embedded` 0.21.0 publishes **both** musl targets the
-  release workflow builds (`x86_64` 24.8 MB, `aarch64` 24.6 MB), and its
-  `bundled` feature embeds the archive at compile time rather than
-  downloading at runtime — which LAN mode would not survive.
-  - [ ] Embedded mode when `WAVVON_DATABASE_URL` is unset; plain client
-    when set. Removes today's silent fallback to
-    `postgres://postgres:postgres@localhost:5432/wavvon`.
-  - [ ] Version-scoped `installation_dir` (`<root>/pg/<version>/`) and an
-    explicit `data_dir` — the crate defaults to `~/.theseus/postgresql`
-    and a **tempdir**, neither of which is acceptable for a server.
-  - [ ] Major-upgrade path: compare `PG_VERSION`, then dump/restore via
-    the retained previous binaries (not `pg_upgrade` — see the
-    dump/restore decision), keep the old data dir until success, refuse
-    with instructions when it cannot be done safely.
-  - [ ] `--doctor` reports which mode is active and where the data lives.
-  - [ ] Verify `wavvon-hub backup`/`restore` against the embedded instance.
-  - [ ] Test `initdb` on musl — locale support there is limited and it
-    likely needs `--locale=C`.
-  - Not restored by this: SQLite's one-file backup. Still `pg_dump`.
+  install story. Design and rationale:
+  [The hub bundles PostgreSQL](docs/decisions.md#the-hub-bundles-postgresql-and-never-touches-one-it-did-not-create).
+  Feasibility verified 2026-08-08: `postgresql_embedded` 0.21.0 publishes both
+  musl targets the release workflow builds (`x86_64` 24.8 MB, `aarch64`
+  24.6 MB) and embeds the archive at compile time.
+  - [ ] Embedded when `WAVVON_DATABASE_URL` is unset, plain client when set — removes today's silent fallback to `postgres://postgres:postgres@localhost:5432/wavvon`.
+  - [ ] Version-scoped `installation_dir` + explicit `data_dir`; the crate defaults to `~/.theseus/postgresql` and a **tempdir**, neither acceptable for a server.
+  - [ ] Major-upgrade path per the dump/restore decision, refusing rather than half-migrating.
+  - [ ] `doctor` reports which mode is active and where the data lives.
+  - [ ] Verify `backup`/`restore` against the embedded instance.
+  - [ ] Test `initdb` on musl — limited locale support, likely needs `--locale=C`.
+  - Does not restore SQLite's one-file backup. Still `pg_dump`.
 
-- [ ] **Desktop live-drive DM verification** — the DR interop is pinned
-  by cross-language vector tests, but no real desktop app was driven;
-  smoke-test a real web↔desktop DM exchange via the documented recipe
-  (Tauri dev + `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port`
-  + Playwright `connectOverCDP`). Consider a reusable desktop e2e
-  harness while at it — this gap is why the DM bugs survived so long.
-  **Now also covers paired-device E2E**: desktop pairing Mechanism A
-  shipped 2026-08-08 with unit tests pinning the crypto properties, but
-  no real desktop↔web *pairing* has been driven either. Both belong in
-  the same session — same harness, and a paired device is the case where
-  a wrong DH scalar fails silently rather than loudly.
-- [ ] **App.tsx refactor — final slices + convergence (web 1,577
-  lines / desktop 1,908, counted 2026-08-07)** — the hook-extraction
-  phase is nearly done on web: screen-share (`useScreenShare`), DMs
-  (`useDms`), hub lifecycle (`useHubLifecycle` + `useAddHubFlow` /
-  `useChannelCrud`), WS registry (`useWsHandlers`), and voice+video
-  (`useVoice`/`useVideo`) have all landed (2026-07-28 split +
-  follow-ups; decisions.md). Remaining:
-  - **modal render tree** (web) — ~13 `{showX && <XModal/>}` blocks →
-    a `Modals` component fed by a props object;
-  - **desktop parity pass** on whatever web slices desktop still lacks;
-  - **convergence goal** — the real payoff: web/desktop hook pairs
-    (`useDms`, `useScreenShare`, `useWhisper`, …) differ mainly in
-    platform access (`invoke()` vs HTTP commands), which can travel in
-    via an injected actions object, the same pattern packages/ui
-    components use. Hoist converged pairs into packages/ui and delete
-    both app copies; App.tsx stays app-local state orchestration +
-    wiring by design (decisions.md 2026-07-18).
-  Not worth extracting (checked 2026-07-27): message send/edit — thin
-  glue over cross-cutting App state.
+- [ ] **`db move --to <url>` / `--from <url>`** — the last slice of
+  [One mechanism moves the data](docs/decisions.md#one-mechanism-moves-the-data-logical-dumprestore);
+  the mechanism itself shipped 2026-08-09 as `backup`/`restore`. Waiting on
+  bundling on purpose: with no embedded side, `move` is exactly `backup` then
+  `restore` against another URL, which both commands already do.
 
-- [ ] **List-endpoint pagination — remaining lists.** The first pass
-  landed 2026-08-08 (shipped log): `GET /users`, `GET /conversations/
-  {id}/messages` and `GET /admin/reports` all take `limit` + a keyset
-  cursor now. Two corrections to the 2026-08-07 plan that was written
-  here: `q` already existed on `/users`, and `GET /farm/users` is
-  `cursor`/`limit`/`total`, not `page`/`limit`/`total` — so there is
-  one cursor dialect in the repo, not two, and everything new follows
-  it. Still unbounded and worth a sweep when someone hits one:
-  `/moderation/bans`, `/moderation/mutes`, `/invites`, `/hub/pending`,
-  `/conversations`, `/channels/{id}/pins`, `/channels/{id}/polls`,
-  `/roles`, `/channels`, the banlist trio, `/emojis`, `/hub/icons`,
-  `/badges`. (`/admin/audit-log` was already properly paginated.) None
-  of these grow the way DM history does — hence not "next up".
-- [ ] **Voice v2 cross-internet live test** — transport v2 shipped
-  2026-08-07 (shipped log) and passed the local two-browser E2E drive;
-  the over-the-internet test on the pilot hub is still pending, now on
-  the WebTransport stack (UDP port reachability guidance unchanged).
-- [ ] **First external operator pilot (videogamezone.eu)** — hub v0.3.1
-  LIVE. Remaining: hostname fix (server_name edit + friend's nginx
-  reload), redeem owner invite, cross-internet voice test, friend
-  onboards + ownership transfer, doc-test feedback, two-operator
-  federation test.
+- [ ] **Upgrade path — the embedded-PostgreSQL dimension.** The rest closed
+  2026-08-09 (shipped log). What is left needs bundling first: an upgrade may
+  then also carry a **PostgreSQL major** upgrade, a different failure surface,
+  and `hosting.md` needs a paragraph for it. Coupled to the capability work —
+  upgrading a hub also swaps the web client it serves.
+
+- [ ] **Desktop live-drive verification — DMs and pairing.** Both are pinned
+  by cross-language vector tests and neither has been driven in a real desktop
+  app: a web↔desktop DM exchange, and web↔desktop *pairing* (Mechanism A,
+  shipped 2026-08-08). Same session, same harness — Tauri dev +
+  `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port` + Playwright
+  `connectOverCDP`. A paired device is where a wrong DH scalar fails silently
+  rather than loudly, and this missing harness is why the DM bugs survived so
+  long. Build it reusable.
+
+- [ ] **App.tsx refactor — final slices + convergence.** Web 1,694 lines /
+  desktop 2,104, counted 2026-08-20 — **up 117 and 196** since the 2026-08-07
+  count, so this is currently moving the wrong way. The hook-extraction phase
+  landed 2026-07-28 and after (shipped log; decisions.md 2026-07-18). Left:
+  - **modal render tree** (web) — 12 `{showX && <XModal/>}` blocks → a `Modals` component fed by a props object;
+  - **desktop parity pass** on the web slices desktop still lacks;
+  - **convergence** — the actual payoff: web/desktop hook pairs (`useDms`, `useScreenShare`, `useWhisper`, …) differ mainly in platform access, which can travel in via an injected actions object like `packages/ui` components already do. Hoist converged pairs into `packages/ui`, delete both app copies. App.tsx stays app-local orchestration by design.
+  - Not worth extracting (checked 2026-07-27): message send/edit.
+
+- [ ] **List-endpoint pagination — remaining lists.** One keyset dialect
+  (`limit` + cursor) exists and everything new follows it; the first pass
+  landed 2026-08-08. Verified still unbounded 2026-08-20 — worth a sweep when
+  someone hits one: `/moderation/bans`, `/moderation/mutes`, `/invites`,
+  `/hub/pending`, `/conversations`, `/channels/{id}/pins`,
+  `/channels/{id}/polls`, `/roles`, `/channels`, the banlist trio, `/emojis`,
+  `/hub/icons`, `/badges`. None grow the way DM history does, hence not
+  urgent.
+
+- [ ] **First external operator pilot.** A hub is live on an external
+  operator's own server. Remaining: redeem the owner invite, operator
+  onboarding + ownership transfer, feedback on whether the docs were enough to
+  get there, two-operator federation test, and the **voice v2 cross-internet
+  test** — transport v2 shipped 2026-08-07 and passed the local two-browser
+  drive, but has never crossed the internet on the WebTransport stack. The
+  running version is **not currently verified**: last recorded as 0.3.1 while
+  the project is at 0.5.0, so an upgrade check comes first. Host details and
+  per-deployment steps stay out of this repo.
 
 ## 🚧 Blocked
 
 - **Windows code-signing** — blocked until the project reaches meaningful
-  popularity. Ship unsigned with the documented SmartScreen workaround.
-  See [`code-signing.md`](docs/code-signing.md).
-  **Consequence worth naming**: with the desktop client not seriously
-  distributable, web is the only real channel — which is why the
-  capability/version-skew work above is product scope rather than a 1.0
-  nicety. A desktop client is structurally immune to that skew (the user
-  owns its version, it inherits nothing from a hub), so signing would
-  relieve pressure there too.
+  popularity; ship unsigned with the documented SmartScreen workaround
+  ([`code-signing.md`](docs/code-signing.md)). Consequence worth naming: with
+  the desktop client not seriously distributable, web is the only real
+  channel, which is what makes the capability/version-skew work product scope
+  rather than a 1.0 nicety. A desktop client is structurally immune to that
+  skew, so signing would relieve pressure there too.
 
 ## 📌 Wishlist
 
@@ -153,31 +105,26 @@ fixed, its entry moves to the shipped log.
 > relay — undesigned. (Farm layer and gaming + rich bots shipped
 > 2026-07-19; see the shipped log.)
 
-- **Farm multi-node data plane** — the farm proxy only reaches
-  farm-local hubs (`proxy.rs` hardcodes `127.0.0.1`; `servers` has no
-  host column), so agent-hosted hubs on remote nodes are
-  lifecycle-managed but unreachable through the farm domain. Estimated
-  ~3–4 days (2026-08-06 assessment): additive `servers.host` column +
-  agent-advertised address in the WS `hello`; host-aware proxy
-  (buffered + WS-bridge paths); agent passes bind/public host to
-  spawned hubs so `/info` advertises a correct `voice_wt_url` (voice
-  stays direct QUIC to the node); monitor drives remote hubs via
-  heartbeats + the existing agent restart delegation. No hub or client
-  changes. Prerequisites to settle first: private network farm↔nodes
-  (WireGuard/VPC) instead of farm↔node TLS, and per-node Postgres
-  (`db_path` is generated farm-side today). Design context:
+- **Farm multi-node data plane** — the farm proxy only reaches farm-local
+  hubs (`proxy.rs` hardcodes `127.0.0.1`, `servers` has no host column;
+  re-verified 2026-08-20), so agent-hosted hubs on remote nodes are
+  lifecycle-managed but unreachable through the farm domain. ~3–4 days
+  (2026-08-06 assessment): additive `servers.host` + agent-advertised address
+  in the WS `hello`, host-aware proxy on both paths, agent passing the public
+  host to spawned hubs so `/info` advertises a correct `voice_wt_url` (voice
+  stays direct QUIC to the node), monitor driving remote hubs via heartbeats.
+  No hub or client changes. **Settle first**: private networking farm↔nodes
+  instead of farm↔node TLS, and per-node Postgres. Design:
   [farm-impl.md](docs/farm-impl.md).
-- **Hosted web client (`app.wavvon.io`)** — undesigned, deliberately.
-  Would decouple the client version from any single hub and be the
-  canonical entry point for public hubs; deployment alongside the
-  discovery site is the obvious home, though they are different
-  artifacts (discovery is Next.js, the client a static Vite SPA).
-  Enabled by CORS already defaulting to `*` (bearer-token API, no CSRF
-  surface), so it can talk to arbitrary hubs with no per-hub setup.
-  **It can never be the only channel**: an HTTPS page cannot call an
-  `http://` hub, which rules out LAN mode, self-signed hubs, and trying
-  Wavvon before buying a domain — so the hub-served copy stays. That
-  constraint is recorded in
+- **Hosted web client** — undesigned, deliberately. Would decouple the client
+  version from any single hub and be the canonical entry point for public
+  hubs; alongside the discovery site is the obvious home, though they are
+  different artifacts (Next.js vs a static Vite SPA). Already enabled by CORS
+  defaulting to `*` on a bearer-token API, so it can talk to arbitrary hubs
+  with no per-hub setup. **It can never be the only channel**: an HTTPS page
+  cannot call an `http://` hub, which rules out LAN mode, self-signed hubs,
+  and trying Wavvon before buying a domain — so the hub-served copy stays.
+  That constraint is in
   [decisions.md](docs/decisions.md#hub-capabilities-are-advertised-not-inferred-from-a-version-number);
   the hosted client itself is not decided.
 - **Project visibility push** — hosted demo hub, directory listings,

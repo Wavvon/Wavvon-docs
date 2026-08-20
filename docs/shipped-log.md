@@ -4,6 +4,27 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **The farm works end to end on a single node (2026-08-20)**: closing the
+  umbrella item opened 2026-08-09, when the farm was "quasi tutto costruito,
+  niente collaudato" and three of its gaps were silent. All of it now has its
+  own entry below: the serial claim, without which the proxy could route to
+  nothing; the public URL, without which a farm-hosted hub had no voice; a
+  place of its own per hub, after every spawned hub shared one database; an
+  identity per hub, after every hub on a farm loaded the same key; the
+  WebSocket a farm-managed hub refused; spawned hubs outliving their
+  supervisor; and two hubs handed the same port. `farm_hub_e2e` creates a hub
+  through the farm's own API, lets the real binary start and asks the proxy for
+  its `/info`, so any of those regressing fails a test — and CI's
+  `WAVVON_REQUIRE_E2E=1` means it cannot skip itself quietly.
+  Two things were carved out rather than finished, because neither is farm
+  work: a **PostgreSQL role per hub**, which is a containment measure
+  orthogonal to the database-or-schema choice (still in the roadmap), and
+  **browser e2e in CI**, which is its own infrastructure and was only ever
+  filed here because the farm was the first thing that wanted it. Multi-node
+  stays in the wishlist behind a decision on private networking farm↔nodes.
+  Reviewed against the code 2026-08-20; nothing in the closed list depends on
+  the two carve-outs.
+
 - **Two hubs could be handed the same port (2026-08-19)**: `allocate_port`
   and `allocate_voice_port` returned the first gap above the base port,
   scanning `self.hubs` — the map of children this farm process spawned
