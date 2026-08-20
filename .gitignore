@@ -22,7 +22,7 @@ Thumbs.db
 hub_identity.json
 
 # Claude files
-.claude
+.claude/settings.local.json
 
 # Obsidian folder
 .obsidian

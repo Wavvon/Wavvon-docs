@@ -133,3 +133,26 @@ bash scripts/install-hooks.sh
 The hook runs the same checks as `build.yml`: typecheck, unit tests, and
 `cargo check`. Set `SKIP_TESTS=1` before `git push` to bypass the test run
 when iterating quickly.
+
+## Working with Claude Code
+
+**Every Wavvon repo ships its own Claude Code setup**, so there is nothing to
+configure: clone the repo you want to work on, open Claude Code, and it picks up
+that repo's `CLAUDE.md` (architecture and project constraints),
+`.claude/agents/` (role-scoped subagents) and `.claude/skills/` (task recipes)
+automatically. You don't need the other repos checked out.
+
+Roughly what each repo carries:
+
+| Repo | Agents | Skills |
+|---|---|---|
+| Wavvon-server | `backend-engineer`, `devops` | `run-hub`, `wire-format-change` |
+| Wavvon-clients | `frontend-engineer`, `backend-engineer`, `devops` | `run-web`, `voice-e2e`, `wire-format-change` |
+| Wavvon-discovery | `frontend-engineer` | — |
+| Wavvon-docs | `architect`, `pm`, `business-analyst` | — |
+
+It is entirely optional — ignore the files if you do not use Claude Code. Your
+own settings stay local: `.claude/settings.local.json` is gitignored.
+
+If a document or a skill sent you down the wrong path, that is a bug worth a PR
+like any other.
