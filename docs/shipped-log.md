@@ -4,6 +4,31 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Speaking indicator, and the AFK sweep it also broke (2026-08-21)**: the
+  operator reported no sign of who is talking. The hub had the entire chain
+  built — `voice_speaking` (client → hub) fans out as
+  `voice_participant_speaking`, which the web client turns into
+  `voiceActiveUsers` and the member list renders — and **no client ever sent
+  the first message**. Dead at the first link, silently.
+  The badge was the visible half. `voice_last_active` is stamped on join *and
+  on every `voice_speaking`*, and `afk_worker` moves anyone whose stamp is
+  older than the timeout — so a hub with an AFK channel configured **dragged
+  every participant into it once the timeout passed, however much they were
+  talking**. Same one-line cause, and the same fix.
+  Detection has to be local: voice v2 encrypts every packet end to end and the
+  relay forwards headers only, so the hub cannot distinguish speech from
+  silence even in principle. `speakingDetector.ts` is pure (RMS energy plus
+  hysteresis: on at the first loud frame, off after 400 ms of quiet) and
+  reports only edges — one message per frame would be a storm for a boolean.
+  Its threshold comes from `customVadThreshold`, a setting that had been in the
+  voice UI all along with nothing reading it.
+  Measured with two real clients: alternating `[true,false,true,…]` edges from
+  both, ~680 audio frames each, and the badge present in the DOM — which can
+  only come from a hub broadcast, so it proves the round trip.
+  The surface was also mislabelled: the prop was `inVoice` and the tooltip "In
+  voice" while being fed the *speaking* set. It is `speaking` now, i18n'd with
+  an aria-label, and pulses rather than sitting static beside a name.
+
 - **Discovery surfaces are absent when there is no directory (2026-08-21)**:
   the operator asked for a CSS class with `display:none` for the features that
   do not work yet. What was actually wrong was worse: the clients hardcoded

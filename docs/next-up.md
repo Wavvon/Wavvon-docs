@@ -121,8 +121,10 @@ to the [shipped log](shipped-log.md).
   jitter only exists on a real network, so **the audible confirmation is still
   outstanding** — it needs a session on the pilot. Reopen this if it persists.
 
-- **No speaking indicator in voice** — roster and `video-tile.speaking` exist,
-  so a missing surface rather than missing plumbing.
+- **Voice settings expose a VAD toggle nothing reads** — `customVad` is in
+  the voice tab and no code consults it. Its companion `customVadThreshold`
+  now drives speech detection (2026-08-21), but transmission is never gated
+  on the toggle. Either wire it or take it out of the UI.
 
 - **No server-limits admin surface** — upload size and similar operator caps
   are env-var only, with no page in hub admin.
