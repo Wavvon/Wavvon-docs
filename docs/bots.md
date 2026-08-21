@@ -1152,20 +1152,23 @@ clients — no new wire format.
 
 ### Voice
 
-1. **Join** — `POST /bots/{id}/voice/join` with `{ channel_id }`. The hub
-   verifies the bot's bearer token and returns:
-   ```json
-   { "voice_ws_url": "/voice/ws", "channel_id": "..." }
-   ```
-2. **Connect** — bot opens `/voice/ws?token=<bot_token>&channel_id=<id>` and
-   receives a `voice_ws_ready` frame with its `sender_id` and the current
-   participant list.
-3. **Stream** — bot sends binary Opus frames at 48 kHz, 20 ms per packet,
-   in the same envelope as desktop/Android (`[seq:u16 BE][ts:u32 BE][opus…]`).
-   The hub mixes it into the channel fan-out for both UDP (desktop/Android)
-   and WS (web) participants.
-4. **Leave** — `DELETE /bots/{id}/voice/leave` with `{ channel_id }`. Triggers
-   the same cleanup as a normal WS disconnect.
+1. **Connect** — bot opens the main hub WebSocket, `/ws?token=<session
+   token>`, the same one it uses for everything else. There is no
+   bot-specific voice endpoint and no separate voice token.
+2. **Join** — bot sends `{"type":"voice_join","channel_id":"…"}`. The hub
+   checks the `can_speak_voice` capability grant and channel-scoped
+   `read_messages`, then replies `voice_joined` with the WebTransport
+   session details (voice-transport-v2.md).
+3. **Stream** — bot sends Opus frames at 48 kHz, 20 ms per packet, over
+   that WebTransport session, in the same envelope every other
+   participant uses. The relay forwards headers only and cannot listen.
+4. **Leave** — `DELETE /bots/{id}/voice/leave` with `{ channel_id }`, or
+   just drop the WebSocket. Either triggers the same cleanup.
+
+> A `POST /bots/{id}/voice/join` REST helper used to precede step 1. It
+> was deleted in beta: after voice v2 it returned nothing but the
+> constant string `/ws`, while the real join — and the real capability
+> gate — lived on the WebSocket all along.
 
 The bot appears in `GET /voice/participants` with `is_bot: true`.
 

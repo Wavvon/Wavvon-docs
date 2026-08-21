@@ -40,32 +40,37 @@ A voice bot joins this path and pushes frames exactly like a web
 client. The hub fans the frames out to all UDP (desktop/android) and
 WS (web) participants in the channel. No new relay logic is needed.
 
-### New auth path
+### Auth path
 
-Today `/voice/ws` authenticates with a user session token + channel
-ID. Bots need a parallel path:
+There is no parallel path, and that is the point: a bot joins voice
+exactly the way a human does.
 
-1. Bot calls `POST /bots/{id}/voice/join` with `{ "channel_id": "…" }`.
-2. Hub verifies the bot's keypair signature, checks the bot is
-   registered on this hub, and returns a short-lived voice token.
-3. Bot opens `/voice/ws?token=<voice-token>` and begins sending frames.
-4. Hub registers the bot as a voice participant (visible in
-   `GET /voice/participants` and in `voice_participant_joined` WS
-   events) with a display name from the bot's registration.
-5. Bot calls `DELETE /bots/{id}/voice/leave` (or closes the WS) to
-   leave; hub removes it from the participant list.
+1. Bot authenticates normally (challenge-response with `is_bot: true`)
+   and opens the main hub WebSocket, `/ws?token=<session-token>`.
+2. Bot sends `{"type":"voice_join","channel_id":"…"}`.
+3. Hub checks the `can_speak_voice` capability grant plus channel-scoped
+   `read_messages`, then replies `voice_joined` with a WebTransport
+   session (voice-transport-v2.md). Either check failing closes the
+   attempt.
+4. Hub registers the bot as a voice participant, visible in
+   `GET /voice/participants` and in the roster events, under the name
+   from its `bot_profiles` row.
+5. Bot calls `DELETE /bots/{id}/voice/leave` (or drops the WS) to leave.
 
-The VXRG UDP register flow is skipped for bots — they always use the
-WS path.
+> This section previously described a `POST /bots/{id}/voice/join` call
+> minting a short-lived voice token for a dedicated `/voice/ws`, and a
+> VXRG UDP register flow skipped for bots. None of that survives: voice
+> v2 replaced both relays with one WebTransport transport, and the REST
+> join helper was deleted in beta once it was doing nothing but echoing
+> back a constant `/ws` after an auth check. The `leave` helper stays —
+> it performs a real cleanup.
 
 ### Bot perspective
 
 ```
-POST /bots/{id}/voice/join  { channel_id }
-  → { voice_token, voice_ws_url }
-
-ws = new WebSocket(voice_ws_url)
-ws.binaryType = "arraybuffer"
+ws = new WebSocket(`${hub}/ws?token=${sessionToken}`)
+ws.send(JSON.stringify({ type: "voice_join", channel_id }))
+// → voice_joined, carrying the WebTransport session details
 
 // send 20ms Opus frames at 48 kHz
 const frame = encodeOpus(pcmBuffer)  // 960 samples
@@ -86,8 +91,8 @@ client), `audiopus` (Rust), `pyogg` (Python).
 ```
 1. User types !play <song> in chat
 2. Bot fetches/decodes the audio track to raw PCM
-3. Bot joins voice channel via POST /bots/{id}/voice/join
-4. Bot streams Opus frames over /voice/ws at real-time pace
+3. Bot joins the voice channel with a voice_join over its hub WebSocket
+4. Bot streams Opus frames over the WebTransport session at real-time pace
 5. If mini-app is active, bot broadcasts { type: "track_position_ms", ms }
    every 500ms so the mini-app can sync lyrics
 6. User types !skip → bot calls DELETE /bots/{id}/voice/leave, moves queue
@@ -225,8 +230,9 @@ score delta the mini-app chooses to report.
 
 ## Estimate
 
-Voice bot auth path (`POST /bots/{id}/voice/join`, token minting,
-participant registration): ~1.5 days.
+Voice bot auth path (participant registration on `voice_join`): ~1.5 days
+— shipped, and cheaper than estimated because bots reuse the human path
+rather than getting one of their own.
 Video bot auth path (`POST /bots/{id}/screenshare/start`, stream
 registration): ~1 day.
 Mini-app camera permission plumbing (all three clients + operator

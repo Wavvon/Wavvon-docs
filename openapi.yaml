@@ -5532,44 +5532,6 @@ paths:
                 properties:
                   count: { type: integer }
 
-  /bots/{id}/voice/join:
-    post:
-      summary: Bot joins a voice channel
-      description: >
-        Tells the hub which voice channel the bot wants to join. Returns
-        `ws_url` — the main hub WebSocket (`/ws`), which the bot connects to
-        with its bearer token before sending
-        `{"type":"voice_join","channel_id":…}`. The dedicated `/voice/ws`
-        connection point this used to return was deleted by voice transport
-        v2; bots ride the main socket now.
-      tags: [Bots]
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: string }
-          description: Bot public key — must match the authenticated bot
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [channel_id]
-              properties:
-                channel_id: { type: string }
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  ws_url: { type: string, example: /ws }
-                  channel_id: { type: string }
-        "403": { description: "Caller is not the bot identified by {id}" }
-        "404": { description: Channel not found }
-
   /bots/{id}/voice/leave:
     delete:
       summary: Bot leaves a voice channel
