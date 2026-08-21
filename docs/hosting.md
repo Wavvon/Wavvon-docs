@@ -192,6 +192,10 @@ already there** — send the link to a friend and they're in, no install.
   silently if you forget this)
 - 22/TCP for your own SSH
 
+The hub needs PostgreSQL, and there is no default database password —
+compose refuses to start until `WAVVON_DB_PASSWORD` is set in a `.env`
+beside the compose file (generated in the launch step below).
+
 `docker-compose.yml`:
 
 ```yaml
@@ -199,7 +203,11 @@ services:
   hub:
     image: ghcr.io/wavvon/hub:latest
     restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
+      WAVVON_DATABASE_URL: "postgres://wavvon:${WAVVON_DB_PASSWORD:?set it in .env}@db:5432/wavvon"
       WAVVON_OWNER_PUBKEY: "<your-64-hex-pubkey>"  # set before first boot
       # WAVVON_CORS_ORIGINS defaults to * — correct for a public hub
       # WAVVON_WEB_CLIENT_DIR defaults to /web-client in the image — leave it
@@ -209,6 +217,23 @@ services:
       - "3001:3001/udp"   # voice straight to the hub
     expose:
       - "3000"            # HTTP reachable only via Caddy
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: wavvon
+      POSTGRES_PASSWORD: "${WAVVON_DB_PASSWORD:?set it in .env}"
+      POSTGRES_DB: wavvon
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wavvon -d wavvon"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    # No host port published on purpose — reachable only on the compose
+    # network, never the internet.
 
   caddy:
     image: caddy:2
@@ -222,6 +247,7 @@ services:
 
 volumes:
   hub-data:
+  db-data:
   caddy-data:
 ```
 
@@ -236,6 +262,7 @@ your-hub.example {
 Launch and verify:
 
 ```bash
+echo "WAVVON_DB_PASSWORD=$(openssl rand -hex 16)" > .env   # once, before the first up
 docker compose up -d
 docker compose exec hub /wavvon-hub --doctor   # expect PASS lines
 curl https://your-hub.example/health           # {"status":"ok",...}
@@ -270,7 +297,8 @@ pilot hub uses, deployed and verified on a shared OVH box (2026-06-12).
 **3001/UDP** (in `ufw` *and* any cloud-panel firewall). No public 3000.
 
 `docker-compose.yml` (lives in an unprivileged user's home, e.g.
-`~/wavvon/`):
+`~/wavvon/`), with a `.env` beside it holding `WAVVON_DB_PASSWORD` —
+there is no default, so compose refuses to start until you set one:
 
 ```yaml
 services:
@@ -278,7 +306,11 @@ services:
     image: ghcr.io/wavvon/hub:latest
     container_name: wavvon-hub
     restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
+      WAVVON_DATABASE_URL: "postgres://wavvon:${WAVVON_DB_PASSWORD:?set it in .env}@db:5432/wavvon"
       WAVVON_OWNER_PUBKEY: "<your-64-hex-pubkey>"
       WAVVON_LOG_FORMAT: "text"
       # REQUIRED behind a proxy — see the warning below.
@@ -290,8 +322,27 @@ services:
       # Never publish 3000 to the public interface (plain HTTP; HSTS is on).
       - "127.0.0.1:3000:3000"
       - "3001:3001/udp"   # voice — must be publicly reachable
+
+  db:
+    image: postgres:16-alpine
+    # A shared box may already run other containers — give this one a name
+    # that cannot collide with a neighbour's "db".
+    container_name: wavvon-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: wavvon
+      POSTGRES_PASSWORD: "${WAVVON_DB_PASSWORD:?set it in .env}"
+      POSTGRES_DB: wavvon
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wavvon -d wavvon"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 volumes:
   hub-data:
+  db-data:
 ```
 
 > **`WAVVON_TRUSTED_PROXY=true` is not optional here.** Without it the
@@ -342,7 +393,9 @@ server {
 ```bash
 sudo ln -s /etc/nginx/sites-available/your-hub /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx   # ALWAYS test before reload
-cd ~/wavvon && docker compose up -d
+cd ~/wavvon
+echo "WAVVON_DB_PASSWORD=$(openssl rand -hex 16)" > .env   # once, before the first up
+docker compose up -d
 docker compose exec hub /wavvon-hub --doctor
 curl -s https://your-hub.example/health
 ```

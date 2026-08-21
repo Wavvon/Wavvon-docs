@@ -3,21 +3,29 @@
 How Wavvon scales a single hub from a handful of users to one million,
 and what changes at each threshold.
 
+> **Tiers 1–3 have shipped.** This document was written when the hub ran
+> on SQLite with FTS5 search, and its tier ladder was the plan for getting
+> off both. Tantivy search, PostgreSQL and optional read replicas are all
+> in the hub today, and SQLite is gone — PostgreSQL is the only backend.
+> The sections below are kept because the *reasoning* still explains why
+> the hub is shaped this way; **Tier 4 and the SFU are the only parts
+> still forward-looking.**
+
 ---
 
 ## Current State and Its Limits
 
-A hub today is a single `wavvon-hub` process with a SQLite database and
-FTS5 full-text search. This is intentionally simple — it makes self-hosting
-trivial — but it has hard ceilings:
+A hub today is a single `wavvon-hub` process against PostgreSQL, with a
+Tantivy full-text index on local disk. The remaining ceilings are all in
+the one process, not in the storage layer:
 
 | Layer | Current | Hard limit |
 |---|---|---|
-| Database | SQLite (WAL mode) | ~50k registered users, light write concurrency |
-| Search | SQLite FTS5 | Embedded in DB, degrades past a few million messages |
+| Database | PostgreSQL, optional read replica | Not the first ceiling — vertical scaling plus replicas go a long way |
+| Search | Tantivy, index on disk beside the hub | Hundreds of millions of documents per node |
 | WebSocket connections | Single process, tokio | ~50k–100k concurrent connections (memory) |
 | Message fanout | Direct push in handler | Becomes a bottleneck with large channels |
-| Voice | Single UDP server | Works for small channels; no SFU |
+| Voice | Single WebTransport/QUIC relay | Works for small channels; no SFU |
 
 The goal is to remove each ceiling in turn, without breaking self-hosted
 simplicity for operators who don't need the scale.
@@ -29,19 +37,20 @@ simplicity for operators who don't need the scale.
 Each tier extends the previous one. Operators only adopt what they need.
 
 ```
-Tier 1 — Small        < 50k users     SQLite + FTS5 (today)
-Tier 2 — Medium     50k–500k users    SQLite + Tantivy search
-Tier 3 — Large    500k–2M users       PostgreSQL + Tantivy
-Tier 4 — XL           2M+ users       PostgreSQL + multi-process + message queue + SFU
+Tiers 1-3 — shipped                   PostgreSQL + Tantivy + optional read replica
+Tier 4 — XL           2M+ users       multi-process + message queue + SFU
 ```
+
+Every hub runs the first three today; there is nothing left to adopt
+there.
 
 ---
 
-## Tier 2 — Search: Replace FTS5 with Tantivy
+## Tier 2 — Search: Replace FTS5 with Tantivy — SHIPPED
 
-**What breaks first:** FTS5 search degrades as the message corpus grows, and
-it is SQLite-specific (blocks database portability). This is the first thing
-to fix, and it helps every deployment regardless of scale.
+**What broke first:** FTS5 search degraded as the message corpus grew, and
+it was SQLite-specific (blocking database portability). It was the first
+thing fixed, and it helped every deployment regardless of scale.
 
 ### Why Tantivy
 
@@ -49,8 +58,8 @@ to fix, and it helps every deployment regardless of scale.
 library written in Rust, embedded directly in the hub process. It is the
 foundation of Quickwit (a production search engine). Characteristics:
 
-- **No separate service.** The index lives on disk next to `hub.db`. Zero
-  operational overhead for self-hosters.
+- **No separate service.** The index lives on disk beside the hub process.
+  Zero operational overhead for self-hosters.
 - **Lucene-quality.** BM25 ranking, prefix matching, phrase search, filters.
   Faster than Elasticsearch on single-node benchmarks.
 - **Real-time.** Messages are indexed on write and removed on delete within
@@ -83,8 +92,8 @@ pub struct IndexedMessage {
 
 | Impl | When to use | Config |
 |---|---|---|
-| `TantivySearch` | Default, all deployments | No config — index path derived from DB path |
-| `MeilisearchSearch` | Operator preference, multi-hub index | `search_url = "http://..."` in hub.toml |
+| `TantivySearch` | Default, all deployments | Omit `search`, or set it to `"tantivy"` |
+| `MeilisearchSearch` | Operator preference, multi-hub index | **Not built** — sketch only, no `search_url` key exists |
 | `NullSearch` | Testing, read-only hubs | `search = "none"` in hub.toml |
 
 Elasticsearch / OpenSearch can be added the same way when needed.
@@ -95,45 +104,36 @@ Elasticsearch / OpenSearch can be added the same way when needed.
 - All `INSERT INTO messages_fts` / `DELETE FROM messages_fts` triggers — gone
 - FTS5-specific search queries replaced by trait calls
 
-SQLite remains for all structured data. Only unstructured text search moves
-to Tantivy.
-
 ---
 
-## Tier 3 — Database: SQLite → PostgreSQL
+## Tier 3 — Database: SQLite → PostgreSQL — SHIPPED
 
-**What breaks next:** SQLite has a single writer. At ~50k registered users
+**What broke next:** SQLite has a single writer. At ~50k registered users
 with active concurrent traffic, write contention (messages, presence updates,
 session refreshes) starts causing lock waits. PostgreSQL handles many
 concurrent writers and supports read replicas for query-heavy workloads.
 
-### Configuration-driven selection
+The outcome went further than the tier planned: rather than selecting a
+backend per deployment, **PostgreSQL replaced SQLite outright**. Carrying
+two dialects meant carrying two sets of behaviour that could disagree, for
+a self-hosting convenience a Postgres sidecar in the compose file already
+covers. Reopening that needs a new entry in
+[decisions.md](decisions.md) — the reasoning is recorded there.
 
 ```toml
-# hub.toml — leave blank or omit for SQLite (default)
+# hub.toml — required; WAVVON_DATABASE_URL overrides it
 database_url = "postgresql://wavvon:YOUR_PASSWORD@localhost/hub_prod"
 ```
 
-The hub detects the URL scheme at startup and initialises the correct sqlx
-pool. The migration is the same SQL (Wavvon targets modern SQLite and
-PostgreSQL syntax compatibility — no SQLite-isms in migrations).
+The hub declares a **minimum server version** and checks it *before*
+running migrations, so an old server gets one sentence instead of a
+half-applied schema.
 
-**Known incompatibilities to resolve when PostgreSQL is added:**
-
-| Feature | SQLite | PostgreSQL |
-|---|---|---|
-| Upsert | `INSERT OR REPLACE` | `INSERT ... ON CONFLICT DO UPDATE` (also works in SQLite 3.24+) |
-| Boolean | `0` / `1` integer | `true` / `false` |
-| JSON | `json()` functions | `jsonb` type + operators |
-| Autoincrement | `INTEGER PRIMARY KEY` | `BIGSERIAL` or `GENERATED ALWAYS AS IDENTITY` |
-| WAL tuning | `PRAGMA journal_mode=WAL` | N/A (PostgreSQL handles this) |
-
-Tantivy handles search for both backends — no `tsvector` needed.
-
-### Read replicas (PostgreSQL only)
+### Read replicas — SHIPPED
 
 Heavy read workloads (channel history, user lists, audit logs) can be routed
-to read replicas:
+to read replicas. Set `database_read_url` / `WAVVON_DATABASE_READ_URL`; omit
+it and every query goes to the write pool:
 
 ```rust
 pub struct DbPool {
@@ -162,7 +162,7 @@ channels, typing indicators). Two options:
   `NOTIFY` from the writing process
 - All hub processes subscribe via `LISTEN`; each fan-out to its own WebSocket
   connections
-- No extra service; PostgreSQL is already present at this tier
+- No extra service; PostgreSQL is already there
 - Latency: ~1–5ms fan-out within a datacenter — acceptable for chat
 
 **Option B — NATS / Redis Streams (higher throughput)**
@@ -260,19 +260,20 @@ not on the hot path.
 
 ## Implementation Order
 
-Do these in sequence. Each delivers standalone value.
+Done in sequence. Each delivered standalone value.
 
 ```
-1. ✦ Tantivy search   — replaces FTS5, works with SQLite, unblocks DB portability
-2.   PostgreSQL       — configure via database_url, keeps Tantivy for search
-3.   Read replicas    — PostgreSQL only; route read-heavy queries
+1. ✓ Tantivy search   — replaced FTS5, unblocked DB portability
+2. ✓ PostgreSQL       — became the only backend; SQLite removed
+3. ✓ Read replicas    — optional database_read_url; reads routed to it
 4.   Multi-process    — PostgreSQL LISTEN/NOTIFY for fan-out; sticky LB
 5.   NATS fan-out     — replace LISTEN/NOTIFY when message rates demand it
 6.   SFU (LiveKit)    — voice scalability; parallel track, not dependent on above
 ```
 
-Step 1 is the right next implementation task. Steps 2–4 are designed but not
-started. Steps 5–6 are directional.
+Step 4 is the next implementation task and is designed but not started.
+Steps 5–6 are directional. Nothing has forced step 4 yet — one process
+still holds every hub in existence.
 
 ---
 

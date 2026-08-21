@@ -64,20 +64,27 @@ workspace. To join one you need its URL from the hub admin (e.g.
 See [hosting.md](hosting.md) for the full guide. In brief:
 
 ```bash
-# Docker (recommended)
-docker run -d -p 3000:3000 -p 3001:3001/udp \
-  -v wavvon-hub-data:/data ghcr.io/wavvon/hub:latest
+# Docker Compose (recommended) — brings up the hub and its PostgreSQL
+# sidecar together. A bare `docker run` of the hub image has no database
+# to reach and will not start.
+git clone https://github.com/Wavvon/Wavvon-server
+cd Wavvon-server
+echo "WAVVON_DB_PASSWORD=$(openssl rand -hex 16)" > .env
+docker compose up -d
 
-# Or build from source
+# Or build from source, against a PostgreSQL you already run
 cargo build --release -p wavvon-hub
 WAVVON_HTTP_PORT=3000 \
 WAVVON_VOICE_UDP_PORT=3001 \
+WAVVON_DATABASE_URL=postgres://postgres:postgres@localhost:5432/wavvon \
 ./target/release/wavvon-hub
 ```
 
-The hub generates its own Ed25519 identity on first run and connects to
-PostgreSQL (set `WAVVON_DATABASE_URL`; defaults to
-`postgres://postgres:postgres@localhost:5432/wavvon`). A fresh hub has **no owner** —
+The hub generates its own Ed25519 identity on first run. It requires
+PostgreSQL — `WAVVON_DATABASE_URL` defaults to
+`postgres://postgres:postgres@localhost:5432/wavvon`, which is a local
+development server, not something a container can reach. A fresh hub has
+**no owner** —
 set yours via `owner_pubkey` in `hub.toml` / `WAVVON_OWNER_PUBKEY`, or
 `wavvon-hub admin users set-owner <pubkey>` after first boot (see the
 [hub operator guide](hub-operator-guide.md)).
