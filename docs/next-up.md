@@ -98,11 +98,6 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   2026-08-21). What is left is one two-client session on the pilot to hear
   whether it is actually gone.
 
-- [ ] **Feature gating on capabilities, not dead UI.** Discovery-dependent
-  surfaces are visible and non-functional. Gate on `hubSupports(cap)` rather
-  than the CSS class the operator suggested: a class is a state someone must
-  remember to remove. Needs the capability strings on the hub side.
-
 ## 🚧 Blocked
 
 Committed, cannot proceed.

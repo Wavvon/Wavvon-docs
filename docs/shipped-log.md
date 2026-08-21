@@ -4,6 +4,30 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Discovery surfaces are absent when there is no directory (2026-08-21)**:
+  the operator asked for a CSS class with `display:none` for the features that
+  do not work yet. What was actually wrong was worse: the clients hardcoded
+  **three different hostnames for one service across five files** —
+  `discovery.wavvon.io` (DiscoverPage, hub admin), `discovery.wavvon.app`
+  (hub-creation link, skins gallery) and `hub-directory.wavvon.io` (desktop hub
+  browser) — and none of the three resolves.
+  Fixed his way, using the rule `constants.ts` already stated three lines above
+  the offending constant ("null means the button is hidden — don't ship a dead
+  button"): one nullable `DISCOVERY_URL` per app, and the sidebar ⊕, both
+  "Browse public hubs" buttons, the hosted-wizard link, the skins gallery, the
+  desktop hub browser and hub admin's Discovery tab are all **not rendered**
+  rather than rendered broken. Most of the guards already existed —
+  `WelcomeScreen` and `AddHubModal` check `onBrowse` — the app was simply
+  always passing them.
+  This also corrected an earlier suggestion of gating on `hubSupports()`: the
+  directory is an independent site, not a hub feature, so a hub cannot report
+  whether it is up. Setting `DISCOVERY_URL` brings every surface back.
+  Two traps surfaced once the defaults were gone: `DiscoverPage.directoryUrl`
+  was optional *with* a hardcoded default, so removing the default alone would
+  have fetched `undefined/api/hubs` — typechecks, fails at runtime — and
+  `HubAdminPage` seeded a form with a literal inside a package that is
+  prop-only by convention.
+
 - **Voice played every frame on arrival (2026-08-21)**: the first external
   operator reported voice arriving "a tratti" across the internet while the
   same build was clean locally, and that asymmetry was the diagnosis. `playPcm`
