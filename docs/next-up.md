@@ -91,11 +91,12 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   items fixed same day, the rest in Known issues. Host details and
   per-deployment steps stay out of this repo.
 
-- [ ] **Voice v2 across the internet — quality, not reachability.** It has now
-  crossed: on the pilot, over WebTransport/QUIC, audio arrives, so port, cert
-  trust tier and relay all work. It arrives choppy. Send pacing, jitter buffer
-  and the pilot's network are three causes with three fixes — isolate with
-  metrics from a two-client session before touching code.
+- [ ] **Voice v2 across the internet — confirm the fix on the pilot.** It has
+  crossed: audio arrives over WebTransport/QUIC, so port, cert trust tier and
+  relay all work. It arrived choppy, and the cause turned out to be the web
+  client scheduling every frame on arrival rather than the network (fixed
+  2026-08-21). What is left is one two-client session on the pilot to hear
+  whether it is actually gone.
 
 - [ ] **Feature gating on capabilities, not dead UI.** Discovery-dependent
   surfaces are visible and non-functional. Gate on `hubSupports(cap)` rather
@@ -120,8 +121,10 @@ Committed, cannot proceed.
 real and unfixed, not that anyone is on it. When one is fixed its entry moves
 to the [shipped log](shipped-log.md).
 
-- **Voice audio is choppy across the internet** — arrives but breaks up. Not
-  reproduced locally on the same build, which is itself a clue. See In flight.
+- **Voice audio was choppy across the internet** — cause found and fixed
+  2026-08-21 (no playout scheduling in the web client; see shipped log). The
+  jitter only exists on a real network, so **the audible confirmation is still
+  outstanding** — it needs a session on the pilot. Reopen this if it persists.
 
 - **No speaking indicator in voice** — roster and `video-tile.speaking` exist,
   so a missing surface rather than missing plumbing.

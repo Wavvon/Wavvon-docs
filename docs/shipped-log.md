@@ -4,6 +4,28 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Voice played every frame on arrival (2026-08-21)**: the first external
+  operator reported voice arriving "a tratti" across the internet while the
+  same build was clean locally, and that asymmetry was the diagnosis. `playPcm`
+  called `src.start()` with no argument — "play at once". On a loopback frames
+  arrive 20 ms apart almost exactly, so playing each on arrival sounded
+  gapless; across a real network a frame 5 ms late leaves 5 ms of silence and
+  two arriving together both start immediately and *overlap* instead of
+  queueing. There was no jitter buffer to tune: there was no playout
+  scheduling at all.
+  Frames are now scheduled where the previous one ends, per sender, held 60 ms
+  ahead of the audio clock, with a 200 ms cap so a bursting sender cannot push
+  latency up forever — hitting it costs one skip instead of permanent lag. Web
+  only; the desktop pipeline buffers through ringbuf and cpal.
+  Measured with two real clients over 10 s, wrapping
+  `AudioBufferSourceNode.start`: 682 and 694 frames scheduled, **zero at
+  `when == 0`**, consecutive starts exactly one frame (0.02 s) apart, lead
+  holding at 0.08–0.088 s. The audible confirmation still needs the pilot,
+  because the jitter only exists there — that stays open in next-up.
+  The first draft's underrun check (`prevEnd < floor`) would have re-buffered
+  on every frame of a healthy stream and manufactured the skipping it was
+  meant to remove; its own test caught it.
+
 - **An invite link opens the app (2026-08-21)**: `GET /join/{code}` was a JSON
   preview endpoint, so the link an operator hands out rendered
   `{"code":…,"hub_name":…,"member_count":…}` in a browser. The pilot operator
