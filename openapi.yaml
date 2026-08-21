@@ -1961,84 +1961,6 @@ paths:
 
   # ── Bots (admin) ──────────────────────────────────────────────────────────
 
-  /admin/bots:
-    get:
-      summary: List all bots on this hub
-      tags: [Bots]
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: '#/components/schemas/BotAdminInfo' }
-    post:
-      summary: Create a bot
-      description: |
-        Any authenticated member may create a bot. Returns the raw bot token
-        **once** — store it immediately, it cannot be retrieved again.
-      tags: [Bots]
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [display_name]
-              properties:
-                display_name: { type: string }
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/BotAdminInfo'
-                  - type: object
-                    properties:
-                      token:
-                        type: string
-                        description: "Raw bearer token — shown once only"
-
-  /admin/bots/{pubkey}:
-    get:
-      summary: Get bot detail including registered slash commands
-      tags: [Bots]
-      parameters:
-        - name: pubkey
-          in: path
-          required: true
-          schema: { type: string }
-      responses:
-        "200":
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/BotDetail' }
-    delete:
-      summary: Delete a bot (creator or manage_hub)
-      tags: [Bots]
-      parameters:
-        - name: pubkey
-          in: path
-          required: true
-          schema: { type: string }
-
-  /admin/bots/{pubkey}/webhook:
-    put:
-      summary: Set or clear the bot's webhook URL (creator or manage_hub)
-      tags: [Bots]
-      parameters:
-        - name: pubkey
-          in: path
-          required: true
-          schema: { type: string }
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                webhook_url: { type: string, nullable: true }
-
   /admin/bots/external:
     get:
       summary: List every external bot row (admin view)
@@ -2160,28 +2082,6 @@ paths:
               schema: { $ref: '#/components/schemas/BotChannelScope' }
 
   # ── Bots (bot API) ────────────────────────────────────────────────────────
-
-  /bot/commands:
-    put:
-      summary: Register slash commands for this bot
-      description: |
-        Authenticated with `Authorization: Bearer <bot_token>` (not a user session token).
-        Replaces all existing commands for this bot.
-      tags: [Bots]
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                commands:
-                  type: array
-                  items:
-                    type: object
-                    required: [command, description]
-                    properties:
-                      command: { type: string, description: "Without slash, e.g. 'weather'" }
-                      description: { type: string }
 
   /bot/send:
     post:

@@ -6,6 +6,68 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Every bot is an external bot — the self-service bot system is removed
+
+**Decision** (2026-08-21): the hub has one bot model. A bot is an Ed25519
+keypair its operator owns, invited to a hub by pubkey by someone holding
+`MANAGE_ROLES` or `ADMIN`, accepted by signing the invite token, and
+authenticated from then on through the normal challenge-response flow with
+`is_bot: true`. `POST /admin/bots` — which minted a synthetic `bot_<uuid>`
+identity plus a bearer token and could be called by *any authenticated
+member* with no permission check — is gone, along with the `bots`,
+`bot_slash_commands` and `bot_tokens` tables and `authenticate_bot`.
+
+A bot running on the same machine as the hub is still an external bot.
+Co-location is a deployment detail; it was never an identity model.
+
+The two systems were near-duplicates. `bot_profiles` (external) is a
+superset of `bots` (self-service) except for `token_hash` and
+`created_by`, and `bot_commands` duplicated `bot_slash_commands`. This is
+the "duplicate endpoints get folded, not versioned side by side"
+constraint, and it had already produced the failure that constraint
+predicts: `routes/bots/voice.rs` carried a comment explaining that the
+`can_speak_voice` grant gates external bots and *deliberately does not*
+gate the self-service voice endpoints, because self-service bots never
+populate `bot_profiles`. A capability gate that silently does not apply to
+half the bots on the hub is the silent-fallthrough bug class this
+codebase has been bitten by twice before.
+
+Removing it also removes a special case from the capability resolver.
+`effective_capabilities` read "no `bot_profiles` row → self-service bot →
+a grant is effective on its own"; with one model the rule is just
+requested ∩ granted, and an orphaned grant on a pubkey that never asked
+for anything is no longer effective by itself.
+
+The `/bot/send`, `/bot/poll` and `/bot/events` HTTP transport **stays** —
+it is the only way to write a bot with no persistent WebSocket, which is a
+real capability and not a property of the auth mechanism. It moves to
+session-token auth like everything else. `PUT /bot/commands` does go, as a
+straight duplicate of `PUT /bots/me/commands`.
+
+**Alternatives considered**: (a) keep both and make the capability gate
+cover self-service bots too — rejected: it fixes the symptom and leaves
+two auth paths, two tables and two consent stories to keep in sync
+forever, which is how the gap appeared in the first place; (b) keep
+hub-generated identities for convenience, with the hub minting a real
+Ed25519 keypair and handing the private key over once — considered
+seriously and rejected by the same call that made this one: the ergonomic
+win was for the "any member clicks a button" flow, and that flow is
+exactly what should not exist. A bot is infrastructure an operator runs,
+not something a member conjures; (c) drop the polling transport along
+with the system that introduced it — rejected: it would remove a shipped
+capability for reasons that have nothing to do with it.
+
+**Tradeoff**: a trivial webhook bot now costs an Ed25519 keypair and a
+challenge-response handshake instead of copy-pasting a bearer token. That
+is a real DX step up, mitigated by `bot-kit` and by `ttt-bot` already
+being written against this exact flow — the reference bot never used the
+self-service path.
+
+**Outcome**: accepted in beta with no compatibility shim and a schema
+baseline reset rather than dead tables left behind, on the explicit call
+that breaking things now is cheap: there is no bot deployed anywhere, and
+the one pilot hub was wiped the same day.
+
 ## The shipped compose files have no default database password
 
 **Decision** (2026-08-21): `docker-compose.yml` and

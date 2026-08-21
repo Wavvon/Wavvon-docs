@@ -91,10 +91,11 @@ Ed25519 identity, normal challenge/verify session token, capabilities in
 `bot_profiles`) connecting to `/voice/ws` is checked for `can_speak_voice`
 in its capabilities plus effective channel-scoped `read_messages` before
 being registered as a relay participant; either check failing closes the
-connection without a `voice_ws_ready` frame. This is separate from the
-older self-service bot system (`/admin/bots`, token-hash auth,
-`POST /bots/{id}/voice/join`) which has no capability model and is left
-untouched. No client SDK helper (`join_voice`/`send_opus`) exists yet —
+connection without a `voice_ws_ready` frame. There used to be a second bot
+system alongside this one (`/admin/bots`, token-hash auth) that the
+capability model did not reach; it is gone, so the gate now covers every
+bot that can join voice at all ([decisions.md](decisions.md), "Every bot
+is an external bot"). No client SDK helper (`join_voice`/`send_opus`) exists yet —
 a bot that wants to speak still has to open the `/voice/ws` connection and
 frame Opus packets itself, matching the wire format `voice.md` documents
 for the browser client.

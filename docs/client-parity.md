@@ -298,7 +298,10 @@ exist on web.
 
 - **Hub audit log** (`AuditLogSection`, `GET /admin/audit-log`),
   **native bots** (`NativeBotsSection`, `/admin/bots` create/list/delete +
-  one-time token), **hub SVG icon library** (`HubIconsSection`,
+  one-time token) — *removed 2026-08-21 with the self-service bot system
+  ([decisions.md](decisions.md), "Every bot is an external bot"); the one
+  remaining bot tab is `ExternalBotSection`* —, **hub SVG icon library**
+  (`HubIconsSection`,
   `/hub/icons` CRUD), **alliances** (`AlliancesSection`, list/create/leave +
   invite inbox), **onboarding** (`OnboardingAdminSection`: approval queue
   `/hub/pending`, lobby settings, anti-spam challenge settings), and

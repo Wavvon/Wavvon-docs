@@ -1,19 +1,22 @@
-# Bots — external bot ecosystem
+# Bots
 
-External bots are third-party processes — any language, any host —
-that connect to one or more hubs over the existing client WebSocket and
-HTTP surface. They authenticate with their own Ed25519 keypair, declare
-`is_bot: true` at handshake, and participate in channels they have been
-invited to.
+A bot is a third-party process — any language, any host — that connects
+to one or more hubs over the existing client WebSocket and HTTP surface.
+It authenticates with its own Ed25519 keypair, declares `is_bot: true` at
+handshake, and participates in channels it has been invited to.
 
-This page covers **external** bots only. **Internal service accounts**
-(hub-local bot rows created by an admin and run by the hub operator)
-are already shipped; they live in the hub DB the same way users do and
-are out of scope here except where the wire shapes overlap.
-
-> Status: designed, not built. Tracked as task #148 in
-> [future-features.md](future-features.md) — this page supersedes the
-> sketch there for external bots.
+> **Status: shipped.** There is exactly one bot model, and "external" is
+> no longer a distinction worth drawing — see
+> [decisions.md](decisions.md), "Every bot is an external bot". A second
+> system used to exist alongside this one: hub-minted `bot_<uuid>`
+> identities with bearer tokens, created through `POST /admin/bots` by any
+> authenticated member. It was removed in beta along with the `bots`,
+> `bot_slash_commands` and `bot_tokens` tables. If you are looking for
+> "internal service accounts" or "self-service bots", this page is what
+> replaced them.
+>
+> A bot that runs on the hub's own machine is still an ordinary bot.
+> Co-location is a deployment detail, not an identity model.
 
 ## What a bot is, exactly
 
@@ -29,9 +32,8 @@ exactly the same primitive as a user. What separates a bot from a user:
   POSTs slash-command invocations and event callbacks to.
 - It is invited per-hub by pubkey, not discovered automatically.
 
-Internal service accounts share the `is_bot` flag and the same per-row
-shape; the only structural difference is the absence of an external
-endpoint and any cross-hub membership.
+Nothing above depends on where the bot runs. A bot on the hub's own box
+and a bot on someone else's VPS differ only in latency.
 
 ## 1. Auth flow
 
@@ -57,8 +59,9 @@ Why reuse `users` (with `is_bot=1`) rather than a parallel `bots`
 table: the role/permission, ban/mute, channel-membership, and message
 foreign keys already point at user pubkeys. A separate table would
 duplicate every constraint and break the existing `messages.author_pubkey`
-shape. The flag is what `future-features.md` already anticipates and
-what internal service accounts already use.
+shape. A parallel `bots` table *did* exist for the second bot system, and
+removing it is what unified the two — see
+[decisions.md](decisions.md), "Every bot is an external bot".
 
 **Token lifetime**: bot tokens are long-lived but not eternal. Default
 30 days. Revocation is admin-removes-bot (section 2).

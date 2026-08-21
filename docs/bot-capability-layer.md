@@ -157,10 +157,12 @@ if session.is_bot:
     require channel-scoped READ_MESSAGES        # same rule as voice_ws.rs:88
 ```
 
-This supersedes the older self-service `POST /bots/{id}/screenshare/start`
-path ([bots.md §18](bots.md)), which has no capability model — the same
-split soundboard.md already records for voice (capability-gated `/voice/ws`
-vs the legacy `/admin/bots` token path). New bots use the gated WS relay.
+`POST /bots/{id}/screenshare/start` still exists as the REST entry point,
+but the split this paragraph used to describe — a capability-gated WS path
+next to an ungated token path — is gone. Both auth systems collapsed into
+one and the REST endpoint now authenticates with a session token like
+everything else, so there is no route left that skips the gate
+([decisions.md](decisions.md), "Every bot is an external bot").
 
 Bandwidth is the bot operator's problem ([bot-media.md](bot-media.md)),
 bounded by the abuse budget in §4. No hub transcoding, no mixing — the
