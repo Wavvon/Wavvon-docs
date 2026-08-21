@@ -126,9 +126,6 @@ to the [shipped log](shipped-log.md).
   now drives speech detection (2026-08-21), but transmission is never gated
   on the toggle. Either wire it or take it out of the UI.
 
-- **No server-limits admin surface** — upload size and similar operator caps
-  are env-var only, with no page in hub admin.
-
 - **Discord importer needs a live run** — `export` with a real bot token +
   `apply` against a running hub never exercised live.
 

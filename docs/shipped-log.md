@@ -4,6 +4,33 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **The attachment cap is an operator setting (2026-08-21)**: the pilot
+  operator asked where to configure server-side limits like upload size. There
+  was nowhere — `MAX_ATTACHMENTS_BYTES` was a compile-time constant, so the
+  honest answer was "recompile the hub".
+  Now `hub_settings.max_attachment_bytes`, read per request so a change needs
+  no restart, defaulting to the constant's 3 MB so nothing shifts under an
+  existing hub. Both enforcement sites read it and the constant is gone rather
+  than left as a second source of truth. Bounded 64 KB – 8 MB, and the ceiling
+  is not arbitrary: attachments are stored **inline** (the column is TEXT
+  holding base64), so this caps message row size, and `hosting.md`'s nginx
+  vhost sets `client_max_body_size 10M` — a higher hub-side limit would only
+  produce uploads that die at the proxy.
+  `/info` carries the value, publicly, because a client needs it to refuse an
+  oversized file before uploading; capability string `limits.attachments`.
+  Surfaced as a **Limits** card in hub admin's Overview rather than a new tab,
+  since there is one editable limit today. The card also names what it
+  deliberately does not offer inputs for — `WAVVON_DB_MAX_CONNECTIONS`,
+  `WAVVON_VOICE_UDP_PORT`, build-fixed rate limits — because those need a
+  restart, and an input that cannot deliver is worse than a sentence.
+  Both clients had a hardcoded copy. The web one was read by nothing and its
+  comment claimed it "matches the hub cap"; removed. The desktop one *was*
+  enforced at 3 MB and would have refused files an operator had deliberately
+  allowed; it is a pre-flight ceiling at the hub's hard maximum now.
+  The test that matters tightens the cap and watches a 200 KB attachment take a
+  413 while a 1 KB one goes through — it fails if the send path ever returns to
+  reading a constant.
+
 - **Speaking indicator, and the AFK sweep it also broke (2026-08-21)**: the
   operator reported no sign of who is talking. The hub had the entire chain
   built — `voice_speaking` (client → hub) fans out as

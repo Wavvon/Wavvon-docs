@@ -42,7 +42,8 @@ serve API-only by default; opt into the web client explicitly.
   [Providing PostgreSQL](#providing-postgresql) below; the Docker Compose
   methods provision it for you and you can skip that section.
 - Disk for inline attachments and the Tantivy search index. Community-scale
-  is modest; attachments are each capped at 3 MB.
+  is modest; the per-message attachment cap defaults to 3 MB and is
+  settable in hub admin (Overview -> Limits), up to 8 MB.
 
 The hub's persistent state is the PostgreSQL database plus
 `hub_identity.json` (the hub's Ed25519 federation key) in the working
@@ -374,7 +375,7 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
 
     add_header Strict-Transport-Security "max-age=63072000" always;
-    client_max_body_size 10M;   # inline attachments are capped at 3 MB
+    client_max_body_size 10M;   # must exceed the hub's attachment cap (max 8 MB)
 
     location / {
         proxy_pass http://127.0.0.1:3000;
