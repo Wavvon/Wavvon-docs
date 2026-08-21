@@ -436,12 +436,14 @@ Definitive status for everything still not at parity:
   neither persisted). The decision doc calls for this to live in the
   encrypted hub-synced prefs blob (`packages/core` `PrefsBlobContents.
   hide_birthdays`, mirrored in desktop's `prefs_blob::LocalPrefs`) for
-  cross-device consistency; the field exists on both sides of that wire
-  shape, but nothing populates it from a real local setting yet, and web has
-  no push path for that blob at all (only a read, used for backup export) —
-  a pre-existing gap this feature didn't create. Wiring an actual local
-  setting into the blob's push/pull round trip is future work if a user
-  actually complains about the badge following them cross-device.
+  cross-device consistency. **Closed 2026-08-21**: web now has a full
+  push/pull round trip for that blob, and `hideBirthdays` rides in it along
+  with the rest of the user's settings — see the decisions.md entry "Settings
+  follow the identity, in the prefs blob, as raw storage strings". The
+  allowlist of what syncs lives in `apps/web/src/utils/syncedSettings.ts`;
+  device-bound settings (microphone, speaker and camera ids) deliberately do
+  not travel. Desktop still writes only its own typed fields and carries
+  web's `settings` map through untouched.
 
 **Feature parity with desktop is complete** for the web client's scope. The
 remaining refinement is canonical-identity mapping for a paired device's DMs

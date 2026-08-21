@@ -116,6 +116,17 @@ Committed, cannot proceed.
 real and unfixed, not that anyone is on it. When one is fixed its entry moves
 to the [shipped log](shipped-log.md).
 
+- **~296 UI strings are still hardcoded English** — the member settings
+  surface was brought up to full coverage on 2026-08-21 (notifications,
+  privacy, and the whole voice tab), but the rest of the app never went
+  through i18n. By area: ~169 in the hub admin panel, ~21 forum, ~19 the
+  recovery-contacts settings section, ~12 message/content area, ~11 channel
+  settings, and a long tail of `title`/`aria-label` attributes. Locale
+  coverage is enforced (`pnpm check-i18n` fails on a missing key) but only for
+  keys that exist — a string that never became a key is invisible to it. A
+  scan for JSX text nodes and `placeholder`/`aria-label`/`title` literals
+  finds them; the work is mechanical, four locales per string.
+
 - **Voice audio was choppy across the internet** — cause found and fixed
   2026-08-21 (no playout scheduling in the web client; see shipped log). The
   jitter only exists on a real network, so **the audible confirmation is still

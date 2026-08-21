@@ -6,6 +6,46 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Settings follow the identity, in the prefs blob, as raw storage strings
+
+**Decision** (2026-08-21): the web client now pushes and pulls the encrypted
+prefs blob, and carries the user's settings in it as a generic
+`settings: Record<string, string>` map — storage key to the raw string that key
+already holds. Which settings ride along is a single allowlist in
+`clients/apps/web/src/utils/syncedSettings.ts`; adding one is a one-line change
+with no wire-shape edit, and the rule for what qualifies is written there:
+a choice about yourself travels, a fact about this machine does not.
+
+The blob, its hub endpoints, its key derivation and its signed envelope all
+already existed — the desktop client had a full push/pull round trip and the
+hub has stored ciphertext under `/identity/{master}/prefs` since multi-device
+landed. Web only ever *read* it, for the backup export. So a second browser on
+the same identity, or an identity restored from a `.wavvon-backup`, started
+from factory defaults: no theme, no language, no notification choices, no
+ignored users. That was the gap `client-parity.md` had tracked as "future work
+if a user actually complains", and a user did.
+
+**Alternatives considered**: (a) typed fields per setting, the way
+`blocked_users` / `voice_settings` / `hide_birthdays` are modelled — rejected:
+every new setting would then be a wire-format change across the TS mirror, the
+Rust mirror and the test vectors, which is exactly the tax that kept this
+undone; a client only reads back keys it wrote, so the names need no
+cross-client agreement. (b) Put the settings in the `.wavvon-backup` file —
+rejected: that fixes restore and not a second live device, and it makes an
+identity backup a settings backup, which is a different thing with a different
+lifetime. (c) Sync through the hub's member state (`PATCH /me`) — rejected:
+these are identity-level, not per-hub, and the hub would read them in plaintext.
+
+**Tradeoff**: the blob is pulled once per page load and pushed on change, so a
+change made on another device while this one is open lands only on its next
+load. Live propagation needs a per-setting answer to "can this hot-apply?" —
+language and theme are read at boot and cannot — and that is a bigger design.
+A pull that did change something triggers exactly one reload, guarded by a
+sessionStorage flag. Every client must round-trip the fields it does not
+understand rather than drop them, or the two clients overwrite each other;
+desktop's `LocalPrefs` carries `settings` as an opaque `serde_json::Value` for
+that reason.
+
 ## One voice session per identity, latest join wins
 
 **Decision** (2026-08-21): a pubkey occupies at most one voice channel per
