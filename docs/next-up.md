@@ -120,12 +120,6 @@ Committed, cannot proceed.
 real and unfixed, not that anyone is on it. When one is fixed its entry moves
 to the [shipped log](shipped-log.md).
 
-- **An invite link opens raw JSON** — `GET /join/{code}` is a JSON preview
-  endpoint, so the link an operator sends renders as JSON in a browser. First
-  step of every new user. Needs both halves: hub serves the web client for a
-  browser request, *and* the client reads the code from
-  `window.location.pathname`, which it never looks at today.
-
 - **Voice audio is choppy across the internet** — arrives but breaks up. Not
   reproduced locally on the same build, which is itself a clue. See In flight.
 

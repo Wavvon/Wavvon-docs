@@ -4,6 +4,24 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **An invite link opens the app (2026-08-21)**: `GET /join/{code}` was a JSON
+  preview endpoint, so the link an operator hands out rendered
+  `{"code":…,"hub_name":…,"member_count":…}` in a browser. The pilot operator
+  sent it to a friend, who asked what to do with it — the first step of every
+  new user. The endpoint now content-negotiates: accepts `text/html` gets the
+  web client, anything else keeps the preview JSON, and with no web client
+  configured the JSON stands because there is nothing better to answer with.
+  Serving the app there was only half of it. The client never looked at
+  `window.location.pathname`, so it would have landed the user on an empty app
+  with the code silently dropped. `inviteCodeFromPath` reads it and the
+  add-hub flow opens prefilled — not an automatic join, since a link should
+  not silently change someone's hub list, and the URL is cleared only once the
+  invite is applied so reloading mid-onboarding still honours it.
+  Verified end to end rather than by unit test: a local hub serving a freshly
+  built web client, driven in Chromium through onboarding, ending with
+  `invites.uses = 1 of 1` and the new identity holding `builtin-owner` in the
+  database.
+
 - **Every bot is an external bot (2026-08-21)**: the hub had two bot systems.
   Self-service bots were hub-minted `bot_<uuid>` identities with a bearer
   token, created through `POST /admin/bots` by **any authenticated member with
