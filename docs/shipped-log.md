@@ -4,6 +4,36 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Live connection readout: ping, spread, inbound loss (2026-08-21)**: what
+  the pilot operator's "limits" remark actually meant, once clarified — a
+  real-time connection panel like TeamSpeak's, not a settings page. A latency
+  chip in the channel header, click for the detail.
+  There was no way to measure round trip at all: no application ping, no
+  heartbeat. `ping { nonce }` → `pong { nonce }` echoed verbatim, with the hub
+  keeping **no state** — the client sends its own timestamp as the nonce and
+  subtracts on arrival, so there is no probe table and no cross-machine clock
+  comparison. The nonce is what makes it correct: with a 2-second interval on a
+  slow link, overlapping probes are normal, and a hub that replied with
+  anything else would let a client pair a reply with the wrong probe.
+  Median and mean-absolute-deviation, not mean and standard deviation, so one
+  stalled probe cannot move the headline number — a test pins it: a 2-second
+  outlier among steady 24 ms samples reads 25 ms where a mean says 420.
+  Inbound voice loss reads the `ctr` in each packet's **cleartext** header, so
+  gaps are visible without decrypting anything — which matters, because voice
+  v2 is end-to-end encrypted and the relay genuinely cannot listen. Expected
+  count comes from the counter span, not elapsed time: a silent participant
+  sends nothing, and time-based arithmetic would call that 100% loss.
+  Reordering is not loss either, or QUIC datagrams would show a permanent fake
+  percentage.
+  **Outbound loss is absent rather than empty**, and the panel says why: a
+  sender cannot know which of its own packets went missing. The relay could,
+  from the same cleartext counter — tracked in next-up.
+  Measured with two clients in voice: chip "1 ms" in the good band, panel
+  "Ping | 1 ms ± 0.2 | Packet loss (in) | 0 %", and "± 0.4" on the other
+  client — a real jitter figure from real samples.
+  Also dropped "(up to 3 MB)" from the empty-channel drag-and-drop tip, since
+  as of the same day that number is operator-configurable.
+
 - **The attachment cap is an operator setting (2026-08-21)**: the pilot
   operator asked where to configure server-side limits like upload size. There
   was nowhere — `MAX_ATTACHMENTS_BYTES` was a compile-time constant, so the

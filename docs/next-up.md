@@ -121,6 +121,12 @@ to the [shipped log](shipped-log.md).
   jitter only exists on a real network, so **the audible confirmation is still
   outstanding** — it needs a session on the pilot. Reopen this if it persists.
 
+- **Outbound packet loss is not measured** — the connection panel shows
+  inbound loss only, because a sender cannot know which of its own packets
+  were dropped. The relay can: the voice header's `ctr` is cleartext, so the
+  hub sees gaps in a sender's counter sequence and could report them back.
+  Needs a hub-side per-sender counter and a periodic stat frame.
+
 - **Voice settings expose a VAD toggle nothing reads** — `customVad` is in
   the voice tab and no code consults it. Its companion `customVadThreshold`
   now drives speech detection (2026-08-21), but transmission is never gated
