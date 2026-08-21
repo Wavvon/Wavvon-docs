@@ -79,14 +79,26 @@ fixed, its entry moves to the shipped log.
   urgent.
 
 - [ ] **First external operator pilot.** A hub is live on an external
-  operator's own server. Remaining: redeem the owner invite, operator
-  onboarding + ownership transfer, feedback on whether the docs were enough to
-  get there, two-operator federation test, and the **voice v2 cross-internet
-  test** — transport v2 shipped 2026-08-07 and passed the local two-browser
-  drive, but has never crossed the internet on the WebTransport stack. The
-  running version is **not currently verified**: last recorded as 0.3.1 while
-  the project is at 0.5.0, so an upgrade check comes first. Host details and
-  per-deployment steps stay out of this repo.
+  operator's own server, **wiped and rebuilt on v0.5.0 (2026-08-21)** after an
+  in-place 0.3.2 → 0.5.0 upgrade proved the migration path; the old install
+  held two accounts and zero messages, so nothing was worth keeping. The hub
+  boots blank and its first-boot owner invite is **unredeemed**. Remaining:
+  redeem it, operator onboarding + ownership transfer, hub naming and channel
+  setup, whether the docs were enough to get there, and the two-operator
+  federation test. First real operator feedback arrived 2026-08-21 — four UI
+  items fixed same day, the rest below. Host details and per-deployment steps
+  stay out of this repo.
+
+- [ ] **Voice v2 across the internet — quality, not reachability.** It has now
+  crossed: on the pilot, over WebTransport/QUIC, audio arrives, so port, cert
+  trust tier and relay all work. It arrives choppy. Send pacing, jitter buffer
+  and the pilot's network are three causes with three fixes — isolate with
+  metrics from a two-client session before touching code.
+
+- [ ] **Feature gating on capabilities, not dead UI.** Discovery-dependent
+  surfaces are visible and non-functional. Gate on `hubSupports(cap)` rather
+  than the CSS class the operator suggested: a class is a state someone must
+  remember to remove. Needs the capability strings on the hub side.
 
 ## 🚧 Blocked
 
@@ -155,6 +167,21 @@ fixed, its entry moves to the shipped log.
 > follow-ups ([farm-model.md](docs/farm-model.md)).
 
 ## ⚠️ Known issues
+
+- **An invite link opens raw JSON** — `GET /join/{code}` is a JSON preview
+  endpoint, so the link an operator sends renders as JSON in a browser. First
+  step of every new user. Needs both halves: hub serves the web client for a
+  browser request, *and* the client reads the code from
+  `window.location.pathname`, which it never looks at today.
+
+- **Voice audio is choppy across the internet** — arrives but breaks up. Not
+  reproduced locally on the same build, which is itself a clue. See Next up.
+
+- **No speaking indicator in voice** — roster and `video-tile.speaking` exist,
+  so a missing surface rather than missing plumbing.
+
+- **No server-limits admin surface** — upload size and similar operator caps
+  are env-var only, with no page in hub admin.
 
 - **Discord importer needs a live run** — `export` with a real bot token
   + `apply` against a running hub never exercised live.

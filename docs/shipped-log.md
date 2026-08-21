@@ -4,6 +4,98 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Every bot is an external bot (2026-08-21)**: the hub had two bot systems.
+  Self-service bots were hub-minted `bot_<uuid>` identities with a bearer
+  token, created through `POST /admin/bots` by **any authenticated member with
+  no permission check**; external bots hold their own Ed25519 keypair, are
+  invited by pubkey and authenticate on the normal session path. The first is
+  gone, along with the `bots`, `bot_slash_commands` and `bot_tokens` tables and
+  `authenticate_bot`. A bot on the hub's own machine is still an external bot —
+  co-location was never an identity model. Decision and alternatives in
+  [decisions.md](decisions.md).
+  The two were near-duplicates (`bot_profiles` ⊃ `bots` bar `token_hash` and
+  `created_by`), and they had already produced the failure the fold-duplicates
+  rule predicts: `routes/bots/voice.rs` carried a comment explaining that the
+  `can_speak_voice` grant gates external bots and *deliberately does not* gate
+  the self-service voice endpoints, because self-service bots never populate
+  `bot_profiles`. A capability gate covering half the bots on a hub.
+  Two finds while pulling the thread. `bot_tokens` was **read by two auth
+  paths and written by none** — a table granting authentication that no code
+  populated. And `effective_capabilities` had a branch reading "no
+  `bot_profiles` row → a grant is effective on its own"; the rule is now
+  requested ∩ granted with no exception, so a grant for something the bot
+  never declared is inert, pinned by a new test.
+  Kept: the `/bot/send`, `/bot/poll`, `/bot/events` HTTP transport, the only
+  way to write a bot with no persistent WebSocket — moved to session auth,
+  with `bot_event_queue`'s foreign key repointed from `bots` to `users`.
+  Migrations drop three tables, which that file otherwise never does: a
+  baseline reset authorised for beta with no bot deployed anywhere, commented
+  as such at the drop site. `POST /bots/{id}/voice/join` went too — after
+  voice v2 it authenticated the caller and returned the constant `"/ws"`,
+  while the real join and the real gate were on the WebSocket. Client side:
+  `NativeBotsSection`, its platform commands and five Tauri commands removed,
+  and the remaining tab relabelled to just **Bots**. 240 registered routes,
+  240 documented.
+
+- **Hub admin Overview is compact (2026-08-21)**: eleven fields, each a
+  full-width band with a full-width divider under it and a control inside
+  keeping the browser's default ~185px width — a 1265px rule under a 185px
+  input on a 1360px pane, and 1673px of scrolling for controls that fit on one
+  screen. Now five cards (Identity, Access, Locale & appearance, Channels &
+  voice, Welcome message) on an auto-fit grid; from 1600px up the tab fits
+  without scrolling. New `.settings-cards` / `.settings-card` /
+  `.settings-card-wide` / `.settings-card-row` / `.settings-save-bar`
+  primitives, all scoped under `.settings-card` so no existing settings screen
+  changed, ready for the other admin tabs. Verified in Chromium at six widths:
+  columns 4/3/2/2/1/1, no clipping, no horizontal overflow.
+
+- **No default database password in the shipped compose files (2026-08-21)**:
+  GitGuardian flagged `docker-compose.farm.yml` when v0.5.0 landed on `main`.
+  The connection URI carried `${WAVVON_DB_PASSWORD:-wavvon}`, so a hub taking
+  the quick-start path ran on a password printed in a public repo, silently and
+  forever. Both compose files now use `${WAVVON_DB_PASSWORD:?…}` and refuse to
+  start without one; the wizard-emitted compose already had no default, so the
+  hand-written files were the outlier. Also cleared placeholder passwords out
+  of `hub.toml.example`, `hub-scaling.md` and the farm Dockerfile comment, and
+  added `.gitguardian.yaml` to server/clients/docs for the localhost
+  `postgres/postgres` dev default — which is a documented default, not a
+  credential.
+
+- **Pilot rebuilt on v0.5.0 (2026-08-21)**: the external pilot hub was two
+  releases behind. Upgraded 0.3.2 → 0.5.0 in place first, which proved the
+  path — 96 commits of additive migrations against a real older schema, clean,
+  data and hub identity intact — then wiped and rebuilt from scratch on
+  operator decision, since the old install held two accounts (both the
+  project's own) and zero messages. New hub identity, fresh first-boot owner
+  invite. Voice on that port is now QUIC/WebTransport rather than the raw UDP
+  relay. Deployment specifics stay out of this repo.
+
+- **First operator feedback: four UI fixes (2026-08-21)**: two were not what
+  they looked like. The channel-header icons are **emoji**, so the rule
+  styling them set a `color` an emoji ignores; what made them unreadable was
+  having no plate behind them, and raw contrast had been passing AA at 6.35:1
+  all along. And the Discover tag chips were reported as "no margin" but had
+  **no CSS at all** — `.discover-tag-chips` / `.discover-tag-chip` lived in
+  `DiscoverPage.tsx` and never in `styles.css`. Plus: the event composer no
+  longer discards a filled-in form on a backdrop click, and its start time
+  seeds to the next half-hour instead of `""`, which is why the native picker
+  used to highlight a time it had not committed and the submit guard rejected
+  a form the user believed was complete. New `localDateTimeValue` /
+  `nextHalfHourValue` helpers with tests through the midnight rollover.
+
+- **Docs: two quick starts that could not work (2026-08-21)**: both
+  `hosting.md` compose blocks started a hub with no PostgreSQL sidecar and no
+  `WAVVON_DATABASE_URL`, so as written neither came up; `getting-started.md`
+  offered a bare `docker run` of the hub image, which can never reach a
+  database. All three fixed and the compose blocks verified by extracting them
+  from the markdown and running `docker compose config`. Separately,
+  `hub-scaling.md` still described SQLite + FTS5 as current and PostgreSQL as
+  a future tier chosen per deployment — all three of its tiers had shipped, and
+  PostgreSQL replaced SQLite rather than joining it. Also scrubbed the pilot
+  hub's real hostnames out of six wiki pages: the repos are public and that is
+  a third party's infrastructure, whatever the earlier note in this file argued
+  about keeping them as live facts.
+
 - **The farm works end to end on a single node (2026-08-20)**: closing the
   umbrella item opened 2026-08-09, when the farm was "quasi tutto costruito,
   niente collaudato" and three of its gaps were silent. All of it now has its
