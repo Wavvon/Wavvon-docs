@@ -6,6 +6,35 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## One voice session per identity, latest join wins
+
+**Decision** (2026-08-21): a pubkey occupies at most one voice channel per
+hub. `voice_join` now evicts every prior membership for that pubkey through
+the shared `leave_voice` teardown before registering the new one, so a second
+device joining a different room takes the session over rather than adding to
+it. The web client also sends `voice_leave` on teardown, which it never did —
+only the desktop client had.
+
+The hub always assumed the invariant without enforcing it: `voice_channels`,
+`voice_sender_ids`, `voice_relay_active`, `voice_last_active`,
+`whisper_target_defs` and the staging voice grants are all keyed by pubkey
+alone. Two clients on the same identity therefore showed the user in two rooms
+of the same hub simultaneously, and — because `leave_voice` is the sole
+authority for roster removal while a closed WebTransport session only clears
+the audio handle — a web client that left voice stayed in the roster until its
+whole WS dropped.
+
+**Alternatives considered**: (a) key the voice state by (pubkey, device) so
+multi-device voice is genuinely supported — rejected for now: it touches every
+voice side table, the wire roster, sender-id allocation and the encryption key
+fan-out, to enable something nobody asked for; (b) reject the second join with
+an error — rejected, the user who just double-clicked a channel on their laptop
+wants to be there, and "your other device holds the voice session" is a dead
+end they cannot act on from the device in front of them.
+
+**Tradeoff**: joining voice from a second device silently kicks the first. That
+is the rule most voice platforms apply, and it is recoverable in one click.
+
 ## The roadmap splits by commitment level, into three files
 
 **Decision** (2026-08-21): `ROADMAP.md` becomes an index. The work moves into
