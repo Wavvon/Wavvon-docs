@@ -174,7 +174,7 @@ pub struct AppState {
 }
 ```
 
-`rp_id` = hub's public domain (e.g. `wavvon.videogamezone.eu`).
+`rp_id` = hub's public domain (e.g. `wavvon.example.com`).
 On `localhost` it is `"localhost"`. Configurable via `WAVVON_PUBLIC_URL`.
 
 ---
@@ -464,8 +464,8 @@ authenticate with the passkey on any client.
 
 ## HTTPS requirement
 
-WebAuthn is blocked on plain HTTP except `localhost`. The pilot hub
-(`wavvon.videogamezone.eu`) terminates TLS at Cloudflare — it works.
+WebAuthn is blocked on plain HTTP except `localhost`. The first external
+pilot hub terminates TLS at Cloudflare — it works.
 Any hub that wants passkeys needs TLS; add a note to `hosting.md`
 and a startup warning when `webauthn_enabled = true` but TLS is off.
 

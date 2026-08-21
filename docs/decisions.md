@@ -6,6 +6,39 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## The shipped compose files have no default database password
+
+**Decision** (2026-08-21): `docker-compose.yml` and
+`docker-compose.farm.yml` interpolate `${WAVVON_DB_PASSWORD:?...}` — no
+default. Compose refuses to start until the operator sets it, in a `.env`
+next to the file or in the shell. The README quick start gained one line
+(`openssl rand -hex 16` into `.env`) before `docker compose up -d`.
+
+Both files previously carried `${WAVVON_DB_PASSWORD:-wavvon}`. A default
+in a public repo is a password every reader knows, and the failure mode is
+silent: the hub comes up, works, and stays on it. The Postgres sidecar
+publishes no host port, so the blast radius needs a second mistake — but
+"needs a second mistake" is not a security property worth keeping. The
+`wavvon-hub setup` wizard already generated a random password and wrote
+`${WAVVON_DB_PASSWORD}` with no default into the compose file it emits;
+the hand-written files were the outlier.
+
+*Alternatives considered*: (a) keep the default and document the override
+above it — that is exactly what `docker-compose.yml` already did, and it
+is what any operator taking the quick-start path skips; (b) generate a
+password on first boot inside the container — needs somewhere durable to
+put it, which means either the data volume (unreadable to the operator who
+later needs `psql`) or a bind mount the compose file doesn't have;
+(c) accept the risk because the port isn't published — rejected: a shared
+box, a later `ports:` addition, or a compromised neighbouring container
+all remove that single layer.
+
+*Outcome*: `docker compose up -d` on a fresh clone now fails with
+`required variable WAVVON_DB_PASSWORD is missing a value` until the
+operator sets one. That break is the point. Also cleared the literal
+placeholder passwords out of `hub.toml.example` and
+`crates/farm/Dockerfile` comments, which were tripping secret scanners.
+
 ## Hub capabilities are advertised, not inferred from a version number
 
 **Decision** (2026-08-08): `GET /info` gains `capabilities: Vec<String>`, and
@@ -876,7 +909,7 @@ community-axis (hub-scoped), client-only, reuses the one read-gated
 ## Hub-hosted identity vault: opt-in, passphrase-locked, handle-addressed
 
 > **PARKED 2026-07-19 (user call, same day as the design)**: not built,
-> not scheduled. Revisit **after the videogamezone.eu pilot** — real
+> not scheduled. Revisit **after the first external pilot** — real
 > users will show how identities actually get lost, which is the
 > evidence that decides whether hub-held encrypted seed material is
 > worth its trade-off. The design below stays as the considered option.
@@ -1673,7 +1706,7 @@ is.
   supported production upgrade, but overkill while a baseline reset is
   still an option.
 
-**Tradeoff**: hubs created before v0.3.0 (the videogamezone.eu pilot)
+**Tradeoff**: hubs created before v0.3.0 (the first external pilot hub)
 cannot upgrade in place — they must wipe the database and re-run first
 setup (the wizard makes this cheap). Accepted explicitly as the last
 moment this is acceptable.
@@ -1933,7 +1966,7 @@ Serving the client from the hub's own origin delivers that and is also the most
 federation-honest shape: each operator serves their own client from their own
 domain. This is not a Wavvon-operated service — it reinforces operator
 sovereignty rather than centralizing anything, and it does not phone home.
-Requested by the first external hub operator (videogamezone pilot, 2026-06-12).
+Requested by the first external hub operator (pilot, 2026-06-12).
 
 **Alternatives considered**:
 

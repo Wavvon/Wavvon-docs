@@ -1720,7 +1720,7 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   hygiene: clients release.sh syncs all app manifest versions; server
   release.sh regenerates Cargo.lock. **Pilot** switched to
   `hub:latest` (owner call: alpha, surprise-upgrades fine) and pulled
-  v0.3.2 — data intact, VideogameZone name intact, fresh web bundle
+  v0.3.2 — data intact, hub name intact, fresh web bundle
   served. Android APK still blocked on audiopus cross-compile (known
   issue).
 
@@ -1732,21 +1732,12 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   `apps/android/android` workflow paths, which unmasked the real blocker
   (audiopus_sys host-arch libopus → ROADMAP known issue; still no APK).
   Clients release.sh fixed (pre-monorepo tauri.conf path, changelog-wiping
-  git-cliff mode) and CHANGELOG.md introduced. **videogamezone pilot**
-  wiped and reinstalled per owner decision: `ghcr.io/wavvon/hub:0.3.1` +
-  postgres:16 sidecar in `~/voxply` (db container named wavvon-db — plain
-  "db" belongs to the neighbouring govd bot), `WAVVON_PUBLIC_URL` set,
-  fresh hub identity, first-boot owner invite minted and handed to the
-  owner.
-  > **The last two pre-rename names in this repo, and both are live
-  > facts rather than stale text.** The pilot's directory is still
-  > `~/voxply` — the vhost symlink pins it, so renaming it is a change on
-  > the friend's VPS, not here — and the hostname is still
-  > `voxply.videogamezone.eu` until its `server_name` gains the wavvon
-  > alias and the friend reloads nginx. Editing either line would make
-  > this record wrong about a machine that is running right now. Both
-  > disappear from the docs the moment the server changes; tracked as the
-  > pilot's hostname fix in [ROADMAP](../ROADMAP.md).
+  git-cliff mode) and CHANGELOG.md introduced. **The external pilot hub**
+  was wiped and reinstalled per operator decision: `ghcr.io/wavvon/hub:0.3.1`
+  + postgres:16 sidecar (db container given a non-default name to avoid
+  colliding with an unrelated container on the same box),
+  `WAVVON_PUBLIC_URL` set, fresh hub identity, first-boot owner invite
+  minted and handed to the operator.
 
 - **Server v0.3.1 released — first working release pipeline since v0.2.0
   (2026-07-06)**: `wavvon-hub-linux-x86_64`, `wavvon-hub-linux-aarch64`
@@ -2381,7 +2372,7 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
 - **First user silently becomes hub owner — fixed (2026-06-27)** — removed
   auto-grant from `assign_initial_roles`; hub now starts ownerless and warns on
-  startup when `WAVVON_OWNER_PUBKEY` is unset. Found live on videogamezone pilot.
+  startup when `WAVVON_OWNER_PUBKEY` is unset. Found live on the external pilot hub.
 
 - **Design review + pilot feedback resolved (2026-06-27)** — all 10 web client
   design-review items and all desktop pilot-feedback items (D1–D9) fixed: composer

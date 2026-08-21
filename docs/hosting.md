@@ -263,8 +263,8 @@ Ownership detail lives in the [operator guide](hub-operator-guide.md#hub-ownersh
 For a box that already runs nginx (or Apache/Traefik) for other sites and
 has a wildcard certificate. The hub binds HTTP to **loopback only**; the
 existing proxy terminates TLS and forwards to it. Voice UDP is published
-publicly and bypasses the proxy. This is the videogamezone pilot pattern,
-deployed and verified on a shared OVH box (2026-06-12).
+publicly and bypasses the proxy. This is the pattern the first external
+pilot hub uses, deployed and verified on a shared OVH box (2026-06-12).
 
 **Firewall**: the proxy already owns 80/443. You only need to open
 **3001/UDP** (in `ufw` *and* any cloud-panel firewall). No public 3000.

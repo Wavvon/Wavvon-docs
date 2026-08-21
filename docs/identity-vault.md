@@ -5,7 +5,7 @@ The third recovery layer, split out of
 file; Part 2: recovery contacts) per the ~focused-doc convention.
 
 **Status**: design — no code yet; **PARKED 2026-07-19 (user call):
-revisit after the videogamezone.eu pilot**, when real identity-loss
+revisit after the first external pilot**, when real identity-loss
 patterns can justify (or kill) the hub-held-ciphertext trade-off. Do not
 build without that re-decision. Extends the Part 1 `.wavvon-backup`
 envelope and the personal-axis storage model ([home-hub.md](home-hub.md)).
