@@ -1,0 +1,9 @@
+version: 2
+
+secret:
+  ignored_matches:
+    # The hub's documented local-development default, quoted throughout the
+    # operator docs. Localhost-only and never a deployment credential -- the
+    # shipped compose files have no default password at all.
+    - name: "local dev PostgreSQL default (postgres/postgres on localhost)"
+      match: postgres

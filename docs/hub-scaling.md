@@ -111,7 +111,7 @@ concurrent writers and supports read replicas for query-heavy workloads.
 
 ```toml
 # hub.toml — leave blank or omit for SQLite (default)
-database_url = "postgresql://wavvon:secret@localhost/hub_prod"
+database_url = "postgresql://wavvon:YOUR_PASSWORD@localhost/hub_prod"
 ```
 
 The hub detects the URL scheme at startup and initialises the correct sqlx
