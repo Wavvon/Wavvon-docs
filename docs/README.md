@@ -34,13 +34,13 @@ If you're new, read in this order:
 ### Built features (design docs)
 
 These shipped — the doc is the design rationale behind the code (see
-[`../ROADMAP.md`](../ROADMAP.md) "Recently shipped" for the delivery log):
+[shipped-log.md](shipped-log.md) for the delivery log; the roadmap has never
+had a "recently shipped" section, whatever this line used to claim):
 
 11. [farm-model.md](farm-model.md) — multi-hub server layer + 5-layer architecture
     - [farm-impl.md](farm-impl.md) — Phase 1 + 2 + 3 implementation design (auth move, multi-tenancy, creation policy)
     - [hub-creation-wizard.md](hub-creation-wizard.md) — signed config templates, hub first-run bootstrap, web creation wizard at `/new`
-12. [gaming.md](gaming.md) — game distribution platform: tiers, registry, hub admin install + permissions, six-call SDK, farm-level games (Tiers 1–2 built; Tier 3 is wishlist)
-    - [games-sdk.md](games-sdk.md) — postMessage API reference for third-party developers
+12. [gaming.md](gaming.md) — game distribution platform: tiers, registry, hub admin install + permissions, six-call SDK, farm-level games
 13. [multi-device.md](multi-device.md) — master+subkey identity, QR pairing protocol
 14. [e2e-encryption.md](e2e-encryption.md) — E2E encrypted DMs: X25519 from Ed25519 seed, static ECDH + AES-GCM, signed envelopes, group sender keys
     - [identity-recovery.md](identity-recovery.md) — recovery UX beyond the phrase: passphrase-wrapped `.wavvon-backup` export/import (Part 1) + per-hub recovery contacts (Part 2, vouch not auto-grant) + pointer to the hub-hosted identity vault ([identity-vault.md](identity-vault.md), no-file recovery from a home hub)
@@ -153,7 +153,7 @@ Reading order is for learning the system end-to-end. This section is for
 - **Database abstraction layer (trait-based store)** — [store-trait-design.md](store-trait-design.md)
 - **Bots & integrations** — [bots.md](bots.md)
 - **Bot capability layer (grants, game modal, media injection)** — [bot-capability-layer.md](bot-capability-layer.md)
-- **Gaming platform (tiers, SDK, sandbox)** — [gaming.md](gaming.md), [games-sdk.md](games-sdk.md)
+- **Gaming platform** — [gaming.md](gaming.md), [bot-capability-layer.md](bot-capability-layer.md)
 - **Protocol contract (REST + WebSocket)** — [`../openapi.yaml`](../openapi.yaml) (REST), [ws-protocol.md](ws-protocol.md) (full WS message reference)
 
 ### Notifications & UI
@@ -172,8 +172,7 @@ Reading order is for learning the system end-to-end. This section is for
 - **Anti-spam proof-of-work** — [future-features.md](future-features.md), [hub-certifications.md](hub-certifications.md)
 - **Home hub list (personal-axis state, DM canonicalization)** — [home-hub.md](home-hub.md)
 - **Screen share unified modal (desktop)** — [screen-share-modal.md](screen-share-modal.md)
-- **Gaming Tier 3 (persistent shared world)** — [gaming.md](gaming.md), [`../ROADMAP.md`](../ROADMAP.md) wishlist
-- **E2E v2 — Double Ratchet (forward secrecy)** — [e2e-encryption.md](e2e-encryption.md), [`../ROADMAP.md`](../ROADMAP.md) wishlist
+- **Gaming tails** — [bot-capability-layer.md](bot-capability-layer.md) §10–§11. (This line used to name a "Gaming Tier 3 (persistent shared world)" wishlist item; `gaming.md` no longer has a tier model and the roadmap had no such entry.)
 
 ## How to use this wiki
 
@@ -198,5 +197,5 @@ Reading order is for learning the system end-to-end. This section is for
 
 ## Related docs
 
-- [`../ROADMAP.md`](../ROADMAP.md) — what's next, known issues, undesigned wishlist
+- [`../ROADMAP.md`](../ROADMAP.md) — index of [next-up](next-up.md) / [future-features](future-features.md) / [wishlist](wishlist.md), plus Won't do
 - [`../README.md`](../README.md) — public-facing project intro

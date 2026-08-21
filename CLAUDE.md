@@ -10,7 +10,7 @@ Markdown plus `openapi.yaml`.
 
 ```
 docs/            the wiki — ~87 documents. Start at docs/README.md.
-ROADMAP.md       forward-looking only: next up, blocked, wishlist, known issues, won't do
+ROADMAP.md       an index over docs/next-up.md, future-features.md, wishlist.md
 openapi.yaml     the hub HTTP API contract
 CONTRIBUTING.md  branching model and workflow for every Wavvon repo
 COMPARISON.md    feature comparison
@@ -60,16 +60,33 @@ The design rationale log. Newest entry at the **top**. Each entry:
 The full historical record of delivered work. **This** is where "what did we
 build recently" lives — not `ROADMAP.md`.
 
-### `ROADMAP.md`
+### `ROADMAP.md` and the three files it indexes
 
-Slim and **forward-looking only**. Anything that already shipped moves to
-`shipped-log.md`. Sections, in order: 🔨 Next up, 🚧 Blocked, 📌 Wishlist
-(undesigned), ⚠️ Known issues, 💤 Won't do.
+`ROADMAP.md` is an **index**, kept at the repo root because
+`Wavvon-server/README.md` links it publicly. The work lives in three files
+under `docs/`, split by **how committed we are** — one question, so an item
+has exactly one home (decisions.md, 2026-08-21):
 
+| File | Contains | Reads as |
+|---|---|---|
+| `docs/next-up.md` | designed work in flight, 🚧 Blocked, ⚠️ Known issues | what we're working on |
+| `docs/future-features.md` | intent settled, design pending | what we'll work on |
+| `docs/wishlist.md` | not committed to | what we might do |
+
+Items move right to left: a wish we decide to pursue becomes a future
+feature, and gets designed into next-up. `ROADMAP.md` itself carries only the
+index and 💤 Won't do, which is a decision list rather than a plan.
+
+- **Known issues are open, not necessarily scheduled** — listing a bug in
+  next-up.md says it is real and unfixed, not that anyone is on it. Say so;
+  the section header does.
 - Add items when designed work starts; update them when each finishes.
-- Shipped wishlist entries are **deleted**, never left annotated as "shipped" or "deferred tail".
-- Once a design doc lands under `docs/`, the item leaves the wishlist.
-- One line per entry. Anything needing a paragraph of rationale belongs in `docs/`, not here.
+- Anything shipped is **deleted** from all three, never annotated as
+  "shipped" or "deferred tail". It moves to `shipped-log.md`.
+- Once a design doc lands under `docs/`, the item graduates out of
+  `future-features.md`.
+- Keep entries short. A paragraph of rationale belongs in the design doc or
+  in `decisions.md`, and the entry links to it.
 - Name the repo when it isn't obvious: `[server] flaky DM outbox retry`.
 
 ### `openapi.yaml`

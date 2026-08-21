@@ -6,6 +6,53 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## The roadmap splits by commitment level, into three files
+
+**Decision** (2026-08-21): `ROADMAP.md` becomes an index. The work moves into
+`docs/next-up.md` (designed, in flight, plus Blocked and Known issues),
+`docs/future-features.md` (intent settled, design pending) and
+`docs/wishlist.md` (not committed to). An item moves right to left as it earns
+it. `ROADMAP.md` keeps only the index and Won't do, and stays at the repo root
+because `Wavvon-server/README.md` links it publicly.
+
+The old file mixed four axes: commitment (Next up, Wishlist), status
+(Blocked), kind (Known issues) and decision (Won't do). "Where does this go?"
+had no single answer, and entries landed wherever — "Hosted web client"
+self-described as *undesigned* while sitting in a wishlist whose sibling
+`future-features.md` was defined as the undesigned bucket; "Passkey
+registration from desktop" sat in the wishlist while a Blocked section existed
+two paragraphs above; `future-features.md` still opened with "Farm layer —
+**this is the major next change**, partially implemented" four months after
+the farm shipped, and carried a section its own rule said to delete
+(gaming, shipped 2026-07-19) plus one marked SUPERSEDED. The new split asks
+one question — how committed are we — and the answer is monotonic, so an item
+has exactly one home and the promotion path is visible.
+
+**Alternatives considered**: (a) keep one file and enforce the sections
+harder — rejected, that is what had been happening; the sections were
+documented in `docs/CLAUDE.md` and still drifted, because the taxonomy itself
+made two of them near-synonyms; (b) move only the misfiled entries and leave
+the structure — considered and started, then rejected once the third
+mis-sorted item turned up: the placements were symptoms; (c) a fourth file for
+bugs — rejected, it would break the single axis. Known issues live in
+next-up.md under a header stating they are open and not necessarily scheduled,
+which is the honest reading and the one thing the commitment axis cannot say
+about a bug on its own.
+
+**Tradeoff**: the whole picture now takes three files instead of one, and 19
+wiki documents plus a public README link to `ROADMAP.md`. Keeping the path and
+making it an index preserves every one of those links; the deep ones that
+named a section were already rotten — `README.md` pointed at a "Recently
+shipped" section the roadmap never had, at a "Gaming Tier 3" wishlist item
+neither the roadmap nor `gaming.md` contained, and at an E2E v2 wishlist entry
+that shipped 2026-06-30.
+
+**Outcome**: `docs/CLAUDE.md` updated in the same change, since it specified
+the section list this replaces. No content was dropped without a destination:
+shipped sections were deleted with the shipped log as their record, and
+`docs/README.md`'s dangling `games-sdk.md` links went with the games removal
+that had orphaned them.
+
 ## Every bot is an external bot — the self-service bot system is removed
 
 **Decision** (2026-08-21): the hub has one bot model. A bot is an Ed25519

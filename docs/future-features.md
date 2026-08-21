@@ -1,139 +1,109 @@
-# Future Features
+# Future features
 
-Work that's still **undesigned** or has a genuinely open remainder
-beyond the current delivery scope. Ordered roughly by strategic
-priority. Anything **designed and queued** lives in the
-[ROADMAP](../ROADMAP.md) wishlist, not here; anything **shipped** is
-removed from this file (see [shipped-log.md](shipped-log.md) or the
-linked canonical doc for history).
+**On the list to build, not yet designed.** The intent is settled; the
+thinking is not. An entry graduates to [next-up.md](next-up.md) once it has a
+design someone could execute from.
+
+Designed work in flight lives in [next-up.md](next-up.md). Ideas we have not
+committed to live in [wishlist.md](wishlist.md). Anything shipped is removed
+from this file — see [shipped-log.md](shipped-log.md) for history.
 
 > See also: [farm-model.md](farm-model.md) (multi-hub server layer),
-> [gaming.md](gaming.md) (gaming + rich-bot platform),
-> [bots.md](bots.md), [alliances.md](alliances.md).
+> [gaming.md](gaming.md), [bots.md](bots.md),
+> [alliances.md](alliances.md).
 
 ---
 
-## 1. Farm layer — the big architectural step
+## Cross-farm certification relay
 
-**This is the major next change.** The farm is the multi-hub control
-plane: one operator runs many hubs behind one domain, with lifecycle
-(spawn / monitor / stop), reverse-proxy routing, farm-level SSO, and
-`agent` worker nodes that reverse-connect to the farm. Canonical design
-+ current state: [farm-model.md](farm-model.md) / `farm-impl.md`
-(partially implemented).
+Both anti-spam layers are shipped — proof-of-work (`identity/src/pow.rs`) and
+hub certification/reputation ([hub-certifications.md](hub-certifications.md),
+incl. the auto-issuance sweep). What is undesigned is letting certifications
+**propagate across the hubs a single farm operator manages**, so a member
+vouched-for on one hub in the farm is not re-verified from scratch on the
+next. No design work started.
 
-Everything else "big" hangs off this:
-- **Invites are already farm-ready** — `wavvon://<host>/i/<hubSerial>/<code>`
-  carries the hub serial so a farm can route the same domain to
-  different hubs by serial (shipped 2026-07-05).
-- Cross-farm cert relay (below) and cross-hub gaming assume the farm
-  exists.
+## Farm multi-node data plane
 
-**Status:** partially implemented; the routing + lifecycle work is the
-headline remaining effort.
+The farm proxy only reaches farm-local hubs (`proxy.rs` hardcodes
+`127.0.0.1`, `servers` has no host column; re-verified 2026-08-20), so
+agent-hosted hubs on remote nodes are lifecycle-managed but unreachable
+through the farm domain. ~3–4 days (2026-08-06 assessment): additive
+`servers.host` + agent-advertised address in the WS `hello`, host-aware proxy
+on both paths, agent passing the public host to spawned hubs so `/info`
+advertises a correct `voice_wt_url` (voice stays direct QUIC to the node),
+monitor driving remote hubs via heartbeats. No hub or client changes.
 
----
+Here rather than in next-up because two design questions are open: private
+networking farm↔nodes instead of farm↔node TLS, and per-node Postgres.
+Sketch: [farm-impl.md](farm-impl.md).
 
-## 2. Cross-farm certification relay
+## Voice in alliance channels
 
-**Follows the farm layer.** Both anti-spam layers are shipped —
-proof-of-work (`identity/src/pow.rs`) and hub certification/reputation
-([hub-certifications.md](hub-certifications.md), incl. the auto-issuance
-sweep). What's undesigned is letting certifications **propagate across
-the hubs a single farm operator manages**, so a member vouched-for on
-one hub in the farm isn't re-verified from scratch on the next. No
-design work started; depends on §1.
+Alliance space-sharing covers any space type, recursively
+([alliances.md](alliances.md), shipped 2026-07-05), but voice in a shared
+channel needs a relay redesign. Also still open in that area: game
+launch/lobby federation, and member discovery beyond invite tokens.
 
----
+## Forum post federation across alliances
 
-## 3. Gaming platform + rich bots (one theme)
+Forums are shipped ([forum.md](forum.md)) but hub-local: posts and replies do
+not federate over alliance-shared channels. A natural part of the
+space-sharing work above.
 
-Games on Wavvon are **bot-driven interactive experiences**, so building
-"the gaming platform" means giving bots a Telegram-mini-app-class
-runtime — **interactive UI (buttons/components), audio, and
-video/media**. Once bots can run whatever they need, games fall out.
+## Server tags — trust roots and transitivity
 
-Full writeup: [gaming.md](gaming.md). The building blocks (all tracked
-in [bots.md](bots.md)'s deferred list):
+Self-tags, badges (issue/accept/decline/revoke), and cross-hub revocation
+polling are shipped ([server-tags.md](server-tags.md)). Still deferred:
+**user-configurable trust roots** (v1 uses existing hub relationships) and
+**badge transitivity**.
 
-- **Bot audio injection** — *designed* ([soundboard.md](soundboard.md)
-  §2, `can_speak_voice`); smallest first step.
-- **Bot video / canvas injection** — undesigned.
-- **Fuller interactive game-modal runtime** — grow the shipped bot
-  mini-app + message-component seed into stateful, per-user game views.
-- **Multiplayer session / lobby** — matchmaking + shared state; bot-owned,
-  hub-relayed. Undesigned.
-- **Bot DMs** — bots as DM participants (needs a friend-graph rethink).
-- **Game distribution** — discovery/advertising of game-bots.
+## Multi-device — Android QR pairing
 
-No timeline; deliberately after §1.
+Multi-device pairing is shipped ([multi-device.md](multi-device.md)): master
++ subkey model, QR pairing on desktop/web, revocation propagation, identity
+backup/restore. Remaining: **Android** only has the text/paste pairing flow;
+the QR scan-and-offer UX has not been ported. Gated on Android returning to
+scope at all ([android-rewrite-notes.md](android-rewrite-notes.md)).
 
----
+## Passkey registration from desktop
 
-## 4. Alliance space-sharing — any space, including sub-spaces
+Blocked by a Tauri webview RP ID mismatch. Undesigned because the way out is
+a choice not yet made: a native WebAuthn plugin, or a system-browser handoff.
 
-**Implemented (v2, 2026-07-05).** Alliance sharing now covers **any
-space type** — banner, channel, category, forum — and **recursively**
-shares a space *with its sub-spaces* (sharing a category shares the tree
-beneath it, with live semantics). Canonical doc:
-[alliances.md](alliances.md) ("Recursive space sharing"); rationale in
-[decisions.md](decisions.md) (2026-07-05).
+## Desktop parity backlog
 
-Still future in this area: voice in alliance channels (relay redesign),
-forum post federation (posts stay hub-local — see §5), game launch/lobby
-federation, member discovery beyond invite tokens.
+Named custom themes, data-export archive compat, and LAN discovery UX (mDNS +
+QR). The whisper gaps, the `SoundboardPlayed` chip,
+`hub_updated`/`channels_updated`/`member_updated`, the duplicate
+channel-appearance modal and paired-device E2E (pairing Mechanism A) all
+closed 2026-08-08. Details in [client-parity.md](client-parity.md).
 
----
+## Banner-channel management surface
 
-## 5. Forum post federation across alliances
+A bannerless banner channel cannot be renamed or deleted from the web sidebar
+— no gear, no context menu. Needs a small UX decision first
+([client-parity.md](client-parity.md) tracked item 4).
 
-Forums are shipped ([forum.md](forum.md)) but hub-local: posts/replies
-don't federate over alliance-shared channels. Undesigned; a natural part
-of the §4 space-sharing work.
+## Project visibility push
 
----
+Hosted demo hub, directory listings, launch post. Needed for adoption and for
+the code-signing re-application ([code-signing.md](code-signing.md)). Not a
+feature and not designed as a campaign.
 
-## 6. Live captions in voice
+## Hub-hosted identity vault — designed, build gated
 
-Client-side speech-to-text (whisper.cpp-class local models) rendering
-live captions — an accessibility differentiator that keeps the
-no-telemetry stance (audio never leaves the client). **Undesigned and
-desktop-era** — too heavy for the web client, the current delivery
-target. Parked until desktop is back in scope. See
-[accessibility.md](accessibility.md).
+The odd one out: this **has** a design ([identity-vault.md](identity-vault.md))
+and so would belong in next-up by the usual rule, but the decision to build it
+is deliberately deferred. **Do not build** until after the first external
+pilot, when real identity-loss patterns can justify or kill the
+hub-held-ciphertext trade-off (decisions.md, 2026-07-19). Kept here rather
+than in the wishlist because the intent is not in doubt — only the evidence.
 
 ---
 
-## 7. Server tags — remaining bits
-
-Self-tags, badges (issue/accept/decline/revoke), and cross-hub
-revocation polling are shipped ([server-tags.md](server-tags.md)). Still
-deferred: **user-configurable trust roots** (v1 uses existing hub
-relationships) and **badge transitivity**.
-
----
-
-## 8. Multi-device — Android QR pairing
-
-Multi-device pairing is shipped ([multi-device.md](multi-device.md)):
-master + subkey model, QR pairing on desktop/web, revocation propagation,
-identity backup/restore. Remaining: **Android** only has the text/paste
-pairing flow; the QR scan-and-offer UX hasn't been ported.
-
----
-
-## 9. OAuth social-verification badges — SUPERSEDED
-
-**Resolved: replaced by community achievement badges (shipped 2026-07-05).**
-
-The OAuth idea had an unanswerable-without-a-central-authority core (who
-verifies the token, how does a badge travel cross-hub without a blessed
-service). **Community badges answer the same goal the federated way:** a
-hub grants a user a named badge, signed by the hub's pubkey, carried in
-the user's portfolio, verified offline, curated by the user — no central
-authority, no external provider. See
-[hub-certifications.md](hub-certifications.md) "Achievement badges."
-
-OAuth-provider linking (GitHub/Steam/X) could still layer on *later* as
-one more badge issuer, but only if there's real demand — it's no longer
-on the critical path.
+> Demand-gated tails of shipped features live in their own docs, not here:
+> forum federation ([forum.md](forum.md) §9 deferred list), gaming/bots
+> ([bot-capability-layer.md](bot-capability-layer.md) §10–§11), LAN
+> federation ([lan-mode.md](lan-mode.md) §6), farm follow-ups
+> ([farm-model.md](farm-model.md)).
