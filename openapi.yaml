@@ -552,6 +552,49 @@ paths:
                 challenge_token:
                   type: string
                   description: "Token from POST /challenge/verify (required when challenge_mode != off)"
+                alliance_voice_grant:
+                  type: object
+                  description: |
+                    Voice in alliance channels: an origin hub's signed assertion that the
+                    caller is its member and the named channel is shared with an alliance
+                    this hub belongs to. Minted by
+                    `POST /alliances/{alliance_id}/voice-grant` on the caller's own hub.
+
+                    Admits a **visitor** — a session scoped to `alliance_voice`, with no
+                    `users` row on this hub, no roles and no message access. Ignored for a
+                    caller who is already a member here, who gets their normal session.
+
+                    Requires the `voice.alliance` capability on this hub.
+                  required: [payload, signature]
+                  properties:
+                    payload:
+                      type: object
+                      required:
+                        [alliance_id, owner_hub_pubkey, channel_id, subject_pubkey,
+                         origin_hub_pubkey, origin_hub_url, issued_at, expires_at]
+                      properties:
+                        alliance_id: { type: string }
+                        owner_hub_pubkey:
+                          type: string
+                          description: "Must be this hub, so a grant cannot be replayed elsewhere"
+                        channel_id: { type: string }
+                        subject_pubkey:
+                          type: string
+                          description: |
+                            The visitor's canonical pubkey. Must equal the identity this
+                            challenge-response just authenticated — the grant vouches for
+                            membership of the origin hub, never for identity.
+                        origin_hub_pubkey: { type: string }
+                        origin_hub_url: { type: string }
+                        display_name:
+                          type: string
+                          nullable: true
+                          description: "Roster display only. Hub-vouched, not proven."
+                        issued_at: { type: integer, format: int64 }
+                        expires_at: { type: integer, format: int64 }
+                    signature:
+                      type: string
+                      description: "Hex Ed25519 signature by origin_hub_pubkey over the payload JSON"
       responses:
         "200":
           description: Auth successful
@@ -563,8 +606,11 @@ paths:
                   token: { type: string }
                   scope:
                     type: string
-                    enum: [member, lobby]
-                    description: "'lobby' means the user must complete PoW in /lobby before full access"
+                    enum: [member, lobby, alliance_voice]
+                    description: |
+                      'lobby' means the user must complete PoW in /lobby before full access.
+                      'alliance_voice' is a visitor from an allied hub, admitted to one shared
+                      voice channel and confined to /info, the DH-key routes and /ws.
         "401":
           description: Invalid signature or banned
 
@@ -1589,6 +1635,57 @@ paths:
           in: path
           required: true
           schema: { type: string }
+
+  /alliances/{alliance_id}/voice-grant:
+    post:
+      summary: Mint a voice grant for an allied hub's shared channel
+      description: |
+        Called by one of **this** hub's members, for a voice channel owned by
+        another member of the alliance. Returns a short-lived (5 minute) grant to
+        present at the owning hub's `POST /auth/verify`, plus where to present it.
+
+        This hub gates on the only local permission that means anything about a
+        remote channel — the caller is a member here, approved and not muted — and
+        resolves the owning hub by asking each alliance member which shared
+        channels it owns. Every channel fact is re-checked by the owning hub
+        against its own shared set on redemption.
+      tags: [Alliances]
+      parameters:
+        - name: alliance_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [channel_id]
+              properties:
+                channel_id: { type: string }
+      responses:
+        "200":
+          description: Grant minted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  grant:
+                    type: object
+                    description: "Present verbatim as auth/verify's alliance_voice_grant"
+                  owner_hub_url: { type: string }
+                  owner_hub_pubkey: { type: string }
+                  channel_name: { type: string }
+        "400":
+          description: not_a_voice_space — a category, banner or spawner has no room
+        "403":
+          description: not_a_member, not_in_good_standing, or muted
+        "404":
+          description: alliance_not_found, or no alliance member owns that channel
+        "409":
+          description: channel_is_local — this hub owns the channel; join voice normally
 
   /alliances/{alliance_id}/channels:
     get:
