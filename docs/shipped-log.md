@@ -4,6 +4,47 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Voice in alliance channels, hub side (2026-08-22)**: a member of an allied
+  hub can join voice in a channel this hub shares with the alliance. The owning
+  hub's relay is the room and the visitor dials it directly, so `voice_wt.rs`,
+  `voice_channels`, `voice_sender_ids`, the sender-key construction and the
+  datagram format are untouched — no `wire-format.md` entry and no three-way
+  identity-crate mirror, which is what made this a week of work rather than a
+  quarter.
+  The origin hub signs the one thing the owner cannot know: that this pubkey is
+  its member and that channel is shared. The owner re-resolves every channel
+  fact against its **own** shared set, so an allied hub cannot name a channel it
+  likes, and the grant vouches for membership and never for identity — the
+  subject must be the identity the challenge-response just authenticated.
+  Two things the design had asserted turned out to be false, and the tests found
+  both. **A visitor's session cannot live in `sessions`**: that table has
+  `public_key REFERENCES users(public_key)` and a visitor has no user row by
+  design, while the additive-only migration rule rightly forbids dropping the
+  constraint. The first fix was a LEFT JOIN in both auth paths; the better one is
+  that the visit *is* the session — the token lives on
+  `alliance_voice_visitors` beside the channel and the expiry, `sessions` keeps
+  meaning what it always meant, and "a visitor is not a member" becomes
+  structural instead of something a loosened join has to remember. And
+  **`voice_key_request` is not a client message** — it is server→client, so
+  listing it in the WS allowlist would have been an arm for a variant that
+  cannot arrive.
+  Scope is an allowlist because a denylist grows a hole every time a route is
+  added: `/info`, the two DH-key routes, `/ws`. Both DH directions are needed —
+  E2E voice keys are wrapped per recipient, so a visitor who cannot publish its
+  own key is audible to nobody and one who cannot read others' hears nobody. On
+  the socket, six message types; anything else is dropped **with a log line**,
+  never an `Other => {}`, which is the arm on this exact enum that once hid four
+  hub features for months.
+  Reuses the shared enforcement helpers rather than copying their predicates —
+  `is_muted`, and `is_denied_by_federated_policy`, whose own doc comment says
+  every admission point must call it because the overrides were once missed at
+  the message layer by exactly the inline copy this avoided.
+  Six integration tests, on a two-hub harness that turned out to already exist:
+  the happy path (asserting no `users` row appears, and that `/users`,
+  `/channels`, `/conversations` and `/me` all 403), unsharing between mint and
+  redemption invalidating an outstanding grant, `voice_remote_join = 'none'`,
+  presenting someone else's grant, and minting for a channel you own yourself.
+
 - **Outbound voice packet loss, measured where it can be measured
   (2026-08-22)**: the connection panel showed inbound loss only, and said so
   rather than showing a guess — a sender genuinely cannot know which of its own

@@ -163,9 +163,22 @@ banner/spawner dimmed — and now wires alliance channel open/post
 
 ## Voice in alliance channels
 
-**Status**: designed, not built. Web client + hub only — no desktop work
-required, since both clients speak the same WebTransport voice stack
+**Status**: **hub side shipped 2026-08-22**; the web client join flow is the
+remaining slice. Web client + hub only — no desktop work required, since both
+clients speak the same WebTransport voice stack
 ([voice-transport-v2.md](voice-transport-v2.md), shipped 2026-08-07).
+
+Two things below were wrong, and both were found by the tests rather than by
+re-reading, so they are corrected in place with the reason kept:
+
+- **The visitor's session cannot live in `sessions`.** That table has
+  `public_key REFERENCES users(public_key)`, so a row for someone with no
+  `users` row is impossible, and the additive-only migration rule rightly
+  forbids dropping the constraint. The visit *is* the session — see the table
+  below.
+- **`voice_key_request` is not a client message.** It is `WsServerMessage`:
+  the hub asks a sender to re-offer, and the client answers with another
+  `voice_key_offer`. It is out of the WS allowlist.
 
 > **Maintenance note**: this section pushes the file past the wiki's ~200-line
 > budget. Split it out to `alliance-voice.md` (and relink from
@@ -270,11 +283,21 @@ in `/users`. Visitor state is one additive table in
 
 ```
 alliance_voice_visitors(
-  subject_pubkey PK, origin_hub_pubkey, origin_hub_url,
+  subject_pubkey PK, token UNIQUE, origin_hub_pubkey, origin_hub_url,
   display_name, channel_id, admitted_at, expires_at)
 ```
 
-Swept by the existing retention worker.
+**The `token` is the point, not an extra.** A visitor holds no `sessions` row
+at all, because `sessions.public_key` references `users` and a visitor has no
+user row by design. Putting the bearer token here instead leaves `sessions`
+meaning exactly what it always meant, and makes "a visitor is not a member"
+structural rather than something a loosened join has to keep remembering. Both
+auth paths — the HTTP extractor and `validate_ws_token` — try `sessions` first
+and fall back to this table, in that order, so a member who also holds a visit
+somewhere never loses their member session to the fallback.
+
+Swept by the existing retention worker; `expires_at` also bounds the token,
+so a late sweep cannot extend a visit.
 
 ### Scope enforcement — allowlist, not denylist
 
@@ -286,7 +309,8 @@ denylist grows a hole every time a route is added. Reachable: `GET
 both directions). Everything else → `403 alliance_voice_scope`.
 
 On the WS only `voice_join`, `voice_leave`, `voice_speaking`,
-`voice_key_offer`, `voice_key_request` and `ping` are handled; every
+`voice_key_offer` and `ping` are handled (`voice_key_request` is
+server→client, see the status note above); every
 other variant is dropped **with a log line**, not an `Other => {}`
 no-op — the silent-fallthrough bug class `Wavvon-server`'s CLAUDE.md
 names. `voice_join` is additionally checked against
