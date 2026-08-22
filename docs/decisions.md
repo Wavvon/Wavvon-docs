@@ -6,6 +6,49 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Outbound packet loss rides on `pong`, and is absent rather than zero
+
+**Decision** (2026-08-22): the relay counts gaps in each sender's cleartext
+`ctr` and returns the percentage on the existing `pong`, as an optional field
+gated by a `voice.loss` capability. When there is no answer the field is
+**omitted**, never sent as `0.0`.
+
+Outbound loss can only be measured at the relay. A sender cannot know which of
+its own datagrams were dropped, which is why the connection panel shipped with
+inbound loss and a sentence explaining the gap rather than a fabricated zero.
+The relay can: every voice packet's `[key_id][ctr][ts]` header is cleartext, so
+reading a counter decrypts nothing and the hub stays a header-only forwarder.
+
+**Alternative — a periodic stat frame.** The obvious shape, and one more
+heartbeat: the client already sends `ping` every two seconds for latency, and
+the panel already had somewhere to put a number. A second timer on the same
+interval to the same client, carrying one float, is a mechanism where a field
+would do. `pong` also keeps the hub stateless in the sense that matters — there
+is still no probe table; the reply reads a map the relay maintains anyway.
+
+**Alternative — always send a number, zero when unknown.** Rejected, and this
+is the load-bearing half of the decision. A client cannot distinguish "this hub
+does not measure outbound loss" from "your loss is 0.0%" if the hub answers 0.0
+to both, and there are three ways to have no answer: not in voice, fewer than
+two packets sent, and an older hub. A reassuring zero in any of them is worse
+than an em dash, and it is the exact failure the panel was built to avoid.
+
+**Tradeoff.** Loss is cumulative per voice session, so a long call dilutes a bad
+patch into its average. Deliberate: the inbound figure alongside it has the same
+property, and two numbers in one panel computed on different windows would
+mislead more than either window being wrong. Both move to a sliding window
+together, or neither. Marked in the source as a shared ceiling.
+
+**Also settled**: the figure is keyed by pubkey and answered only to the socket
+it belongs to. One participant's uplink is not the channel's business, and
+publishing it to the roster would turn diagnostics into gossip.
+
+**Outcome**: `voice_loss.rs` (~80 lines, pure, unit-tested), three integration
+tests over the WS reply, one capability string, and one optional field. The
+arithmetic deliberately mirrors `connectionStats.ts` — expected from the counter
+span rather than elapsed time, so a silent participant is not reported as 100%
+lost, and reordering is not loss on a QUIC datagram path where it is routine.
+
 ## Alliance voice: the owning hub's relay is the room, and visitors dial it directly
 
 **Decision** (2026-08-22): a member of hub B joining voice in an alliance
