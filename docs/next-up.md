@@ -50,13 +50,23 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   granted only its own space, works with either layout. Worth doing before a
   farm hosts hubs it does not itself own.
 
-- [ ] **Browser e2e in CI.** No workflow runs Playwright at all. The 57 live
-  specs under `apps/web/e2e/live/` only ever run against a hub someone started
-  by hand — `HUB_URL` is a hard-coded const in `e2e/live/helpers/live.ts` — so
-  the suite that covers the real app is the one nobody runs. Its own piece of
-  infrastructure (postgres, hub, vite, browsers). Start by making that URL
-  configurable, which also lets the suite point at a farm-hosted
-  `/hub/<slug>`.
+- [ ] **Browser e2e in CI — the tail.** The suite is no longer tied to one
+  laptop: `WAVVON_E2E_HUB_URL` / `WAVVON_E2E_APP_URL` override both ends, an
+  `e2e-live.yml` workflow starts postgres, builds the hub and drives Chromium
+  against it, and 81 of 86 specs pass against a genuinely fresh hub locally
+  (shipped log). **The workflow itself has never run on a runner** — it is
+  authored, not verified, and the first push to `develop` is its first
+  execution. Left:
+  - watch that first run and fix what only a runner shows: hub build time, any
+    library `--with-deps` does not cover, and whether Chromium there accepts
+    the hub's self-signed WebTransport cert the way it does locally;
+  - **`57-dm-messaging` still fails.** The member's conversation row, matched
+    on the owner's display name, never appears. Not diagnosed further — it is
+    the only one of the five failures that was not stale-spec rot, so treat it
+    as a real DM-liveness or display-name bug until shown otherwise. It is
+    plausibly the same root as the paired-device DM item below;
+  - point a run at a farm-hosted `/hub/<slug>`, which is what the URL override
+    was the prerequisite for.
 
 - [ ] **Bundle PostgreSQL into the hub binary** — the zero-prerequisite
   install story. Design and rationale:
@@ -162,12 +172,6 @@ to the [shipped log](shipped-log.md).
   2026-08-21 (no playout scheduling in the web client; see shipped log). The
   jitter only exists on a real network, so **the audible confirmation is still
   outstanding** — it needs a session on the pilot. Reopen this if it persists.
-
-- **Outbound packet loss is not measured** — the connection panel shows
-  inbound loss only, because a sender cannot know which of its own packets
-  were dropped. The relay can: the voice header's `ctr` is cleartext, so the
-  hub sees gaps in a sender's counter sequence and could report them back.
-  Needs a hub-side per-sender counter and a periodic stat frame.
 
 - **Discord importer needs a live run** — `export` with a real bot token +
   `apply` against a running hub never exercised live.

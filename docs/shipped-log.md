@@ -4,6 +4,61 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Outbound voice packet loss, measured where it can be measured
+  (2026-08-22)**: the connection panel showed inbound loss only, and said so
+  rather than showing a guess — a sender genuinely cannot know which of its own
+  datagrams were dropped. The relay can, and now does: every voice packet
+  carries a cleartext `[key_id][ctr][ts]` header, `ctr` is the sender's own
+  monotonic counter, and gaps in it are packets that left the client and never
+  arrived. Reading a counter decrypts nothing, so voice stays end-to-end
+  encrypted and the relay stays a header-only forwarder.
+  It rides back on the existing `pong`. The client already probes every two
+  seconds for latency and the panel already had somewhere to put a number, so a
+  periodic stat frame of its own would have been a second heartbeat at the same
+  interval for the same client. The hub still keeps no probe table — the reply
+  reads a map the relay maintains anyway.
+  Absent, never zero, in the three cases where there is no answer: not in
+  voice, fewer than two packets sent, or a hub without the new `voice.loss`
+  capability. A client cannot tell "this hub does not measure it" from "your
+  loss is 0.0%" if the hub answers 0.0 to both, and a reassuring zero is
+  exactly what this panel was built not to show.
+  Deliberately the same arithmetic as the inbound figure, because the two sit
+  in one panel: expected comes from the counter span rather than elapsed time
+  (a silent participant sends nothing, and time-based arithmetic calls that
+  100% loss), and reordering never counts as loss on a QUIC datagram path where
+  it is routine. Both are cumulative per session, which a long call dilutes —
+  marked as a shared ceiling rather than fixed on one side only.
+  Keyed by pubkey and answered only to the socket it belongs to: one
+  participant's uplink is not the channel's business. A test asserts that.
+
+- **The live browser e2e suite runs somewhere other than one laptop
+  (2026-08-22)**: `HUB_URL` was a hard-coded const, so the 57 specs that cover
+  the real app only ever ran against a hub someone had started by hand — and
+  the suite that covers the most was the one nobody ran. `WAVVON_E2E_HUB_URL`
+  and `WAVVON_E2E_APP_URL` now override both ends, which is also what lets the
+  same specs point at a farm-hosted `/hub/<slug>`. A workflow starts postgres,
+  builds the hub from the server repo, runs it API-only and drives Chromium
+  against it.
+  Two things had to be fixed before a fresh hub could be driven at all, and
+  both were invisible on a dev box that already had state. The hub refused to
+  start with `WAVVON_WEB_CLIENT_DIR=` — its own documented API-only switch —
+  because an empty env var deserialised as `Some("")`. And a hub with no
+  channels greets its owner with the first-boot template picker, whose overlay
+  swallows every click behind it; no spec had ever seen it, because they were
+  written against a hub that already had channels. It is dismissed during
+  setup, so the flag lands in the saved owner session and the rest of the suite
+  never meets it.
+  Running it then found four specs asserting things the app stopped doing, all
+  from feature work that never updated them — which is the argument for the
+  workflow in one sentence. The mic-test button was renamed when the voice tab
+  was localized. "Create and delete a native bot" tested the hub-minted-token
+  bot model that `bots.external` replaced: a tab, a heading and a form that no
+  longer exist, rewritten against the invite-by-pubkey model that does. And two
+  invite-link specs asserted `wavvon://<host>/i/<serial>/<code>`, a format
+  dropped when invite links were changed to open the app instead of serving raw
+  JSON — one rewritten for `http(s)://<host>/join/<code>`, the other deleted,
+  because the serial it existed to check is not in the link any more.
+
 - **The VAD toggle now drops silence, which is what its label always said
   (2026-08-22)**: "Enable voice activity detection (drops silence)" had never
   dropped a single frame. On web nothing read `customVad` at all; on desktop

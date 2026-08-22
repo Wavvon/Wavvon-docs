@@ -125,6 +125,14 @@ the input slice unchanged.
 - Reads `EffectiveVoiceConfig` at pipeline start.
 - Passes `bypass` to `Denoiser`.
 - Skips the VAD gate when `vad_enabled = false` (always transmit).
+  This line described an intention rather than the code until 2026-08-22:
+  `vad_enabled` only chose how the speaking indicator behaved, and every frame
+  went out either way, so "drops silence" in the settings was a switch wired to
+  nothing. The gate exists now on both clients. The web engine resolves the same
+  profile table in `apps/web/src/platform/speakingDetector.ts` (`effectiveVad`)
+  and has to test a playing soundboard clip separately, because it runs speech
+  detection on the raw mic frame while this pipeline mixes the clip in before
+  the VAD.
 - Uses configured `frame_duration_ms` for `frame_size`.
 - Passes `channels` to `AudioCapture` (keeps stereo signal if 2).
 
