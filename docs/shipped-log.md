@@ -4,6 +4,25 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **`moderation_flow` stopped flaking (2026-08-23)**: four voice-join tests
+  failed roughly one full-suite run in three, always the same four, and all 18
+  passed when the binary ran alone. Two causes, both in one shared helper, and
+  both the same mistake wearing different clothes — guessing what the socket
+  would deliver instead of stating what the test wanted.
+  The helper skipped a **denylist** of noisy frames (`member_online`,
+  `member_offline`) and returned the next frame of any kind. The hub pushes
+  unsolicited frames on connect — roster, in-progress screen shares — and under
+  load those land *after* the `hello` read rather than before it, so the
+  assertion landed on one of them. It is an allowlist now: a join is answered by
+  `voice_joined` or `error`, and nothing else is the answer. A denylist grows a
+  hole every time the hub learns to push something new, which is the same
+  argument that shaped the `alliance_voice` WS scope a day earlier.
+  The second was a panic on WebSocket **control** frames — "expected text frame,
+  got Ping([])", the hub's own keepalive. Harmless at low load and reliably fatal
+  under `--test-threads=4`: exactly the shape of a failure nobody can reproduce
+  on demand. Control frames are skipped now, and every wait has a 20-second
+  bound so a hang fails with a sentence instead of hanging.
+
 - **A fresh farm can be claimed, and the URL it advertises resolves
   (2026-08-22)**: two bugs, both found by driving a real farm binary, both
   invisible to the in-process suite for the same reason — the farm's tests

@@ -247,18 +247,6 @@ to the [shipped log](shipped-log.md).
   have the mic-test meter say plainly when the level never crosses the gate.
   Reopen as a bug the first time someone reports going silent.
 
-- **`moderation_flow` fails intermittently under `--test-threads=4`.** The same
-  four voice-join tests every time — `voice_mute_blocks_voice_join`,
-  `channel_voice_mute_blocks_voice_join`, `talk_power_blocks_low_priority_user`,
-  `raise_hand_allows_voice_join_below_threshold` — and all 18 pass when the
-  binary runs alone, in **84 seconds**. That runtime is the clue: these are the
-  slowest tests in the suite, so under contention they are the first to hit
-  whatever they are waiting on. Not the documented `PoolTimedOut` shape (no such
-  error appears), and not caused by the alliance-voice work — it flaked the same
-  way before it. Observed roughly one run in three. Worth chasing because a suite
-  that fails at random is a suite people stop reading; `--test-threads=1` on that
-  binary is the workaround meanwhile.
-
 - **Discord importer needs a live run** — `export` with a real bot token +
   `apply` against a running hub never exercised live.
 
