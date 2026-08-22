@@ -4791,14 +4791,7 @@ paths:
                 cert_standing_days: { type: string }
                 cert_validity_days: { type: string }
                 cert_mode: { type: string, enum: [none, any, trusted] }
-                cert_trusted_issuers:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      pubkey: { type: string }
-                      url: { type: string }
-                      label: { type: string }
+                cert_trusted_issuers: { type: array, items: { type: string } }
                 cert_require:
                   type: object
                   properties:

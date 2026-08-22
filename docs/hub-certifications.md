@@ -224,9 +224,10 @@ A new hub-admission gate, expressed in `hub_settings` and advertised on
 rule shapes, combinable:
 
 - **Trusted-issuer list** — `cert_trusted_issuers`: a JSON array of
-  `{ pubkey, url, label }`. "Admit if the user presents a valid cert
-  from any of these hubs." This is the explicit, sovereign choice — the
-  admin names hubs they trust.
+  issuer pubkey strings. "Admit if the user presents a valid cert from
+  any of these hubs." This is the explicit, sovereign choice — the admin
+  names hubs they trust. It read `{ pubkey, url, label }` here until
+  2026-08-22, which was true of one reader and of no writer; see §11.
 - **Property rule** — `cert_require`: a small predicate such as
   `{ min_pow_level: 15 }` or `{ min_member_since_days: 90 }`. "Admit if
   the user presents *any* valid cert (from any issuer) whose `pow_level
@@ -496,31 +497,58 @@ exchange the trust relationship the farm already wires becomes
 functional with no client release, and it works for hand-configured
 issuers outside a farm too, which the push path never would have.
 
-### Two bugs this design must fix first
+### The shape bug this design was going to trip over (fixed 2026-08-22)
 
-1. **`cert_trusted_issuers` is written in the wrong shape.**
-   `farm_siblings::reconcile` writes it as a JSON array of bare pubkey
-   strings, while `certs::load_trusted_issuers` deserialises
-   `Vec<TrustedIssuer>` (`{pubkey, url, label}`) and swallows the parse
-   failure into `unwrap_or_default()` — an **empty list**. So the
-   sibling trust wiring currently produces nothing at all.
-2. **It also destroys admin configuration.** `farm_siblings`'s
-   `read_set` reads the same setting as `Vec<String>`, so an
-   admin-configured object list reads back as empty and the subsequent
-   `extend` + write **replaces** it with bare pubkeys.
+`cert_trusted_issuers` had two readers that disagreed with every writer.
+`certs::load_trusted_issuers` — the only reader whose answer matters, since
+it is what the auth gate consults under `cert_mode = "trusted"` —
+deserialised `Vec<TrustedIssuer>` (`{pubkey, url, label}`), while
+`farm_siblings::reconcile` and the admin UI both wrote a flat array of
+pubkey strings. The mismatch fell into `unwrap_or_default()`, so the hub
+trusted **nobody**: farm sibling trust had never once taken effect. Worse,
+`farm_siblings`'s own `read_set` read the same setting as `Vec<String>`,
+so its `extend` + write **overwrote** whatever an admin had configured.
 
-Fix: `farm_siblings` writes `TrustedIssuer { pubkey: hub_pubkey, url:
-hub_url, label: "" }` and reads/merges on `pubkey`. The `hub_url` is
-already in the `Sibling` struct, so no wire change. This is exactly the
-silent-fallthrough class `Wavvon-server`'s CLAUDE.md flags — a
-`serde_json::from_str(...).unwrap_or_default()` over a shape mismatch
-says nothing.
+Exactly the silent-fallthrough class the server CLAUDE.md flags: a
+`serde_json::from_str(..).unwrap_or_default()` over a shape mismatch says
+nothing at all.
+
+Fixed by collapsing to one shape — a flat array of pubkey strings — rather
+than by teaching the writers to emit objects. `url` and `label` were read
+by nothing anywhere in the workspace (the trust check compares pubkeys and
+only pubkeys), the admin UI cannot produce them, and `GET
+/admin/settings/certs` already returned strings, so the string form is the
+one every end of the system agreed on. `TrustedIssuer` is gone.
+`farm_siblings_flow` now has a test that goes *through*
+`load_trusted_issuers` — every existing test read the setting back with its
+own `Vec<String>` parse, which is why all six agreed with the writer and
+none of them agreed with the hub.
+
+**What that costs this design, and it is not nothing.** The pull path above
+dereferences `{issuer.url}`, and there is now no per-issuer URL stored
+anywhere. Implementing §11 therefore has to add one — and the honest
+version of that is not just re-adding a struct field, because the admin
+surface has no way to enter a URL either: `CertificationsSection.tsx`
+offers a single pubkey text box. So §11 owns:
+
+- an issuer **URL** field on the admin surface, in the shared component and
+  in both `types.ts` copies;
+- the setting shape that carries it, with `GET`, `PATCH` and `openapi.yaml`
+  agreeing for once;
+- farm siblings filling it from `Sibling.hub_url`, which they already have.
+
+A hand-configured issuer with no URL is then simply not pullable — the
+pushed-cert path still works for it — which is a better failure than a
+field the UI cannot fill.
 
 ### Implementation surface (all Wavvon-server)
 
-- `hub/src/farm_siblings.rs` — the shape fix above, plus a test that
-  round-trips through `certs::load_trusted_issuers` so the two ends
-  cannot drift again.
+- `hub/src/farm_siblings.rs` — fill the new issuer URL from
+  `Sibling.hub_url`. The shape bug itself is fixed and has its round-trip
+  test; what is left here is the URL §11 needs.
+- `packages/ui/src/components/admin/CertificationsSection.tsx` +
+  both `types.ts` copies — a URL field beside the pubkey box, because
+  today there is no way for an admin to enter one at all.
 - `hub/src/routes/certs.rs` — new `pull_portfolio(issuer, master_pubkey)`
   helper + the TTL cache; reuse `verify_certification` unchanged for
   evaluation.

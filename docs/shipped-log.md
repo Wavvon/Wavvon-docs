@@ -4,6 +4,69 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **The VAD toggle now drops silence, which is what its label always said
+  (2026-08-22)**: "Enable voice activity detection (drops silence)" had never
+  dropped a single frame. On web nothing read `customVad` at all; on desktop
+  `vad_enabled` only chose how the speaking indicator behaved. Both clients
+  sealed and sent every 20 ms frame whether or not anyone was talking — the
+  settings row was a switch wired to nothing.
+  Two properties had to hold for gating to be safe, and both already did.
+  `ctr` counts packets actually *sent*, so a silence gap is not read as
+  inbound loss — the same reason the loss metric uses the counter span rather
+  than elapsed time. And `nextPlayoutStart` already treats a gap as a real
+  event and rebuilds its lead instead of scheduling in the past. The encoder
+  still runs through suppressed frames, because it carries state between them
+  and starving it pops on the first frame after a silence; `timestamp` still
+  advances, being a media clock.
+  The soundboard needed different code on each client, which is the part worth
+  remembering. Desktop mixes a clip into `denoised` *before* the VAD, so a
+  playing clip holds `is_speaking` by itself. Web runs `updateSpeaking` on the
+  raw mic frame on purpose — a clip is not you talking — so the web gate has
+  to test `activeClip` separately. Gating on speech alone there would have
+  silenced the soundboard.
+  A second bug fell out of it: web applied `customVadThreshold` under every
+  profile and ignored `customVad`, so a slider only the custom profile
+  displays was changing how the standard profile detected speech, and the
+  music profile — the one that must never gate silence — got a silence gate.
+  `effectiveVad` now mirrors the desktop pipeline's `effective_config`, with
+  three assert tests over the resolution table.
+
+- **`cert_trusted_issuers` had a shape nobody agreed on, so no hub trusted
+  anyone (2026-08-22)**: found while designing the cert relay.
+  `certs::load_trusted_issuers` — the only reader whose answer matters, since
+  it is what the auth gate consults under `cert_mode = "trusted"` — parsed
+  `Vec<TrustedIssuer>` (`{pubkey, url, label}`), while `farm_siblings` and the
+  admin UI both wrote a flat array of pubkey strings. The mismatch fell into
+  `unwrap_or_default()`, so farm sibling trust had never once taken effect,
+  and because `farm_siblings::read_set` read the same key as `Vec<String>`,
+  its write **overwrote** whatever an admin had configured.
+  Fixed by collapsing to one shape rather than teaching the writers to emit
+  objects: `url` and `label` were read by nothing in the workspace — the trust
+  check compares pubkeys and only pubkeys — the admin UI cannot produce them,
+  and `GET /admin/settings/certs` already returned strings. `TrustedIssuer` is
+  deleted. The spec had documented both shapes at once, GET as strings and
+  PATCH as objects.
+  Why six passing tests missed it: every one of them read the setting back
+  with its own `Vec<String>` parse, so they all agreed with the writer and none
+  of them agreed with the hub. The new test goes *through*
+  `load_trusted_issuers`. Cost recorded in
+  [hub-certifications.md](hub-certifications.md) §11 — the pull path there
+  needs a per-issuer URL, and re-adding one means giving the admin surface a
+  field for it, which it has never had.
+
+- **The pipeline was red on develop for five pushes (2026-08-22)**: `cargo
+  clippy --workspace -- -D warnings` failed on `bot_kit::send_to`, whose
+  `tungstenite::Error` is 136 bytes — `result_large_err`. The workflow tracks
+  `stable`, so the lint arrived with a toolchain no local box had yet, and
+  every local check stayed green while CI went red. Boxed the error, which is
+  clippy's own suggestion and costs nothing on a cold path. Probed the other
+  error types the workspace returns while there — `sqlx::Error` 40 bytes,
+  `wtransport::ConnectingError` 56, `StoreError` 32 — so it was the single
+  offender rather than the first of many. Also gave the postgres service
+  healthcheck an explicit `-U postgres`: it had been calling `pg_isready` with
+  no user, and the dozen `FATAL: role "root" does not exist` lines it logged
+  were the entire output of `gh run view --log-failed`.
+
 - **Live connection readout: ping, spread, inbound loss (2026-08-21)**: what
   the pilot operator's "limits" remark actually meant, once clarified — a
   real-time connection panel like TeamSpeak's, not a settings page. A latency

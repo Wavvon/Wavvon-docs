@@ -24,8 +24,8 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
 - [ ] **Certification relay across the hubs of one farm.** Designed
   2026-08-22 — [hub-certifications.md](hub-certifications.md) §11. Server
   only, no client work, no capability string, no `openapi.yaml` change.
-  **Fix the `cert_trusted_issuers` shape bug first** (see Known issues) —
-  the relay cannot work until sibling trust actually parses.
+  The `cert_trusted_issuers` shape bug that blocked it is fixed; what §11
+  still owns is a per-issuer URL, including the admin field to enter one.
 
 - [ ] **Farm multi-node data plane.** The two blocking design questions are
   answered — [farm-model.md](farm-model.md) "Multi-node data plane"
@@ -147,21 +147,6 @@ Committed, cannot proceed.
 real and unfixed, not that anyone is on it. When one is fixed its entry moves
 to the [shipped log](shipped-log.md).
 
-- **[server] `cert_trusted_issuers` is written in the wrong shape, so farm
-  sibling trust resolves to nothing — and clobbers admin config.** Found
-  2026-08-22 while designing the cert relay.
-  `hub/src/farm_siblings.rs::reconcile` writes the setting as a JSON array of
-  bare pubkey strings; `hub/src/routes/certs.rs::load_trusted_issuers`
-  deserialises `Vec<TrustedIssuer>` (`{pubkey, url, label}`) and swallows the
-  parse failure into `unwrap_or_default()` — an empty list. Two consequences:
-  the farm-sibling trust wiring has never had any effect, and because
-  `farm_siblings::read_set` reads the same key as `Vec<String>`, an
-  admin-configured object list reads back as empty and the subsequent write
-  **replaces** it. `Sibling` already carries `hub_url`, so the fix is local and
-  needs no wire change; add a test that round-trips through
-  `load_trusted_issuers` so the two ends cannot drift again. Blocks
-  [hub-certifications.md](hub-certifications.md) §11.
-
 - **~296 UI strings are still hardcoded English** — the member settings
   surface was brought up to full coverage on 2026-08-21 (notifications,
   privacy, and the whole voice tab), but the rest of the app never went
@@ -183,11 +168,6 @@ to the [shipped log](shipped-log.md).
   were dropped. The relay can: the voice header's `ctr` is cleartext, so the
   hub sees gaps in a sender's counter sequence and could report them back.
   Needs a hub-side per-sender counter and a periodic stat frame.
-
-- **Voice settings expose a VAD toggle nothing reads** — `customVad` is in
-  the voice tab and no code consults it. Its companion `customVadThreshold`
-  now drives speech detection (2026-08-21), but transmission is never gated
-  on the toggle. Either wire it or take it out of the UI.
 
 - **Discord importer needs a live run** — `export` with a real bot token +
   `apply` against a running hub never exercised live.
