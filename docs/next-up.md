@@ -71,6 +71,12 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
     read the name back from `/me` for exactly this reason; P57 now does too.
     Worth remembering as a shape — "element(s) not found" in a suite with
     deliberately shared state reads like a product bug and often is not;
+  - **the suite needs a fresh database per run, and its README says otherwise.**
+    Re-running against a database two previous runs had already filled produced
+    four failures in entirely different specs from the run before — accumulated
+    channels, roles and members, not a regression. CI is unaffected (it creates
+    the database), but the local recipe telling you a persistent `wavvon_e2e` is
+    fine is how a green suite turns red for no reason;
   - point a run at a farm-hosted `/hub/<slug>`, which is what the URL override
     was the prerequisite for.
 
