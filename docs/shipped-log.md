@@ -48,9 +48,9 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   written against a hub that already had channels. It is dismissed during
   setup, so the flag lands in the saved owner session and the rest of the suite
   never meets it.
-  Running it then found four specs asserting things the app stopped doing, all
-  from feature work that never updated them — which is the argument for the
-  workflow in one sentence. The mic-test button was renamed when the voice tab
+  Running it then found five failing specs, none of them a product bug, all of
+  them the kind of rot a suite nobody runs accumulates — which is the argument
+  for the workflow in one sentence. The mic-test button was renamed when the voice tab
   was localized. "Create and delete a native bot" tested the hub-minted-token
   bot model that `bots.external` replaced: a tab, a heading and a form that no
   longer exist, rewritten against the invite-by-pubkey model that does. And two
@@ -58,6 +58,13 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   dropped when invite links were changed to open the app instead of serving raw
   JSON — one rewritten for `http(s)://<host>/join/<code>`, the other deleted,
   because the serial it existed to check is not in the link any more.
+  The fifth looked like a real DM bug and was the most instructive one. It
+  matched the owner’s display name against the seed constant, in a suite that
+  shares one persistent hub in file order, where an earlier spec renames the
+  owner and never puts the name back. Another spec had already hit this and
+  already read the name back from `/me`, with a comment explaining why. Reading
+  “element(s) not found” as a product bug cost a detour; the fix was three lines
+  and already in the repo.
 
 - **The VAD toggle now drops silence, which is what its label always said
   (2026-08-22)**: "Enable voice activity detection (drops silence)" had never

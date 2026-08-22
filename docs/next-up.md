@@ -53,18 +53,24 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
 - [ ] **Browser e2e in CI — the tail.** The suite is no longer tied to one
   laptop: `WAVVON_E2E_HUB_URL` / `WAVVON_E2E_APP_URL` override both ends, an
   `e2e-live.yml` workflow starts postgres, builds the hub and drives Chromium
-  against it, and 81 of 86 specs pass against a genuinely fresh hub locally
+  against it, and all 86 specs pass against a genuinely fresh hub locally
   (shipped log). **The workflow itself has never run on a runner** — it is
   authored, not verified, and the first push to `develop` is its first
   execution. Left:
   - watch that first run and fix what only a runner shows: hub build time, any
     library `--with-deps` does not cover, and whether Chromium there accepts
     the hub's self-signed WebTransport cert the way it does locally;
-  - **`57-dm-messaging` still fails.** The member's conversation row, matched
-    on the owner's display name, never appears. Not diagnosed further — it is
-    the only one of the five failures that was not stale-spec rot, so treat it
-    as a real DM-liveness or display-name bug until shown otherwise. It is
-    plausibly the same root as the paired-device DM item below;
+  - the workflow sets no `WAVVON_PUBLIC_URL`, matching the local run it was
+    verified against. That leaves `/info.voice_wt_url` null, so the voice specs
+    pass without a datagram ever crossing — they cover UI state, not audio. Set
+    it and see what starts failing before trusting this job on voice;
+  - all 86 specs pass locally now. `57-dm-messaging` was logged here as a
+    probable DM-liveness bug and was not one: it matched the owner's display
+    name against the seed constant, and P24 renames the owner without putting
+    the name back, in a suite that shares one hub in file order. P48 already
+    read the name back from `/me` for exactly this reason; P57 now does too.
+    Worth remembering as a shape — "element(s) not found" in a suite with
+    deliberately shared state reads like a product bug and often is not;
   - point a run at a farm-hosted `/hub/<slug>`, which is what the URL override
     was the prerequisite for.
 
