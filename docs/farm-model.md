@@ -1,11 +1,13 @@
-# Farm Model (future)
+# Farm Model
 
-Wavvon today is 1:1 — one `hub` binary (built from the `hub/` crate in
-Wavvon-server) hosts exactly one hub. The **farm model** is a planned
-future layer that lets one server host many hubs.
+The **farm** is the layer above hub: one server process hosting many
+hubs. A standalone `hub` binary still serves exactly one community; a
+farm hosts N of them, routes to them, and owns their lifecycle.
 
-> Not built. This page captures the design so we don't paint ourselves
-> into a corner with current work.
+> Partially built — the `farm` and `agent` crates exist (serial routing,
+> reverse proxy, hub lifecycle, agent nodes). Implementation detail is
+> in [farm-impl.md](farm-impl.md); the "Multi-node data plane" section
+> below is designed and not built.
 
 ## Three terms
 
@@ -140,6 +142,115 @@ Multi-month roadmap. Don't start without explicit direction.
 
 Right time to start: when the user has 2+ hubs themselves OR a real
 user complains about running multiple hub processes.
+
+## Multi-node data plane
+
+**Status**: designed, not built. Server-only — no hub route changes, no
+client changes, so it is fully shippable against the web-only delivery
+target.
+
+The `agent` crate already lets a farm lifecycle-manage hub processes on
+remote nodes (it reverse-connects over WebSocket and spawns hubs on the
+farm's behalf), but those hubs are **unreachable through the farm
+domain**: `farm/src/proxy.rs` resolves a serial to a `process_port` and
+dials `http://127.0.0.1:<port>` — five hardcoded loopback literals, on
+both the buffered HTTP path and the WebSocket socket-bridge — and the
+`servers` table has no host column. So the control plane is
+multi-node and the data plane is not.
+
+Two design questions were blocking this. Both are answered below.
+
+### Decision 1 — farm↔node is plain TLS to an advertised host, not a private network
+
+The `servers` row gains a **host**, and the agent advertises its
+reachable address in the WebSocket `hello` it already sends. The proxy
+resolves serial → `(host, port)` and dials `https://<host>:<port>`, or
+`http://` when host is loopback.
+
+**Alternative considered**: require a private network (WireGuard, a
+cloud VPC, an SSH tunnel) between farm and nodes and keep dialing
+plaintext. Rejected — not because it is worse security (it is better),
+but because it moves a prerequisite the farm cannot verify into the
+operator's lap, and the operator this layer targets is a self-hoster
+who wanted to stop running one process per community. A farm that
+silently proxies plaintext over the open internet when the tunnel is
+down is the worse failure. Making the transport the farm's own concern
+means the farm can *check* it.
+
+**Tradeoff**: each node needs a certificate the farm trusts. Two modes,
+and the config names which:
+- `WAVVON_NODE_TLS=ca` — ordinary CA validation. The node has a real
+  cert for its hostname. The operator-friendly default for anyone who
+  already terminates TLS.
+- `WAVVON_NODE_TLS=pin` — the agent's `hello` carries the SHA-256
+  digest of its self-signed cert and the farm pins it, refusing on
+  mismatch. This is **the same primitive voice already uses**
+  (`voice_cert_hash` in `/info`, browser `serverCertificateHashes` —
+  [voice-transport-v2.md](voice-transport-v2.md)), so there is a
+  rotating-self-signed-cert implementation to copy rather than invent.
+
+A private network is not forbidden; it just becomes an operator choice
+that happens to make `ca`/`pin` trivially satisfiable, rather than a
+load-bearing assumption.
+
+### Decision 2 — per-node PostgreSQL, with the farm holding only a URL template
+
+Each node runs its own PostgreSQL and the hubs on it connect locally.
+The farm stores a **per-server connection template** on the `servers`
+row and never holds node database credentials; the agent substitutes
+the per-hub database name when it spawns a hub and passes it through the
+`wavvon-hub-env` key names.
+
+**Alternative considered**: one central PostgreSQL that every node's
+hubs dial across the network. Rejected: it makes the database a
+single point of failure for every hub on every node, it puts every
+query on the wire, and it multiplies the connection-pool arithmetic the
+server CLAUDE.md already warns about (`WAVVON_DB_MAX_CONNECTIONS`
+summed across hubs must stay under the server's `max_connections`) by
+the node count.
+
+**Tradeoff**: backup and restore become per-node operations. That is
+acceptable and, given `backup`/`restore` are already per-hub `pg_dump`
+logical dumps (shipped 2026-08-09), it is barely a change — the dump
+runs where the data is. What it does mean: the farm's admin surface must
+say *which node* a hub lives on, or an operator will look for its dump
+in the wrong place.
+
+**Prerequisite, not optional**: this decision only pays off once
+[next-up.md](next-up.md)'s "A PostgreSQL role per hub" lands. Per-node
+Postgres without a role per hub gives isolation between nodes and none
+within one — the exact gap `farm/src/db/provision.rs` documents in its
+own header, and the one `farm-impl.md` Phase 1 flags as undecided ("who
+issues `CREATE DATABASE`, under which role, what happens on hub
+deletion"). Sequence the role work first.
+
+### Implementation surface (all Wavvon-server)
+
+- `farm/src/db/migrations.rs` — additive on `servers`: `host TEXT`,
+  `tls_mode TEXT NOT NULL DEFAULT 'ca'`, `cert_sha256 TEXT`,
+  `db_url_template TEXT`. All nullable/defaulted, so existing
+  single-node rows keep working as loopback.
+- `agent` — the WebSocket `hello` carries `host`, `tls_mode`,
+  `cert_sha256`; the agent passes the resolved database URL and the
+  **public** host to each hub it spawns, so the hub's `/info` advertises
+  a `voice_wt_url` clients can actually reach. Voice stays direct QUIC
+  to the node and is never proxied (unchanged contract).
+- `farm/src/proxy.rs` — resolve serial → `(host, port, tls_mode,
+  cert_sha256)` in the one existing query; replace the five `127.0.0.1`
+  literals on **both** paths (reqwest and the raw `TcpStream` bridge —
+  the WS path is the one that will be forgotten). A row whose host is
+  set but unreachable returns the existing `503 hub_not_running`, not a
+  new error.
+- `farm` monitor — drive remote hubs via the agent heartbeat rather than
+  local process inspection.
+- `hub/src/capabilities.rs` — **no new string**; nothing a client
+  branches on changes. `openapi.yaml` — unchanged.
+
+### Deferred
+
+Farm-level UDP/QUIC voice multiplexing (one shared port, token demux) —
+still out, as in `farm-impl.md`'s serial-routing slice. Cross-node hub
+migration. Automatic node certificate issuance.
 
 ## How to apply
 

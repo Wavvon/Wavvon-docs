@@ -14,49 +14,16 @@ from this file — see [shipped-log.md](shipped-log.md) for history.
 
 ---
 
-## Cross-farm certification relay
+## Alliance extras — member discovery, game launch/lobby federation
 
-Both anti-spam layers are shipped — proof-of-work (`identity/src/pow.rs`) and
-hub certification/reputation ([hub-certifications.md](hub-certifications.md),
-incl. the auto-issuance sweep). What is undesigned is letting certifications
-**propagate across the hubs a single farm operator manages**, so a member
-vouched-for on one hub in the farm is not re-verified from scratch on the
-next. No design work started.
+Two gaps left in the alliance area now that space-sharing (2026-07-05),
+forum federation (2026-07-19) and the voice design (2026-08-22, in
+[alliances.md](alliances.md)) are accounted for:
 
-## Farm multi-node data plane
-
-The farm proxy only reaches farm-local hubs (`proxy.rs` hardcodes
-`127.0.0.1`, `servers` has no host column; re-verified 2026-08-20), so
-agent-hosted hubs on remote nodes are lifecycle-managed but unreachable
-through the farm domain. ~3–4 days (2026-08-06 assessment): additive
-`servers.host` + agent-advertised address in the WS `hello`, host-aware proxy
-on both paths, agent passing the public host to spawned hubs so `/info`
-advertises a correct `voice_wt_url` (voice stays direct QUIC to the node),
-monitor driving remote hubs via heartbeats. No hub or client changes.
-
-Here rather than in next-up because two design questions are open: private
-networking farm↔nodes instead of farm↔node TLS, and per-node Postgres.
-Sketch: [farm-impl.md](farm-impl.md).
-
-## Voice in alliance channels
-
-Alliance space-sharing covers any space type, recursively
-([alliances.md](alliances.md), shipped 2026-07-05), but voice in a shared
-channel needs a relay redesign. Also still open in that area: game
-launch/lobby federation, and member discovery beyond invite tokens.
-
-## Forum post federation across alliances
-
-Forums are shipped ([forum.md](forum.md)) but hub-local: posts and replies do
-not federate over alliance-shared channels. A natural part of the
-space-sharing work above.
-
-## Server tags — trust roots and transitivity
-
-Self-tags, badges (issue/accept/decline/revoke), and cross-hub revocation
-polling are shipped ([server-tags.md](server-tags.md)). Still deferred:
-**user-configurable trust roots** (v1 uses existing hub relationships) and
-**badge transitivity**.
+- **Member discovery beyond invite tokens** — no way to browse an alliance's
+  membership; joining is still invite-driven.
+- **Game launch / lobby federation across an alliance** —
+  [gaming.md](gaming.md), [bot-capability-layer.md](bot-capability-layer.md).
 
 ## Multi-device — Android QR pairing
 
@@ -70,6 +37,9 @@ scope at all ([android-rewrite-notes.md](android-rewrite-notes.md)).
 
 Blocked by a Tauri webview RP ID mismatch. Undesigned because the way out is
 a choice not yet made: a native WebAuthn plugin, or a system-browser handoff.
+**Both options are native-shell work**, so this cannot be designed against the
+current web-only delivery target — there is no web-viable subset (passkey
+registration in a browser already works; the bug *is* the webview).
 
 ## Desktop parity backlog
 
@@ -78,12 +48,8 @@ QR). The whisper gaps, the `SoundboardPlayed` chip,
 `hub_updated`/`channels_updated`/`member_updated`, the duplicate
 channel-appearance modal and paired-device E2E (pairing Mechanism A) all
 closed 2026-08-08. Details in [client-parity.md](client-parity.md).
-
-## Banner-channel management surface
-
-A bannerless banner channel cannot be renamed or deleted from the web sidebar
-— no gear, no context menu. Needs a small UX decision first
-([client-parity.md](client-parity.md) tracked item 4).
+**Desktop-only by definition** — deferred with desktop itself, and coupled to
+the Windows code-signing blocker in [next-up.md](next-up.md).
 
 ## Project visibility push
 

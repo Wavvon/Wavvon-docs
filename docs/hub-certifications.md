@@ -1,6 +1,9 @@
 # Hub Certifications
 
-**Status**: design committed, not built. Anti-spam **Layer 2** — the
+**Status**: SHIPPED (`cert_issuances`, `user_certs`, the issuance sweep
+in `hub/src/cert_worker.rs`, `GET /identity/:pubkey/certs`, the
+`cert_mode` admission gate, achievement badges). §11 — relay across the
+hubs of one farm — is designed, not built. Anti-spam **Layer 2** — the
 reputation layer that sits on top of the proof-of-work layer
 ([future-features.md](future-features.md) "Anti-spam"). Layer 1 (PoW)
 has primitives in `identity/src/pow.rs` (Wavvon-server) and is enforced
@@ -394,12 +397,10 @@ store from [home-hub.md](home-hub.md)):
   poll target). v1 leans on expiry + re-issue-as-revoked on the pull
   path. Build the poll only if early retraction before expiry becomes a
   real need — same posture as the badge revoke-check.
-- **Cross-farm cert relay** — a farm vouching for users across its hubs,
-  or relaying certs between farms. The farm already unifies identity
-  within itself ([farm-impl.md](farm-impl.md) — identity-axis routes
-  move to the farm), so a farm-issued cert is a natural later extension;
-  cross-*farm* relay reintroduces multi-authority coordination and waits
-  until farms are stable.
+- **Cross-*farm* relay** (farm A's certs recognised on farm B, or a farm
+  issuing certs itself) — reintroduces multi-authority coordination and
+  waits until farms are stable. The **intra-farm** case is designed in
+  §11 below.
 - **Negative reputation / shared ban lists.** A cert asserts *good*
   standing; a network-wide "this user is bad" list is a different, more
   dangerous primitive (censorship-prone, no due process) and is
@@ -415,6 +416,130 @@ store from [home-hub.md](home-hub.md)):
   the same portfolio in v1; a "this device only presents cert X" policy
   layers onto the subkey cert later, same as the deferred per-device
   permissions in [multi-device.md](multi-device.md).
+
+## 11 — Certification relay across the hubs of one farm
+
+**Status**: designed, not built. Server-only — **zero client work**,
+which is the point of the decision below. Supersedes the "Cross-farm
+cert relay" deferral in §10 for the intra-farm case.
+
+### What already exists
+
+Most of this shipped without the payoff arriving. The farm heartbeat
+reports a hub's siblings (`farm/src/routes/heartbeat.rs`, `siblings`
+array), and `hub/src/farm_siblings.rs` reconciles each newly-offered
+sibling once: subscribing to its ban list in `soft-flag`, and adding it
+to `cert_trusted_issuers`. Its own header states the constraint
+correctly — trusting an issuer means its certs *can be read*, never that
+they clear a bar the owner set. `cert_issuances`, `user_certs`, the
+issuance sweep (`hub/src/cert_worker.rs`), `GET /identity/:pubkey/certs`
+and the `cert_mode` admission gate in `hub/src/auth/handlers.rs` are all
+live.
+
+The payoff is missing for one reason: **nothing presents a cert.** No
+client sends the `certifications` array `/auth/verify` accepts. So a
+hub that sets `cert_mode` to anything but `none` today rejects
+*everyone* with `cert_required` — the feature is a lockout, not a relay.
+
+### Decision — the receiving hub pulls; the client is not on the path
+
+When `cert_mode != none` and the presented `certifications` array does
+not satisfy the policy, the receiving hub **fetches the candidate's
+portfolio itself** from each configured trusted issuer:
+
+```
+GET {issuer.url}/identity/{master_pubkey}/certs
+```
+
+and re-runs the §5 predicate over the result. Bounded: at most N issuer
+fetches (N = `cert_trusted_issuers.len()`, capped at 8), 2 s timeout
+each, run concurrently, and the per-`(issuer, master_pubkey)` answer
+cached for 10 minutes in a new `AppState` map — the same short-TTL cache
+shape §5 already specifies for `issuer_url → hub_pubkey`. A fetch
+failure is a miss, not an error: the gate falls through to the pushed
+certs and then to `cert_required`, so a downed sibling never becomes a
+hub outage.
+
+Within a farm every issuer URL is a sibling on the same box, so the
+fetch is a loopback call — the case the relay exists for is also the
+cheapest one.
+
+The pushed path **stays** as the fast path (it is already implemented
+and it needs no network hop). Pull is the fallback that makes the
+feature work at all.
+
+### Alternatives considered
+
+- **Client push only** (the §4 "push-at-auth" path as the sole
+  mechanism). Rejected as the only path: it needs the client to poll
+  `GET /certs/me` on every hub it knows, deposit each cert into a
+  portfolio, read the target's advertised `cert_requirement`, and select
+  a subset — three client repos' worth of work before the server feature
+  does anything, on a delivery target (web only) where the *hub* ships
+  the client. The privacy argument for client-side selection (§4: don't
+  leak the full membership list) does not apply intra-farm, where the
+  farm operator already runs both hubs.
+- **A farm-level reputation store** — the farm holds standing and hubs
+  query it. Rejected: it makes the farm a trust root for reputation,
+  which `farm_siblings.rs` was written specifically to avoid, and
+  `farm-model.md` limits the farm to "hosting + SSO + inbox."
+- **Auto-granting good standing to siblings' members** — rejected in
+  `farm_siblings.rs`'s own header, and still rejected: one complacent
+  hub becomes a pass factory for the whole farm.
+
+### Tradeoff
+
+The receiving hub does up to 8 outbound HTTP calls on a *first* auth
+that would otherwise be refused — a cost paid only on the miss path, by
+a hub whose admin opted into `cert_mode`, and cached afterwards. In
+exchange the trust relationship the farm already wires becomes
+functional with no client release, and it works for hand-configured
+issuers outside a farm too, which the push path never would have.
+
+### Two bugs this design must fix first
+
+1. **`cert_trusted_issuers` is written in the wrong shape.**
+   `farm_siblings::reconcile` writes it as a JSON array of bare pubkey
+   strings, while `certs::load_trusted_issuers` deserialises
+   `Vec<TrustedIssuer>` (`{pubkey, url, label}`) and swallows the parse
+   failure into `unwrap_or_default()` — an **empty list**. So the
+   sibling trust wiring currently produces nothing at all.
+2. **It also destroys admin configuration.** `farm_siblings`'s
+   `read_set` reads the same setting as `Vec<String>`, so an
+   admin-configured object list reads back as empty and the subsequent
+   `extend` + write **replaces** it with bare pubkeys.
+
+Fix: `farm_siblings` writes `TrustedIssuer { pubkey: hub_pubkey, url:
+hub_url, label: "" }` and reads/merges on `pubkey`. The `hub_url` is
+already in the `Sibling` struct, so no wire change. This is exactly the
+silent-fallthrough class `Wavvon-server`'s CLAUDE.md flags — a
+`serde_json::from_str(...).unwrap_or_default()` over a shape mismatch
+says nothing.
+
+### Implementation surface (all Wavvon-server)
+
+- `hub/src/farm_siblings.rs` — the shape fix above, plus a test that
+  round-trips through `certs::load_trusted_issuers` so the two ends
+  cannot drift again.
+- `hub/src/routes/certs.rs` — new `pull_portfolio(issuer, master_pubkey)`
+  helper + the TTL cache; reuse `verify_certification` unchanged for
+  evaluation.
+- `hub/src/auth/handlers.rs` — after the existing pushed-cert loop
+  fails, try the pull path before returning `cert_required`.
+- `hub/src/state.rs` — `cert_portfolio_cache: RwLock<HashMap<(String,
+  String), (i64, Vec<Certification>)>>`.
+- `hub/src/capabilities.rs` — **no new string.** Nothing a client
+  branches on changes; that is the test for whether a capability is
+  needed.
+- `openapi.yaml` — unchanged; no new endpoint, no new field.
+
+### Deferred
+
+Cross-*farm* relay (§10). Farm-issued certs (`subject_kind` stays
+hub/user; a farm is not an issuer). Revocation freshness beyond the
+10-minute cache and the existing `GET /certs/revocations` poll target —
+a sibling that revokes is honoured within one cache TTL, which is the
+right answer for a same-box call.
 
 ## Achievement badges (SHIPPED 2026-07-05)
 

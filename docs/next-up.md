@@ -12,6 +12,37 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
 
 ## 🔨 In flight
 
+- [ ] **Voice in alliance channels.** Designed 2026-08-22 —
+  [alliances.md](alliances.md) "Voice in alliance channels",
+  [decisions.md](decisions.md). Web client + hub only; the relay does not
+  change and there is no wire-format work. Slices, in order: origin-hub
+  `POST /alliances/:id/voice-grant`; the optional `alliance_voice_grant`
+  field on `/auth/verify` plus the `alliance_voice` scope allowlist and
+  `alliance_voice_visitors` table; the `voice.alliance` capability string;
+  the web `joinAllianceVoice` flow; the `voice_remote_join` policy column.
+
+- [ ] **Certification relay across the hubs of one farm.** Designed
+  2026-08-22 — [hub-certifications.md](hub-certifications.md) §11. Server
+  only, no client work, no capability string, no `openapi.yaml` change.
+  **Fix the `cert_trusted_issuers` shape bug first** (see Known issues) —
+  the relay cannot work until sibling trust actually parses.
+
+- [ ] **Farm multi-node data plane.** The two blocking design questions are
+  answered — [farm-model.md](farm-model.md) "Multi-node data plane"
+  (farm↔node TLS with `ca`/`pin` validation; per-node PostgreSQL). Additive
+  `servers.host` / `tls_mode` / `cert_sha256` / `db_url_template`, agent
+  advertises its host in the WS `hello`, host-aware proxy on **both** the
+  reqwest and the socket-bridge paths. No hub or client changes. **Sequence
+  after "A PostgreSQL role per hub"** — per-node Postgres without a role per
+  hub isolates between nodes and not within one.
+
+- [ ] **User-configurable trust roots.** Designed 2026-08-22 —
+  [server-tags.md](server-tags.md) Part 4. One allowlisted key in the prefs
+  blob (`clients/apps/web/src/utils/syncedSettings.ts`), a Settings → Privacy
+  section, a "Trust this issuer" action on the badge popover, and one shared
+  trust resolver in `clients/packages/ui/src/utils/`. Rendering only — never
+  satisfies a hub's `cert_mode` gate. Lowest value of the four; do it last.
+
 - [ ] **A PostgreSQL role per hub.** Farm-spawned hubs get a database or a
   schema of their own, but they all connect with the **same role** — so the
   separation prevents collisions, not a compromised hub reading its siblings.
@@ -115,6 +146,21 @@ Committed, cannot proceed.
 **Open, and not necessarily scheduled** — a bug being listed here says it is
 real and unfixed, not that anyone is on it. When one is fixed its entry moves
 to the [shipped log](shipped-log.md).
+
+- **[server] `cert_trusted_issuers` is written in the wrong shape, so farm
+  sibling trust resolves to nothing — and clobbers admin config.** Found
+  2026-08-22 while designing the cert relay.
+  `hub/src/farm_siblings.rs::reconcile` writes the setting as a JSON array of
+  bare pubkey strings; `hub/src/routes/certs.rs::load_trusted_issuers`
+  deserialises `Vec<TrustedIssuer>` (`{pubkey, url, label}`) and swallows the
+  parse failure into `unwrap_or_default()` — an empty list. Two consequences:
+  the farm-sibling trust wiring has never had any effect, and because
+  `farm_siblings::read_set` reads the same key as `Vec<String>`, an
+  admin-configured object list reads back as empty and the subsequent write
+  **replaces** it. `Sibling` already carries `hub_url`, so the fix is local and
+  needs no wire change; add a test that round-trips through
+  `load_trusted_issuers` so the two ends cannot drift again. Blocks
+  [hub-certifications.md](hub-certifications.md) §11.
 
 - **~296 UI strings are still hardcoded English** — the member settings
   surface was brought up to full coverage on 2026-08-21 (notifications,

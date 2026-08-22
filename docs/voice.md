@@ -131,7 +131,10 @@ moderation.)
 
 ## What's not done
 
-- Cross-hub voice (alliance-wide voice rooms)
+- Cross-hub voice (alliance-wide voice rooms) — **designed, not built**:
+  [alliances.md](alliances.md) "Voice in alliance channels". The relay
+  does not change; a visitor from an allied hub gets a voice-scoped
+  session on the *owning* hub and dials it directly.
 - Voice E2E on **paired desktop devices** — desktop pairing doesn't
   provision the canonical DH scalar yet (pre-existing gap, also
   affects desktop DMs; fix points marked in `voice_keys.rs` /

@@ -6,6 +6,164 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Alliance voice: the owning hub's relay is the room, and visitors dial it directly
+
+**Decision** (2026-08-22): a member of hub B joining voice in an alliance
+channel owned by hub A authenticates to **hub A** with a short-lived,
+hub-B-signed grant, receives a session scoped to `alliance_voice`, and dials
+hub A's WebTransport relay directly. One room, on one hub, one sender-id space,
+one E2E key fan-out. Design: [alliances.md](alliances.md) "Voice in alliance
+channels".
+
+This also **retires a claim the wiki carried for a year** — that cross-hub voice
+"needs a relay redesign". It needs none: `voice_wt.rs`, `voice_channels`,
+`voice_sender_ids`, the datagram header and the sender-key construction are all
+untouched, so there is no `wire-format.md` entry and no three-way identity-crate
+mirror. The visitor proves its own identity to hub A by challenge-response; only
+its display name is hub-vouched, rendered mediated exactly like federated forum
+authorship.
+
+**Alternatives considered**: (a) a relay-to-relay mesh, hub B forwarding its
+participants' datagrams into hub A's room — rejected: `sender_id` is a
+per-channel u16 allocated locally, so two hubs collide; it also needs a
+virtual-participant lifecycle, hub-to-hub relaying of `voice_key_offer` bundles,
+and a third failure domain (mid-hub down while both endpoints are up), and it
+buys only "the client keeps one connection" on a client that is already
+multi-hub. (b) Merging rooms across every member hub — rejected on the ground
+forum federation already rejected replication: no authoritative copy means
+roster reconciliation and split-brain, for a surface where one room on one
+server is simply correct.
+
+**Tradeoff**: availability for simplicity. Hub A offline means its shared voice
+channel is unjoinable — exactly as its shared *text* channel already is. And a
+visitor's IP reaches hub A, which the join confirmation discloses by naming the
+host being dialed. The scope is enforced as an **allowlist** (`/info`, the WS
+limited to six voice/key frames, the two `dh-key` routes) rather than a denylist,
+because the `lobby` scope's history is that a denylist grows a hole every time a
+route is added.
+
+**Outcome**: capability string `voice.alliance`; one optional field on
+`/auth/verify`; one new route on the origin hub; one additive visitor table; one
+additive `voice_remote_join` policy column on `alliance_shared_channels`. No
+`users` row is created for a visitor, so "no message read access" is structural
+rather than a check someone can forget.
+
+## Certification relay inside a farm: the receiving hub pulls the portfolio
+
+**Decision** (2026-08-22): when a hub's `cert_mode` gate is not satisfied by the
+certs presented in `/auth/verify`, the hub **fetches the candidate's portfolio
+itself** from each configured trusted issuer (`GET
+/identity/{master}/certs`), bounded at 8 concurrent issuers, 2 s each, cached
+10 minutes, failure-is-a-miss. Design:
+[hub-certifications.md](hub-certifications.md) §11.
+
+The trust wiring already shipped and the payoff never arrived, for one reason:
+**nothing presents a cert.** No client sends the `certifications` array
+`/auth/verify` has accepted since Layer 2 landed, so a hub setting `cert_mode`
+to anything but `none` today rejects *everyone* with `cert_required`. The
+feature is a lockout, not a relay. Pull makes it work with zero client
+releases — which matters more than usual while the web client the hub itself
+serves is the only delivery target.
+
+**Alternatives considered**: (a) client push as the sole mechanism, per the
+original §4 design — rejected as the only path: it needs the client to poll
+`/certs/me` on every known hub, deposit into a portfolio, read the target's
+advertised `cert_requirement` and select a subset, i.e. client work before the
+server feature does anything; the privacy argument for client-side selection
+(don't leak your membership list) does not apply intra-farm, where one operator
+runs both hubs anyway. Push stays as the fast path — it is already implemented
+and needs no hop. (b) A farm-level reputation store — rejected: it makes the
+farm a trust root for reputation, which `hub/src/farm_siblings.rs` was written
+specifically to avoid and which `farm-model.md` excludes ("hosting + SSO +
+inbox"). (c) Auto-granting good standing to siblings' members — rejected in
+`farm_siblings.rs`'s own header and still rejected: one complacent hub becomes a
+pass factory for the whole farm.
+
+**Tradeoff**: up to 8 outbound calls on a first auth that would otherwise be
+refused — paid only on the miss path, only by a hub whose admin opted in, and
+cached after. Intra-farm those calls are loopback, so the case the relay exists
+for is the cheapest one.
+
+**Outcome**: no capability string (nothing a client branches on changes — that
+is the test), no `openapi.yaml` change. It also uncovered a live bug that must
+be fixed first: `farm_siblings` writes `cert_trusted_issuers` as bare pubkey
+strings while `certs::load_trusted_issuers` parses `Vec<TrustedIssuer>` and
+swallows the mismatch into `unwrap_or_default()`, so sibling trust currently
+resolves to an **empty list** — and because `farm_siblings::read_set` reads the
+same key as `Vec<String>`, its write also **overwrites an admin's configured
+issuers**. Another `unwrap_or_default()` over a shape mismatch saying nothing.
+
+## Trust roots are a personal preference in the prefs blob, and never clear an admin's bar
+
+**Decision** (2026-08-22): user-configurable trust roots — `{pubkey, label}`
+entries that make a badge or cert from an otherwise-unknown issuer render as
+trusted — live in the **encrypted prefs blob** as one allowlisted key in
+`clients/apps/web/src/utils/syncedSettings.ts`. They affect **rendering only**
+and never satisfy a hub's `cert_mode` gate. Design:
+[server-tags.md](server-tags.md) Part 4.
+
+**Alternatives considered**: (a) `localStorage` — rejected: precisely the gap
+the prefs-blob work closed on 2026-08-21, and a trust list that vanishes in
+another browser is worse than none, because the badge silently downgrades to
+"(unknown issuer)" with no explanation. (b) A typed field on the blob like
+`blocked_users` — rejected: a typed field is a wire-format change across the
+identity crate, the TS mirror, the desktop mirror and the test vectors; the
+generic `settings` map exists so a new preference costs one line. (c) Hub-side
+trust roots — rejected: that is the *admin's* decision and already exists as
+`cert_trusted_issuers`; viewer state on a community hub breaks the two-axis
+rule.
+
+**Tradeoff**: a root added on another device appears here on the next page load,
+the propagation limit already recorded for every synced setting. Fine — a trust
+root is not time-critical. The real discipline is the separation: letting a
+viewer's preference clear an admin's admission bar would be the same pass-factory
+failure the cert relay rejects, so the two lists stay strictly apart.
+
+**Outcome**: set starts empty; no shipped defaults, because there is no
+Wavvon-blessed authority. Added in context from the badge popover ("Trust this
+issuer"); reviewed and removed in Settings → Privacy, one fixed home. Badge and
+cert transitivity is promoted from "deferred" to **Won't do** in `ROADMAP.md` —
+two documents had independently reached that verdict, so it was a decision
+filed as a deferral.
+
+## Farm↔node is TLS to an advertised host, and PostgreSQL is per node
+
+**Decision** (2026-08-22): the two questions blocking the farm multi-node data
+plane are answered. (1) The farm dials nodes over **plain TLS to a host the
+agent advertises** in its WebSocket `hello`, validated either by CA or by a
+pinned certificate digest (`WAVVON_NODE_TLS=ca|pin`) — not over an assumed
+private network. (2) Each node runs its **own PostgreSQL**; the farm holds a
+per-server connection *template* and never node credentials. Design:
+[farm-model.md](farm-model.md) "Multi-node data plane".
+
+**Alternatives considered**: (a) require WireGuard/VPC/SSH between farm and
+nodes and keep dialing plaintext — rejected not as weaker security (it is
+stronger) but because it moves a prerequisite the farm cannot verify into the
+operator's lap, and a farm that silently proxies plaintext over the open
+internet when the tunnel drops is the worse failure. Making the transport the
+farm's own concern lets the farm *check* it; a private network remains an
+operator choice that happens to make `ca`/`pin` trivial. (b) One central
+PostgreSQL every node dials across the network — rejected: a single point of
+failure for every hub on every node, every query on the wire, and it multiplies
+the `WAVVON_DB_MAX_CONNECTIONS`-vs-`max_connections` arithmetic by the node
+count.
+
+**Tradeoff**: each node needs a certificate, and backup/restore becomes
+per-node. The latter is nearly free — `backup`/`restore` are already per-hub
+logical `pg_dump`, so the dump just runs where the data is — but the farm's
+admin surface must name which node hosts a hub, or an operator looks for the
+dump in the wrong place. The `pin` mode reuses the rotating-self-signed-cert
+machinery voice already ships (`voice_cert_hash`), so there is an
+implementation to copy rather than invent.
+
+**Outcome**: additive `servers.host` / `tls_mode` / `cert_sha256` /
+`db_url_template`, all defaulted so existing single-node rows stay loopback; the
+five hardcoded `127.0.0.1` literals in `farm/src/proxy.rs` go on **both** paths
+(the WebSocket socket-bridge is the one that will be forgotten). Sequenced
+**after** "A PostgreSQL role per hub" — per-node Postgres without a role per hub
+isolates between nodes and not within one, the exact gap
+`farm/src/db/provision.rs` documents in its own header.
+
 ## Settings follow the identity, in the prefs blob, as raw storage strings
 
 **Decision** (2026-08-21): the web client now pushes and pulls the encrypted

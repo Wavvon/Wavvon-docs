@@ -37,7 +37,7 @@ These shipped — the doc is the design rationale behind the code (see
 [shipped-log.md](shipped-log.md) for the delivery log; the roadmap has never
 had a "recently shipped" section, whatever this line used to claim):
 
-11. [farm-model.md](farm-model.md) — multi-hub server layer + 5-layer architecture
+11. [farm-model.md](farm-model.md) — multi-hub server layer + 5-layer architecture; the "Multi-node data plane" section is designed, not built (farm↔node TLS, per-node PostgreSQL)
     - [farm-impl.md](farm-impl.md) — Phase 1 + 2 + 3 implementation design (auth move, multi-tenancy, creation policy)
     - [hub-creation-wizard.md](hub-creation-wizard.md) — signed config templates, hub first-run bootstrap, web creation wizard at `/new`
 12. [gaming.md](gaming.md) — game distribution platform: tiers, registry, hub admin install + permissions, six-call SDK, farm-level games
@@ -72,7 +72,7 @@ had a "recently shipped" section, whatever this line used to claim):
 - [screen-share-modal.md](screen-share-modal.md) — unified desktop screen-share picker: Tauri `list_capture_sources` command, thumbnail grid, single-modal UX replacing the current two-step OS overlay
 - [nested-channels-ux.md](nested-channels-ux.md) — nested-channel UX gaps: channel permalinks (breadcrumb resolution), deep-nesting sidebar strategy (capped indent + drill-in), and channel permission overwrites (net-new file-system-style cascade — data model, resolver, routes, UI)
 - [settings-ia.md](settings-ia.md) — unified Settings information architecture + profile model: one tab structure both clients render from `packages/ui`, converging desktop off the deleted profile-pool and onto multi-account (decided 2026-07-20); unblocks the `ProfileTab` + `IdentityBackupSection` parity passes
-- [future-features.md](future-features.md) — anti-spam PoW, deferred bot scope, other backlog designs
+- [future-features.md](future-features.md) — intent settled, design pending: alliance member discovery, Android QR pairing, passkey-from-desktop, desktop parity, visibility push, the build-gated identity vault
 - [bot-capability-layer.md](bot-capability-layer.md) — the consent spine for the "Telegram-class bot runtime → games" pillar: capability request/grant model, interactive-UI runtime choice (declarative components vs sandboxed webview game modal), voice/video injection gates, abuse controls, phased first playable
 
 ### Archived designs
@@ -133,6 +133,7 @@ Reading order is for learning the system end-to-end. This section is for
 - **AFK channel (auto-move idle voice users)** — [afk-channel.md](afk-channel.md)
 - **Video / webcam in voice channels** — [video-voice.md](video-voice.md)
 - **Voice transport v2 (WebTransport + E2E, shipped 2026-08-07)** — [voice-transport-v2.md](voice-transport-v2.md)
+- **Cross-hub voice in alliance channels (designed, not built)** — [alliances.md](alliances.md)
 - **Networked voice fix + voice encryption plan** (Phase 1 shipped; Phases 1.5/2 superseded by voice-transport-v2) — [voice-networking-design.md](voice-networking-design.md)
 - **Screen share** — [screen-share.md](screen-share.md) (v1 transport), [screen-share-webrtc.md](screen-share-webrtc.md) (v2 WebRTC)
 - **Screen share unified modal (desktop, designed)** — [screen-share-modal.md](screen-share-modal.md)
@@ -141,15 +142,18 @@ Reading order is for learning the system end-to-end. This section is for
 - **Hub-to-hub auth** — [identity.md](identity.md), [federation.md](federation.md)
 - **Alliances (multi-hub groups)** — [alliances.md](alliances.md)
 - **Shared channels across alliance** — [alliances.md](alliances.md)
+- **Voice in alliance channels (designed, not built)** — [alliances.md](alliances.md) "Voice in alliance channels"
 - **Federated DMs (outbox model)** — [federation.md](federation.md)
 - **Federated reactions on alliance reads** — [federation.md](federation.md)
-- **Forum post federation across alliances (designed, not built)** — [forum.md](forum.md) §9
+- **Forum post federation across alliances** — [forum.md](forum.md) §9 (shipped 2026-07-19)
+- **Certification relay inside a farm (designed, not built)** — [hub-certifications.md](hub-certifications.md) §11
+- **Farm multi-node data plane (designed, not built)** — [farm-model.md](farm-model.md) "Multi-node data plane"
 
 ### Hosting & ecosystem
 - **Farm → Server → Hub deployment model** — [farm-model.md](farm-model.md), [farm-impl.md](farm-impl.md), [architecture.md](architecture.md)
 - **Hub creation (config templates, first-run bootstrap, web wizard)** — [hub-creation-wizard.md](hub-creation-wizard.md)
 - **Hub discovery (uptime, search, farm catalog)** — [hub-discovery.md](hub-discovery.md), [discovery-v2.md](discovery-v2.md)
-- **Server tags & portable badges** — [server-tags.md](server-tags.md)
+- **Server tags & portable badges** — [server-tags.md](server-tags.md); **user-configurable trust roots (designed, not built)** — same doc, Part 4
 - **Database abstraction layer (trait-based store)** — [store-trait-design.md](store-trait-design.md)
 - **Bots & integrations** — [bots.md](bots.md)
 - **Bot capability layer (grants, game modal, media injection)** — [bot-capability-layer.md](bot-capability-layer.md)

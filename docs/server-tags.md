@@ -1,6 +1,8 @@
 # Server Tags
 
-**Status**: design committed, not built. Tracked as task #98.
+**Status**: Parts 1–3 SHIPPED (self-tags, badge issue/accept/decline/
+revoke, cross-hub revocation polling). Part 4 (user-configurable trust
+roots) is designed, not built.
 
 Two related-but-distinct things hide under "server tags." This doc
 separates them on purpose:
@@ -308,16 +310,16 @@ such authority.
   polling). v1 leans on `expires_at`; build the poll only if retraction
   before expiry becomes a real need — same posture as farm token
   revoke-check.
-- **User-configurable trust roots** in the client (a managed list of
-  issuer pubkeys the user trusts globally). v1 derives trust from
-  existing relationships (membership, home-hub list, alliance). A
-  curated trust-root UI is a separate piece of work.
+- **User-configurable trust roots** — designed in Part 4 below.
 - **User certifications** reusing this signer (subject = user). Lands
   with the [future-features.md](future-features.md) anti-spam Layer 2;
   this doc only establishes the hub-subject case and the shared signer.
 - **Badge transitivity / web-of-trust** ("Hub C trusts whoever Hub A
-  trusts"). Explicitly out — it reintroduces global trust reasoning we
-  don't want. Trust stays one hop, viewer-decided.
+  trusts"). **Won't do** — see [ROADMAP.md](../ROADMAP.md) 💤. It
+  reintroduces global trust reasoning we don't want, and
+  [hub-certifications.md](hub-certifications.md) §10 reaches the same
+  verdict independently for user certs. Trust stays one hop,
+  viewer-decided.
 - **Directory-side badge search / "browse certified hubs" view.**
   Discovery filter on badges waits until trust roots exist; otherwise
   it would rank by an authority we don't have.
@@ -326,3 +328,87 @@ such authority.
   display mapping, not a change to the stored keyword.
 - **Realtime push of new badge offers** to logged-in admins (poll on
   Settings mount for v1, same as alliance pending invites).
+
+---
+
+## Part 4 — User-configurable trust roots
+
+**Status**: designed, not built. Web client + hub only; the hub side is
+one field on an existing blob.
+
+Today a badge or a cert from an issuer the viewer has no relationship
+with renders "(unknown issuer)" and there is nothing the viewer can do
+about it. Part 4 gives them a knob.
+
+### Decision — trust roots are personal-axis prefs, not a client-local list
+
+A trust root is `{ pubkey, label }`. The set lives in the **encrypted
+prefs blob on the user's home hub** — the same blob that carries theme,
+language, ignored users and (since 2026-08-21) the generic `settings`
+map ([decisions.md](decisions.md) "Settings follow the identity"). It
+therefore follows the identity across devices and survives a
+`.wavvon-backup` restore, with no new endpoint, no new table, and no
+wire-format change.
+
+Concretely: one allowlisted key in
+`clients/apps/web/src/utils/syncedSettings.ts`, value a JSON array of
+`{pubkey, label}`. Under that file's own stated rule — "a choice about
+yourself travels, a fact about this machine does not" — whom you trust
+is unambiguously a choice about yourself.
+
+### Alternatives considered
+
+- **`localStorage` only** — rejected: it is exactly the class of gap the
+  prefs-blob work was done to close, and a trust list that vanishes when
+  you open the app in another browser is worse than none, because the
+  badge silently downgrades to "(unknown issuer)" with no explanation.
+- **A typed field on the prefs blob** (like `blocked_users`) — rejected:
+  a typed field is a wire-format change across the identity crate, the
+  TS mirror, the desktop Rust mirror and the test vectors. The `settings`
+  map exists precisely so a new preference costs one line.
+- **Hub-side trust roots** (`hub_settings`) — rejected: that is the
+  *admin's* trust decision, which already exists as
+  `cert_trusted_issuers`. Part 4 is the *viewer's*, and viewer state on a
+  community hub violates the two-axis rule.
+
+### Tradeoff
+
+Trust roots are read at render time from a blob pulled once per page
+load, so adding a root on another device shows up on this one at its
+next load — the propagation limit already recorded for every other synced
+setting. Acceptable: a trust root is not time-critical.
+
+### Client surface
+
+All in `clients/packages/ui` (prop-fed) plus the web wiring.
+
+- **Settings → Privacy** gains a "Trusted issuers" section: the list
+  with label + short pubkey, a remove button, and an add form (paste a
+  hub pubkey, optional label). Reuses the `settings-section` layout and
+  the chip-list pattern the ignored-users list already uses. Fixed home,
+  one place — no context-dependent relocation.
+- **Add from context.** The badge detail popover (Part 3, "clicking a
+  badge shows issuer pubkey + URL") gains **"Trust this issuer"**, which
+  appends the root. This is how anyone will actually add one; the
+  Settings list is for review and removal.
+- **Rendering.** The existing trust-state resolution — membership,
+  home-hub list, alliance — gains the trust-root set as a fourth
+  source. A badge from a trust root renders solid, same as a badge from
+  a hub you are a member of. `MyCertificationsSection` and the hub
+  preview card both read the same resolver; put it in
+  `clients/packages/ui/src/utils/` so there is one.
+
+### Out of scope, deliberately
+
+- **No effect on admission.** A user's trust roots change *rendering*
+  only. They never satisfy a hub's `cert_mode` gate — that is the
+  admin's `cert_trusted_issuers`, and letting a viewer's preference
+  clear an admin's bar would be the "pass factory" failure
+  [hub-certifications.md](hub-certifications.md) §11 rejects.
+- **No shipped defaults.** The set starts empty. There is no
+  Wavvon-blessed root, because there is no such authority.
+- **No transitivity.** A trust root vouches for what it signed, not for
+  what it trusts. See Won't do.
+- **No directory badge filter.** "Browse certified hubs" waits for
+  demand, not for this — ranking by trust roots would rank by one
+  user's opinion.

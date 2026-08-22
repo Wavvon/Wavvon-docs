@@ -111,7 +111,7 @@ name it stores at join time.
 
 When Hub B fetches messages for an alliance channel that's owned by Hub A,
 Hub B's `get_alliance_channel_messages` calls Hub A's federation endpoint
-and caches results. For local channels, it loads from SQLite directly.
+and caches results. For local channels, it loads from PostgreSQL directly.
 **Reactions are loaded in both branches** via
 `messages::load_reactions` (the helper was made `pub(crate)` for this).
 
@@ -161,16 +161,221 @@ sidebar — categories as non-clickable folders, text/forum clickable,
 banner/spawner dimmed — and now wires alliance channel open/post
 (previously stubbed).
 
+## Voice in alliance channels
+
+**Status**: designed, not built. Web client + hub only — no desktop work
+required, since both clients speak the same WebTransport voice stack
+([voice-transport-v2.md](voice-transport-v2.md), shipped 2026-08-07).
+
+> **Maintenance note**: this section pushes the file past the wiki's ~200-line
+> budget. Split it out to `alliance-voice.md` (and relink from
+> [README.md](README.md) and [voice.md](voice.md)) on the next edit that
+> touches it.
+
+### Decision — the owning hub's relay *is* the room; visitors dial it directly
+
+A member of Hub B who joins voice in an alliance channel owned by Hub A
+gets a **short-lived, voice-scoped session on Hub A** and talks to Hub
+A's relay directly. One room, on one hub, one sender-id space, one E2E
+key fan-out. Hub B's only job is to sign a grant saying "this pubkey is
+my member and this channel is shared with us."
+
+Same stance as alliance messages and forum federation — owning hub
+authoritative ([forum.md](forum.md) §9). Voice is the one surface where
+the client can skip the middle hop entirely, because it already dials a
+hub's voice endpoint directly rather than through any proxy; that same
+property is why the farm never proxies voice
+([farm-impl.md](farm-impl.md)).
+
+Note this **contradicts the old "needs a relay redesign" claim** this
+section used to carry: nothing in the relay changes.
+
+### Alternatives considered
+
+- **Relay-to-relay mesh** — Hub B forwards its participants' datagrams
+  into Hub A's room and mirrors the roster back. Rejected: `sender_id`
+  is a per-channel u16 allocated locally, so two hubs collide; it needs
+  a virtual-participant lifecycle in `voice_channels`, hub-to-hub
+  relaying of `voice_key_offer` bundles, and a third failure domain
+  (mid-hub down, both endpoints up). It buys one thing — the client
+  keeps a single hub connection — and the web client is already
+  multi-hub, so that is worth nothing.
+- **Merge rooms across every member hub** — rejected on the same ground
+  forum federation rejected replication: no authoritative copy means
+  roster reconciliation and split-brain, for a surface where "one room
+  on one server" is simply correct.
+
+### Tradeoff
+
+**Availability for simplicity.** Hub A offline ⇒ its shared voice
+channel is unjoinable, exactly as its shared text channel already is. In
+exchange: no change to the relay, the sender-id allocator, the E2E
+construction, or the datagram format — so **no
+[wire-format.md](wire-format.md) entry and no three-way identity-crate
+mirror.** Second cost, named: a visitor's IP reaches Hub A. Disclosed in
+the join affordance.
+
+### The grant
+
+An Ed25519-signed assertion by the origin hub, `{payload, signature}` —
+the same primitive as the alliance invite token and hub badges
+([server-tags.md](server-tags.md)), deliberately **not** a new
+identity-crate envelope: only the two hubs and the client ever read it,
+and no client must reproduce it byte-for-byte.
+
+```
+AllianceVoiceGrant {
+  alliance_id, owner_hub_pubkey, channel_id,
+  subject_pubkey,                       // visitor's canonical (master) pubkey
+  origin_hub_pubkey, origin_hub_url,
+  display_name,                         // roster only; hub-vouched
+  issued_at, expires_at                 // issued_at + 300
+}
+```
+
+Five minutes. A ticket to open one session, not a membership.
+
+### Routes
+
+**Origin hub — mint.** `POST /alliances/:id/voice-grant` body
+`{ channel_id }`, in `hub/src/routes/alliances/voice.rs` (new,
+Wavvon-server). Gates: caller is a member in good standing (not banned,
+not muted, approved — the only local permission that means anything
+about a remote channel); `channel_id` is in the alliance's **effective
+shared set** via the existing resolver in
+`hub/src/routes/alliances/channels.rs`, so `include_descendants` and the
+depth-32 guard apply unchanged; entry `channel_type == "text"` else
+`400 not_a_voice_space`; entry is remote, else `409 channel_is_local`
+(use plain `voice_join`). Per-caller rate limit mirroring the
+`badge_offer` limiter in `hub/src/rate_limit.rs`.
+
+**Owning hub — admit.** `POST /auth/verify`
+(`hub/src/auth/handlers.rs`) gains one optional field,
+`alliance_voice_grant`. When present and the pubkey is not already a
+member, Hub A verifies: signature against `origin_hub_pubkey`;
+`owner_hub_pubkey` is this hub; `origin_hub_pubkey` is in
+`alliance_members` and `channel_id` is in **Hub A's own** shared set for
+that alliance (Hub A re-resolves — it never trusts B's view); not
+expired; `subject_pubkey` equals the pubkey the challenge-response just
+authenticated through `resolve_canonical_identity`; subject not banned
+locally and not on a `block`-policy federated ban source.
+
+The visitor's **identity is proven to Hub A by its own signature**, not
+vouched by Hub B. Only `display_name` is hub-vouched.
+
+On success Hub A issues a session with `scope = "alliance_voice"` and
+**creates no `users` row** — no roles, no approval-queue entry, nothing
+in `/users`. Visitor state is one additive table in
+`hub/src/db/migrations.rs`:
+
+```
+alliance_voice_visitors(
+  subject_pubkey PK, origin_hub_pubkey, origin_hub_url,
+  display_name, channel_id, admitted_at, expires_at)
+```
+
+Swept by the existing retention worker.
+
+### Scope enforcement — allowlist, not denylist
+
+`hub/src/auth/middleware.rs` already carries `member` / `lobby`;
+`alliance_voice` is a third value. It is an **allowlist** because a
+denylist grows a hole every time a route is added. Reachable: `GET
+/info` (capabilities, `voice_wt_url`, `voice_cert_hash`); the WS; `PUT
+/identity/me/dh-key` and `GET /identity/:pk/dh-key` (E2E wrapping needs
+both directions). Everything else → `403 alliance_voice_scope`.
+
+On the WS only `voice_join`, `voice_leave`, `voice_speaking`,
+`voice_key_offer`, `voice_key_request` and `ping` are handled; every
+other variant is dropped **with a log line**, not an `Other => {}`
+no-op — the silent-fallthrough bug class `Wavvon-server`'s CLAUDE.md
+names. `voice_join` is additionally checked against
+`alliance_voice_visitors.channel_id`, so a visitor admitted for one
+shared channel cannot join another.
+
+### What does not change
+
+`hub/src/voice_wt.rs`, `voice_channels`, `voice_sender_ids`,
+`voice_next_sender_id`, `voice_pending_binds`, `voice_relay_active` —
+untouched; a visitor is an ordinary pubkey in Hub A's maps. E2E sender
+keys fan out over Hub A's WS to Hub A's participants, visitors included,
+wrapped static-static X25519 to each recipient's DH key **which the
+visitor uploads itself** over its own authenticated session — no hub
+asserts a DH key for anyone. The datagram format is unchanged.
+
+"One voice session per identity" ([decisions.md](decisions.md),
+2026-08-21) holds *per hub*, so the hub will happily let a user hold a
+local room on B and the visited room on A at once. That is correct — two
+hubs — but the client must not, or the mic is live in two places.
+
+### Web client
+
+`clients/apps/web` plus the shared surface in `clients/packages/ui`.
+
+- **Capability gate**: the owning hub's `/info` must advertise
+  `voice.alliance` (new string in `hub/src/capabilities.rs`, sorted
+  before `voice.wt`), else no voice affordance renders on the alliance
+  channel.
+- **Join**: `ChannelSidebar`'s voice affordance calls a new
+  `joinAllianceVoice(allianceId, channelId)` — `POST
+  /alliances/:id/voice-grant` on the current hub, then
+  `/auth/challenge` + `/auth/verify` (carrying the grant) on
+  `origin`-resolved `owner_hub_url`, then a WS to the owner, then
+  `voice_join`, then `VoiceWtSession` with the returned `voice_wt_url` /
+  `voice_token` / `voice_cert_hash`. `VoiceWtSession`
+  (`clients/apps/web/src/platform/voice.ts`) already takes all three —
+  no change to it.
+- **One live session**: the action tears down any existing voice
+  session, local or remote, first.
+- **Roster**: visitors render `name · HubName`, styled as mediated
+  exactly like federated forum authorship — **never** a verified badge.
+- **Disclosure**: the join confirmation names the hub being dialed.
+- If the user is already a full member of Hub A, the client uses its
+  normal member session and skips the grant entirely.
+
+### Moderation
+
+- **Owner sovereign**: Hub A can force-leave and ban a visitor; the ban
+  is re-checked at every grant redemption. Additive per-share policy
+  column on `alliance_shared_channels`, mirroring `forum_remote_write`:
+  `voice_remote_join TEXT NOT NULL DEFAULT 'allowed'` ∈ `allowed` |
+  `none`.
+- **Origin hub** can stop minting for its own members. It cannot evict
+  an admitted visitor from Hub A's room; the 5-minute grant TTL and the
+  session expiry bound that. Cross-hub push revocation is the
+  coordination cost this design refuses to pay.
+- **No visitor moderation powers, ever** — structural, via the
+  allowlist, not a check someone can forget.
+
+### Threat-model deltas
+
+Over [threat-model.md](threat-model.md): an allied hub becomes an
+**admission path into your voice rooms** — contained by
+`voice_remote_join`, the mint limiter on the origin, a per-origin-hub
+redemption limiter on the owner, unsharing, or leaving the alliance.
+**Display-name spoofing** is advisory only and must never feed anything
+assuming a proven name — in particular it never touches
+`cert_issuances` ([hub-certifications.md](hub-certifications.md)).
+**Not a membership escalation**: no `users` row, no roles, no message
+read access.
+
+### Deferred
+
+Whisper *lists* defined on the origin hub (whispering a visitor already
+works — targets resolve on Hub A). Screen share
+([screen-share-webrtc.md](screen-share-webrtc.md)), soundboard and video
+([video-voice.md](video-voice.md)) in a visited room — each needs its
+own allowlist entries; additive later. `openapi.yaml` lands with the
+routes, per `docs/CLAUDE.md`.
+
 ## What's not done
 
-- **Voice in alliance channels** — the UDP relay is single-hub; cross-hub
-  voice needs a relay redesign.
-- **Forum post federation** — forum posts/replies stay hub-local even on
-  an alliance-shared forum channel; the design to federate them (via the
-  same read-through proxy as alliance messages) is in
-  [forum.md](forum.md) section 9, not yet built.
 - **Member discovery beyond invite tokens** — no way to browse an
   alliance's membership; joining is still invite-driven.
-- Game launch/lobby federation across alliance
+- Game launch/lobby federation across alliance.
+
+(Forum post/reply/reaction federation over alliance-shared channels
+**shipped 2026-07-19** — [forum.md](forum.md) §9. This section used to
+list it as not done.)
 
 See [ROADMAP](../ROADMAP.md) and [future-features.md](future-features.md).

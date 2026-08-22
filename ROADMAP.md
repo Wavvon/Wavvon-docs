@@ -37,3 +37,13 @@ months. The reasoning lives in [decisions.md](docs/decisions.md).
 - **Telemetry collection or data sales.**
 - **Global web-of-trust / negative reputation** — federated ban lists are
   opt-in per hub.
+- **Badge / certification transitivity** ("hub C trusts whoever hub A
+  trusts") — trust stays one hop, viewer-decided. Two docs reached this
+  verdict independently ([server-tags.md](docs/server-tags.md),
+  [hub-certifications.md](docs/hub-certifications.md) §10), so it was a
+  decision filed as a deferral ([decisions.md](docs/decisions.md),
+  2026-08-22).
+- **A farm as a trust root for user reputation** — the farm wires its hubs
+  to trust each other and stops there; it never holds standing itself, and
+  it never auto-grants good standing across siblings
+  ([hub-certifications.md](docs/hub-certifications.md) §11).
