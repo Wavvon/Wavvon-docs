@@ -53,8 +53,8 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
 - [ ] **Browser e2e in CI — the tail.** The suite is no longer tied to one
   laptop: `WAVVON_E2E_HUB_URL` / `WAVVON_E2E_APP_URL` override both ends, an
   `e2e-live.yml` workflow starts postgres, builds the hub and drives Chromium
-  against it, and all 86 specs pass against a genuinely fresh hub locally
-  (shipped log). **The workflow itself has never run on a runner** — it is
+  against it, and the suite is green against a genuinely fresh hub locally — 85 passed,
+  1 skipped, 0 failed (shipped log). **The workflow itself has never run on a runner** — it is
   authored, not verified, and the first push to `develop` is its first
   execution. Left:
   - watch that first run and fix what only a runner shows: hub build time, any
@@ -64,7 +64,10 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
     verified against. That leaves `/info.voice_wt_url` null, so the voice specs
     pass without a datagram ever crossing — they cover UI state, not audio. Set
     it and see what starts failing before trusting this job on voice;
-  - all 86 specs pass locally now. `57-dm-messaging` was logged here as a
+  - `54-ttt-game` skips itself unless a ttt-bot is running, silently, so this
+    job reports green having run 85 of 86. Either start the bot in the workflow
+    or accept it knowingly;
+  - `57-dm-messaging` was logged here as a
     probable DM-liveness bug and was not one: it matched the owner's display
     name against the seed constant, and P24 renames the owner without putting
     the name back, in a suite that shares one hub in file order. P48 already

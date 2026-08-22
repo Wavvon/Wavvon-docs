@@ -39,6 +39,10 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   same specs point at a farm-hosted `/hub/<slug>`. A workflow starts postgres,
   builds the hub from the server repo, runs it API-only and drives Chromium
   against it.
+  85 passed, 1 skipped, 0 failed on a clean database. The skip is
+  `54-ttt-game`, which needs a running ttt-bot and skips silently, so green
+  here means 85 of 86 — said out loud in the suite README rather than left to
+  read as full coverage.
   Two things had to be fixed before a fresh hub could be driven at all, and
   both were invisible on a dev box that already had state. The hub refused to
   start with `WAVVON_WEB_CLIENT_DIR=` — its own documented API-only switch —
