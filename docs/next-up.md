@@ -100,19 +100,18 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
 - [ ] **Topology e2e — the stages not yet built.** `e2e-topology/` at the
   monorepo root drives real hub binaries plus the discovery site: alliance
   formation across two hubs, federated channel reads, the alliance voice grant
-  and its confinement, `voice_remote_join`, and directory publish + search. 8
-  scenarios, green, and it found the invite-gate federation bug on its first run
+  and its confinement, `voice_remote_join`, directory publish + search, one
+  farm end to end, two farms with an alliance across the boundary, and the seed
+  registry. **17 scenarios**, green. It has found five real bugs so far, each
+  invisible to the in-process suites for the same reason — those construct their
+  own state, so the real defaults and the real proxy were never in the picture
   (shipped log). What it does not cover yet:
-  - **a second farm, and an alliance across the farm boundary.** One farm is
-    covered now: it seeds its admin, refuses a stranger, spawns a real hub, and
-    the address it advertises resolves through its own proxy — four scenarios,
-    and building them turned up two bugs that made a fresh farm unusable
-    (shipped log). What is left is the *multi-farm* shape, and a hub on farm A
-    allying with a hub on farm B. Sequence after "A PostgreSQL role per hub",
-    for the same reason that item sequences before the multi-node data plane.
-  - **the seed registry.** Farms publish signed self-listings and discovery
-    reads the catalog; nothing starts a `wavvon-seed` yet, so
-    `GET /api/farms` is untested end to end.
+  - **the seed has no consumer.** It is covered now — register, call-back
+    verification, list, and both refusals — but discovery has no reference to
+    the seed at all and keeps its own farm table, populated by farms POSTing to
+    its own `/api/farms`. Two registries, one with no reader. Decide which one
+    is the design and retire or wire the other; `server/CLAUDE.md` claimed
+    discovery queried the seed, which was never true.
   - **audio.** The visitor is admitted and handed a relay URL, cert hash and
     token, and stops there — no datagram crosses. This proves admission, not
     audio, and two clients on a real network remains the only thing that proves

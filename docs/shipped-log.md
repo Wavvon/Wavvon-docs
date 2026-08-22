@@ -4,6 +4,29 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Two farms, an alliance across the farm boundary, and the seed registry
+  (2026-08-23)**: the topology harness reaches 17 scenarios. Two farms each host
+  a hub, and a hub on farm A allies with a hub on farm B — every request in that
+  scenario crossing two reverse proxies, which is the part no in-process test can
+  stand in for. The seed gets its first end-to-end coverage at all: a farm opts
+  in to listing, registers, and is listed; a caller claiming someone else's
+  pubkey for a real farm URL is refused, because the seed calls the farm back at
+  `/farm/public-info` and compares rather than trusting the request; an
+  unreachable farm is refused too.
+  Three things learned by driving it, each of which had to be built into the
+  scenario rather than assumed. A farm seeds the **creating user** as its
+  spawned hub's owner, so a fresh identity meets the hub's `invite_only` default
+  instead. `allow_discovery_listing` is **off** by default and the seed answers
+  `farm_not_accepting_listing` — being in a public registry is a decision, not a
+  default, so the operator opts in through the admin API. And `hub_url` being
+  absent until a hub claims its row turns out to be the right thing to *wait* on:
+  the harness polls for it rather than sleeping.
+  One more inconsistency fixed on the way: the seed read the unprefixed
+  `DATABASE_URL` while its other two variables are `WAVVON_SEED_*`, so an
+  operator reaching for the prefix got no error and the built-in default —
+  whatever database answers at localhost. The farm carries a comment about the
+  same mistake from the other direction. Both names work now, prefixed first.
+
 - **`moderation_flow` stopped flaking (2026-08-23)**: four voice-join tests
   failed roughly one full-suite run in three, always the same four, and all 18
   passed when the binary ran alone. Two causes, both in one shared helper, and
