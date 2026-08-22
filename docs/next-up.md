@@ -116,9 +116,10 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
     token, and stops there — no datagram crosses. This proves admission, not
     audio, and two clients on a real network remains the only thing that proves
     audio.
-  - **a browser over the top.** These are HTTP facts;
-    `WAVVON_E2E_HUB_URL` already lets the live browser suite point at one of
-    these hubs, which nobody has tried.
+  - **a browser over the top.** Tried, and it works —
+    `WAVVON_E2E_HUB_URL=http://localhost:<port>` against a topology hub runs
+    `11-channel-crud` 5/5 in 22 seconds. Not wired into `run.mjs` yet, which is
+    all that is left here.
 
 - [ ] **Bundle PostgreSQL into the hub binary** — the zero-prerequisite
   install story. Design and rationale:
@@ -245,6 +246,18 @@ to the [shipped log](shipped-log.md).
   constant and no way to lower it. Either surface the slider outside custom, or
   have the mic-test meter say plainly when the level never crosses the gate.
   Reopen as a bug the first time someone reports going silent.
+
+- **The web client misbehaves against a hub reached at `127.0.0.1` rather than
+  `localhost`.** Same hub, same settings, isolated working directories both
+  times: `11-channel-crud` is **5 of 5 in 22 seconds** on
+  `http://localhost:<port>` and **3 of 5 failing over 3.3 minutes** on
+  `http://127.0.0.1:<port>`. The smoke spec passes either way, so basic
+  connectivity and auth are fine — it is the channel-management interactions
+  that time out. Root cause not found; `parseHubInput` treats both as local, so
+  it is not that. Matters because an operator reaching a hub by IP is a normal
+  thing to do, and because the failure mode is timeouts rather than an error
+  anyone could act on. `e2e-topology/` now uses `localhost` so nobody
+  rediscovers it by accident.
 
 - **Discord importer needs a live run** — `export` with a real bot token +
   `apply` against a running hub never exercised live.
