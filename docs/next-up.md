@@ -97,6 +97,28 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   - point a run at a farm-hosted `/hub/<slug>`, which is what the URL override
     was the prerequisite for.
 
+- [ ] **Topology e2e — the stages not yet built.** `e2e-topology/` at the
+  monorepo root drives real hub binaries plus the discovery site: alliance
+  formation across two hubs, federated channel reads, the alliance voice grant
+  and its confinement, `voice_remote_join`, and directory publish + search. 8
+  scenarios, green, and it found the invite-gate federation bug on its first run
+  (shipped log). What it does not cover yet:
+  - **two farms, hubs on each, an alliance across the farm boundary**, plus
+    `/hub/<slug>` routing. `farm/tests/farm_hub_e2e.rs` already proves a farm
+    spawns real hubs, so the gap is the multi-farm shape rather than the farm
+    itself. Sequence after "A PostgreSQL role per hub", for the same reason that
+    item sequences before the multi-node data plane.
+  - **the seed registry.** Farms publish signed self-listings and discovery
+    reads the catalog; nothing starts a `wavvon-seed` yet, so
+    `GET /api/farms` is untested end to end.
+  - **audio.** The visitor is admitted and handed a relay URL, cert hash and
+    token, and stops there — no datagram crosses. This proves admission, not
+    audio, and two clients on a real network remains the only thing that proves
+    audio.
+  - **a browser over the top.** These are HTTP facts;
+    `WAVVON_E2E_HUB_URL` already lets the live browser suite point at one of
+    these hubs, which nobody has tried.
+
 - [ ] **Bundle PostgreSQL into the hub binary** — the zero-prerequisite
   install story. Design and rationale:
   [The hub bundles PostgreSQL](decisions.md#the-hub-bundles-postgresql-and-never-touches-one-it-did-not-create).

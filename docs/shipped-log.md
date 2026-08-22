@@ -4,6 +4,48 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **An invite-only hub now accepts a federating peer, so two default hubs can
+  actually ally (2026-08-22)**: they could not. A fresh hub is `invite_only`, and
+  `/auth/verify`'s invite gate exempted bots but not federating hubs — so hub B's
+  federation client got "This hub requires an invite code" from hub A and the
+  alliance join surfaced as a **502 blaming the network**. Every pair of hubs
+  with default settings, since alliances shipped.
+  The same bug as the bot one the comment directly above it already describes: a
+  peer hub is not a person joining a community. It authenticates to deliver
+  federation traffic, receives no human roles, and its token is tagged so
+  `PeerHub` can tell it apart; an invite code is something a community gives a
+  person, and there is nobody there to give one to.
+  **Nothing caught it and nothing could have.** The integration harness builds
+  `AppState` directly and never writes the `invite_only` setting, so
+  `is_invite_only` answered false and federation auth sailed straight through.
+  The only place the real default exists is a real hub binary reading its real
+  configuration. The regression test now sets the setting explicitly, because a
+  test leaning on a default it does not state stops covering the thing the day
+  the default moves.
+
+- **A cross-hub e2e topology, and it found that bug on its first run
+  (2026-08-22)**: `e2e-topology/` at the monorepo root — it needs two checkouts
+  at once, so it cannot live in a repo that must be cloneable alone. Boots
+  several real hub binaries and the discovery site, then drives what only exists
+  between them: an alliance forming across two hubs, hub B reading A's shared
+  channel over federation, an alliance **voice grant** crossing the boundary and
+  being confined on arrival, the per-share `voice_remote_join` refusal, and a hub
+  publishing itself to the directory so a stranger's search finds it by tag, by
+  bio text, and in the plain catalog. 8 scenarios.
+  Processes, not containers, and deliberately: every assertion is an HTTP fact,
+  neither `seed` nor `discovery` has a Dockerfile, and discovery is a Next app
+  over a SQLite file — so an image build would buy nothing and cost two
+  Dockerfiles per run. Postgres stays a container because it already was one.
+  `farm/tests/farm_hub_e2e.rs` had already established spawning the real binary;
+  this is that idea with more of the system in frame. Containers earn their place
+  the day the whole thing wants to be one CI command, or when the *published
+  images* are what needs testing.
+  Everything is isolated per run: a database per hub, a port pair, and a working
+  directory each — the last because a hub writes `hub_identity.json` and its
+  search index into the current directory, so two hubs sharing one share an
+  identity. Discovery gained a `WAVVON_DISCOVERY_DATA_DIR` for the same reason;
+  it was hardcoded to `cwd/data`, which is the dev database.
+
 - **Voice in alliance channels, hub side (2026-08-22)**: a member of an allied
   hub can join voice in a channel this hub shares with the alliance. The owning
   hub's relay is the room and the visitor dials it directly, so `voice_wt.rs`,
