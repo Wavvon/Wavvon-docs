@@ -157,21 +157,42 @@ Committed, cannot proceed.
 real and unfixed, not that anyone is on it. When one is fixed its entry moves
 to the [shipped log](shipped-log.md).
 
-- **~296 UI strings are still hardcoded English** — the member settings
-  surface was brought up to full coverage on 2026-08-21 (notifications,
-  privacy, and the whole voice tab), but the rest of the app never went
-  through i18n. By area: ~169 in the hub admin panel, ~21 forum, ~19 the
-  recovery-contacts settings section, ~12 message/content area, ~11 channel
-  settings, and a long tail of `title`/`aria-label` attributes. Locale
-  coverage is enforced (`pnpm check-i18n` fails on a missing key) but only for
-  keys that exist — a string that never became a key is invisible to it. A
-  scan for JSX text nodes and `placeholder`/`aria-label`/`title` literals
-  finds them; the work is mechanical, four locales per string.
+- **1,026 UI strings are still hardcoded English**, across 137 files —
+  measured, not estimated, by `packages/i18n/find-hardcoded.mjs`. The "~296"
+  this entry used to claim was an undercount from a line-wise scan that missed
+  every label written across lines (`>\n  Remove\n<`), which is most of them.
+  `check-i18n` proves every key in `en.json` exists in it/es/de and cannot see
+  a string that never became a key, which is how four "complete" catalogs and a
+  mostly-English UI coexisted.
+  Now gated: CI fails when a file gains a literal, so the number only ratchets
+  down (`hardcoded-baseline.json`, re-banked with `--baseline` after each
+  batch). Done so far — the hub admin page, certifications, outgoing webhooks
+  and the federated ban list, 114 strings. Biggest remaining, by count:
+  `RolesSection` 48, `AlliancesSection` 44, `RecoveryContactsSection` 43,
+  `ChannelSettingsModal` 40, `ProfileEditorSection` 37, `SurveyAdminSection`
+  and `ForumPostDetail` 35 each.
+  Mechanical, but four shapes need hands rather than a scan-and-replace, and
+  they are written up in the clients `CLAUDE.md`: a local `const t` that
+  shadows the translator, a second component in the same file needing its own
+  hook, `window.confirm("…")`, and prose wrapped across source lines or broken
+  around `<strong>`/`<em>`.
 
 - **Voice audio was choppy across the internet** — cause found and fixed
   2026-08-21 (no playout scheduling in the web client; see shipped log). The
   jitter only exists on a real network, so **the audible confirmation is still
   outstanding** — it needs a session on the pilot. Reopen this if it persists.
+
+- **The VAD threshold now decides audibility, and only the custom profile can
+  change it.** Gating transmission on speech (2026-08-22) turned a threshold
+  that used to control an *indicator* into one that controls whether anyone
+  hears you. 0.02 RMS sits comfortably between room noise and normal speech, and
+  the 400 ms release means no clipped syllables, so this is a risk rather than a
+  known failure — but a quiet mic that used to be heard without lighting up the
+  speaking indicator is now a quiet mic nobody hears. The sensitivity slider
+  exists only under the **custom** audio profile; standard gets a fixed
+  constant and no way to lower it. Either surface the slider outside custom, or
+  have the mic-test meter say plainly when the level never crosses the gate.
+  Reopen as a bug the first time someone reports going silent.
 
 - **Discord importer needs a live run** — `export` with a real bot token +
   `apply` against a running hub never exercised live.
