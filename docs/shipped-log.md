@@ -4,6 +4,36 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **A fresh farm can be claimed, and the URL it advertises resolves
+  (2026-08-22)**: two bugs, both found by driving a real farm binary, both
+  invisible to the in-process suite for the same reason — the farm's tests
+  insert their own `farms` row and their own expectations, so neither the real
+  default nor the real proxy was ever in the picture.
+  **A freshly deployed farm was unusable.** `farms.admin_pubkey` starts NULL,
+  `creation_policy` defaults to `admin_only`, and nothing in the codebase ever
+  wrote the column — so every hub creation was refused with `admin_only` and
+  there was no route to appoint the admin who could change that. Editing the
+  database by hand was the only way in. `farm-impl.md` had specified
+  `admin_pubkey TEXT (set on first start)` all along; it was simply never built.
+  Now `WAVVON_FARM_ADMIN_PUBKEY`, the farm's counterpart to the hub's
+  `WAVVON_OWNER_PUBKEY`, with `WHERE admin_pubkey IS NULL` so a restart cannot
+  take over a farm that already has one — that property has its own test. A farm
+  still lacking an admin warns at startup rather than answering `admin_only` to
+  everything.
+  **The farm advertised a hub URL that 404s.** `hub_url()` built
+  `{farm}/hub/{hub_id}`, and the proxy resolves a segment as either a 64-hex
+  pubkey or a slug — an 8-hex id is neither. Every client that followed the
+  farm's own URL got a 404, the web client's farm admin view included, since it
+  fetches `{hub_url}/info` directly. It now applies the rule
+  `slugs::hub_address_by_pubkey` already had right: canonical slug, else pubkey.
+  `Option<String>` and absent until the hub claims its row on first heartbeat,
+  because an absent field a client must handle beats a present one that cannot
+  work.
+  Three tests asserted `hub_url` *contained the hub id* — true, and no evidence
+  at all: nothing checked the URL resolved. That is the shape worth remembering,
+  because it is what let this live. Rewritten, plus the assertion that was
+  missing.
+
 - **An invite-only hub now accepts a federating peer, so two default hubs can
   actually ally (2026-08-22)**: they could not. A fresh hub is `invite_only`, and
   `/auth/verify`'s invite gate exempted bots but not federating hubs — so hub B's

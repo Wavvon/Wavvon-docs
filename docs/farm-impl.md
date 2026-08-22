@@ -904,11 +904,27 @@ still pubkey-only (see `farm-model.md`). Phase 3 designates the
 |----------------|------|-----------------------------------------------------|
 | admin_pubkey   | TEXT | Ed25519 hex. The operator's user pubkey.            |
 
-Set on first start via a CLI flag (`wavvon-farm --admin-pubkey <hex>`)
-or by reading the file the operator pastes their recovery-phrase-
-derived pubkey into. Subsequent changes require either the existing
-admin's signature or a process restart with the flag — same shape as
-hub admin transfer today.
+**Built 2026-08-22**, as `WAVVON_FARM_ADMIN_PUBKEY` rather than a CLI flag —
+the farm is configured entirely through `WAVVON_*` env vars and the hub's
+equivalent is already `WAVVON_OWNER_PUBKEY`, so a flag would have been the only
+one of its kind. Seeded on first start with `WHERE admin_pubkey IS NULL`, so
+restarting with a different value cannot take over a farm that already has an
+admin.
+
+Until then it was **specified and never implemented**, and the consequence was
+not subtle: nothing in the codebase wrote the column, `creation_policy` defaults
+to `admin_only`, so a freshly deployed farm refused every hub creation and had
+no route to appoint the admin who could change that. Editing the database by
+hand was the only way in. A farm with no admin now warns at startup instead of
+answering `admin_only` to everything.
+
+Nothing caught it, and nothing could have: the farm's own tests insert their own
+`farms` row (mostly with `creation_policy = 'open'` so hub-management tests need
+no admin token), so the real default was never in the picture. Found on the
+first run of `e2e-topology/` against a real farm binary.
+
+Subsequent changes still require the existing admin's signature — same shape as
+hub admin transfer.
 
 The admin-only farm endpoints require a farm session token whose `sub`
 matches `farms.admin_pubkey`. Middleware rejects with

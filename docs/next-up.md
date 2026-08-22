@@ -103,11 +103,13 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   and its confinement, `voice_remote_join`, and directory publish + search. 8
   scenarios, green, and it found the invite-gate federation bug on its first run
   (shipped log). What it does not cover yet:
-  - **two farms, hubs on each, an alliance across the farm boundary**, plus
-    `/hub/<slug>` routing. `farm/tests/farm_hub_e2e.rs` already proves a farm
-    spawns real hubs, so the gap is the multi-farm shape rather than the farm
-    itself. Sequence after "A PostgreSQL role per hub", for the same reason that
-    item sequences before the multi-node data plane.
+  - **a second farm, and an alliance across the farm boundary.** One farm is
+    covered now: it seeds its admin, refuses a stranger, spawns a real hub, and
+    the address it advertises resolves through its own proxy — four scenarios,
+    and building them turned up two bugs that made a fresh farm unusable
+    (shipped log). What is left is the *multi-farm* shape, and a hub on farm A
+    allying with a hub on farm B. Sequence after "A PostgreSQL role per hub",
+    for the same reason that item sequences before the multi-node data plane.
   - **the seed registry.** Farms publish signed self-listings and discovery
     reads the catalog; nothing starts a `wavvon-seed` yet, so
     `GET /api/farms` is untested end to end.
