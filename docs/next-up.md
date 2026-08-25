@@ -210,6 +210,16 @@ Committed, cannot proceed.
 real and unfixed, not that anyone is on it. When one is fixed its entry moves
 to the [shipped log](shipped-log.md).
 
+- **DMs are read from the active hub, not from the home hub list.** Federated
+  delivery already walks the recipient's designation
+  (`routes/dms/messages.rs`), and since 2026-08-25 every account gets a
+  designation automatically — so a user who signs in to one hub, abandons it and
+  lives on another has inbound DMs landing on the abandoned one, visible only
+  after switching to it. Same hub for almost everyone, so this is a tail case,
+  but it is the client half of [home-hub.md](home-hub.md) "DM delivery" not
+  being built yet: the canonical inbox is meant to be read across the list, with
+  the accepting hub mirroring to its peers.
+
 - **1,026 UI strings are still hardcoded English**, across 137 files —
   measured, not estimated, by `packages/i18n/find-hardcoded.mjs`. The "~296"
   this entry used to claim was an undercount from a line-wise scan that missed

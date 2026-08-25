@@ -1,6 +1,10 @@
 # Home Hubs — Personal-Axis State
 
-**Status**: design — no code yet. This doc supersedes the
+**Status**: partly shipped. The designation, device registry, revocations,
+pairing and the encrypted prefs blob exist on the hub
+(`crates/hub/src/routes/identity.rs`) and in both clients; federated DM
+delivery walks the designation list. The canonical DM inbox the clients read
+from, and the friend list, are still design. This doc supersedes the
 "Client connects directly to many hubs" stance in
 [decisions.md](decisions.md) for personal-axis state. Community traffic
 (channel messages, voice, alliances) is unchanged: clients still
@@ -189,9 +193,17 @@ from "I'm the original recipient." A peer hub that sees a duplicate
 
 ## Picking, moving, self-hosting
 
-The user picks the list at first launch after upgrade. Defaults
-suggested by the client: the first 1-2 hubs in the user's hub list.
-The user can edit any time.
+**The first hub an account signs in to becomes its home hub**, published
+automatically (slot 0, sequence 1) by the client that reaches a hub and finds no
+designation for that account — see the 2026-08-25 entry in
+[decisions.md](decisions.md). It never overwrites an existing designation,
+including one the user emptied on purpose, and a paired device skips it because
+a subkey cannot sign a `HomeHubList`. Editing the list stays where it was:
+Settings → Manage accounts → Home hubs.
+
+An account with no hub is not a thing that exists, so there is no first-launch
+picker: the list starts as the one hub the user actually reached, and grows if
+they want redundancy.
 
 **Self-hosting** stays the privacy-conscious answer. A user who wants
 no third-party hub seeing personal-state metadata can run a

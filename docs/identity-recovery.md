@@ -39,16 +39,19 @@ gone — and they only recover hub-level standing, not the key itself.
 
 # Part 1 — Backup / export
 
-> **Implementation note (2026-07-11)**: the web client shipped a working
-> version of this design (`IdentityBackupSection.tsx`, envelope
-> `version: 2` with a multi-account array payload — see
-> [shipped-log.md](shipped-log.md)) with one deliberate deviation: the
-> KDF is **PBKDF2-SHA256, not Argon2id**, because WebCrypto has no
-> Argon2 and the design keeps crypto out of JS-land dependencies. The
-> envelope stores its KDF parameters, so a future client can move to
-> Argon2id (e.g. via a WASM build) without breaking old backups —
-> exactly the evolution path the format was designed for. The spec
-> below still describes Argon2id as the target.
+> **Implementation note (updated 2026-08-25)**: shipped, and the format
+> converged on the spec rather than deviating from it. What actually exists is
+> `packages/core/src/identity/backup.ts` — envelope `version: 1`, **Argon2id**
+> (`m=65536, t=3, p=1`) via `@noble/hashes` + AES-256-GCM, **one account per
+> file** — mirrored byte-for-byte by `apps/desktop/src-tauri/src/backup.rs`
+> against the shared `BACKUP_TEST_VECTOR`. The earlier note here described an
+> interim web-only shape (PBKDF2, `version: 2`, multi-account array) that no
+> longer exists; `decryptBackup` rejects it as `unsupported_backup_format`,
+> which alpha rules allow.
+>
+> The payload is the seed and a label, deliberately: the hub list is not in the
+> file, it rides the encrypted prefs blob on the home hubs instead
+> ([home-hub.md](home-hub.md), decisions.md 2026-08-25).
 
 ## What's in the backup
 

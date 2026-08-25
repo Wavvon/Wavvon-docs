@@ -4,6 +4,26 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **A home hub without being asked, a hub list that survives a browser wipe, and
+  a Help & FAQ tab (2026-08-25)**: three small changes that together close "I
+  cleared my browser and lost everything". The web client now publishes a
+  `HomeHubList` naming the first hub an account signs in to, if that account has
+  no designation yet — personal-axis state had nowhere durable to live while the
+  list was something you had to find in Settings. `wavvon:saved_hubs` joined the
+  synced-settings map, so the hub list travels in the encrypted prefs blob with
+  theme and language: the phrase restores the key, the key opens the blob, the
+  blob names the hubs. And Settings gained a **Help & FAQ** tab (shared
+  `HelpTab`, so desktop gets it too) answering the questions people actually ask
+  once identity is a keypair in a browser — where the key lives, what a wipe
+  costs, why coming back to the same page matters, what to do when an invite link
+  lands you somewhere with no account — plus an alpha disclaimer, in all four
+  locales.
+  The rejected option is the interesting half: carrying the hub list in
+  `.wavvon-backup` was the first answer and would have been a wire-format change
+  in two repos, against a fixed test vector, for data that is neither identity
+  nor secret. See decisions.md (2026-08-25) for that and for why no web page can
+  share storage across hub origins at all.
+
 - **Two farms, an alliance across the farm boundary, and the seed registry
   (2026-08-23)**: the topology harness reaches 17 scenarios. Two farms each host
   a hub, and a hub on farm A allies with a hub on farm B — every request in that

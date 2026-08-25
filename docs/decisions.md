@@ -6,6 +6,68 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## The first hub you sign in to becomes your home hub, and the hub list rides the prefs blob
+
+**Decision** (2026-08-25): a web client that reaches a hub with no
+`HomeHubList` published for that account publishes one naming that hub, slot 0,
+sequence 1 — once, never overwriting an existing designation, including one the
+user deliberately emptied. And `wavvon:saved_hubs` joins the synced-settings
+map, so the hub list travels in the encrypted prefs blob alongside theme and
+language.
+
+The two halves are one decision. An account with no hub is not a thing that
+exists, so there is no reason to make the user find
+Settings → Manage accounts → Home hubs before their personal-axis state has
+anywhere to live — and until a designation exists, `resolveTargets` in
+`prefsSync.ts` falls back to whatever hubs the session happens to be connected
+to, which is not a durable home. Once the designation is automatic, the hub list
+has somewhere to be stored, and clearing browser data stops costing the user the
+map of where their communities are: the phrase restores the key, the key
+decrypts the blob, the blob names the hubs.
+
+**Why not carry the hub list in `.wavvon-backup`.** It was the first answer, and
+it is worse. The file's payload is one account's `{label, secret_key_hex}`,
+mirrored byte-for-byte in `apps/desktop/src-tauri/src/backup.rs` against a fixed
+test vector — a field added there is a wire-format change in two repos for data
+that is neither identity nor secret. The prefs blob already exists, already
+syncs, already encrypts under a phrase-derived key, and already has a
+version counter. The backup file's job is the seed; the hub list is state.
+
+**Why not try to share storage across hub origins.** Each hub serves its own
+copy of the web client from its own origin, and browser storage is per-origin —
+so the identity set up on hub A's page is invisible on hub B's page, which is
+what makes an invite link feel like it loses your account. There is no fix
+available to a web page: cookies are per-domain too, a shared third-party
+origin in an iframe is dead under storage partitioning in every modern browser,
+and a page cannot read a file without the user picking it. The two mechanisms
+that would work are outside the page — a browser extension
+(`chrome.storage.local` is per-extension, not per-origin; considered and
+rejected in [browser-client.md](browser-client.md) for maintenance cost) and
+`navigator.registerProtocolHandler("web+wavvon", …)`, which makes one page on
+the device the handler for every Wavvon deep link. The latter is the promising
+one and is written up as an idea, not built:
+[future-features.md](future-features.md).
+
+**Tradeoff.** The hub list syncs last-writer-wins like every other value in the
+blob, so two browsers open at once, each adding a different hub, lose one
+addition until it is re-added. A union merge trades that for zombie hubs — a
+hub removed on one device coming back from the other — which is the worse
+failure, so LWW stands until a tombstone is worth building. And a browser with
+nothing saved has no hub to sync through at all: `startPrefsSync` returns null,
+and the first hub added in that session syncs nothing until the next page load.
+Both ceilings are marked in the source.
+
+**Consequence worth knowing.** Federated DM delivery already prefers the
+designation over the stored `hub_url` (`routes/dms/messages.rs`, step 3), so a
+designation existing changes where inbound DMs land — and the web client reads
+conversations from the *active* hub, not from the home hub list. For the usual
+case those are the same hub. For a user who signs in to one hub, abandons it and
+lives on another, a friend's DM now goes to the abandoned one and is only
+visible after switching to it. That is the client not yet reading the canonical
+inbox the design calls for ([home-hub.md](home-hub.md) "DM delivery"), not the
+designation being wrong; making the auto-designation the default is what exposed
+it to everyone rather than only to users who published a list by hand.
+
 ## Outbound packet loss rides on `pong`, and is absent rather than zero
 
 **Decision** (2026-08-22): the relay counts gaps in each sender's cleartext
