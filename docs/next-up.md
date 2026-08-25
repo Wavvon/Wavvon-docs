@@ -28,32 +28,34 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
     `packages/ui` was created to undo (desktop's `Other => {}`: four hub
     features silently absent for months). Revisit only if the hub build ever
     becomes *additive* — its own features rather than fewer.
-  - the build flag: a boolean `define` in `vite.config.ts` per target, so a
-    literal `false` is dead-code-eliminated and the hub bundle is genuinely
-    smaller. `DISCOVERY_URL` in `apps/web/src/constants.ts` is the existing
-    shape (a build-time literal with every entry point as a ternary); it just
-    needs to become per-target instead of hand-edited. What the hub build drops:
-    hub switcher,
-    add-hub, directory, create-hub, home-hub settings. What it **keeps**:
-    everything cross-hub that routes through its own hub (alliance channels,
-    messages, forum — all already `hubFetch`), *and* alliance voice, which
-    dials the owning hub's relay direct. Defining the flag as "one origin only"
-    breaks alliance voice.
-  - **[done 2026-08-26]** the flag itself: `MULTI_HUB` in
-    `apps/web/src/constants.ts` from `VITE_BUILD_TARGET`, `npm run build:hub`
-    → `dist-hub`, and `scripts/check-hub-build.mjs` asserting three code-only
-    markers present in `dist` and absent from `dist-hub`. Dropped: the `+`
-    menu, AddHubModal, the create-hub wizard, the directory, the home-hub
-    editor. `WelcomeScreen` gained `hubUrlLocked` so the address cannot be
-    retyped into a second, unreachable hub.
-  - **open hole from that work**: an invite link clicked by someone *already*
-    a member of that hub is dropped in the hub build — it used to open the
-    AddHubModal, which re-authenticated with the invite code and so applied
-    any role it granted. The server route for the member case exists
-    (`POST /join/:code`, needs a session token) but no client calls it; the
-    client has only ever re-authenticated. Wire a `redeemInvite` command and
-    call it when a path invite arrives with a live session.
-  - the handover: a button on the **identity-creation screen** opening the user
+  - **[done 2026-08-26]** the flag: `MULTI_HUB` in
+    `apps/web/src/constants.ts`, from `VITE_BUILD_TARGET` via `.env.hub` and
+    `vite build --mode hub` — no `vite.config.ts` change needed, and the
+    literal comparison still folds, so the dropped screens leave the bundle.
+    `npm run build:hub` → `dist-hub`; `scripts/check-hub-build.mjs` asserts
+    three **code-only** markers present in `dist` and absent from `dist-hub`
+    (i18n keys are useless as markers — the catalogs ship whole in both
+    builds, which is how the first version of that check failed on a clean
+    bundle). Dropped: the `+` menu, AddHubModal, the create-hub wizard, the
+    directory, the home-hub editor. `WelcomeScreen` gained `hubUrlLocked` so
+    the address cannot be retyped into a second, unreachable hub.
+    What the hub build **keeps**: everything cross-hub that routes through its
+    own hub (alliance channels, messages, forum — all already `hubFetch`),
+    *and* alliance voice, which dials the owning hub's relay direct. Defining
+    the flag as "one origin only" would break alliance voice.
+  - **[done 2026-08-26]** the member-invite path: `redeemInvite` calls
+    `POST /join/:code` when a path invite arrives with a live session, so an
+    invite clicked by an existing member applies its role grant instead of
+    being dropped. The effect waits on a restore-settled flag rather than
+    racing it — `hubs.length` cannot tell "restored, empty" from "not run".
+  - **[done 2026-08-26]** the early handoff, as a **link** rather than a
+    postMessage: only hub URL and invite code travel, both public. Offered on
+    the identity-creation screen (`USER_CLIENT_URL`, null until the hosted app
+    has a domain), received as `?hub=&code=` and collapsed to an invite URL so
+    the add-hub flow sees one shape; `handoffTargetUrl` round-trips against the
+    real parser in test.
+  - **still to do** — the *late* handover, for someone who already built an
+    identity in a hub build: a button on the user's account settings opening the user
     build and posting `{hub_url, invite_code?, seed_hex?}` by `postMessage` to
     a build-time target origin. Receiving side names the sending origin and the
     key fingerprint and asks: join with the identity you already have, or bring
