@@ -17,9 +17,23 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   codebase, two targets: the hub build shows one hub and its interconnections,
   the user build (hosted by us, next to the directory) is the only one that
   knows what a list of hubs is.
-  - the build flag, gated the way `DISCOVERY_URL` already is in
-    `apps/web/src/constants.ts` — a build-time value with every entry point
-    written as `X ? … : undefined`. What the hub build drops: hub switcher,
+  - **one repo, one app, two targets** — not two repos and not two `apps/`
+    directories. Measured 2026-08-25: 328 files and ~51k lines across
+    `apps/web` + `packages/ui`, of which **11** touch discovery / add-hub /
+    create-hub / home-hubs at all. The difference is UX, not code; the hub
+    build is the user build *minus* entry points, and a subtraction wants a
+    flag. Two `apps/` dirs would fork `App.tsx`, the app-local state
+    orchestrator, which is the one file not to duplicate. Two repos would also
+    make a fifth copy of the wire-format mirror and re-run the divergence that
+    `packages/ui` was created to undo (desktop's `Other => {}`: four hub
+    features silently absent for months). Revisit only if the hub build ever
+    becomes *additive* — its own features rather than fewer.
+  - the build flag: a boolean `define` in `vite.config.ts` per target, so a
+    literal `false` is dead-code-eliminated and the hub bundle is genuinely
+    smaller. `DISCOVERY_URL` in `apps/web/src/constants.ts` is the existing
+    shape (a build-time literal with every entry point as a ternary); it just
+    needs to become per-target instead of hand-edited. What the hub build drops:
+    hub switcher,
     add-hub, directory, create-hub, home-hub settings. What it **keeps**:
     everything cross-hub that routes through its own hub (alliance channels,
     messages, forum — all already `hubFetch`), *and* alliance voice, which
@@ -39,7 +53,12 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
     writing code.
   - release pipeline: CI builds both; the hub Docker image bakes the hub build
     (`WAVVON_WEB_CLIENT_DIR` unchanged), the site deploys the user build.
-    `discovery/` is already a running Next.js site and is the obvious host.
+    `discovery/` is already a running Next.js site and is the obvious host. Both
+    artifacts come from one commit, which is what makes "version-matched" true
+    by construction rather than by discipline. Plus one Playwright smoke per
+    target (the `run-web` skill already drives headless Chromium) asserting the
+    hub build's dropped affordances are actually absent — a gate that rots
+    otherwise.
   - LAN mode keeps the hub build as its only web path — an HTTPS page cannot
     reach an `http://` or self-signed LAN hub ([lan-mode.md](lan-mode.md)).
 
