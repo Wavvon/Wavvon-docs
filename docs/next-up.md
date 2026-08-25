@@ -54,14 +54,16 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
     has a domain), received as `?hub=&code=` and collapsed to an invite URL so
     the add-hub flow sees one shape; `handoffTargetUrl` round-trips against the
     real parser in test.
-  - **still to do** — the *late* handover, for someone who already built an
-    identity in a hub build: a button on the user's account settings opening the user
-    build and posting `{hub_url, invite_code?, seed_hex?}` by `postMessage` to
-    a build-time target origin. Receiving side names the sending origin and the
-    key fingerprint and asks: join with the identity you already have, or bring
-    this one in as another account. On ack the hub build wipes its key and
-    records the migration so a later visit redirects. Seed never in a URL; no
-    silent import; blocked window falls back to phrase / `.wavvon-backup`.
+  - **[done 2026-08-26]** the late handover, by `postMessage`:
+    `packages/core/handover.ts` (protocol + guards — a malformed seed rejects
+    the whole offer rather than dropping the field, which would read as a join
+    that quietly left the identity behind), `MoveToUserClientSection` sending,
+    `/adopt` receiving, wired in `main.tsx` so it runs without the app booting.
+    The receiver names the sending origin as the browser reports it, shows the
+    fingerprint and asks; the sender wipes only on the acknowledgement, then
+    reloads onto the identity screen carrying a "you moved" notice. Verified
+    across two real origins in both directions — including that "keep my
+    identity" wipes nothing, which is where a wrong wipe would destroy a key.
   - **RP ID**: passkeys are bound to the origin and cannot be handed over. The
     early-placement button is the mitigation; a late migration means a new
     passkey on the user build's origin and a dead one on the hub's. Decide
