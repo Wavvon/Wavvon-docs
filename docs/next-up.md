@@ -39,6 +39,20 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
     messages, forum — all already `hubFetch`), *and* alliance voice, which
     dials the owning hub's relay direct. Defining the flag as "one origin only"
     breaks alliance voice.
+  - **[done 2026-08-26]** the flag itself: `MULTI_HUB` in
+    `apps/web/src/constants.ts` from `VITE_BUILD_TARGET`, `npm run build:hub`
+    → `dist-hub`, and `scripts/check-hub-build.mjs` asserting three code-only
+    markers present in `dist` and absent from `dist-hub`. Dropped: the `+`
+    menu, AddHubModal, the create-hub wizard, the directory, the home-hub
+    editor. `WelcomeScreen` gained `hubUrlLocked` so the address cannot be
+    retyped into a second, unreachable hub.
+  - **open hole from that work**: an invite link clicked by someone *already*
+    a member of that hub is dropped in the hub build — it used to open the
+    AddHubModal, which re-authenticated with the invite code and so applied
+    any role it granted. The server route for the member case exists
+    (`POST /join/:code`, needs a session token) but no client calls it; the
+    client has only ever re-authenticated. Wire a `redeemInvite` command and
+    call it when a path invite arrives with a live session.
   - the handover: a button on the **identity-creation screen** opening the user
     build and posting `{hub_url, invite_code?, seed_hex?}` by `postMessage` to
     a build-time target origin. Receiving side names the sending origin and the
