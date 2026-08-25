@@ -76,6 +76,19 @@ Clicked months later, the seed moves, the old passkey is dead weight on the
 hub's origin, and the user makes a new one where they land. Worth saying out
 loud rather than discovering.
 
+**The automatic home-hub designation stays in both builds.** It reads oddly in
+the hub build — publishing a list to a client that has no UI for editing it —
+but the hub already holds that identity's profile, so its personal-axis state is
+on that box either way; designating it does not extend trust, it states what is
+already true. The prefs blob and the DM inbox then have a home, and a user who
+never leaves that hub never needs the concept. Changing the list is one of the
+things you graduate to the user build for.
+
+The one place it degrades is a **LAN hub as your only home hub**: personal state
+on a box that is unreachable when you are off that network. Accepted — LAN is
+its own track ([lan-mode.md](lan-mode.md)) and the hub build is already its only
+web path.
+
 **This kills the `web+wavvon:` protocol-handler idea** (removed from
 future-features.md the same day). It existed to guess where a user's client
 lived; with a user build at a known URL, the target is a build-time constant and
