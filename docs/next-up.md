@@ -12,6 +12,37 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
 
 ## 🔨 In flight
 
+- [ ] **Split the web client into a hub build and a user build.** Designed
+  2026-08-25 — decisions.md, "Two web clients: one per hub, one per user". One
+  codebase, two targets: the hub build shows one hub and its interconnections,
+  the user build (hosted by us, next to the directory) is the only one that
+  knows what a list of hubs is.
+  - the build flag, gated the way `DISCOVERY_URL` already is in
+    `apps/web/src/constants.ts` — a build-time value with every entry point
+    written as `X ? … : undefined`. What the hub build drops: hub switcher,
+    add-hub, directory, create-hub, home-hub settings. What it **keeps**:
+    everything cross-hub that routes through its own hub (alliance channels,
+    messages, forum — all already `hubFetch`), *and* alliance voice, which
+    dials the owning hub's relay direct. Defining the flag as "one origin only"
+    breaks alliance voice.
+  - the handover: a button on the **identity-creation screen** opening the user
+    build and posting `{hub_url, invite_code?, seed_hex?}` by `postMessage` to
+    a build-time target origin. Receiving side names the sending origin and the
+    key fingerprint and asks: join with the identity you already have, or bring
+    this one in as another account. On ack the hub build wipes its key and
+    records the migration so a later visit redirects. Seed never in a URL; no
+    silent import; blocked window falls back to phrase / `.wavvon-backup`.
+  - **RP ID**: passkeys are bound to the origin and cannot be handed over. The
+    early-placement button is the mitigation; a late migration means a new
+    passkey on the user build's origin and a dead one on the hub's. Decide
+    whether the user build's RP ID has any bearing on hubs at all before
+    writing code.
+  - release pipeline: CI builds both; the hub Docker image bakes the hub build
+    (`WAVVON_WEB_CLIENT_DIR` unchanged), the site deploys the user build.
+    `discovery/` is already a running Next.js site and is the obvious host.
+  - LAN mode keeps the hub build as its only web path — an HTTPS page cannot
+    reach an `http://` or self-signed LAN hub ([lan-mode.md](lan-mode.md)).
+
 - [ ] **Voice in alliance channels — the web client flow.** The hub side
   shipped 2026-08-22: the mint route, the grant field on `/auth/verify`, the
   `alliance_voice` scope and its allowlist, the visitor table, the

@@ -57,32 +57,6 @@ Hosted demo hub, directory listings, launch post. Needed for adoption and for
 the code-signing re-application ([code-signing.md](code-signing.md)). Not a
 feature and not designed as a campaign.
 
-## One client per device, via `web+wavvon:`
-
-An invite link is `https://hub.example/join/<code>`, and the hub serves its own
-copy of the web client from its own origin. A user who clicks it lands somewhere
-their identity does not exist and is invited to create a second one — the
-per-origin storage boundary showing through as "I lost my account". Nothing a
-page can do fixes it (see the 2026-08-25 entry in
-[decisions.md](decisions.md) for the dead ends: cookies, partitioned iframes,
-file reads).
-
-`navigator.registerProtocolHandler("web+wavvon", "/open?target=%s")` does. A
-client the user registers once becomes the device-wide handler for every Wavvon
-deep link, whatever origin it is served from: the landing page on
-`hub.example` offers *"Open in my client"* → `web+wavvon://join?hub=…&code=…`,
-the browser hands it to the registered page, which already holds the identity
-and the hub list, and adds the hub from there. The invite link itself stays a
-plain `https://` URL so it is still shareable and still works for someone with
-no client at all.
-
-What is not settled: **Safari does not implement it**, so the fallback has to
-carry that share of users — a "paste your client's address" field, remembered
-in the landing hub's own `localStorage` so it only has to be answered once per
-hub. A page also cannot detect whether a handler is registered, so both paths
-are always on screen. And the registration prompt has to be asked for at a
-moment the user understands, which is a UX question, not an API one.
-
 ## Hub-hosted identity vault — designed, build gated
 
 The odd one out: this **has** a design ([identity-vault.md](identity-vault.md))

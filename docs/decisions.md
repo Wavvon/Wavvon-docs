@@ -6,6 +6,92 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Two web clients: one per hub, one per user
+
+**Decision** (2026-08-25): the web client ships as **two builds from one
+codebase**.
+
+- The **hub build** is what a hub serves from its own origin
+  (`WAVVON_WEB_CLIENT_DIR`, unchanged). It shows *that hub and its
+  interconnections* — nothing else. No hub switcher, no add-hub, no directory,
+  no create-hub, no home-hub list. It is version-matched to the hub that serves
+  it, so an operator upgrades when they like and their users are never served a
+  client newer than their hub.
+- The **user build** is served from one origin we host, next to the directory,
+  always at the current release. This is the only build that knows what a *list
+  of hubs* is: identity, the hub list, home hubs, discovery, multi-hub
+  switching.
+
+This supersedes the "Distribution: hosted page vs. browser extension" row in
+[browser-client.md](browser-client.md), which named hub-served as the primary
+path for a single multi-hub client. Both halves of that stance survive, split by
+job rather than ranked.
+
+**What this buys, stated precisely.** Not less code — the hub build still needs
+identity, backup, channels, voice, settings, and the shared surface is ~90%.
+What it removes is a *concept*: in a hub's origin there is no such thing as a
+list of hubs. Every edge case of the previous few days — an invite link landing
+you where your identity does not exist, per-origin identities that diverge, a
+hub list that must be taught to travel — needed that concept to exist in N
+origins. Now it exists in one.
+
+It also fixes version skew in the direction that was hurting: an old hub used to
+serve an old *client*, so its users sat on a stale UI. Now the stale client only
+ever talks to the hub it matches, and the user build (always current) degrades
+per hub through the capability strings that already exist for exactly this.
+
+**The invite link still points at the hub's own origin.** Deliberate: the
+on-ramp must not depend on our domain being up, unblocked, or paid for, and the
+hub operator keeps sovereignty over how people arrive. A newcomer sees one hub
+and zero concepts, which is also the better onboarding. The user build is an
+upgrade offered from there, not a requirement.
+
+**Handing an identity from the hub build to the user build.** A button — put on
+the **identity-creation screen**, not buried in settings — opens the user build
+in a window and hands over `{hub_url, invite_code?, seed_hex?}` by
+`postMessage`, targeted at the user build's origin (a build-time constant).
+The receiving side shows the sending `event.origin` and the key fingerprint and
+**asks**, offering two answers: join that hub with the identity you already
+have (the seed is dropped, the invite code is used with the existing key), or
+bring this identity in as another account. On acknowledgement the hub build
+wipes its local key and records that it migrated, so a later visit to that
+origin redirects instead of offering a fresh start — which is what stops one
+person becoming two users on one hub.
+
+Three constraints on that flow, none optional:
+
+- **The seed never travels in a URL** — not in a query, not in a fragment. It
+  would land in history, in the referrer, and in logs. `postMessage` to an
+  explicit target origin exists precisely so it does not have to.
+- **No silent import.** Without a confirmation naming the origin and the
+  fingerprint, any page could open the user build and push in an identity, or a
+  hostile hub into the list.
+- A blocked or closed window falls back to the recovery phrase or
+  `.wavvon-backup`, both already shipped.
+
+**Passkeys do not migrate, and the button's placement is the fix.** A passkey's
+private key lives in the authenticator bound to the RP ID, which is the origin;
+no message can move it. Offered at identity creation, there is nothing to move.
+Clicked months later, the seed moves, the old passkey is dead weight on the
+hub's origin, and the user makes a new one where they land. Worth saying out
+loud rather than discovering.
+
+**This kills the `web+wavvon:` protocol-handler idea** (removed from
+future-features.md the same day). It existed to guess where a user's client
+lived; with a user build at a known URL, the target is a build-time constant and
+the handover is an explicit, user-initiated message. No Safari gap, no
+undetectable registration.
+
+**Tradeoff.** A build matrix: every new feature must answer "which build is this
+in?", and the answer is not always obvious. The gate is cheap — `constants.ts`
+already does exactly this for `DISCOVERY_URL` (a build-time `null` with every
+entry point written as `DISCOVERY_URL ? … : undefined`) — but the discipline is
+ongoing, and CI has to build both. And the strip must be defined as "no hub
+list, no directory, no create-hub, no switcher", **not** as "one origin only":
+alliance channels, messages and forum already reach the user through their own
+hub as a proxy, but alliance *voice* deliberately dials the owning hub's relay
+direct ([alliances.md](alliances.md)). A single-origin build breaks it.
+
 ## The first hub you sign in to becomes your home hub, and the hub list rides the prefs blob
 
 **Decision** (2026-08-25): a web client that reaches a hub with no
@@ -2391,6 +2477,16 @@ contract was already cross-repo and is unchanged (now one TS
 implementation instead of three).
 
 ## Hubs may optionally self-serve the web client (operator sovereignty, not central hosting)
+
+> **Refined 2026-08-25, not reversed** — see "Two web clients: one per hub, one
+> per user" at the top. Hub-serving survives unchanged, including
+> `WAVVON_WEB_CLIENT_DIR`, the version-matched Docker bake and the
+> `window.__WAVVON_HOME_HUB__` default. What changes is *which build* it serves:
+> the single-hub build, which has no hub list at all. The multi-hub client moves
+> to one origin we host. The sovereignty argument below still holds — the invite
+> link still points at the operator's own domain — but "keeping the multi-hub
+> story consistent" turned out to cost the identity-per-origin problem, and that
+> is what the split pays off.
 
 **Decision**: a hub can serve the browser client from its own origin. Setting
 `WAVVON_WEB_CLIENT_DIR` makes the hub serve a directory of built web-client
