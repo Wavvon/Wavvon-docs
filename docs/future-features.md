@@ -57,6 +57,67 @@ Hosted demo hub, directory listings, launch post. Needed for adoption and for
 the code-signing re-application ([code-signing.md](code-signing.md)). Not a
 feature and not designed as a campaign.
 
+## Downloadable language packs — gated on desktop delivery
+
+The clients ship four languages (en/it/es/de), all four compiled into the
+bundle. The intent is that a fifth, tenth or twentieth language does not make
+everybody carry the other nineteen — and eventually that a translator can
+publish one without waiting for a release.
+
+**Deliberately not started, and the reason is a measurement.** Two real builds
+of `apps/web` on 2026-08-29, identical but for the catalogues:
+
+| bundle JS | raw | gzip | brotli |
+|---|---|---|---|
+| 4 languages | 2,188,344 | 682,745 | 541,570 |
+| `en` only | 1,921,956 | 607,405 | 496,809 |
+| difference | 266,388 | 75,340 | **44,761** |
+
+So the three unused catalogues cost **44.7 KB brotli, 8% of the bundle** —
+roughly **15 KB brotli per language**, far less than the ~25 KB each weighs
+alone, because the 1,336 keys are identical across catalogues and compress
+away. At four languages that is not worth a change. At ten it is 135 KB, at
+twenty 285 KB. **The trigger is the fifth language, not a date.**
+
+Two separate things, worth keeping separate when this is designed:
+
+- **Load one catalogue instead of four.** A one-line change, available any
+  time: `initI18n` already receives the language before the app mounts
+  (`apps/web/src/main.tsx`), so ``await import(`./${lng}.json`)`` makes Vite emit
+  a chunk per language. No new concepts.
+- **Let somebody publish a pack we did not ship.** This is the actual feature,
+  and it is a plugin system: a place to host packs, a signature (UI strings are
+  UI — a hostile pack rewrites a screen into "type your recovery phrase here",
+  and the whole identity model rests on that phrase), and a staleness story for
+  when keys change under a pack nobody updated. `check-coverage` cannot see any
+  of it.
+
+**Letting each hub choose which languages it serves** is an option on the
+table, and mostly it is already free rather than a feature: a hub serves the
+client from a directory the operator owns (`WAVVON_WEB_CLIENT_DIR`), so once
+catalogues are separate chunks, deleting the unwanted ones *is* the control. A
+hub *setting* would add a capability string and wire surface to do what `rm`
+does. Two things have to be true first, and neither is today: the language list
+must derive from what actually shipped instead of the hardcoded
+`supportedLangs` array duplicated in web and desktop `main.tsx`, or the
+switcher offers a language whose chunk is missing; and the multi-hub coupling
+has to be faced — the client served by hub A talks to hubs B and C, so
+"the hub decides" means whichever hub you *loaded from* decides, and an Italian
+user landing on a German operator's hub silently falls back to English.
+
+**Gated on desktop delivery** (2026-08-29 decision). Web is the only delivery
+target today, and a downloaded-and-installed pack is a desktop shape — on web
+the same benefit is the one-line dynamic import above.
+
+Ruled out while looking at this: **putting the language in the URL** the way
+Microsoft Learn does (`/it-it/…`). That works because a docs page is a
+prebuilt document per locale on a CDN, indexed separately by search. Our
+client is one SPA served by every hub with an SPA fallback, so `/it` and `/ru`
+return identical bytes unless each hub carries N builds and the Rust hub
+learns the language list. The path is also already spoken for — `/join/{code}`,
+`/adopt`, `/hub/{slug}` — so a language segment would ride along on shared
+invite links and open in the *sender's* language.
+
 ## Hub-hosted identity vault — designed, build gated
 
 The odd one out: this **has** a design ([identity-vault.md](identity-vault.md))
