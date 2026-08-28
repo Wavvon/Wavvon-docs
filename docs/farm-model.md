@@ -34,7 +34,9 @@ Bottom to top:
 3. **Hub federation** — peers, alliances, federated DMs (today, partial)
 4. **Farm** — one server hosting many hubs, operator-set policy (future)
 5. **Farm clusters / cross-farm discovery** — operator-claimed clusters
-   + open-network discovery via the seed crate (future)
+   (future). The `seed` crate that was to carry the open-network half was
+   built and then deleted: nothing ever read it, and the directory's
+   provider list answers the same question.
 
 Each layer is a separate concern. Don't conflate them in conversation:
 
@@ -258,4 +260,5 @@ When a discussion involves "many hubs on one machine," "server hosting
 hubs," or hub directories, this is the farm model. Don't confuse it with:
 
 - **Hub federation** (layer 3 — hubs on different machines talking)
-- **The `seed/` crate** in Wavvon-server (layer 5 — cross-farm discovery)
+- **Cross-farm discovery** (layer 5) — the `seed/` crate is deleted; see
+  `decisions.md`, 2026-08-28

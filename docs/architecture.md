@@ -8,18 +8,22 @@ the discovery service are each their own repo.
 
 ```
 Wavvon              ── docs, ROADMAP.md, openapi.yaml (this repo)
-Wavvon-server       ── Rust workspace: hub/, seed/, identity/, farm/,
-                       agent/, store/ crates
-Wavvon-client       ── pnpm + Cargo monorepo for every client:
-                       apps/desktop (Tauri 2 + React), apps/web (Vite + React),
-                       apps/android (Tauri mobile shell), voice/ (Rust crate),
+Wavvon-server       ── Rust workspace: hub/, identity/, store/, hub-env/,
+                       farm/, agent/, plus bot-kit/, demo-seed/,
+                       discord-import/, ttt-bot/
+Wavvon-clients      ── pnpm + Cargo monorepo for every client:
+                       apps/web (Vite + React, two builds),
+                       apps/desktop (Tauri 2 + React),
+                       crates/voice (Rust),
                        packages/core|i18n|ui|platform (shared TS)
-Wavvon-discovery    ── Next.js hub discovery service
+Wavvon-discovery    ── Next.js directory: hubs, clients, bots, providers, docs
 ```
 
 The clients were previously three separate repos (Wavvon-desktop,
 Wavvon-web, Wavvon-android); they were consolidated into the single
-Wavvon-client monorepo. Older docs may still reference the split repos.
+**Wavvon-clients** monorepo, and those three names resolve to nothing today.
+There is no Android app in the workspace — only `apps/web` and
+`apps/desktop`. Older docs may still reference the split repos.
 
 ## The Wavvon-server workspace
 
@@ -66,13 +70,6 @@ reverse-connects to its farm over WebSocket (`agent.rs`), and spawns,
 monitors, and stops local hub processes on the farm's behalf
 (`hub_manager.rs`). No HTTP surface of its own.
 
-### `seed/` crate
-
-Cross-farm discovery (layer 5 in [farm-model.md](farm-model.md)): a
-self-hostable registry where farms publish signed self-listings —
-`POST/DELETE /farms/register`, public catalog at `GET /farms`, plus a
-revalidation worker that re-checks registered farms.
-
 ### `identity/` crate
 
 Ed25519 keypairs, BIP39 recovery phrases, proof-of-work helpers. No
@@ -80,8 +77,8 @@ networking, no storage. The hub consumes it directly, and it is the
 **canonical wire-format authority**: signing bytes, key encodings, and
 verification rules are defined by this crate. Non-Rust clients do not
 link it — the Tauri shells carry their own `identity.rs`
-(Wavvon-client `apps/desktop` and `apps/android`) and the browser
-clients carry TypeScript implementations (Wavvon-client
+(Wavvon-clients `apps/desktop`) and the browser
+clients carry TypeScript implementations (Wavvon-clients
 `packages/core/src/identity/`) —
 so each reimplementation must match the crate byte-for-byte, validated
 against shared test vectors. A wire-format spec with test vectors is
@@ -101,25 +98,25 @@ collected into a `HubStore` super-trait plus a `StoreError` enum; the
 ("Database abstraction: trait-based store crate split") and design in
 [store-trait-design.md](store-trait-design.md).
 
-### `voice/` crate (in Wavvon-client)
+### `crates/voice/` (in Wavvon-clients)
 
 Audio pipeline: capture → denoise (RNNoise) → encode (Opus) → transport
 → decode → playback. Used by the desktop and Android Tauri shells.
 
-- Pipeline orchestration: `voice/src/pipeline.rs` (Wavvon-client)
-- Codec: `voice/src/codec.rs` (Wavvon-client)
-- UDP transport: `voice/src/transport.rs` (Wavvon-client)
-- Wire protocol: `voice/src/protocol.rs` (Wavvon-client)
+- Pipeline orchestration: `crates/voice/src/pipeline.rs` (Wavvon-clients)
+- Codec: `crates/voice/src/codec.rs` (Wavvon-clients)
+- UDP transport: `crates/voice/src/transport.rs` (Wavvon-clients)
+- Wire protocol: `crates/voice/src/protocol.rs` (Wavvon-clients)
 
 See [voice.md](voice.md) for the full data flow.
 
-### `apps/desktop/` (in Wavvon-client)
+### `apps/desktop/` (in Wavvon-clients)
 
 Tauri 2 (Rust shell) + React 19 (UI). The Rust side handles file I/O,
 voice, and OS integration; the React side is everything you see.
 
-- React entry: `apps/desktop/src/main.tsx` → `App.tsx` (Wavvon-client)
-- Tauri commands (Rust ↔ JS bridge): `apps/desktop/src-tauri/src/lib.rs` (Wavvon-client)
+- React entry: `apps/desktop/src/main.tsx` → `App.tsx` (Wavvon-clients)
+- Tauri commands (Rust ↔ JS bridge): `apps/desktop/src-tauri/src/lib.rs` (Wavvon-clients)
 
 See [client.md](client.md) for the structure.
 

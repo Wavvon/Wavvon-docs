@@ -37,7 +37,8 @@ boundary right while it still affects one user.
 ### Farm and hub are separate binaries; the hub verifies tokens locally
 
 **Decision**: `farm/` is a new crate in Wavvon-server alongside
-`hub/`, `seed/`, `identity/`. It is its own binary. Hubs continue to
+`hub/` and `identity/` (`seed/` existed at the time and has since been
+deleted). It is its own binary. Hubs continue to
 run as their own processes (one binary, possibly multiple instances
 under one farm — see Phase 2). They communicate via HTTPS, not in-
 process function calls.
@@ -1840,8 +1841,8 @@ follow-up implementation docs):
   is a separate UX.
 - **Hub migration export/import** (Phase 6).
 - **Deep links** (Phase 7).
-- **Cross-farm discovery** (layer 5) — `seed/` crate work,
-  fundamentally separate.
+- **Cross-farm discovery** (layer 5) — was `seed/` crate work; that crate is
+  deleted, so this is unclaimed rather than merely separate.
 - **DMs moving to the farm level** — called out in farm-model.md as
   the eventual destination; deferred until both phases above are
   stable, because the federated DM outbox protocol has its own

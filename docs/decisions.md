@@ -16,9 +16,10 @@ A **farm** is the server-side aggregate of hubs an operator runs, and it is
 **not a client concept**. The farm admin panel, its settings, quotas and
 creation policy, and the eighteen Tauri commands behind them are removed from
 web, desktop and the Tauri shell. An operator who chooses to run hubs for other
-people is a **provider**, and the directory lists that offer at `/providers` —
-the offer, not the deployment, which is why the table is `providers` and no
-longer `farms`.
+people is a **provider**, and the directory lists that offer at `/providers`.
+That list is a curated file in the directory's own repository, not a registry
+farms publish to: hubs, clients and bots describe themselves and are signed,
+while a page about which companies sell hosting is editorial.
 
 **Alternatives considered.**
 
@@ -41,9 +42,11 @@ run. Every other part of Wavvon is arranged so that no such dependency exists.
 Removing the flow costs the least technical user a click and gains the property
 that owning a hub and running a hub are the same act.
 
-**Outcome.** Discovery loses `/new`, `/api/wizard/generate`,
+**Outcome.** The `seed` crate — a cross-farm registry nothing ever read — is
+deleted; discovery's provider list answers the same question and is the only
+one with a reader. Discovery loses `/new`, `/api/wizard/generate`,
 `/api/bootstrap/redeem`, the `bootstrap_tokens` table, the config-template
-catalogue and `/submit`; `/farms` becomes `/providers`. The clients lose the
+catalogue and `/submit`; `/farms` becomes `/providers`, a curated file rather than a table. The clients lose the
 creation wizard, the farm admin surface and 103 translation keys per locale.
 Two things keep the word "farm" deliberately: `farm_url` on the hub's `/info`
 (renaming it is a wire-format change) and the path-prefix parsing a client needs
