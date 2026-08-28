@@ -876,7 +876,7 @@ name; `directory_public` stays as an alias for the migration window).
 | creation_policy           | TEXT    | `'open'` \| `'admin_only'` \| `'disabled'`. Default `'admin_only'`. |
 | max_hubs_per_user         | INTEGER | Per-pubkey cap. `0` = unlimited. Default `5`.                    |
 | max_hubs_total            | INTEGER | Farm-wide cap. `0` = unlimited. Default `0`.                     |
-| allow_discovery_listing   | INTEGER | 0/1. Advertise on the discovery network as "open for creation". Default `0`. |
+| ~~allow_discovery_listing~~ | — | **Removed 2026-08-28.** Gated a directory that no longer exists. |
 
 Policy semantics:
 
@@ -1281,6 +1281,14 @@ The owner role assignment is server-side, not client-asserted: the
 farm passes `owner_pubkey` to the spawned hub via a startup parameter
 or via the hub's existing first-admin bootstrap path. The client does
 not call any "make me admin" endpoint.
+
+> **Superseded (2026-08-28).** Sections D and E below are not built and will
+> not be: `GET /farm/public-info`, the `allow_discovery_listing` flag, the
+> `seed` crate and the directory's farm listing are all deleted. A hub is
+> self-hosted, a farm is a server-side aggregate a client never names, and the
+> directory lists **hosting providers** — a curated file of companies, not a
+> registry farms publish into. Kept for the reasoning; see
+> "A hub is self-hosted; no client creates one" in [decisions.md](decisions.md).
 
 ### D. Discovery — farms open for creation
 
