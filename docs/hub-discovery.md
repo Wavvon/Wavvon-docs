@@ -87,7 +87,9 @@ A public-facing web application. Key pages:
 - **`/hub/<pubkey>`** — individual hub page with full listing, "Open in
   Wavvon" button (the `wavvon://` deep link), and a web-visible preview
   for users without the client.
-- **`/submit`** — hub operators submit or update their listing.
+- ~~**`/submit`**~~ — removed 2026-08-28. A hub publishes its own listing
+  through its `discovery_url` setting, so a web form for an operator to do it
+  by hand was a second path to the same row.
 - **`/about`** — what Wavvon is, download links.
 
 The same listing data is served as a JSON API (see endpoints below) so

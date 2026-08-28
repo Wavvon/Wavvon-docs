@@ -4,6 +4,47 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **The directory rebuilt, and four things deleted from the network (2026-08-28)**:
+  a long pass that simplified more than it added. Discovery had never had a
+  design — `globals.css` was still the create-next-app default, the accent was
+  indigo while every client theme and `brand.md` say violet, and the hub list
+  lived at `/`. It now runs on the client design system's tokens (theme
+  `linear`), with a landing page, `/hubs`, `/clients`, `/bots`, `/providers`
+  and `/docs`. Clients got a real directory — a `clients` table, author-signed
+  `.wavvonclient` listings, a support table and a maintainer on every page —
+  replacing three hardcoded cards whose download links pointed at
+  `Wavvon-desktop`, `Wavvon-web` and `Wavvon-android`, three repositories that
+  do not exist. `/docs` renders the wiki's own markdown, fetched at build from
+  an allowlist of slugs so `/docs/<anything>` cannot reach an arbitrary file.
+  Filters distinguish closed sets from open ones: platforms and features are
+  enumerated in code and render as checkboxes, while tags and languages are
+  whatever publishers declare and render as a searchable facet — a fixed list of
+  languages would have capped the network at the four our own clients ship.
+  Every rail control is a link toggling a search param, so the rails stay server
+  components and a filtered view is a URL you can send.
+
+  Deleted in the same pass, each for its own reason: **hub creation** from every
+  client, along with the wizard, the bootstrap-token handshake and the config
+  template catalogue — a hub exists because somebody ran the binary on their own
+  server; **the farm concept** from web, desktop and the Tauri shell, 103
+  translation keys per locale included, because a farm is a server-side
+  aggregate; **uptime probing**, because the per-card 7-day aggregate cost more
+  than the answer was worth; and **the `seed` crate**, a cross-farm registry
+  nothing had ever read. `/farm/public-info` and `allow_discovery_listing` went
+  with it once they gated nothing.
+
+  Two things were found rather than planned. Every detail page 404'd because a
+  raw colon in `ed25519:<hex>` never reaches a page component — URLs carry the
+  bare hex now, and `getHub`/`getBot` accept either spelling. And the bots API
+  turned out to be the one listing type nobody had to prove they owned: an
+  unauthenticated `DELETE` removed anybody's listing. Bots sign now, like
+  everything else.
+
+  Reasoning in [decisions.md](decisions.md) — three entries. Superseded designs
+  marked, not deleted: [hub-creation-wizard.md](hub-creation-wizard.md), and
+  sections D and E of [farm-impl.md](farm-impl.md), and three of the five
+  features in [discovery-v2.md](discovery-v2.md).
+
 - **A home hub without being asked, a hub list that survives a browser wipe, and
   a Help & FAQ tab (2026-08-25)**: three small changes that together close "I
   cleared my browser and lost everything". The web client now publishes a

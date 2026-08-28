@@ -1,9 +1,15 @@
 # Discovery v2
 
-Four enhancements to the Wavvon-discovery service (the Next.js directory
+> **Three of these five shipped and were then removed (2026-08-28).** Uptime
+> tracking, farm browsing and aggregate analytics are gone from the code; global
+> search and the skin gallery remain. Each section below carries its own note.
+> The sovereignty constraint that shapes the whole document still holds, and is
+> the reason two of the three went.
+
+Five enhancements to the Wavvon-discovery service (the Next.js directory
 described in [hub-discovery.md](hub-discovery.md), Layer 2): hub uptime
-tracking, farm browsing, global search, and anonymous aggregate
-analytics. All four are wishlist items in
+tracking, farm browsing, global search, anonymous aggregate analytics, and the
+skin gallery. They began as wishlist items in
 [`../ROADMAP.md`](../ROADMAP.md) under "Discovery enhancements."
 
 These extend the existing stack — Next.js route handlers, `better-sqlite3`
@@ -21,6 +27,13 @@ never an entity discovery tracks.
 ---
 
 ## Feature 1 — Hub uptime tracking
+
+> **Removed 2026-08-28.** Built as designed, then deleted. The probing was
+> never the cost — a thousand hubs every fifteen minutes is about one request a
+> second — but the browse page computed a 7-day aggregate *per card, per
+> render*, against a table growing at 2,880 rows per hub per month. And nobody
+> browses a directory by uptime. A reader reports a dead listing instead, which
+> costs nothing and scales with readers rather than with the catalogue.
 
 **Decision.** A background job pings every registered hub's public
 `GET {hub_url}/info` endpoint every 15 minutes with a 5-second timeout.
@@ -78,6 +91,12 @@ status-page API.
 ---
 
 ## Feature 2 — Farm browsing
+
+> **Removed 2026-08-28.** A farm is a server-side aggregate of hubs, not
+> something a directory lists. What a reader actually wants is *who will host a
+> hub for me*, so `/providers` lists hosting companies — a curated file in the
+> directory's own repository, not a registry farms publish into. See
+> [decisions.md](decisions.md).
 
 **Decision.** A dedicated catalog, API, and page for managed farms —
 infrastructure providers that host hubs for communities who don't want to
@@ -149,6 +168,10 @@ or ratings, and capacity reservations/holds during the join flow.
 
 ## Feature 3 — Global search
 
+> **Shipped, with a changed shape.** It searches hubs, bots and clients.
+> Templates went with the hub-creation wizard; clients did not exist when this
+> was written.
+
 **Decision.** One search box across all discovery catalogs.
 `GET /api/search?q=<query>&types=hubs,bots,games,farms,templates` — the
 `types` param selects which catalogs to query (defaults to all). The
@@ -205,6 +228,11 @@ debounce tuning, and weighting by uptime or recency.
 ---
 
 ## Feature 4 — Anonymous aggregate analytics
+
+> **Removed 2026-08-28.** Shipped and then deleted as unreachable: nothing
+> linked to it, and a directory that deliberately knows nothing about its
+> readers has little worth aggregating. The counts on the landing page are three
+> `SELECT COUNT(*)`.
 
 **Decision.** A public ecosystem dashboard showing aggregate, anonymised
 counts — and nothing else. `GET /api/analytics` returns recomputed-hourly,

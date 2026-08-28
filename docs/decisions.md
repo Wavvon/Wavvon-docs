@@ -6,6 +6,77 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Every listing on the directory is signed, bots included
+
+**Decision** (2026-08-28): a listing is published by proving possession of the
+key it names, and removed the same way. No exceptions.
+
+Hubs, clients and skins had done this from the start. Bots had not, and it was
+an oversight that read like a design: `POST /api/bots` believed whatever
+`pubkey` the body carried, `PUT` overwrote on the same terms, and `DELETE`
+took no credential at all — a bare `curl -X DELETE` removed anybody's listing.
+The submit page was a form that asked an author to *type* a public key.
+
+**Alternatives considered.**
+
+- **A moderation queue.** Approving listings would stop the takeover, and would
+  make the directory a gatekeeper — the one thing it must never become. It also
+  scales with our attention rather than with the network.
+- **An API token per publisher.** A credential we issue is a credential we can
+  revoke, which is the same gatekeeping wearing a different hat, and it means
+  running an account system for a site that deliberately has no accounts.
+- **Leave it; a bot listing is low value.** Rejected on the shape of the bug
+  rather than its blast radius: an unauthenticated delete is not a small
+  version of a problem, it is the problem.
+
+**Tradeoff that decided it.** Signing costs a publisher one signature and costs
+this site nothing to verify, because the primitive was already there for three
+other listing types. The alternative that "costs less" costs a policy.
+
+**Outcome.** `POST /api/bots` takes `{payload, sig}` and verifies through the
+same `signed-listing.ts` as clients and skins; `DELETE` requires a signature
+over the pubkey. `PUT` is gone — republishing updates, and one write path is
+easier to reason about than two. `/bots/submit` is gone with it: a bot runs on
+its author's machine and already speaks this API, exactly as a hub publishes
+itself.
+
+---
+
+## The directory does not probe hubs
+
+**Decision** (2026-08-28): uptime tracking is removed. Discovery makes no
+scheduled outbound request of any kind, and a listing that has gone stale is
+reported by whoever noticed.
+
+It was built as designed in [discovery-v2.md](discovery-v2.md) — a ping every
+fifteen minutes, a `hub_pings` table, a 7-day percentage on every card — and
+then deleted.
+
+**Alternatives considered.**
+
+- **Keep it, cache the aggregate.** A denormalised column would fix the query
+  cost. Rejected because it fixes the cheaper half of the problem and leaves a
+  table growing at 2,880 rows per hub per month for a number nobody browses by.
+- **Probe on demand, when somebody opens a hub's page.** Genuinely tempting:
+  the cost becomes O(views) instead of O(hubs), and no table is needed.
+  Rejected for now because it still makes the directory a thing that reaches
+  out to hubs on a schedule set by strangers, and because the reported-listing
+  path covers the same need at zero infrastructure. Worth revisiting if reports
+  turn out not to arrive.
+
+**Tradeoff that decided it.** The probing itself was never expensive — a
+thousand hubs every fifteen minutes is about one request a second. What was
+expensive was rendering: the browse page computed the 7-day aggregate per card,
+per render. And a directory of communities is not a status page; the question a
+reader asks is "is this for me", not "what was its availability last week".
+
+**Outcome.** The `hub_pings` table, `lib/uptime.ts`,
+`POST /api/internal/ping-hubs` and `CRON_SECRET` are gone. The hub detail page
+says plainly that the directory does not probe, so a dead address stays listed
+until somebody reports it, and offers the report link next to that sentence.
+
+---
+
 ## A hub is self-hosted; no client creates one
 
 **Decision** (2026-08-28): a hub comes into existence because somebody ran the
