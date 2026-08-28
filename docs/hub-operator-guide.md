@@ -102,11 +102,15 @@ Your public key is shown in the desktop client's identity / profile panel.
 
 On an empty database, the hub runs all migrations automatically.
 
-To pre-configure a hub for unattended deployment, set `template_url` in `hub.toml`
-(or `WAVVON_TEMPLATE_URL`) to a JSON bootstrap URL and `bootstrap_token`
-(or `WAVVON_BOOTSTRAP_TOKEN`) to authenticate against it. The hub fetches
-the template on first run and creates channels, roles, and settings from it.
-See [hub-creation-wizard.md](hub-creation-wizard.md) for the template schema.
+To pre-configure a hub for unattended deployment, point it at a bootstrap
+document: `template_url` in `hub.toml` (or `WAVVON_TEMPLATE_URL`) for a plain
+HTTP(S) fetch, `template_file` (or `WAVVON_TEMPLATE_FILE`) for a local file, or
+`template` (or `WAVVON_TEMPLATE`) for a built-in preset — `gaming`,
+`community` or `minimal`. The hub applies the first one that resolves on its
+first run and creates channels, roles and settings from it. All three are
+documents you supply; there is no catalogue to authenticate against.
+[hub-creation-wizard.md](hub-creation-wizard.md) is superseded but still
+carries the template schema.
 
 ---
 
@@ -200,8 +204,8 @@ is very likely fine and is not something we test. Take the backup.
 > **One-time exception — upgrading to v0.3.0**: the schema baseline was
 > reset pre-production ([decisions.md](decisions.md)). Databases created
 > by hubs **older than 0.3.0** cannot upgrade in place: drop the
-> database, start the new binary, and re-run first setup (ideally via
-> the [creation wizard](hub-creation-wizard.md)). `pg_dump` archives
+> database, start the new binary, and re-run first setup (`wavvon-hub
+> setup`). `pg_dump` archives
 > from pre-0.3.0 hubs restore only onto pre-0.3.0 binaries. From 0.3.0
 > onward the additive in-place upgrade path above applies again.
 

@@ -39,7 +39,7 @@ had a "recently shipped" section, whatever this line used to claim):
 
 11. [farm-model.md](farm-model.md) — multi-hub server layer + 5-layer architecture; the "Multi-node data plane" section is designed, not built (farm↔node TLS, per-node PostgreSQL)
     - [farm-impl.md](farm-impl.md) — Phase 1 + 2 + 3 implementation design (auth move, multi-tenancy, creation policy)
-    - [hub-creation-wizard.md](hub-creation-wizard.md) — signed config templates, hub first-run bootstrap, web creation wizard at `/new`
+    - [hub-creation-wizard.md](hub-creation-wizard.md) — **superseded**: a hub is self-hosted and no client creates one. Kept for the reasoning
 12. [gaming.md](gaming.md) — game distribution platform: tiers, registry, hub admin install + permissions, six-call SDK, farm-level games
 13. [multi-device.md](multi-device.md) — master+subkey identity, QR pairing protocol
 14. [e2e-encryption.md](e2e-encryption.md) — E2E encrypted DMs: X25519 from Ed25519 seed, static ECDH + AES-GCM, signed envelopes, group sender keys
@@ -151,8 +151,8 @@ Reading order is for learning the system end-to-end. This section is for
 
 ### Hosting & ecosystem
 - **Farm → Server → Hub deployment model** — [farm-model.md](farm-model.md), [farm-impl.md](farm-impl.md), [architecture.md](architecture.md)
-- **Hub creation (config templates, first-run bootstrap, web wizard)** — [hub-creation-wizard.md](hub-creation-wizard.md)
-- **Hub discovery (uptime, search, farm catalog)** — [hub-discovery.md](hub-discovery.md), [discovery-v2.md](discovery-v2.md)
+- **Setting a hub up** — `wavvon-hub setup` on your own machine, or `WAVVON_TEMPLATE_FILE`/`WAVVON_TEMPLATE` on first run — [hub-operator-guide.md](hub-operator-guide.md). The web wizard that once did this is superseded ([hub-creation-wizard.md](hub-creation-wizard.md))
+- **Hub discovery (search, provider listings)** — [hub-discovery.md](hub-discovery.md), [discovery-v2.md](discovery-v2.md). Uptime probing was built and removed; see [decisions.md](decisions.md)
 - **Server tags & portable badges** — [server-tags.md](server-tags.md); **user-configurable trust roots (designed, not built)** — same doc, Part 4
 - **Database abstraction layer (trait-based store)** — [store-trait-design.md](store-trait-design.md)
 - **Bots & integrations** — [bots.md](bots.md)

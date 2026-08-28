@@ -1,3 +1,10 @@
+> **Superseded (2026-08-28).** A hub is self-hosted: it exists because
+> somebody ran the binary on their own server. No client creates one, so the
+> template catalogue, the wizard at `/new` and the bootstrap-token handshake
+> designed here are all gone from the code. The first-run bootstrap the hub does
+> for *itself* survives. Kept for the reasoning, not as a plan — see
+> "A hub is self-hosted; no client creates one" in [decisions.md](decisions.md).
+
 # Hub Creation Wizard
 
 Getting from "I want a community" to "my hub is live" today means cloning

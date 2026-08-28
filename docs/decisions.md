@@ -6,6 +6,50 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## A hub is self-hosted; no client creates one
+
+**Decision** (2026-08-28): a hub comes into existence because somebody ran the
+binary on their own server. There is no flow, in any client or on the
+directory, that creates one for you.
+
+A **farm** is the server-side aggregate of hubs an operator runs, and it is
+**not a client concept**. The farm admin panel, its settings, quotas and
+creation policy, and the eighteen Tauri commands behind them are removed from
+web, desktop and the Tauri shell. An operator who chooses to run hubs for other
+people is a **provider**, and the directory lists that offer at `/providers` —
+the offer, not the deployment, which is why the table is `providers` and no
+longer `farms`.
+
+**Alternatives considered.**
+
+- **Keep creation, restrict it to your own farm.** A farm operator would have
+  kept a provisioning UI inside the client. Rejected because it leaves the farm
+  noun in the client to serve one rare user, and the same operator already has
+  a server in front of them — the place where provisioning belongs.
+- **Keep the hosted wizard, drop only the in-client path.** Rejected: the wizard
+  hands somebody a hub they did not install, which is the thing being ruled out.
+  Halfway would have left the bootstrap-token handshake and the signed template
+  catalogue alive with nothing to feed.
+- **Delete farms from the directory entirely.** Rejected: renting out capacity
+  is a real choice an operator can make, and somebody who cannot run a server
+  still needs a road. What was wrong was the *noun*, not the listing.
+
+**Tradeoff that decided it.** Creating a hub for somebody is the one operation
+that makes the network depend on whoever performed it — a hub you did not
+install sits on hardware you do not control, provisioned by a flow you did not
+run. Every other part of Wavvon is arranged so that no such dependency exists.
+Removing the flow costs the least technical user a click and gains the property
+that owning a hub and running a hub are the same act.
+
+**Outcome.** Discovery loses `/new`, `/api/wizard/generate`,
+`/api/bootstrap/redeem`, the `bootstrap_tokens` table, the config-template
+catalogue and `/submit`; `/farms` becomes `/providers`. The clients lose the
+creation wizard, the farm admin surface and 103 translation keys per locale.
+Two things keep the word "farm" deliberately: `farm_url` on the hub's `/info`
+(renaming it is a wire-format change) and the path-prefix parsing a client needs
+to join a hub that shares a host. [hub-creation-wizard.md](hub-creation-wizard.md)
+is superseded; the hub's own first-run bootstrap is untouched.
+
 ## Two web clients: one per hub, one per user
 
 **Decision** (2026-08-25): the web client ships as **two builds from one
