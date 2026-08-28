@@ -6,6 +6,50 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## The directory is English only; the clients stay translated
+
+**Decision** (2026-08-29): the discovery site ships one language. The clients
+keep their four (en/it/es/de) and can gain more.
+
+The directory was translated into six languages and reverted the same day. The
+revert is the decision worth recording, because the translation looked
+obviously right: the directory is the first Wavvon surface a stranger meets,
+and it was the only one with no translation at all.
+
+What that missed is that a directory is a frame around other people's writing.
+Its content is the listings — a hub's name and bio, a bot's command
+descriptions, a client's feature notes — and every word of that is written by
+whoever published it, in whatever language they chose. The site cannot
+translate it and should not try. So translating the site translated the
+navigation, the filter labels and the empty states, and left a Portuguese
+reader looking at Portuguese chrome wrapped around English listings.
+
+**Alternatives considered.**
+
+- **Keep the six and accept the mixed page.** A reader still gets their own
+  language for the parts we wrote. Rejected because those parts are the small
+  ones, and the price was permanent: `[locale]` routing, an Accept-Language
+  middleware, a switcher, a coverage gate, six catalogues to hold in step, and
+  168 prerendered documentation pages instead of 28 — all to be re-paid on
+  every page added.
+- **Machine-translate the listings on render.** Rejected: a hub's own
+  description of itself is not ours to rewrite, and a wrong translation of an
+  admission rule or a moderation policy is worse than one the reader has to
+  paste into a translator knowingly.
+- **Let publishers declare translations of their own listing text.** Not
+  rejected — deferred. This is the version that would actually work, because
+  it puts the words in the hands of whoever wrote them. It is a wire-format
+  question, not a website question, and nothing today asks for it.
+
+**Tradeoff.** A reader who does not read English meets an English directory.
+That is a real cost and it is the one we chose: they were going to meet
+English listings regardless, and the client they end up in — the thing they
+will actually spend time in — is translated.
+
+**Outcome.** 3,164 lines deleted from the discovery repo, no dictionary in the
+browser bundle, and a note in that repo's `CLAUDE.md` saying not to bring it
+back without solving the listings first.
+
 ## Every listing on the directory is signed, bots included
 
 **Decision** (2026-08-28): a listing is published by proving possession of the
