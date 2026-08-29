@@ -547,8 +547,17 @@ docker run -e WAVVON_WEB_CLIENT_DIR= wavvon-hub:local
 
 ```bash
 git clone https://github.com/wavvon/Wavvon-client && cd Wavvon-client
-pnpm install && pnpm --filter web build   # output in apps/web/dist (contains index.html)
+pnpm install && pnpm --filter wavvon-web build:hub   # output in apps/web/dist-hub
 ```
+
+`build:hub`, not `build`. The client ships as two builds from one
+codebase: the **hub build** shows the one hub that served it, and the
+**user build** (`pnpm --filter wavvon-web build`, output `apps/web/dist`)
+is the multi-hub client, with add-a-hub, the directory and the home-hub
+list. Point `WAVVON_WEB_CLIENT_DIR` at the hub build — serving the user
+build from a hub's own origin offers visitors screens for leaving it.
+Both are attached to every release as `web-dist-hub.tar.gz` and
+`web-dist.tar.gz`, so there is no need to build either by hand.
 
 ---
 
@@ -567,8 +576,8 @@ A hub can host the browser client from its own origin. When
   flow still works for adding other hubs.
 
 The **official Docker image** (methods 1 and 2) bakes a version-matched
-build in and sets `WAVVON_WEB_CLIENT_DIR=/web-client` by default — nothing
-to configure. To run the image API-only, set `WAVVON_WEB_CLIENT_DIR=`
+hub build in and sets `WAVVON_WEB_CLIENT_DIR=/web-client` by default —
+nothing to configure. To run the image API-only, set `WAVVON_WEB_CLIENT_DIR=`
 (empty).
 
 For **bare-binary / source** installs (methods 3 and 4), serving is opt-in:

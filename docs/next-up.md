@@ -69,14 +69,24 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
     passkey on the user build's origin and a dead one on the hub's. Decide
     whether the user build's RP ID has any bearing on hubs at all before
     writing code.
-  - release pipeline: CI builds both; the hub Docker image bakes the hub build
-    (`WAVVON_WEB_CLIENT_DIR` unchanged), the site deploys the user build.
-    `discovery/` is already a running Next.js site and is the obvious host. Both
-    artifacts come from one commit, which is what makes "version-matched" true
-    by construction rather than by discipline. Plus one Playwright smoke per
-    target (the `run-web` skill already drives headless Chromium) asserting the
-    hub build's dropped affordances are actually absent — a gate that rots
-    otherwise.
+  - **[done 2026-08-29]** the build half of the release pipeline: `build.yml`
+    and `release-web.yml` build both targets and run `check-hub-build`, the
+    hub's Dockerfile bakes `dist-hub` (`WAVVON_WEB_CLIENT_DIR` unchanged), and
+    the release attaches `web-dist-hub.tar.gz` next to `web-dist.tar.gz` so a
+    bare-binary install has the right artifact. Both come from one commit,
+    which is what makes "version-matched" true by construction rather than by
+    discipline. Nothing downstream had known about the split until then: every
+    hub was serving the *user* build, offering add-a-hub and the home-hub
+    editor from its own origin, and `check-hub-build` — never wired into CI —
+    had gone red when the create-hub removal took two of its markers with it.
+    No Playwright smoke per target: the bundle check already proves the dropped
+    screens are absent, and it cannot be fooled by a screen that renders
+    nothing.
+  - release pipeline, the half that is left: **deploying the user build**.
+    `discovery/` is already a running Next.js site and is the obvious host, but
+    it has no deployment of its own yet, and `USER_CLIENT_URL` stays null until
+    that host has a domain — which is also what keeps the handover button and
+    its `check-hub-build` marker dormant.
   - LAN mode keeps the hub build as its only web path — an HTTPS page cannot
     reach an `http://` or self-signed LAN hub ([lan-mode.md](lan-mode.md)).
 
@@ -288,7 +298,7 @@ to the [shipped log](shipped-log.md).
   being built yet: the canonical inbox is meant to be read across the list, with
   the accepting hub mirroring to its peers.
 
-- **1,026 UI strings are still hardcoded English**, across 137 files —
+- **1,011 UI strings are still hardcoded English**, across 135 files —
   measured, not estimated, by `packages/i18n/find-hardcoded.mjs`. The "~296"
   this entry used to claim was an undercount from a line-wise scan that missed
   every label written across lines (`>\n  Remove\n<`), which is most of them.
