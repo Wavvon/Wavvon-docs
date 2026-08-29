@@ -93,29 +93,6 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   - LAN mode keeps the hub build as its only web path — an HTTPS page cannot
     reach an `http://` or self-signed LAN hub ([lan-mode.md](lan-mode.md)).
 
-- [ ] **Voice in alliance channels — the web client flow.** The hub side
-  shipped 2026-08-22: the mint route, the grant field on `/auth/verify`, the
-  `alliance_voice` scope and its allowlist, the visitor table, the
-  `voice.alliance` capability, the `voice_remote_join` policy column, and six
-  integration tests over two real hubs ([alliances.md](alliances.md),
-  shipped log). What is left is the client:
-  - `joinAllianceVoice(allianceId, channelId)` — mint on the current hub, then
-    challenge + verify **against the owning hub** carrying the grant, then a WS
-    to the owner, `voice_join`, and `VoiceWtSession` with the returned
-    url/token/certHash. `acquireHubToken` already takes an arbitrary hub URL,
-    so the auth half is a parameter, not a new flow; the real work is a second
-    hub session's lifecycle (its own WS, its own teardown) held only for voice.
-  - tear down any existing voice session first, local or remote. The hub
-    enforces one session per identity **per hub**, so it will happily let
-    someone hold a local room on B and the visited room on A at once — correct
-    for the hub, wrong for the mic.
-  - gate the affordance on the *owning* hub advertising `voice.alliance`;
-    render visitors as `name · HubName`, mediated like federated forum
-    authorship and never as a verified badge; name the hub being dialed in the
-    join confirmation, because the visitor's IP reaches it.
-  - a `voice_remote_join` control on the share row in the alliances admin
-    section, next to `forum_remote_write`.
-
 - [ ] **Certification relay across the hubs of one farm.** Designed
   2026-08-22 — [hub-certifications.md](hub-certifications.md) §11. Server
   only, no client work, no capability string, no `openapi.yaml` change.

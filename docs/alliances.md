@@ -163,10 +163,10 @@ banner/spawner dimmed — and now wires alliance channel open/post
 
 ## Voice in alliance channels
 
-**Status**: **hub side shipped 2026-08-22**; the web client join flow is the
-remaining slice. Web client + hub only — no desktop work required, since both
-clients speak the same WebTransport voice stack
-([voice-transport-v2.md](voice-transport-v2.md), shipped 2026-08-07).
+**Status**: **shipped** — hub side 2026-08-22, web client 2026-08-29. Web
+client + hub only; no desktop work, since both clients speak the same
+WebTransport voice stack ([voice-transport-v2.md](voice-transport-v2.md),
+shipped 2026-08-07). What is still deferred is listed at the end.
 
 Two things below were wrong, and both were found by the tests rather than by
 re-reading, so they are corrected in place with the reason kept:
@@ -336,26 +336,43 @@ hubs — but the client must not, or the mic is live in two places.
 
 `clients/apps/web` plus the shared surface in `clients/packages/ui`.
 
-- **Capability gate**: the owning hub's `/info` must advertise
-  `voice.alliance` (new string in `hub/src/capabilities.rs`, sorted
-  before `voice.wt`), else no voice affordance renders on the alliance
-  channel.
-- **Join**: `ChannelSidebar`'s voice affordance calls a new
-  `joinAllianceVoice(allianceId, channelId)` — `POST
-  /alliances/:id/voice-grant` on the current hub, then
-  `/auth/challenge` + `/auth/verify` (carrying the grant) on
-  `origin`-resolved `owner_hub_url`, then a WS to the owner, then
-  `voice_join`, then `VoiceWtSession` with the returned `voice_wt_url` /
-  `voice_token` / `voice_cert_hash`. `VoiceWtSession`
-  (`clients/apps/web/src/platform/voice.ts`) already takes all three —
-  no change to it.
-- **One live session**: the action tears down any existing voice
-  session, local or remote, first.
-- **Roster**: visitors render `name · HubName`, styled as mediated
-  exactly like federated forum authorship — **never** a verified badge.
-- **Disclosure**: the join confirmation names the hub being dialed.
-- If the user is already a full member of Hub A, the client uses its
-  normal member session and skips the grant entirely.
+- **Capability gate**, and one correction to the original plan: the
+  affordance is gated on **our own** hub advertising `voice.alliance`,
+  not the owner's. Our hub has to sign the grant, and we know its
+  capabilities for free; the owner's half is checked when the grant is
+  redeemed, and a hub that does not do alliance voice is refused before
+  any signature of ours is sent. Gating on the owner at render time
+  would mean asking every allied hub for `/info` on every load, for a
+  button almost nobody presses.
+- **Join**: the voice affordance on an alliance channel row calls
+  `handleAllianceVoiceJoin(allianceId, channelId, confirm)` — `POST
+  /alliances/:id/voice-grant` on the current hub, then `/auth/challenge`
+  + `/auth/verify` (carrying the grant) on the returned
+  `owner_hub_url`, then a WS to the owner, then `voice_join`, then
+  `VoiceWtSession` with the returned `voice_wt_url` / `voice_token` /
+  `voice_cert_hash`. `VoiceWtSession`
+  (`clients/apps/web/src/platform/voice.ts`) took all three already — no
+  change to it. The visitor session is deliberately **not** in the hub
+  session map: it is not a hub the user joined, and everything walking
+  `allSessions()` (hub list, restore, DM delivery, account switch) would
+  be wrong about it.
+- **One live session**: the join tears down any existing voice session,
+  local or remote, first. The structural change this needed is that the
+  socket owning the room is now a **parameter** through join, leave,
+  watch, key offers and speaking, rather than implicitly the active
+  hub's — leaving a room on the wrong socket is how a ghost is left in
+  someone else's roster.
+- **Roster**: visitors render `name · HubName` from `visiting_from` on
+  the participant payload, muted rather than badged — the name is
+  hub-asserted, so it must never read as a verified marker. The hub
+  resolves it in `voice_identity`, which answers from `users` for a
+  member and from `alliance_voice_visitors` (joined to the vouching
+  hub's name) for everyone else.
+- **Disclosure**: the join confirmation names the address being dialed,
+  before anything is minted.
+- If the user is already a full member of Hub A, the hub answers
+  `/auth/verify` with their normal member session and ignores the grant
+  entirely — the client needs no branch for it.
 
 ### Moderation
 
@@ -363,7 +380,14 @@ hubs — but the client must not, or the mic is live in two places.
   is re-checked at every grant redemption. Additive per-share policy
   column on `alliance_shared_channels`, mirroring `forum_remote_write`:
   `voice_remote_join TEXT NOT NULL DEFAULT 'allowed'` ∈ `allowed` |
-  `none`.
+  `none`. It is set by re-sharing the channel with the field present
+  (`POST /alliances/:id/channels`), same leave-it-alone semantics as
+  `forum_remote_write`, and read back on the shared-channel list;
+  admin UI is a checkbox on the share row. **Leaf channels only** — that
+  route also rewrites `include_descendants`, so offering it on a
+  category would silently unshare a subtree. A descendant with no direct
+  share row gets one, which is how a single room inside a recursively
+  shared category is closed.
 - **Origin hub** can stop minting for its own members. It cannot evict
   an admitted visitor from Hub A's room; the 5-minute grant TTL and the
   session expiry bound that. Cross-hub push revocation is the
@@ -389,8 +413,12 @@ Whisper *lists* defined on the origin hub (whispering a visitor already
 works — targets resolve on Hub A). Screen share
 ([screen-share-webrtc.md](screen-share-webrtc.md)), soundboard and video
 ([video-voice.md](video-voice.md)) in a visited room — each needs its
-own allowlist entries; additive later. `openapi.yaml` lands with the
-routes, per `docs/CLAUDE.md`.
+own allowlist entries; additive later.
+
+**A visit has never carried audio in a test.** The topology harness proves
+admission across two real hubs — grant, redemption, confinement, policy — and
+stops at the relay URL, exactly as the local suites do. Two clients on a real
+network remains the only thing that proves a visitor is audible.
 
 ## What's not done
 

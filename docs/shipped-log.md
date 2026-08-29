@@ -4,6 +4,29 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Voice in alliance channels, end to end (2026-08-29)**: the hub side shipped
+  in August with no client able to use it. The web client now mints a grant on
+  its own hub, redeems it at the owning hub for a voice-only session, and from
+  `voice_join` onward runs the ordinary flow against that hub's socket — a
+  visitor is an ordinary pubkey in the owner's maps, so the relay, the
+  sender-id space and the datagram format are untouched
+  ([alliances.md](alliances.md)). The structural change is that voice is no
+  longer implicitly "on the active hub": the socket owning the room is a
+  parameter, threaded through join, leave, watch, key offers and speaking, and
+  the old room always goes down before the new one comes up — the hub enforces
+  one session per identity *per hub*, so it would happily leave a mic live in
+  two places. Two hub gaps closed with it: `voice_remote_join` shipped as a
+  column nothing could write, so an owner could only close a room by unsharing
+  it (the share route carries the policy now, and the list reports it); and a
+  visitor, having no `users` row by design, rendered as a bare public key —
+  `voice_identity` resolves them from the visitor table joined to the hub that
+  vouched for them, and the new `visiting_from` renders as "name · HubName",
+  muted rather than badged, because the name is asserted and not proven. The
+  affordance is gated on our own hub's `voice.alliance`; the owner's half is
+  checked at redemption rather than by asking every allied hub for `/info` on
+  every load. The join confirmation names the address being dialed, because the
+  visitor's IP reaches it.
+
 - **The directory rebuilt, and four things deleted from the network (2026-08-28)**:
   a long pass that simplified more than it added. Discovery had never had a
   design — `globals.css` was still the create-next-app default, the accent was

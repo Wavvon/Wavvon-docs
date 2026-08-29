@@ -1698,12 +1698,49 @@ paths:
           schema: { type: string }
     post:
       summary: Share a channel into the alliance (manage_channels)
+      description: >-
+        Also the way the per-share policies are changed: re-sharing a channel
+        with `forum_remote_write` or `voice_remote_join` set updates that
+        policy. An omitted policy is left as it stands, so a re-share to flip
+        `include_descendants` does not silently reset one. `include_descendants`
+        is NOT omit-safe — it always takes the value sent.
       tags: [Alliances]
       parameters:
         - name: alliance_id
           in: path
           required: true
           schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [channel_id]
+              properties:
+                channel_id: { type: string }
+                include_descendants:
+                  type: boolean
+                  default: false
+                  description: >-
+                    Share the whole subtree beneath this channel, resolved live
+                    at read time rather than snapshotted.
+                forum_remote_write:
+                  type: string
+                  enum: [none, replies_only, posts_and_replies]
+                  description: "Federated forum writes into this channel (forum.md §9). Default replies_only."
+                voice_remote_join:
+                  type: string
+                  enum: [allowed, none]
+                  description: >-
+                    Whether members of allied hubs may join voice here
+                    (alliances.md). Default allowed; `none` refuses the grant
+                    at redemption with `voice_remote_join_disabled`.
+      responses:
+        "200": { description: Shared }
+        "400": { description: Unknown policy value }
+        "403": { description: Caller lacks admin permission }
+        "404": { description: Alliance or channel not found }
 
   /alliances/{alliance_id}/channels/{channel_id}:
     delete:
