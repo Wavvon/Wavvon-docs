@@ -64,11 +64,14 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
     reloads onto the identity screen carrying a "you moved" notice. Verified
     across two real origins in both directions — including that "keep my
     identity" wipes nothing, which is where a wrong wipe would destroy a key.
-  - **RP ID**: passkeys are bound to the origin and cannot be handed over. The
-    early-placement button is the mitigation; a late migration means a new
-    passkey on the user build's origin and a dead one on the hub's. Decide
-    whether the user build's RP ID has any bearing on hubs at all before
-    writing code.
+  - **[done 2026-08-29]** RP ID: it has no bearing, because the user build
+    never gets to pick one — decisions.md, "Passkeys belong to the hub, so the
+    user build has none". A passkey's rp_id is the hub's own hostname and a
+    browser only honours an rp_id the page is registrable under, so the
+    ceremony works on the page a hub serves and nowhere else. The affordances
+    are now gated on `passkeysUsableWith(hubUrl)` — the page's origin, not the
+    build flag, so a self-hoster serving either build gets the right answer —
+    and the handover screen no longer promises a new passkey on the other side.
   - **[done 2026-08-29]** the build half of the release pipeline: `build.yml`
     and `release-web.yml` build both targets and run `check-hub-build`, the
     hub's Dockerfile bakes `dist-hub` (`WAVVON_WEB_CLIENT_DIR` unchanged), and

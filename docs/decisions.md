@@ -6,6 +6,54 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Passkeys belong to the hub, so the user build has none
+
+**Decision** (2026-08-29): a passkey affordance is rendered only when the page
+is served from the hub it would authenticate against. In the hub build that is
+always true; in the user build, hosted on our own domain, it is never true. The
+user build therefore has no passkeys at all, and signing in there is the
+recovery phrase or the backup file.
+
+This closes the open RP ID question from the two-build split, and the answer is
+that the user build's RP ID has no bearing on hubs: it never gets to pick one.
+A passkey's rp_id is the hub's own hostname (`webauthn_rp_id`, defaulting to
+the host in `public_url`), and a browser only lets a page use an rp_id its own
+origin is registrable under. A page on `app.wavvon.example` asking for
+`chat.example` is refused by the browser, not by us. Nothing about that is a
+policy we can set.
+
+Before this, both builds rendered the passkey section and the add-hub modal's
+"use a passkey" button, and the user build's version failed at the ceremony
+with a SecurityError translated into "open the hub URL directly".
+
+**Alternatives considered.**
+
+- **Related Origin Requests** — a hub publishes `/.well-known/webauthn` listing
+  the user client's origin, and a browser then allows that origin to use the
+  hub's rp_id. This is the mechanism designed for exactly this shape. Rejected
+  for now on two counts: browser support is recent and uneven, so it would work
+  for some visitors and fail for others with no way to tell them apart in
+  advance; and it asks every hub operator to publish a well-known file naming
+  *our* domain, which makes a federated hub's passkeys depend on a host the
+  operator does not run. Revisit if the user build ever becomes the primary
+  entry point — the cost is one static file per hub and a capability string.
+- **Ship the buttons and let the ceremony fail** — what we had. The failure is
+  a system dialog followed by an error, at the moment someone is trying to sign
+  in.
+- **Gate on the build flag instead of the origin.** Simpler by one comparison,
+  and wrong for anyone self-hosting either build: the constraint is where the
+  page is served from, which a build flag does not know. The check is
+  `passkeysUsableWith(hubUrl)` in the web client's platform layer.
+
+**Tradeoff.** Someone who moves from a hub's page to the user client loses
+passkey sign-in — the handover screen says so. They keep it whenever they open
+the hub's own address, which is also the only place it ever worked.
+
+**Outcome.** Hub build unchanged; user build has no passkey UI. A hub that
+overrides `webauthn_rp_id` to a parent domain would in principle admit a
+sibling origin, and the client says no there too: the rp_id is not on `/info`,
+and finding out costs starting a ceremony.
+
 ## The directory is English only; the clients stay translated
 
 **Decision** (2026-08-29): the discovery site ships one language. The clients
