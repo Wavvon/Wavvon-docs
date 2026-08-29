@@ -152,18 +152,13 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
 - [ ] **Topology e2e — the stages not yet built.** `e2e-topology/` at the
   monorepo root drives real hub binaries plus the discovery site: alliance
   formation across two hubs, federated channel reads, the alliance voice grant
-  and its confinement, `voice_remote_join`, directory publish + search, one
-  farm end to end, two farms with an alliance across the boundary, and the seed
-  registry. **17 scenarios**, green. It has found five real bugs so far, each
-  invisible to the in-process suites for the same reason — those construct their
-  own state, so the real defaults and the real proxy were never in the picture
-  (shipped log). What it does not cover yet:
-  - **the seed has no consumer.** It is covered now — register, call-back
-    verification, list, and both refusals — but discovery has no reference to
-    the seed at all and keeps its own farm table, populated by farms POSTing to
-    its own `/api/farms`. Two registries, one with no reader. Decide which one
-    is the design and retire or wire the other; `server/CLAUDE.md` claimed
-    discovery queried the seed, which was never true.
+  and its confinement, `voice_remote_join`, the cert pull between two hubs,
+  directory publish + search, one farm end to end, and two farms with an
+  alliance across the boundary. **16 scenarios**, green (the seed stage went
+  with the seed crate). It has found five real bugs so far, each invisible to
+  the in-process suites for the same reason — those construct their own state,
+  so the real defaults and the real proxy were never in the picture (shipped
+  log). What it does not cover yet:
   - **audio.** The visitor is admitted and handed a relay URL, cert hash and
     token, and stops there — no datagram crosses. This proves admission, not
     audio, and two clients on a real network remains the only thing that proves
