@@ -147,9 +147,14 @@ user complains about running multiple hub processes.
 
 ## Multi-node data plane
 
-**Status**: designed, not built. Server-only — no hub route changes, no
-client changes, so it is fully shippable against the web-only delivery
-target.
+**Status**: **half built** (2026-08-29). The proxy reaches another machine
+now — `servers` carries `host`, `tls_mode`, `cert_sha256` and
+`db_url_template`, and both dial paths use them. What is left is the agent
+half: advertising its host in the WS `hello` (until then `servers.host` is
+set by hand), substituting `db_url_template` at spawn, and driving remote
+hubs by heartbeat rather than local process inspection. Server-only — no hub
+route changes, no client changes, so it is fully shippable against the
+web-only delivery target.
 
 The `agent` crate already lets a farm lifecycle-manage hub processes on
 remote nodes (it reverse-connects over WebSocket and spawns hubs on the

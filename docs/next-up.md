@@ -93,15 +93,21 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   - LAN mode keeps the hub build as its only web path — an HTTPS page cannot
     reach an `http://` or self-signed LAN hub ([lan-mode.md](lan-mode.md)).
 
-- [ ] **Farm multi-node data plane.** The two blocking design questions are
-  answered — [farm-model.md](farm-model.md) "Multi-node data plane"
-  (farm↔node TLS with `ca`/`pin` validation; per-node PostgreSQL). Additive
-  `servers.host` / `tls_mode` / `cert_sha256` / `db_url_template`, agent
-  advertises its host in the WS `hello`, host-aware proxy on **both** the
-  reqwest and the socket-bridge paths. No hub or client changes. The role per
-  hub it was sequenced after shipped 2026-08-29 (`hub_db_role = 'per_hub'`),
-  so nothing blocks it — per-node Postgres alone would have isolated between
-  nodes and not within one.
+- [ ] **Farm multi-node data plane — the agent half.**
+  [farm-model.md](farm-model.md) "Multi-node data plane". The farm side landed
+  2026-08-29: the `servers` columns, and a host-aware proxy on **both** the
+  reqwest and the socket-bridge paths, with `ca`/`pin` TLS to anything that
+  is not this machine. Left:
+  - the agent advertises `host`, `tls_mode` and `cert_sha256` in the WS
+    `hello`, and the farm records them. Until then a multi-node operator sets
+    `servers.host` by hand, the way `hub_isolation` is set;
+  - `db_url_template` substitution at spawn, so the farm never holds a node's
+    database credentials;
+  - the monitor drives remote hubs by agent heartbeat rather than local
+    process inspection;
+  - a topology scenario. Nothing yet has proxied to a hub on a *different*
+    machine — the TLS half is tested against a real handshake, the routing
+    half only against loopback.
 
 - [ ] **User-configurable trust roots.** Designed 2026-08-22 —
   [server-tags.md](server-tags.md) Part 4. One allowlisted key in the prefs

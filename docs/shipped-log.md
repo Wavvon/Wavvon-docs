@@ -4,6 +4,26 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **The farm proxy reaches other machines (2026-08-29)**: the control plane had
+  been multi-node for a while — the agent reverse-connects, the farm spawns hubs
+  on remote nodes — while the data plane was not, because `proxy.rs` dialed
+  `127.0.0.1` for every hub. So a hub the farm had itself placed on another
+  machine was unreachable through the farm's own domain. `servers` now carries
+  `host`, `tls_mode`, `cert_sha256` and `db_url_template` (all nullable or
+  defaulted — a row with no host is a hub on this machine, which is every row
+  that exists today), resolution carries the node with the port, and **both**
+  dial paths use it: the buffered reqwest one and the raw socket bridge. The
+  bridge is the half that gets forgotten, and forgetting it is invisible — every
+  REST call works and only the WebSocket fails, which is the connection a chat
+  client spends its whole session on. Another machine is always TLS: `ca` for a
+  node with a real certificate, `pin` for one that advertises its self-signed
+  certificate's SHA-256, the primitive voice already uses. Pinning with no digest
+  recorded is an error, not a quiet fall back to CA validation. Tested over real
+  handshakes, on the refusals: a mismatched certificate is refused, one node's
+  pin does not admit another, and `ca` still rejects a self-signed node. The
+  agent half — advertising its host, `db_url_template` at spawn, the monitor —
+  is still open (next-up).
+
 - **A PostgreSQL role per hub (2026-08-29)**: farm-spawned hubs could already
   get a database or a schema of their own, and both stop hubs *colliding*
   rather than stopping one hub reading another — every hub connected as the
