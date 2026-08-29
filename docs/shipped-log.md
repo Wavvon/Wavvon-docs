@@ -4,6 +4,23 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Certification relay across the hubs of one farm (2026-08-29)**: the
+  admission gate now **pulls** a candidate's portfolio from the issuers it
+  trusts (`GET {issuer_url}/identity/{pk}/certs`, at most 8 issuers, 2 s each,
+  concurrent, cached 10 minutes) and re-runs the same predicate over what comes
+  back — hub-certifications.md §11. Until this, `cert_mode != none` refused
+  *everyone* with `cert_required`, because nothing on earth sends the
+  `certifications` array `/auth/verify` accepts: the feature was a lockout, not
+  a relay. A pulled cert is verified exactly like a presented one, so answering
+  the fetch with someone else's cert buys an issuer nothing. Addresses live in a
+  new `cert_issuer_urls` setting, filled by farm siblings from the `hub_url` the
+  heartbeat already carried and editable per row in the admin screen, which had
+  no way to enter one. Two things fixed on the way: the auth gate had its own
+  copy of the admission predicate beside the one in `certs.rs` (now one), and
+  **the cert settings screen had never been able to save at all** — it PATCHes
+  booleans and numbers, the route demanded strings, and 422'd the whole request,
+  which is why nobody had ever hit the lockout.
+
 - **Voice in alliance channels, end to end (2026-08-29)**: the hub side shipped
   in August with no client able to use it. The web client now mints a grant on
   its own hub, redeems it at the owning hub for a voice-only session, and from

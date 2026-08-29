@@ -420,9 +420,28 @@ store from [home-hub.md](home-hub.md)):
 
 ## 11 — Certification relay across the hubs of one farm
 
-**Status**: designed, not built. Server-only — **zero client work**,
-which is the point of the decision below. Supersedes the "Cross-farm
-cert relay" deferral in §10 for the intra-farm case.
+**Status**: **shipped 2026-08-29**. Supersedes the "Cross-farm cert
+relay" deferral in §10 for the intra-farm case.
+
+Two things turned out differently from the plan below, both recorded in place:
+
+- **It was not zero client work.** The pull dereferences an issuer URL, and no
+  admin surface could enter one — so the trusted-issuer row gained a URL field.
+  That is the whole client change.
+- **The address is a separate setting**, `cert_issuer_urls` (`{pubkey: url}`),
+  not a field on `cert_trusted_issuers`. That list decides admission, it is read
+  on every gated auth, and it spent months silently empty because one reader
+  expected objects while every writer wrote strings. Trust stays a flat array of
+  pubkeys; an address is a separate, optional fact about an issuer.
+
+And one thing was found while building it: **the cert settings screen had never
+been able to save.** It PATCHes back the object it rendered — `cert_auto_issue`
+as a boolean, the day counts as numbers — and the route demanded strings, so
+every save returned 422 for the whole request. Which is also why nobody had hit
+the lockout: nobody could turn `cert_mode` on from the UI. The route now accepts
+strings, booleans and numbers alike, and `cert_min_age_days` — the name `GET`
+uses — is accepted as an alias for `cert_standing_days`, which had silently
+never saved either.
 
 ### What already exists
 
@@ -541,25 +560,27 @@ A hand-configured issuer with no URL is then simply not pullable — the
 pushed-cert path still works for it — which is a better failure than a
 field the UI cannot fill.
 
-### Implementation surface (all Wavvon-server)
+### What it landed as
 
-- `hub/src/farm_siblings.rs` — fill the new issuer URL from
-  `Sibling.hub_url`. The shape bug itself is fixed and has its round-trip
-  test; what is left here is the URL §11 needs.
-- `packages/ui/src/components/admin/CertificationsSection.tsx` +
-  both `types.ts` copies — a URL field beside the pubkey box, because
-  today there is no way for an admin to enter one at all.
-- `hub/src/routes/certs.rs` — new `pull_portfolio(issuer, master_pubkey)`
-  helper + the TTL cache; reuse `verify_certification` unchanged for
-  evaluation.
-- `hub/src/auth/handlers.rs` — after the existing pushed-cert loop
-  fails, try the pull path before returning `cert_required`.
-- `hub/src/state.rs` — `cert_portfolio_cache: RwLock<HashMap<(String,
-  String), (i64, Vec<Certification>)>>`.
-- `hub/src/capabilities.rs` — **no new string.** Nothing a client
-  branches on changes; that is the test for whether a capability is
-  needed.
-- `openapi.yaml` — unchanged; no new endpoint, no new field.
+- `hub/src/farm_siblings.rs` — records each wired sibling's `hub_url` in
+  `cert_issuer_urls`, additively: an address the owner corrected by hand
+  survives the next heartbeat, the same promise the trust list makes.
+- `packages/ui/src/components/admin/CertificationsSection.tsx` + both
+  `types.ts` copies — a URL box on each trusted-issuer row.
+- `hub/src/routes/certs.rs` — `pull_portfolios` + `fetch_portfolio` and the
+  TTL cache; `load_issuer_urls` reads the new setting. Evaluation reuses
+  `verify_certification` unchanged.
+- `hub/src/auth/handlers.rs` — pushed certs first, then the pull, then
+  `cert_required`. Its inline copy of the admission predicate is gone: it now
+  calls `verify_certification`, so there is one rule rather than two kept in
+  step by hand.
+- `hub/src/state.rs` — `cert_portfolio_cache`, keyed by
+  `(issuer_pubkey, master_pubkey)`.
+- `hub/src/capabilities.rs` — **no new string.** Nothing a client branches on
+  changes; that is the test for whether a capability is needed.
+- `openapi.yaml` — no new endpoint, but the cert settings schema does change:
+  `cert_issuer_urls` on both `GET` and `PATCH`, and `PATCH` documented as
+  accepting the scalar types the admin screen actually sends.
 
 ### Deferred
 

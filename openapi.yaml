@@ -4911,9 +4911,20 @@ paths:
                   cert_min_age_days: { type: integer }
                   cert_validity_days: { type: integer }
                   cert_trusted_issuers: { type: array, items: { type: string } }
+                  cert_issuer_urls:
+                    type: object
+                    additionalProperties: { type: string }
+                    description: >-
+                      Issuer pubkey to base URL, for the issuers this hub can
+                      pull a portfolio from during admission. Sparse: trust does
+                      not require an address, and an issuer without one still
+                      has its pushed certs honoured.
     patch:
       summary: Update certification settings (admin)
-      description: All fields optional; string-typed values are stored as hub settings.
+      description: >-
+        All fields optional. Scalars are accepted as strings, booleans or
+        numbers and stored as text; `cert_min_age_days` is an accepted alias
+        for `cert_standing_days`, which is what GET calls the same setting.
       tags: [Certifications]
       requestBody:
         content:
@@ -4921,9 +4932,14 @@ paths:
             schema:
               type: object
               properties:
-                cert_auto_issue: { type: string }
-                cert_standing_days: { type: string }
-                cert_validity_days: { type: string }
+                cert_auto_issue:
+                  oneOf: [{ type: string }, { type: boolean }]
+                cert_standing_days:
+                  oneOf: [{ type: string }, { type: integer }]
+                cert_min_age_days:
+                  oneOf: [{ type: string }, { type: integer }]
+                cert_validity_days:
+                  oneOf: [{ type: string }, { type: integer }]
                 cert_mode: { type: string, enum: [none, any, trusted] }
                 cert_trusted_issuers: { type: array, items: { type: string } }
                 cert_require:
@@ -4931,7 +4947,12 @@ paths:
                   properties:
                     min_pow_level: { type: integer }
                     min_member_since_days: { type: integer }
-                cert_min_pow_level: { type: string }
+                cert_min_pow_level:
+                  oneOf: [{ type: string }, { type: integer }]
+                cert_issuer_urls:
+                  type: object
+                  additionalProperties: { type: string }
+                  description: Replaces the whole map, like the trust list it accompanies.
 
   /identity/{pubkey}/certs:
     get:

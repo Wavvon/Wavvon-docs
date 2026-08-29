@@ -93,12 +93,6 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   - LAN mode keeps the hub build as its only web path — an HTTPS page cannot
     reach an `http://` or self-signed LAN hub ([lan-mode.md](lan-mode.md)).
 
-- [ ] **Certification relay across the hubs of one farm.** Designed
-  2026-08-22 — [hub-certifications.md](hub-certifications.md) §11. Server
-  only, no client work, no capability string, no `openapi.yaml` change.
-  The `cert_trusted_issuers` shape bug that blocked it is fixed; what §11
-  still owns is a per-issuer URL, including the admin field to enter one.
-
 - [ ] **Farm multi-node data plane.** The two blocking design questions are
   answered — [farm-model.md](farm-model.md) "Multi-node data plane"
   (farm↔node TLS with `ca`/`pin` validation; per-node PostgreSQL). Additive
