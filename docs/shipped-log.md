@@ -4,6 +4,23 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **A PostgreSQL role per hub (2026-08-29)**: farm-spawned hubs could already
+  get a database or a schema of their own, and both stop hubs *colliding*
+  rather than stopping one hub reading another — every hub connected as the
+  farm's own role, as `farm/src/db/provision.rs` said in its own header.
+  `hub_db_role = 'per_hub'` now gives each hub a login role with a generated
+  password, granted its own database (and `CONNECT` revoked from `PUBLIC`, or
+  the grant is decoration) or its own schema, and nothing else. Default stays
+  `shared`: it needs `CREATEROLE`, which the managed plans schema isolation
+  exists for do not grant, and provisioning failure refuses the hub rather than
+  falling back to the farm's role — falling back would silently hand out the
+  access the setting was turned on to remove. Tested where it matters: hub A's
+  role is **refused** by hub B's database, and a schema-isolated hub is refused
+  when it names its sibling's schema explicitly; plus a real hub, spawned
+  through the farm, booting and migrating under the narrower grants, because a
+  hub that cannot run its own migrations is not isolated, it is broken. This
+  was the prerequisite the farm multi-node data plane was sequenced after.
+
 - **Certification relay across the hubs of one farm (2026-08-29)**: the
   admission gate now **pulls** a candidate's portfolio from the issuers it
   trusts (`GET {issuer_url}/identity/{pk}/certs`, at most 8 issuers, 2 s each,

@@ -98,9 +98,10 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   (farm↔node TLS with `ca`/`pin` validation; per-node PostgreSQL). Additive
   `servers.host` / `tls_mode` / `cert_sha256` / `db_url_template`, agent
   advertises its host in the WS `hello`, host-aware proxy on **both** the
-  reqwest and the socket-bridge paths. No hub or client changes. **Sequence
-  after "A PostgreSQL role per hub"** — per-node Postgres without a role per
-  hub isolates between nodes and not within one.
+  reqwest and the socket-bridge paths. No hub or client changes. The role per
+  hub it was sequenced after shipped 2026-08-29 (`hub_db_role = 'per_hub'`),
+  so nothing blocks it — per-node Postgres alone would have isolated between
+  nodes and not within one.
 
 - [ ] **User-configurable trust roots.** Designed 2026-08-22 —
   [server-tags.md](server-tags.md) Part 4. One allowlisted key in the prefs
@@ -108,13 +109,6 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   section, a "Trust this issuer" action on the badge popover, and one shared
   trust resolver in `clients/packages/ui/src/utils/`. Rendering only — never
   satisfies a hub's `cert_mode` gate. Lowest value of the four; do it last.
-
-- [ ] **A PostgreSQL role per hub.** Farm-spawned hubs get a database or a
-  schema of their own, but they all connect with the **same role** — so the
-  separation prevents collisions, not a compromised hub reading its siblings.
-  `farm/src/db/provision.rs` says so in its own header. A role per hub,
-  granted only its own space, works with either layout. Worth doing before a
-  farm hosts hubs it does not itself own.
 
 - [ ] **Browser e2e in CI — the tail.** The suite is no longer tied to one
   laptop: `WAVVON_E2E_HUB_URL` / `WAVVON_E2E_APP_URL` override both ends, an

@@ -218,13 +218,14 @@ runs where the data is. What it does mean: the farm's admin surface must
 say *which node* a hub lives on, or an operator will look for its dump
 in the wrong place.
 
-**Prerequisite, not optional**: this decision only pays off once
-[next-up.md](next-up.md)'s "A PostgreSQL role per hub" lands. Per-node
-Postgres without a role per hub gives isolation between nodes and none
-within one — the exact gap `farm/src/db/provision.rs` documents in its
-own header, and the one `farm-impl.md` Phase 1 flags as undecided ("who
-issues `CREATE DATABASE`, under which role, what happens on hub
-deletion"). Sequence the role work first.
+**Prerequisite, now met**: a role per hub shipped 2026-08-29
+(`hub_db_role` = `shared` | `per_hub` on the `farms` row). Per-node
+Postgres without it would have given isolation between nodes and none
+within one — the gap `farm/src/db/provision.rs` documented in its own
+header. Note the default is still `shared`: `per_hub` needs `CREATEROLE`,
+which the managed plans `hub_isolation = 'schema'` exists for do not hand
+out, so a farm hosting hubs it does not itself own has to turn it on
+deliberately.
 
 ### Implementation surface (all Wavvon-server)
 
