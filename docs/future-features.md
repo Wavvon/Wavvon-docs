@@ -41,6 +41,40 @@ a choice not yet made: a native WebAuthn plugin, or a system-browser handoff.
 current web-only delivery target — there is no web-viable subset (passkey
 registration in a browser already works; the bug *is* the webview).
 
+## Leaving a home hub asks first
+
+Removing a hub is one click and no question, and `handleRemoveHub`
+(`clients/apps/web/src/hooks/useHubLifecycle.ts`) has no idea whether the hub
+being removed is one of the user's **home hubs**. It usually is: the first hub
+an account signs in to becomes its home hub automatically
+([home-hub.md](home-hub.md)).
+
+That matters more since 2026-08-30, when DMs started being read from the home
+hub rather than from whichever hub is on screen. Removing a home hub locally
+does **not** edit the signed designation, so senders keep delivering there —
+to a hub this client no longer has a session for. The inbox goes quiet and
+nothing says why, which is the same invisible-DM failure that fix was for,
+arrived at from the other direction. Prefs, device certs and the designation
+itself live there too.
+
+So: when the hub being left is in the designation, ask before doing it, and
+offer the one thing that actually resolves it — Settings → Manage accounts →
+Home hubs, where the list is edited.
+
+Design questions that have to be answered first, and none are obvious:
+
+- **What the dialog offers.** Cancel / leave anyway / edit the home hub list
+  first — and whether leaving can update the designation itself, which means
+  signing a new one with the master key (a paired device cannot).
+- **The last entry.** An account with an empty home hub list has nowhere for
+  its personal state to live. Refuse? Warn harder? Let it happen and say what
+  breaks?
+- **Where else this fires.** The same question exists on account switch and on
+  hub removal from the desktop client, which has its own copy of the flow.
+- **Not a blocking modal for the common case.** Leaving a community hub that
+  is not a home hub must stay one click, or the warning becomes noise and gets
+  clicked through — which is how a confirmation stops working.
+
 ## Desktop parity backlog
 
 Named custom themes, data-export archive compat, and LAN discovery UX (mDNS +
