@@ -4,6 +4,28 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **The hub carries its own PostgreSQL (2026-08-30)**: `WAVVON_DATABASE_URL`
+  unset now means "start and supervise your own server" rather than "guess
+  localhost with the default superuser" — download a binary, run it, you have a
+  hub, with no network and no package manager on first start because the
+  archive is compiled in. A URL still means plain client: migrations and
+  nothing else, because a database the operator built is theirs
+  (decisions.md). The layout follows from the one fact that matters — SQL does
+  not change between majors, the on-disk data directory does, and reading an
+  old one needs that major's own binaries — so installs are version-scoped,
+  the previous one is kept, and a major mismatch **refuses with the
+  dump/restore commands** instead of starting. A downgraded binary refuses too
+  and says so. Port and password are written down on first run (initdb sets
+  that password once; regenerating it strands the directory), a server left
+  behind by a killed hub is adopted rather than restarted, and starting points
+  `WAVVON_PG_BIN_DIR` at the bundled `bin` — otherwise backup would fail on
+  exactly the install story that has no PostgreSQL on PATH. `doctor` reports
+  which mode is in use and where the data lives. Proven by execution: the
+  archive installs, the real migrations apply, a restart keeps data and
+  credentials, a crashed hub's server is adopted, an old data directory is
+  refused untouched, and backup/restore round-trips through the bundled
+  `pg_dump`. Not yet proven on musl, which is a release target — see next-up.
+
 - **User-configurable trust roots (2026-08-30)**: a badge from an issuer the
   viewer has no relationship with was a signature by a stranger, and there was
   nothing they could do about it. A trust root — `{pubkey, label}` — is the

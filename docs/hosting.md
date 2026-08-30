@@ -36,11 +36,24 @@ serve API-only by default; opt into the web client explicitly.
   through an HTTP proxy.
 - TLS — terminated at the hub or at a reverse proxy. Browser clients
   served over HTTPS cannot connect to a plain-`http://` hub.
-- A **PostgreSQL** database (set `WAVVON_DATABASE_URL`). The hub creates and
-  migrates the *schema* on first start — but it does not create the database
-  itself, so one has to exist first. See
-  [Providing PostgreSQL](#providing-postgresql) below; the Docker Compose
-  methods provision it for you and you can skip that section.
+- **PostgreSQL — or nothing at all.** Since 2026-08-30 the hub carries its own:
+  leave `WAVVON_DATABASE_URL` **unset** and it installs, initialises, starts
+  and supervises a PostgreSQL of its own in the working directory
+  (`pgdata/` for the data, `pg/<version>/` for the binaries). Nothing to
+  install, nothing to create, and no network needed for it — the archive is
+  inside the binary.
+  Set `WAVVON_DATABASE_URL` and the hub becomes a plain client instead: it
+  creates and migrates the *schema*, and manages nothing else, so the database
+  itself has to exist first. That is the right choice when you already run
+  PostgreSQL, want it on another host, or have a backup regime built around it.
+  See [Providing PostgreSQL](#providing-postgresql) below; the Docker Compose
+  methods provision one for you and you can skip that section.
+  Two consequences of the built-in mode worth knowing before you pick it:
+  `wavvon-hub backup` uses the bundled `pg_dump` (nothing to install), and a
+  **major** PostgreSQL upgrade in a later hub release is a backup with the old
+  binary and a restore with the new one — the hub refuses to start on a data
+  directory from another major and prints those two commands rather than
+  attempting anything.
 - Disk for inline attachments and the Tantivy search index. Community-scale
   is modest; the per-message attachment cap defaults to 3 MB and is
   settable in hub admin (Overview -> Limits), up to 8 MB.

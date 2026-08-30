@@ -157,19 +157,21 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
     `11-channel-crud` 5/5 in 22 seconds. Not wired into `run.mjs` yet, which is
     all that is left here.
 
-- [ ] **Bundle PostgreSQL into the hub binary** — the zero-prerequisite
-  install story. Design and rationale:
-  [The hub bundles PostgreSQL](decisions.md#the-hub-bundles-postgresql-and-never-touches-one-it-did-not-create).
-  Feasibility verified 2026-08-08: `postgresql_embedded` 0.21.0 publishes both
-  musl targets the release workflow builds (`x86_64` 24.8 MB, `aarch64`
-  24.6 MB) and embeds the archive at compile time.
-  - [ ] Embedded when `WAVVON_DATABASE_URL` is unset, plain client when set — removes today's silent fallback to `postgres://postgres:postgres@localhost:5432/wavvon`.
-  - [ ] Version-scoped `installation_dir` + explicit `data_dir`; the crate defaults to `~/.theseus/postgresql` and a **tempdir**, neither acceptable for a server.
-  - [ ] Major-upgrade path per the dump/restore decision, refusing rather than half-migrating.
-  - [ ] `doctor` reports which mode is active and where the data lives.
-  - [ ] Verify `backup`/`restore` against the embedded instance.
-  - [ ] Test `initdb` on musl — limited locale support, likely needs `--locale=C`.
-  - Does not restore SQLite's one-file backup. Still `pg_dump`.
+- [ ] **Bundled PostgreSQL — the tail.** The hub carries its own PostgreSQL
+  since 2026-08-30 (decisions.md,
+  [The hub bundles PostgreSQL](decisions.md#the-hub-bundles-postgresql-and-never-touches-one-it-did-not-create)):
+  mode by the absence of `WAVVON_DATABASE_URL`, version-scoped installs, a
+  refusal with instructions on a major mismatch, `doctor` reporting mode and
+  data directory, and backup/restore through the bundled `pg_dump`. Left:
+  - **musl.** `initdb`'s locale support is thin there and the release
+    workflow builds two musl targets. Nothing has run the embedded start on
+    one — the suite that proves it works has only ever run on Windows and
+    whatever CI is. Run it on a musl build before claiming the install story.
+  - **the actual major upgrade.** The refusal is tested; the dump-with-old,
+    restore-with-new path it names has never been walked end to end, because
+    doing that needs two hub binaries carrying two PostgreSQL majors.
+  - image and binary size: the archive is compiled in, so both grew. Measure
+    and record it rather than discovering it in a release.
 
 - [ ] **`db move --to <url>` / `--from <url>`** — the last slice of
   [One mechanism moves the data](decisions.md#one-mechanism-moves-the-data-logical-dumprestore);
