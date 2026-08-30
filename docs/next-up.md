@@ -93,21 +93,17 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   - LAN mode keeps the hub build as its only web path — an HTTPS page cannot
     reach an `http://` or self-signed LAN hub ([lan-mode.md](lan-mode.md)).
 
-- [ ] **Farm multi-node data plane — the agent half.**
-  [farm-model.md](farm-model.md) "Multi-node data plane". The farm side landed
-  2026-08-29: the `servers` columns, and a host-aware proxy on **both** the
-  reqwest and the socket-bridge paths, with `ca`/`pin` TLS to anything that
-  is not this machine. Left:
-  - the agent advertises `host`, `tls_mode` and `cert_sha256` in the WS
-    `hello`, and the farm records them. Until then a multi-node operator sets
-    `servers.host` by hand, the way `hub_isolation` is set;
-  - `db_url_template` substitution at spawn, so the farm never holds a node's
-    database credentials;
-  - the monitor drives remote hubs by agent heartbeat rather than local
-    process inspection;
-  - a topology scenario. Nothing yet has proxied to a hub on a *different*
-    machine — the TLS half is tested against a real handshake, the routing
-    half only against loopback.
+- [ ] **Farm multi-node data plane — the monitor, and a real two-machine
+  run.** [farm-model.md](farm-model.md) "Multi-node data plane". Everything
+  else landed 2026-08-29/30: the `servers` columns, a host-aware proxy on
+  both dial paths with `ca`/`pin` TLS, the agent advertising its address in
+  `hello`, and per-node database provisioning. Left:
+  - the farm monitor drives remote hubs by agent heartbeat rather than local
+    process inspection, which is what it still does;
+  - **nothing has yet proxied to a hub on a different machine.** The TLS half
+    is tested against real handshakes and the routing half against loopback,
+    which is one machine wearing two hats. A topology scenario with a real
+    second node — or one honest manual run — is what would close it.
 
 - [ ] **User-configurable trust roots.** Designed 2026-08-22 —
   [server-tags.md](server-tags.md) Part 4. One allowlisted key in the prefs

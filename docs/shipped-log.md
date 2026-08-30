@@ -4,6 +4,26 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **The agent half of the multi-node data plane, and a shared database nobody
+  had noticed (2026-08-30)**: the agent advertises `host`, `tls_mode` and
+  `cert_sha256` in its WS `hello` and the farm records them on **every**
+  connect, so a node that moves or rotates a certificate corrects the farm by
+  reconnecting rather than by an operator remembering to — and a `hello` with
+  no host *clears* the column, because a stale address sends the proxy where
+  nothing answers. The spawn command now carries the hub's database **name**
+  and the server's template, and a node holding `WAVVON_NODE_DB_TEMPLATE`
+  creates the database on its own PostgreSQL, so its credentials never reach
+  the farm.
+  Found on the way, and the reason this was urgent: **the agent ignored the
+  `db_url` the farm sent.** It logged a warning and spawned the hub with no
+  database configuration at all, so every agent-hosted hub used the hub's
+  default URL and they all shared one database — the exact bug per-hub
+  provisioning had closed on the farm's own spawn path, still live on the
+  agent's, with a warning nobody was reading. A hub with nowhere of its own is
+  refused now. Tested where it can only be wrong at runtime: the template
+  really provisions a database and the URL handed to the hub really connects,
+  twice in a row for a restart.
+
 - **The farm proxy reaches other machines (2026-08-29)**: the control plane had
   been multi-node for a while — the agent reverse-connects, the farm spawns hubs
   on remote nodes — while the data plane was not, because `proxy.rs` dialed

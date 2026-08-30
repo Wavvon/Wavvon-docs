@@ -147,14 +147,22 @@ user complains about running multiple hub processes.
 
 ## Multi-node data plane
 
-**Status**: **half built** (2026-08-29). The proxy reaches another machine
-now — `servers` carries `host`, `tls_mode`, `cert_sha256` and
-`db_url_template`, and both dial paths use them. What is left is the agent
-half: advertising its host in the WS `hello` (until then `servers.host` is
-set by hand), substituting `db_url_template` at spawn, and driving remote
-hubs by heartbeat rather than local process inspection. Server-only — no hub
-route changes, no client changes, so it is fully shippable against the
-web-only delivery target.
+**Status**: **built, except the monitor** (2026-08-29/30). The proxy reaches
+another machine, the agent advertises `host` / `tls_mode` / `cert_sha256` in
+its `hello` and the farm records them on every connect, and a node with
+`WAVVON_NODE_DB_TEMPLATE` creates each hub's database on its own PostgreSQL.
+What is left is the monitor: remote hubs are still driven by local process
+inspection rather than the agent heartbeat. Server-only — no hub route
+changes, no client changes, so it is fully shippable against the web-only
+delivery target.
+
+**A bug this uncovered, and it was not small.** The agent *ignored* the
+`db_url` the farm sent — it logged a warning saying so and spawned the hub
+with no database variable at all — so every agent-hosted hub fell back to the
+hub's own default URL and **they all shared one database**, reading and writing
+each other's communities. That is the exact bug per-hub provisioning replaced
+on the farm's own spawn path, still live on the agent's. A hub with nowhere of
+its own is now refused rather than started.
 
 The `agent` crate already lets a farm lifecycle-manage hub processes on
 remote nodes (it reverse-connects over WebSocket and spawns hubs on the
