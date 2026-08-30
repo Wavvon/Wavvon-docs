@@ -4,6 +4,20 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **The upgrade path covers a PostgreSQL major (2026-08-30)**: the last open
+  dimension of the upgrade work, unblocked by bundling and closed the same day.
+  The bundled server follows upstream rather than being pinned, so a hub
+  release can carry a newer major than the one that wrote the data directory —
+  and PostgreSQL refuses to read an older directory by design. The hub refuses
+  too, at startup, before touching anything, and prints the two commands;
+  hub-operator-guide.md now walks them (`backup` with the previous binary,
+  `restore` with the new one after moving `pgdata` aside) and says to keep the
+  old directory, since the previous major's binaries are still there and are
+  the only thing that can read it. The `pg_dump` prerequisite stops being
+  universal in the same edit: a hub on its built-in server carries its own
+  copies. What remains coupled to the capability work — that upgrading a hub
+  also swaps the web client it serves — lives with that work, not here.
+
 - **`db move --to` / `--from` (2026-08-30)**: the last user of the one
   dump/restore path (decisions.md, "One mechanism moves the data"), and the
   reason it waited for bundling — with no embedded side it was `backup` then
