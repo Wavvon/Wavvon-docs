@@ -159,9 +159,47 @@ Restore refuses rather than half-writing:
   tells you not to start the hub against that database.
 
 **Requirement**: `backup` and `restore` shell out to `pg_dump` /
-`pg_restore`. They are in the official Docker image; on a bare-binary install
-run `apt install postgresql-client` (or equivalent), or set
-`WAVVON_PG_BIN_DIR` to the directory holding them.
+`pg_restore`. Running the hub's **built-in** PostgreSQL (no
+`WAVVON_DATABASE_URL`)? Then there is nothing to install — the hub points them
+at the copies it carries. Otherwise they come from the official Docker image,
+or from `apt install postgresql-client` (or equivalent) on a bare-binary
+install, or from wherever `WAVVON_PG_BIN_DIR` points.
+
+---
+
+## Moving the database
+
+`db move` copies a hub's database from one PostgreSQL to another. It is the
+command for adopting your own server, or for giving one up and letting the hub
+run its built-in one.
+
+```bash
+# From this hub's current database into your own PostgreSQL:
+wavvon-hub db move --to postgres://wavvon:secret@db.internal:5432/wavvon
+
+# The other direction — pull an existing database into this hub's:
+wavvon-hub db move --from postgres://wavvon:secret@db.internal:5432/wavvon
+```
+
+The URL is always the **other** database; this hub's own comes from
+`WAVVON_DATABASE_URL`, or from its built-in server when that is unset.
+
+**It copies and stops.** Nothing switches over: when the move reports success,
+set (or unset) `WAVVON_DATABASE_URL` and restart the hub. The source is left
+exactly as it was, so a destination that misbehaves is undone by putting the
+variable back.
+
+It refuses for the same reasons `restore` does — a destination that already
+has tables (`--force` if you meant it), a destination on an older PostgreSQL
+major, and row counts that do not match afterwards. The version rule is worth
+reading twice here: a dump restores into an equal or **newer** major only, and
+the built-in PostgreSQL follows upstream, so it is usually the newer side.
+Moving *to* the PostgreSQL your distribution ships is the direction most likely
+to be refused.
+
+Database only. `hub_identity.json` and the uploads directory are files on the
+machine and do not travel with a database — `backup` is the command that takes
+all three.
 
 ---
 
@@ -176,6 +214,32 @@ run `apt install postgresql-client` (or equivalent), or set
 Wavvon uses additive migrations only — there are no destructive schema
 changes in minor/patch upgrades. If a migration fails (e.g., disk full),
 the hub exits and the database is left untouched.
+
+### When the upgrade also carries a PostgreSQL major
+
+Only applies to the **built-in** PostgreSQL. The bundled server follows
+upstream rather than being pinned, so a hub release may carry a newer major
+than the one that wrote your data directory — and PostgreSQL refuses to read
+an older data directory by design.
+
+The hub refuses too, at startup, before touching anything, and prints the two
+commands. They are the same ones above:
+
+```bash
+# With the PREVIOUS hub binary — it has the PostgreSQL that can read the data:
+wavvon-hub backup /backup/pre-pg-upgrade.tar.gz
+
+# Then with the new binary, after moving the old data directory aside:
+mv pgdata pgdata.old
+wavvon-hub restore /backup/pre-pg-upgrade.tar.gz
+```
+
+Keep `pgdata.old` until the hub has been running on the new one for a while.
+The previous major's binaries are still in `pg/<version>/` — the hub never
+deletes them, because they are the only thing that can read that directory.
+
+An **older** hub binary against a **newer** data directory is refused with a
+different message, and it means the binary is the wrong one, not the database.
 
 ### Rollback
 

@@ -4,6 +4,25 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **`db move --to` / `--from` (2026-08-30)**: the last user of the one
+  dump/restore path (decisions.md, "One mechanism moves the data"), and the
+  reason it waited for bundling — with no embedded side it was `backup` then
+  `restore` against another URL, which both commands already did. Now that a
+  hub can carry its own server, "adopt my own PostgreSQL" and "give it up
+  again" are real operations, and neither needs a `pg_dump` incantation the
+  operator cannot run. It **copies and stops**: nothing switches mode, the
+  source is left intact, and a destination that disappoints is undone by
+  setting one variable back. Direction is checked before a byte is written and
+  now cuts against intuition — a dump restores into an equal or newer major and
+  the embedded side is usually the newer one, so "move to my own PostgreSQL" is
+  the direction most likely to be refused. The mechanism sits in `db::dump`
+  rather than `main.rs` so it can be tested, and the tests run against the
+  **bundled** server on both ends: nothing to install, same version for tools
+  and server, and no way for the file to skip itself. Found while writing them:
+  the bundled installation directory has two shapes depending on whether this
+  is the first run, so `pg_dump` came out "not found" on a machine that was
+  carrying it.
+
 - **The hub carries its own PostgreSQL (2026-08-30)**: `WAVVON_DATABASE_URL`
   unset now means "start and supervise your own server" rather than "guess
   localhost with the default superuser" — download a binary, run it, you have a

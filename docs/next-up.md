@@ -173,16 +173,13 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   - image and binary size: the archive is compiled in, so both grew. Measure
     and record it rather than discovering it in a release.
 
-- [ ] **`db move --to <url>` / `--from <url>`** — the last slice of
-  [One mechanism moves the data](decisions.md#one-mechanism-moves-the-data-logical-dumprestore);
-  the mechanism itself shipped 2026-08-09 as `backup`/`restore`. Waiting on
-  bundling on purpose: with no embedded side, `move` is exactly `backup` then
-  `restore` against another URL, which both commands already do.
-
 - [ ] **Upgrade path — the embedded-PostgreSQL dimension.** The rest closed
-  2026-08-09 (shipped log). What is left needs bundling first: an upgrade may
-  then also carry a **PostgreSQL major** upgrade, a different failure surface,
-  and `hosting.md` needs a paragraph for it. Coupled to the capability work —
+  2026-08-09 (shipped log), and bundling landed 2026-08-30, so this is no
+  longer blocked. `hosting.md` now says what a major carries; what is left is
+  the operator-guide half — an upgrade may bring a **PostgreSQL major** with
+  it, which is a different failure surface from a hub upgrade, and the two
+  commands (`backup` with the old binary, `restore` with the new) want a
+  worked example rather than a sentence. Coupled to the capability work:
   upgrading a hub also swaps the web client it serves.
 
 - [ ] **Desktop live-drive verification — DMs and pairing.** Both are pinned
