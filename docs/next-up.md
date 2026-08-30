@@ -182,12 +182,12 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   rather than loudly, and this missing harness is why the DM bugs survived so
   long. Build it reusable.
 
-- [ ] **App.tsx refactor — final slices + convergence.** Web 1,694 lines /
-  desktop 2,104, counted 2026-08-20 — **up 117 and 196** since the 2026-08-07
-  count, so this is currently moving the wrong way. The hook-extraction phase
-  landed 2026-07-28 and after (shipped log; decisions.md 2026-07-18). Left:
-  - **modal render tree** (web) — 12 `{showX && <XModal/>}` blocks → a `Modals` component fed by a props object;
-  - **desktop parity pass** on the web slices desktop still lacks;
+- [ ] **App.tsx refactor — desktop parity + convergence.** Web 1,642 lines /
+  desktop 2,055, counted 2026-08-31. The hook-extraction phase landed
+  2026-07-28 and after, and the **modal render tree left web on 2026-08-31**
+  (`components/layout/AppModals.tsx`, 213 lines out of App.tsx). Left:
+  - **desktop parity pass** on the web slices desktop still lacks — including
+    this one: desktop's App.tsx still carries its own modal tree;
   - **convergence** — the actual payoff: web/desktop hook pairs (`useDms`, `useScreenShare`, `useWhisper`, …) differ mainly in platform access, which can travel in via an injected actions object like `packages/ui` components already do. Hoist converged pairs into `packages/ui`, delete both app copies. App.tsx stays app-local orchestration by design.
   - Not worth extracting (checked 2026-07-27): message send/edit.
 

@@ -4,6 +4,21 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **The modals left App.tsx (2026-08-31)**: 213 lines of
+  `{showX && <XModal/>}` sat between the layout and the closing tag, which is
+  how the file kept growing while the refactor meant to shrink it stalled —
+  1,773 lines, up 117 since the previous count. They are one component now
+  (`components/layout/AppModals.tsx`); App.tsx is 1,642. A move, not a rewrite:
+  the props are named after the values they carry so the JSX is unchanged, and
+  their types are borrowed from the hooks that own each value, so a change
+  there surfaces as a type error rather than as a modal that quietly stops
+  opening. Which is exactly the failure mode types alone miss, so it was also
+  driven in a browser against a real hub — identity, join, main UI, zero page
+  errors, with AddHubModal, the setup wizard (its `createChannelForWizard`
+  really creating the channels), the display-name prompt and hub admin all
+  confirmed on screen. The channel settings modal, quick invite, the composers
+  and the context menus were not reached by that driver and were not seen.
+
 - **DMs are read from the home hub (2026-08-30)**: a sender's hub walks the
   recipient's designation, so an inbound DM lands on a *home* hub — and the
   client was reading `/conversations` from whichever hub was on screen. Someone
