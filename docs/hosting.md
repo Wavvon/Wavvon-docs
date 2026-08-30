@@ -76,9 +76,14 @@ directory.
 generated `docker-compose.yml` handles everything, and `wavvon-hub setup`
 generates the password for you.
 
-Every other method needs a database that already exists. The hub runs its
-own migrations to create tables, but it will not `CREATE DATABASE`, and it
-will refuse to start if it cannot connect.
+**Not setting `WAVVON_DATABASE_URL` at all? Skip this too** — the hub brings
+its own PostgreSQL and this whole section is about the case where you would
+rather it did not.
+
+Everything below is for a database *you* provide. The hub runs its own
+migrations to create tables, but in this mode it will not `CREATE DATABASE`,
+and it will refuse to start if it cannot connect — it never manages a database
+it did not create.
 
 Whichever route you take, the end state is the same three things: a role, a
 database owned by it, and a `WAVVON_DATABASE_URL` the hub can reach.
