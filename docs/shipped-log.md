@@ -4,6 +4,21 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **DMs are read from the home hub (2026-08-30)**: a sender's hub walks the
+  recipient's designation, so an inbound DM lands on a *home* hub — and the
+  client was reading `/conversations` from whichever hub was on screen. Someone
+  who signed in to one hub, drifted to another community and stayed there never
+  saw those messages: delivered, stored, invisible until they happened to switch
+  back. `dmSession()` resolves the designation once per account and takes the
+  first hub in the list this client can reach (list order is the user's
+  preference, not a correctness requirement), skipping a lobby-scoped session
+  because that 403s `/conversations` and would turn a working inbox into an
+  error. No designation, or none of its hubs open here, falls back to the active
+  hub — what every DM did before, so a single-hub user notices nothing. The
+  membership-change WS arm went through it too: it refetched from the active hub
+  while the list came from elsewhere. Publishing our own DH key deliberately
+  stays on the active hub, since a sender looks that key up on *their* hub.
+
 - **The upgrade path covers a PostgreSQL major (2026-08-30)**: the last open
   dimension of the upgrade work, unblocked by bundling and closed the same day.
   The bundled server follows upstream rather than being pinned, so a hub

@@ -191,6 +191,15 @@ The mirror-forward step reuses `FederationClient::post_dm` with a
 from "I'm the original recipient." A peer hub that sees a duplicate
 `message_id` short-circuits.
 
+**Status (2026-08-30).** Steps 1 and 4 are built. Step 3 is built as far as
+one hub goes: the client reads DMs from the home hub — the first entry in the
+list it can reach — rather than from whichever hub is on screen, which is the
+bug that made delivered messages invisible. **Step 2 is not built**: an
+accepting hub stores the DM and does not forward it to the other home hubs, so
+inboxes do not yet converge and a client reading slot 0 will not see what
+arrived at slot 1. Until it is, "any hub in the list is authoritative" holds
+for reads and not for writes.
+
 ## Picking, moving, self-hosting
 
 **The first hub an account signs in to becomes its home hub**, published

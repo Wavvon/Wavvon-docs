@@ -236,15 +236,16 @@ Committed, cannot proceed.
 real and unfixed, not that anyone is on it. When one is fixed its entry moves
 to the [shipped log](shipped-log.md).
 
-- **DMs are read from the active hub, not from the home hub list.** Federated
-  delivery already walks the recipient's designation
-  (`routes/dms/messages.rs`), and since 2026-08-25 every account gets a
-  designation automatically — so a user who signs in to one hub, abandons it and
-  lives on another has inbound DMs landing on the abandoned one, visible only
-  after switching to it. Same hub for almost everyone, so this is a tail case,
-  but it is the client half of [home-hub.md](home-hub.md) "DM delivery" not
-  being built yet: the canonical inbox is meant to be read across the list, with
-  the accepting hub mirroring to its peers.
+- **A DM inbox is read from one home hub, not merged across the list.** Fixed
+  2026-08-30 as far as the reported symptom goes — the client reads DMs from the
+  home hub rather than from whichever hub is on screen — but the other half of
+  [home-hub.md](home-hub.md) "DM delivery" is still missing: **the accepting hub
+  does not mirror to its peers**. So a user with two home hubs whose sender
+  reached slot 1 sees nothing while their client is reading slot 0. One home hub
+  is the overwhelming common case and the client falls through to the first
+  reachable entry, which is why this is a tail case rather than the same bug
+  again — but until mirroring exists, "any hub in the list is authoritative" is
+  a claim the code does not keep.
 
 - **1,011 UI strings are still hardcoded English**, across 135 files —
   measured, not estimated, by `packages/i18n/find-hardcoded.mjs`. The "~296"
