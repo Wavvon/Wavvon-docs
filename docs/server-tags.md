@@ -2,7 +2,7 @@
 
 **Status**: Parts 1–3 SHIPPED (self-tags, badge issue/accept/decline/
 revoke, cross-hub revocation polling). Part 4 (user-configurable trust
-roots) is designed, not built.
+roots) shipped 2026-08-30.
 
 Two related-but-distinct things hide under "server tags." This doc
 separates them on purpose:
@@ -333,8 +333,23 @@ such authority.
 
 ## Part 4 — User-configurable trust roots
 
-**Status**: designed, not built. Web client + hub only; the hub side is
-one field on an existing blob.
+**Status**: **shipped 2026-08-30**. Web client only in the end — the hub
+side turned out to be nothing at all, because the `settings` map already
+carries arbitrary keys, so the trust roots ride in it with no hub change
+whatever.
+
+Two notes on what the build differed from the plan below:
+
+- **The badge popover this planned to hang "Trust this issuer" on does not
+  exist**, so the affordance lives where a viewer actually meets an issuer
+  today: on each badge row in the certifications panel. Settings → Privacy is
+  the fixed home for reviewing and removing, exactly as designed.
+- **The "fourth source" framing overstated what was there.** There was no
+  trust-state resolver to extend: badges rendered identically whoever signed
+  them. `packages/ui/src/utils/trustRoots.ts` is that resolver now, and it
+  answers from two sources — an explicit root, and a hub the viewer is a
+  member of. Home-hub list and alliance can join it the day something needs
+  them.
 
 Today a badge or a cert from an issuer the viewer has no relationship
 with renders "(unknown issuer)" and there is nothing the viewer can do

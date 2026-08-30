@@ -4,6 +4,21 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **User-configurable trust roots (2026-08-30)**: a badge from an issuer the
+  viewer has no relationship with was a signature by a stranger, and there was
+  nothing they could do about it. A trust root — `{pubkey, label}` — is the
+  knob (server-tags.md Part 4). It rides in the synced prefs blob rather than
+  `localStorage`, because whom you believe is a choice about yourself: it
+  follows the identity across devices and survives a backup restore, for one
+  line in `SYNCED_KEYS` and no hub change at all. **Rendering only**, and the
+  UI says so — a root never satisfies a hub's `cert_mode` gate, which is the
+  admin's `cert_trusted_issuers`; the two lists have the same shape and
+  opposite authority. Not transitive, and no shipped defaults: the set starts
+  empty because there is no such authority. Reviewed and removed in Settings →
+  Privacy, added from the badge itself, which is the only place anyone will
+  actually do it. A pasted key that is not 64 hex characters is refused with a
+  reason rather than stored to silently match nothing.
+
 - **The agent half of the multi-node data plane, and a shared database nobody
   had noticed (2026-08-30)**: the agent advertises `host`, `tls_mode` and
   `cert_sha256` in its WS `hello` and the farm records them on **every**

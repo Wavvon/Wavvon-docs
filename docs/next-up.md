@@ -105,13 +105,6 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
     which is one machine wearing two hats. A topology scenario with a real
     second node — or one honest manual run — is what would close it.
 
-- [ ] **User-configurable trust roots.** Designed 2026-08-22 —
-  [server-tags.md](server-tags.md) Part 4. One allowlisted key in the prefs
-  blob (`clients/apps/web/src/utils/syncedSettings.ts`), a Settings → Privacy
-  section, a "Trust this issuer" action on the badge popover, and one shared
-  trust resolver in `clients/packages/ui/src/utils/`. Rendering only — never
-  satisfies a hub's `cert_mode` gate. Lowest value of the four; do it last.
-
 - [ ] **Browser e2e in CI — the tail.** The suite is no longer tied to one
   laptop: `WAVVON_E2E_HUB_URL` / `WAVVON_E2E_APP_URL` override both ends, an
   `e2e-live.yml` workflow starts postgres, builds the hub and drives Chromium
