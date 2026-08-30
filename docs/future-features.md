@@ -41,39 +41,51 @@ a choice not yet made: a native WebAuthn plugin, or a system-browser handoff.
 current web-only delivery target — there is no web-viable subset (passkey
 registration in a browser already works; the bug *is* the webview).
 
-## Leaving a home hub asks first
+## Leaving a hub asks first, and the hub gets a word in
 
-Removing a hub is one click and no question, and `handleRemoveHub`
-(`clients/apps/web/src/hooks/useHubLifecycle.ts`) has no idea whether the hub
-being removed is one of the user's **home hubs**. It usually is: the first hub
-an account signs in to becomes its home hub automatically
-([home-hub.md](home-hub.md)).
+**Every** leave gets a confirmation, not only the ones that cost something. A
+mis-click currently removes a hub outright — `handleRemoveHub`
+(`clients/apps/web/src/hooks/useHubLifecycle.ts`) drops it with no question —
+and rejoining an invite-only hub is not something the user can do alone.
 
-That matters more since 2026-08-30, when DMs started being read from the home
-hub rather than from whichever hub is on screen. Removing a home hub locally
-does **not** edit the signed designation, so senders keep delivering there —
-to a hub this client no longer has a session for. The inbox goes quiet and
-nothing says why, which is the same invisible-DM failure that fix was for,
-arrived at from the other direction. Prefs, device certs and the designation
-itself live there too.
+Two layers on top of that plain confirmation:
 
-So: when the hub being left is in the designation, ask before doing it, and
-offer the one thing that actually resolves it — Settings → Manage accounts →
-Home hubs, where the list is edited.
+**1. Say so when it is a home hub.** The code has no idea whether it is, and it
+usually is: the first hub an account signs in to becomes one automatically
+([home-hub.md](home-hub.md)). That matters more since 2026-08-30, when DMs
+started being read from the home hub rather than from whichever hub is on
+screen. Removing a home hub locally does **not** edit the signed designation,
+so senders keep delivering there — to a hub this client no longer has a session
+for. The inbox goes quiet and nothing says why, which is the invisible-DM
+failure that fix was for, arrived at from the other direction. Prefs, device
+certs and the designation itself live there too. The dialog should say which of
+those the user is walking away from, and point at Settings → Manage accounts →
+Home hubs, where the list is actually edited.
 
-Design questions that have to be answered first, and none are obvious:
+**2. Let the hub add its own message.** A farewell, a "you can come back with
+this invite", a link to the community's rules — operator-written, shown in the
+confirmation. Same shape as `welcome_label`: a `hub_settings` key, served on
+`/info` so a client can render it without a session, edited in hub admin.
+
+Design questions, none of them obvious:
 
 - **What the dialog offers.** Cancel / leave anyway / edit the home hub list
-  first — and whether leaving can update the designation itself, which means
-  signing a new one with the master key (a paired device cannot).
-- **The last entry.** An account with an empty home hub list has nowhere for
-  its personal state to live. Refuse? Warn harder? Let it happen and say what
-  breaks?
-- **Where else this fires.** The same question exists on account switch and on
-  hub removal from the desktop client, which has its own copy of the flow.
-- **Not a blocking modal for the common case.** Leaving a community hub that
-  is not a home hub must stay one click, or the warning becomes noise and gets
-  clicked through — which is how a confirmation stops working.
+  first — and whether leaving can re-sign the designation itself, which needs
+  the master key (a paired device cannot).
+- **The last entry.** An account whose home hub list is empty has nowhere for
+  its personal state to live. Refuse, warn harder, or allow it and say plainly
+  what stops working?
+- **The hub's message is not ours.** It is operator-written text shown at the
+  moment someone is leaving, which is exactly when a hub has an incentive to
+  mislead ("you will lose your messages"). Render it as mediated — attributed
+  to the hub, visually secondary to the app's own words, never styled as a
+  warning the client is making. Same discipline as a badge's issuer or an
+  alliance visitor's hub-vouched name. Plain text, length-capped, no markup;
+  `welcome_label` is the precedent to copy, including how it is sanitised.
+- **One language.** The operator writes it once; the surrounding dialog is
+  translated. A mixed-language dialog is the honest outcome and worth stating.
+- **Where else this fires.** Account switch, and the desktop client, which
+  carries its own copy of the flow.
 
 ## Desktop parity backlog
 
