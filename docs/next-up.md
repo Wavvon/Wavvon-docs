@@ -98,10 +98,13 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   `e2e-live.yml` workflow starts postgres, builds the hub and drives Chromium
   against it, and the suite is green against a genuinely fresh hub locally — 85 passed,
   1 skipped, 0 failed (shipped log). **It has now run on a runner, and it did
-  not finish**: the job hit its 90-minute cap with nearly every spec timing out
-  on the hub-header menu. Cause found and fixed — the first-boot wizard's
-  overlay, dismissed behind a single `isVisible()` sample that a loaded runner
-  loses (shipped log). The next run is that fix's test. Left:
+  not finish**: twice, hitting its 90-minute cap with a long list of specs timing
+  out — several on the hub-header menu, while other specs in the same file pass.
+  The first-boot wizard overlay was a real defect on that path and is fixed
+  (shipped log), **and the second run failed the same way**, so it was not the
+  cause. A cancelled job also skips the `if: failure()` artifact upload, which is
+  why no Playwright report has ever come back; the cap is 150 minutes now so a
+  failing run at least hands one over. Left:
   - read that run: whether the wizard fix is enough, and what else only a runner
     shows — hub build time, any library `--with-deps` does not cover, and
     whether Chromium there accepts the hub's self-signed WebTransport cert;
