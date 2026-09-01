@@ -4,6 +4,30 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Roles and alliances speak four languages (2026-09-01)**: 63 of the 1,011
+  hardcoded strings, taken as one screen — `RolesSection`,
+  `AlliancesSection` and `RoleCategoryManager`. The permission labels stopped
+  being data carried in the component: `ALL_PERMISSIONS` is a list of ids and
+  each label is `hub.admin.roles.perm.<id>`, which no scan can verify, hence the
+  one test asserting every id has a label in all four catalogs. Two dead
+  `ALL_PERMISSIONS` copies in `apps/*/src/constants.ts` were imported by
+  nothing and desktop's had drifted two permissions behind — deleted rather than
+  translated three times. The catalogs already held `hub.admin.roles.*` and
+  `alliances.*` keys **nobody read**, written for a UI that never shipped and
+  several still English in es/de: the names that fit were reused, eight
+  describing a tabbed master/detail alliances screen were dropped, and the live
+  component text won where the two disagreed. 948 left.
+
+- **The node TLS test could not run on a runner (2026-09-01)**: all four
+  `node_tls_flow` tests panicked before the handshake — "Could not
+  automatically determine the process-level CryptoProvider from Rustls crate
+  features". The binary links both backends (the farm asks rustls for ring,
+  `tokio-tungstenite`'s `rustls-tls-webpki-roots` pulls in aws-lc-rs) and
+  rustls refuses to guess. `node::client_config` had always named one for the
+  client side; the test's server side was on `ServerConfig::builder()`, which
+  reads the process default. A first CI execution finding it is the shape worth
+  noting: the code had been green locally since 2026-08-29.
+
 - **The modals left App.tsx (2026-08-31)**: 213 lines of
   `{showX && <XModal/>}` sat between the layout and the closing tag, which is
   how the file kept growing while the refactor meant to shrink it stalled —

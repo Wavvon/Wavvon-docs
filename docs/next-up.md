@@ -235,7 +235,7 @@ to the [shipped log](shipped-log.md).
   again — but until mirroring exists, "any hub in the list is authoritative" is
   a claim the code does not keep.
 
-- **1,011 UI strings are still hardcoded English**, across 135 files —
+- **948 UI strings are still hardcoded English**, across 132 files —
   measured, not estimated, by `packages/i18n/find-hardcoded.mjs`. The "~296"
   this entry used to claim was an undercount from a line-wise scan that missed
   every label written across lines (`>\n  Remove\n<`), which is most of them.
@@ -245,10 +245,10 @@ to the [shipped log](shipped-log.md).
   Now gated: CI fails when a file gains a literal, so the number only ratchets
   down (`hardcoded-baseline.json`, re-banked with `--baseline` after each
   batch). Done so far — the hub admin page, certifications, outgoing webhooks
-  and the federated ban list, 114 strings. Biggest remaining, by count:
-  `RolesSection` 48, `AlliancesSection` 44, `RecoveryContactsSection` 43,
-  `ChannelSettingsModal` 40, `ProfileEditorSection` 37, `SurveyAdminSection`
-  and `ForumPostDetail` 35 each.
+  and the federated ban list (114 strings), then roles + alliances + role
+  categories, one screen, 63. Biggest remaining, by count: `PairingSection` 40,
+  `RecoveryContactsSection` 37, `ForumPostDetail` 34, `WhisperPanel` 32,
+  `KeyboardShortcuts` 30, `Icons` 27, `ChannelSettingsModal` 23.
   Mechanical, but four shapes need hands rather than a scan-and-replace, and
   they are written up in the clients `CLAUDE.md`: a local `const t` that
   shadows the translator, a second component in the same file needing its own
