@@ -7,7 +7,8 @@ farm hosts N of them, routes to them, and owns their lifecycle.
 > Partially built — the `farm` and `agent` crates exist (serial routing,
 > reverse proxy, hub lifecycle, agent nodes). Implementation detail is
 > in [farm-impl.md](farm-impl.md); the "Multi-node data plane" section
-> below is designed and not built.
+> below is built except its monitor, and parked — a farm hosts the hubs on
+> its own machine.
 
 ## Three terms
 
@@ -147,7 +148,10 @@ user complains about running multiple hub processes.
 
 ## Multi-node data plane
 
-**Status**: **built, except the monitor** (2026-08-29/30). The proxy reaches
+**Status**: **parked, and built except the monitor** (2026-08-29/30).
+A farm hosting the hubs on its own machine is the supported shape; this section
+waits for an operator who needs a second box — [wishlist.md](wishlist.md)
+§Farm across more than one machine. The proxy reaches
 another machine, the agent advertises `host` / `tls_mode` / `cert_sha256` in
 its `hello` and the farm records them on every connect, and a node with
 `WAVVON_NODE_DB_TEMPLATE` creates each hub's database on its own PostgreSQL.

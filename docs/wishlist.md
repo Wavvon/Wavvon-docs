@@ -43,3 +43,15 @@ the current delivery target, so this is desktop-era at the earliest. See
 Demand-gated tail of the birthday badge: a hub-configured channel plus a daily
 worker posting at hub-midnight, which needs `chrono-tz`. Only if a community
 actually asks — the badge alone may well be enough.
+
+## Farm across more than one machine
+
+A farm hosts the hubs on its own machine, and that is the supported shape. The
+multi-node data plane — the farm proxying to hubs an `agent` runs on a second
+box — is **built except its monitor** and parked here rather than finished:
+nobody has asked for it, and no proxy has yet reached a real second machine
+(the routing was tested against loopback). Design and the two decisions behind
+it are in [farm-model.md](farm-model.md) §Multi-node data plane; what is left
+is the monitor reading agent heartbeats instead of inspecting local processes,
+plus one honest two-machine run. Revisit when an operator asks to scale past
+one box.

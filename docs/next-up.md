@@ -93,18 +93,6 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   - LAN mode keeps the hub build as its only web path — an HTTPS page cannot
     reach an `http://` or self-signed LAN hub ([lan-mode.md](lan-mode.md)).
 
-- [ ] **Farm multi-node data plane — the monitor, and a real two-machine
-  run.** [farm-model.md](farm-model.md) "Multi-node data plane". Everything
-  else landed 2026-08-29/30: the `servers` columns, a host-aware proxy on
-  both dial paths with `ca`/`pin` TLS, the agent advertising its address in
-  `hello`, and per-node database provisioning. Left:
-  - the farm monitor drives remote hubs by agent heartbeat rather than local
-    process inspection, which is what it still does;
-  - **nothing has yet proxied to a hub on a different machine.** The TLS half
-    is tested against real handshakes and the routing half against loopback,
-    which is one machine wearing two hats. A topology scenario with a real
-    second node — or one honest manual run — is what would close it.
-
 - [ ] **Browser e2e in CI — the tail.** The suite is no longer tied to one
   laptop: `WAVVON_E2E_HUB_URL` / `WAVVON_E2E_APP_URL` override both ends, an
   `e2e-live.yml` workflow starts postgres, builds the hub and drives Chromium
