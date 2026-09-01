@@ -97,12 +97,19 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   laptop: `WAVVON_E2E_HUB_URL` / `WAVVON_E2E_APP_URL` override both ends, an
   `e2e-live.yml` workflow starts postgres, builds the hub and drives Chromium
   against it, and the suite is green against a genuinely fresh hub locally — 85 passed,
-  1 skipped, 0 failed (shipped log). **The workflow itself has never run on a runner** — it is
-  authored, not verified, and the first push to `develop` is its first
-  execution. Left:
-  - watch that first run and fix what only a runner shows: hub build time, any
-    library `--with-deps` does not cover, and whether Chromium there accepts
-    the hub's self-signed WebTransport cert the way it does locally;
+  1 skipped, 0 failed (shipped log). **It has now run on a runner, and it did
+  not finish**: the job hit its 90-minute cap with nearly every spec timing out
+  on the hub-header menu. Cause found and fixed — the first-boot wizard's
+  overlay, dismissed behind a single `isVisible()` sample that a loaded runner
+  loses (shipped log). The next run is that fix's test. Left:
+  - read that run: whether the wizard fix is enough, and what else only a runner
+    shows — hub build time, any library `--with-deps` does not cover, and
+    whether Chromium there accepts the hub's self-signed WebTransport cert;
+  - **`page.evaluate` in `hubApi` failed with "Failed to fetch"** on freshly
+    opened member pages in that run, and the wizard does not explain it. The hub
+    log shows it healthy throughout, so this is the client side or the dev
+    server — quite possibly collateral of the same overlay, which is why it is
+    worth re-reading rather than chasing now;
   - the workflow sets no `WAVVON_PUBLIC_URL`, matching the local run it was
     verified against. That leaves `/info.voice_wt_url` null, so the voice specs
     pass without a datagram ever crossing — they cover UI state, not audio. Set
@@ -235,20 +242,25 @@ to the [shipped log](shipped-log.md).
   again — but until mirroring exists, "any hub in the list is authoritative" is
   a claim the code does not keep.
 
-- **948 UI strings are still hardcoded English**, across 132 files —
+- **758 UI strings are still hardcoded English**, across 128 files —
   measured, not estimated, by `packages/i18n/find-hardcoded.mjs`. The "~296"
   this entry used to claim was an undercount from a line-wise scan that missed
   every label written across lines (`>\n  Remove\n<`), which is most of them.
-  `check-i18n` proves every key in `en.json` exists in it/es/de and cannot see
-  a string that never became a key, which is how four "complete" catalogs and a
-  mostly-English UI coexisted.
+  `check-i18n` proves the catalogs agree with each other — same keys, valid
+  ICU, same placeholder names — and cannot see a string that never became a key,
+  which is how four "complete" catalogs and a mostly-English UI coexisted.
   Now gated: CI fails when a file gains a literal, so the number only ratchets
   down (`hardcoded-baseline.json`, re-banked with `--baseline` after each
   batch). Done so far — the hub admin page, certifications, outgoing webhooks
-  and the federated ban list (114 strings), then roles + alliances + role
-  categories, one screen, 63. Biggest remaining, by count: `PairingSection` 40,
-  `RecoveryContactsSection` 37, `ForumPostDetail` 34, `WhisperPanel` 32,
-  `KeyboardShortcuts` 30, `Icons` 27, `ChannelSettingsModal` 23.
+  and the federated ban list (114 strings); roles + alliances + role
+  categories, one screen, 63; recovery contacts + the forum post view, 70;
+  whisper + the shortcut sheet + the channel icon names, 81; channel settings +
+  the server tags page, 39. Biggest remaining, by count: `PairingSection` 40
+  (desktop-only, so it waits on the delivery target), `SurveyAdminSection` 22,
+  `BotCapabilitiesPanel` 20, `SoundboardAdminSection` 19, `SortableItems` 18.
+  A caution learned the hard way: **reusing an unread catalog key means adopting
+  its copy**, and doing that silently changed two labels the live suite drives by
+  name.
   Mechanical, but four shapes need hands rather than a scan-and-replace, and
   they are written up in the clients `CLAUDE.md`: a local `const t` that
   shadows the translator, a second component in the same file needing its own

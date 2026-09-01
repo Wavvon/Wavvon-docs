@@ -4,6 +4,57 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **The first live-e2e run on a runner, and the overlay it found (2026-09-01)**:
+  the workflow had been authored and never executed. It hit the 90-minute cap
+  with nearly every spec timing out on `.hub-header-button` → "Create…", while
+  the hub log showed a healthy hub that only ever authenticated the owner. A hub
+  with no channels offers its admin the first-boot wizard, and
+  `dismissHubSetupWizard` sampled `isVisible()` **once** — but the gate behind
+  that dialog cannot decide until the channel list arrives, so on a loaded
+  machine it lands a beat after the header `expectInHub` waits for. The miss
+  meant the "don't nag again" flag never reached the saved storageState, every
+  spec then met a modal overlay that swallows clicks, and since nothing could
+  create a channel the hub stayed at zero and the dialog kept coming back. It
+  waits up to 10s now, for the owner only — the sole admin, and the only identity
+  that can be offered it. Worth keeping as a shape: a helper that samples state
+  once is a helper that works only on the machine it was written on.
+
+- **Three server tests that only a runner could fail (2026-09-01)**: each fixed
+  where it was actually wrong. `node_tls_flow` — all four panicked before the
+  handshake on "Could not automatically determine the process-level
+  CryptoProvider", because the binary links both rustls backends (the farm asks
+  for ring, `tokio-tungstenite`'s `rustls-tls-webpki-roots` pulls in aws-lc-rs)
+  and `node::client_config` had only ever named one for the client side.
+  `db_move_flow` — "pg_dump not found" on two of three, and not a missing
+  install: each bundled instance extracts its client tools into its own scratch
+  directory and the test deletes that directory when it ends, while
+  `WAVVON_PG_BIN_DIR` is process-wide, so on four threads one test can be
+  pointed at another's tools and at a deleted path once that test finishes. A
+  static async mutex keeps one instance alive at a time, guard returned first so
+  it outlives both the server and its directory. `e2e_server_agent` — 409
+  Conflict, because the helper sent `hub_spawned` and then slept a fixed 50ms
+  before calling a route that refuses a hub whose `process_port` is NULL; it
+  polls for the port now. One shape, three times: a fixed sleep or a
+  process-wide hint is a guess about scheduling that only holds on the machine
+  it was written on.
+
+- **Whisper, the shortcut sheet, the channel icon names, channel settings and the
+  server tags page speak four languages (2026-09-01)**: 120 more literals in two
+  batches. The keyboard cheat-sheet and the channel icon registry were the
+  permission list's shape again — English in a module-level array — so both are
+  ids now (`shortcuts.action.<id>`, `channel.icon.<id>`) and the one test that
+  guards template-built keys covers three families. `WhisperPanel` had three
+  callbacks using `t` for a whisper target or a tab id, which is the shadow the
+  clients CLAUDE.md warns about; `ServerTagsSection` had no translator at all;
+  the channel delete confirmation was prose broken around
+  `<strong>{name}</strong>` and is one key with an argument now (the name loses
+  its bold). `ChannelIconPicker` was deleted rather than translated — nothing
+  imported it and the settings modal renders the same grid inline. Text the live
+  suite drives by name was kept byte for byte, which is the lesson from the batch
+  before: reusing an unread catalog key means adopting its copy too, and doing
+  that silently changed "New category name" to "Category name" until
+  `04-role-categories` said so. 758 left.
+
 - **Roles and alliances speak four languages (2026-09-01)**: 63 of the 1,011
   hardcoded strings, taken as one screen — `RolesSection`,
   `AlliancesSection` and `RoleCategoryManager`. The permission labels stopped
