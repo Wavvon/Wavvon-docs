@@ -4,6 +4,29 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **The web UI speaks four languages (2026-09-01)**: 1,011 hardcoded English
+  strings down to 223, and every one of the remaining is in `apps/desktop` —
+  the shared package and the web app have nothing translatable left. Eleven
+  batches over one day, and the shape repeated enough to be worth recording:
+  **six module-level label maps** carried English as data (role permissions,
+  channel icons, keyboard shortcuts, skin bases, themes, RSVP answers) and are
+  now id lists with `t(`prefix.${id}`)` at render, guarded by a test since no
+  scan can see a key built from a variable; **prose spliced around values**
+  ("Delete <strong>{name}</strong>?", "Attestations: 2 / 3 · Status: pending",
+  `${kind === "kick" ? "Kick" : "Ban"} ${name}?`) became single keys with
+  arguments; and **a file with a translator was not a translated file** —
+  `ReactionBar`, `AttachmentList`, `ForumReplyRow`, `ForumPostRow` and others
+  rendered English from inside files whose main component had `t` all along.
+  Two real bugs fell out of it: `bot.card.play` and `user.ctx.history_header`
+  used i18next's `{{name}}` under i18next-icu and printed their own braces in
+  all four languages, and reusing an unread catalog key silently changed two
+  labels the live suite drives by name. `check-i18n` now parses every message
+  as ICU and compares placeholder names, and the hardcoded scan stopped
+  counting CSS values, request paths and torn JSX — 128 of the "473 remaining"
+  were never strings. Also deleted rather than translated: `ChannelIconPicker`
+  (imported by nothing), two stale `ALL_PERMISSIONS` copies, and eight catalog
+  keys describing an alliances screen this codebase does not have.
+
 - **The first live-e2e run on a runner, and the overlay it found (2026-09-01)**:
   the workflow had been authored and never executed. It hit the 90-minute cap
   with nearly every spec timing out on `.hub-header-button` → "Create…", while

@@ -242,30 +242,31 @@ to the [shipped log](shipped-log.md).
   again — but until mirroring exists, "any hub in the list is authoritative" is
   a claim the code does not keep.
 
-- **758 UI strings are still hardcoded English**, across 128 files —
-  measured, not estimated, by `packages/i18n/find-hardcoded.mjs`. The "~296"
-  this entry used to claim was an undercount from a line-wise scan that missed
-  every label written across lines (`>\n  Remove\n<`), which is most of them.
-  `check-i18n` proves the catalogs agree with each other — same keys, valid
-  ICU, same placeholder names — and cannot see a string that never became a key,
-  which is how four "complete" catalogs and a mostly-English UI coexisted.
-  Now gated: CI fails when a file gains a literal, so the number only ratchets
-  down (`hardcoded-baseline.json`, re-banked with `--baseline` after each
-  batch). Done so far — the hub admin page, certifications, outgoing webhooks
-  and the federated ban list (114 strings); roles + alliances + role
-  categories, one screen, 63; recovery contacts + the forum post view, 70;
-  whisper + the shortcut sheet + the channel icon names, 81; channel settings +
-  the server tags page, 39. Biggest remaining, by count: `PairingSection` 40
-  (desktop-only, so it waits on the delivery target), `SurveyAdminSection` 22,
-  `BotCapabilitiesPanel` 20, `SoundboardAdminSection` 19, `SortableItems` 18.
-  A caution learned the hard way: **reusing an unread catalog key means adopting
-  its copy**, and doing that silently changed two labels the live suite drives by
-  name.
-  Mechanical, but four shapes need hands rather than a scan-and-replace, and
-  they are written up in the clients `CLAUDE.md`: a local `const t` that
-  shadows the translator, a second component in the same file needing its own
-  hook, `window.confirm("…")`, and prose wrapped across source lines or broken
-  around `<strong>`/`<em>`.
+- **The English UI is translated everywhere it ships; `apps/desktop` is not
+  done.** 1,011 hardcoded strings at the start of 2026-09-01, measured by
+  `packages/i18n/find-hardcoded.mjs`. The shared package and the web app — the
+  delivery target — now hold **none**: what the scan still lists there is a MIME
+  type, a class name, the brand, `{user}` in a spawner template, a doc comment
+  the text-node regex tore in half, and the four language names in the picker,
+  which a language chooser shows in their own language on purpose. **223 are
+  left and all of them are in `apps/desktop`**, which is deliberate: web is the
+  delivery target, desktop is future (see the delivery note above), and its
+  `PairingSection` alone is 40 of them.
+  Now gated three ways: `check-i18n` proves the catalogs agree with each other —
+  same keys, valid ICU, same placeholder names — and `check-hardcoded` fails CI
+  when a file gains a literal, so the number only ratchets down
+  (`hardcoded-baseline.json`, re-banked with `--baseline` after each batch). A
+  vitest suite covers the keys neither can see: the ones built from an id at
+  render time (`hub.admin.roles.perm.<id>`, `channel.icon.<id>`,
+  `shortcuts.action.<id>`).
+  What the work actually was, since "replace strings with t()" undersells it:
+  **six module-level English label maps** (permissions, channel icons, keyboard
+  shortcuts, skin bases, themes, RSVP) became id lists with the words in the
+  catalogs; prose spliced around values became one key with an argument; and a
+  partly-translated file turned out to be the norm rather than the exception —
+  a second component in the same file with no translator of its own is how
+  `ReactionBar`, `AttachmentList`, `ForumReplyRow` and others kept rendering
+  English inside files that looked done.
 
 - **Voice audio was choppy across the internet** — cause found and fixed
   2026-08-21 (no playout scheduling in the web client; see shipped log). The
