@@ -4,6 +4,51 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **The live browser suite is green on a runner (2026-09-03)**: 85 passed, 1
+  skipped, 0 failed, **0 flaky, in 7.6 minutes** — against 8 failed, 65 flaky,
+  12 passed in 1h49m two days earlier, on the same specs. Two causes, and
+  neither was a spec being wrong about the product.
+  **The workflow served the Vite dev server.** Every page load pulled 370-odd
+  separate module requests, and the first interaction with anything not yet
+  transformed waited on Vite compiling it — invisible on a fast laptop, seconds
+  per menu or modal on a two-core runner. That is what the failures were:
+  clicks on `.hub-header-button` → "Create…" where the dropdown had not
+  rendered yet, passing on retry once the transform cache was warm. `webServer`
+  now runs `npm run build && npm run preview` under `CI`; one bundle, warm from
+  the first attempt, and the suite costs the runner what it costs a laptop.
+  **The app reloads itself once per page load.** The prefs pull brings back
+  settings that are only read at boot, so App.tsx reloads once per load
+  (`PREFS_RELOAD_FLAG`) — a few round trips after the hub header renders, which
+  on a laptop is before the first click and on a runner is in the middle of
+  one. A dropdown opened a moment earlier closed under the test, and in-flight
+  `page.evaluate` calls died as "Execution context was destroyed" or had their
+  fetch aborted as "Failed to fetch" — both had been logged as unexplained and
+  are the same reload. `expectInHub` and `onboardWithSeed` now claim the flag
+  before driving anything, and `hubApi` retries once past a navigation.
+  Two specs also pinned affordances the UI had outgrown, failing identically on
+  a fresh hub locally: `27-home-hubs` clicked an "Add this hub" button that no
+  longer renders (signing in publishes the hub automatically), and
+  `02-nested-channels` clicked a "Join a hub" menu entry that went with the
+  create-hub wizard. And the reporting was blind by configuration:
+  `trace: "on-first-retry"` recorded the *retry*, so a spec that failed once
+  and passed on retry handed back a trace of the run that passed — 264MB of
+  artifact with nothing in it about any failure. It is `retain-on-failure` now,
+  which is how the socket race behind the vanished message was found at all.
+- **A sent message no longer waits on the socket to appear (2026-09-03)**: the
+  composer put nothing on screen itself — it sent, cleared the input, and
+  waited for the hub to echo the message back over the WebSocket. A send the
+  hub accepted while that socket was down or still reconnecting was stored
+  (201 Created) and then simply absent from its own author's view until the
+  next channel load. `sendMessage` now resolves to the message the hub returns
+  and `handleSend` appends it, reusing the id dedupe the socket handler already
+  applies so the echo is a no-op when it lands; the slash-command 200 still
+  resolves to null, since that reply is inserted server-side. A rejected send
+  stopped emptying the composer too — there is no toast at that layer, so the
+  text goes back in the input rather than vanishing without a word. Found by
+  `55-pinned-messages`, whose trace had the POST at 201 and the WebSocket
+  taking 8 seconds to come up: the kind of failure only a real browser against
+  a real hub produces, and the reason the trace of a *failing* attempt is now
+  what CI keeps.
 - **The web UI speaks four languages (2026-09-01)**: 1,011 hardcoded English
   strings down to 223, and every one of the remaining is in `apps/desktop` —
   the shared package and the web app have nothing translatable left. Eleven

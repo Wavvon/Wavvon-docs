@@ -274,6 +274,25 @@ the right tradeoff.
   signs a new designation; departing hub gets the new list to know
   it's out, even if it ignores it).
 
+### A hub's address is part of the synced state
+
+The designation and the prefs blob both name hubs by **URL**, and
+`wavvon:saved_hubs` rides the prefs blob like any other synced setting. So
+the address a user first signs in at is the address their own devices restore,
+and reaching **the same hub at a second address** is not the same thing as
+changing its address. What happens instead: the new session finds a
+designation already published (`ensureHomeHubDesignation` no-ops), resolves
+its prefs targets to the *old* URL, pulls the blob from there, and applies a
+`saved_hubs` list naming the old address — after which the client is talking
+to both, and after the post-pull reload only to the old one.
+
+Diagnosed 2026-09-03, from what had been filed as "the web client misbehaves
+against a hub reached at `127.0.0.1` rather than `localhost`". It does not:
+against a fresh hub and a fresh profile the suite is green on either address.
+What it cannot do is treat two addresses for one hub as one hub. Changing a
+hub's address is a designation edit plus a saved-hub edit, not a matter of
+typing the new one.
+
 ### Designation propagation
 
 Devices and friends learn about a new `HomeHubList` through:

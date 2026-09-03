@@ -94,45 +94,22 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
     reach an `http://` or self-signed LAN hub ([lan-mode.md](lan-mode.md)).
 
 - [ ] **Browser e2e in CI — the tail.** The suite is no longer tied to one
-  laptop: `WAVVON_E2E_HUB_URL` / `WAVVON_E2E_APP_URL` override both ends, an
-  `e2e-live.yml` workflow starts postgres, builds the hub and drives Chromium
-  against it, and the suite is green against a genuinely fresh hub locally — 85 passed,
-  1 skipped, 0 failed (shipped log). **It has now run on a runner, and it did
-  not finish**: twice, hitting its 90-minute cap with a long list of specs timing
-  out — several on the hub-header menu, while other specs in the same file pass.
-  The first-boot wizard overlay was a real defect on that path and is fixed
-  (shipped log), **and the second run failed the same way**, so it was not the
-  cause. A cancelled job also skips the `if: failure()` artifact upload, which is
-  why no Playwright report has ever come back; the cap is 150 minutes now so a
-  failing run at least hands one over. Left:
-  - read that run: whether the wizard fix is enough, and what else only a runner
-    shows — hub build time, any library `--with-deps` does not cover, and
-    whether Chromium there accepts the hub's self-signed WebTransport cert;
-  - **`page.evaluate` in `hubApi` failed with "Failed to fetch"** on freshly
-    opened member pages in that run, and the wizard does not explain it. The hub
-    log shows it healthy throughout, so this is the client side or the dev
-    server — quite possibly collateral of the same overlay, which is why it is
-    worth re-reading rather than chasing now;
+  laptop, and since 2026-09-03 no longer tied to a *fast* one:
+  `WAVVON_E2E_HUB_URL` / `WAVVON_E2E_APP_URL` override both ends, and
+  `e2e-live.yml` starts postgres, builds the hub, builds the web client and
+  drives Chromium against them. The runner's original 8 failed / 65 flaky /
+  12 passed in 1h49m had two causes, both fixed (shipped log): CI served the
+  **Vite dev server**, and the app's own **once-per-load self-reload** landed
+  in the middle of interactions. Left:
   - the workflow sets no `WAVVON_PUBLIC_URL`, matching the local run it was
     verified against. That leaves `/info.voice_wt_url` null, so the voice specs
     pass without a datagram ever crossing — they cover UI state, not audio. Set
-    it and see what starts failing before trusting this job on voice;
+    it and see what starts failing before trusting this job on voice; whether
+    Chromium on a runner accepts the hub's self-signed WebTransport cert is
+    untested and only starts mattering then;
   - `54-ttt-game` skips itself unless a ttt-bot is running, silently, so this
     job reports green having run 85 of 86. Either start the bot in the workflow
     or accept it knowingly;
-  - `57-dm-messaging` was logged here as a
-    probable DM-liveness bug and was not one: it matched the owner's display
-    name against the seed constant, and P24 renames the owner without putting
-    the name back, in a suite that shares one hub in file order. P48 already
-    read the name back from `/me` for exactly this reason; P57 now does too.
-    Worth remembering as a shape — "element(s) not found" in a suite with
-    deliberately shared state reads like a product bug and often is not;
-  - **the suite needs a fresh database per run, and its README says otherwise.**
-    Re-running against a database two previous runs had already filled produced
-    four failures in entirely different specs from the run before — accumulated
-    channels, roles and members, not a regression. CI is unaffected (it creates
-    the database), but the local recipe telling you a persistent `wavvon_e2e` is
-    fine is how a green suite turns red for no reason;
   - point a run at a farm-hosted `/hub/<slug>`, which is what the URL override
     was the prerequisite for.
 
@@ -287,18 +264,6 @@ to the [shipped log](shipped-log.md).
   constant and no way to lower it. Either surface the slider outside custom, or
   have the mic-test meter say plainly when the level never crosses the gate.
   Reopen as a bug the first time someone reports going silent.
-
-- **The web client misbehaves against a hub reached at `127.0.0.1` rather than
-  `localhost`.** Same hub, same settings, isolated working directories both
-  times: `11-channel-crud` is **5 of 5 in 22 seconds** on
-  `http://localhost:<port>` and **3 of 5 failing over 3.3 minutes** on
-  `http://127.0.0.1:<port>`. The smoke spec passes either way, so basic
-  connectivity and auth are fine — it is the channel-management interactions
-  that time out. Root cause not found; `parseHubInput` treats both as local, so
-  it is not that. Matters because an operator reaching a hub by IP is a normal
-  thing to do, and because the failure mode is timeouts rather than an error
-  anyone could act on. `e2e-topology/` now uses `localhost` so nobody
-  rediscovers it by accident.
 
 - **Discord importer needs a live run** — `export` with a real bot token +
   `apply` against a running hub never exercised live.
