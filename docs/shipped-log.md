@@ -4,6 +4,21 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Joining from an invite link stopped asking for 24 words at the door
+  (2026-09-03)**: a friend following an invite met four screens before a first
+  message, one of them the recovery phrase behind a button reading "I saved my
+  phrase" that verified nothing. The invite path now creates the identity and
+  goes to the profile step; the welcome screen, which names the hub and who
+  hosts it, does the joining. Until the key has left the browser the settings
+  gear carries a marker, the backup section says the identity exists only
+  there, and the first message raises the ask once — "Not now" leaves the
+  marker. Revealing the phrase or exporting a `.wavvon-backup` clears it, and
+  every other entry path (create, recover, pair) is recorded as already having
+  handed the key over. The invite screen names the hub too, which only the hub
+  build can do — its own origin answers `/info`. Rationale and the rejected
+  alternatives in decisions.md, "An invite link does not stop at the recovery
+  phrase"; driven end to end against a hub serving `dist-hub`, since the live
+  suite runs the user build on a different origin and cannot reach `/join/`.
 - **The live browser suite is green on a runner (2026-09-03)**: 85 passed, 1
   skipped, 0 failed, **0 flaky, in 7.6 minutes** — against 8 failed, 65 flaky,
   12 passed in 1h49m two days earlier, on the same specs. Two causes, and

@@ -6,6 +6,64 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## An invite link does not stop at the recovery phrase
+
+**Decision** (2026-09-03, implemented web the same day): a visitor who arrives
+on `/join/<code>` and creates an identity is not shown the 24 words on the way
+in. The identity is created, labelled with the suggested name, and taken
+straight to the profile step; the welcome screen that names the hub does the
+joining. The phrase moves to **after** the first message, and until the key has
+actually left the browser the client says so continuously.
+
+The old flow put the phrase screen between a clicked link and a first message,
+with the copy "Anyone with this phrase can control your identity" and a button
+reading "I saved my phrase — Continue". Nothing verified that claim, and at
+that moment the visitor has nothing to lose, which is the worst possible time
+to ask anyone to write anything down. It bought friction and no safety.
+
+What replaces it has to be un-losable, because nothing else holds a copy: the
+seed lives in one browser's IndexedDB, passkeys here are the hub's own session
+credential rather than a seed wrapper, and the PRF-derived identity path that
+would have changed that was pulled in July when the provider matrix came back
+too thin (see "Passkey PRF output is the identity entropy" below, and clients
+`9afe8b0`). So the unsaved state is **three fixed things, no toast**: a marker
+on the settings gear, which is always on screen and never moves; a line in the
+backup section saying the identity exists only in this browser; and one prompt
+at the first message the user sends, whose "Not now" leaves the marker rather
+than clearing it. Revealing the phrase or exporting a `.wavvon-backup` clears
+all three.
+
+Every other entry path still hands the key over on the way in and is recorded
+as having done so: creating deliberately shows the words and asks, recovering
+means the user typed them, and a paired device holds a subkey it could never
+reveal a phrase for — asking it would be a lie. The flags are per account and
+**device-local, never synced**: the prefs blob is decrypted with a key derived
+from the very seed they are about, so a browser that has lost that seed could
+not read them, and a second browser asking again is the correct answer.
+
+**Alternatives considered.**
+
+- **Keep the gate.** Rejected: it was already an unverified self-attestation.
+  Trading a placebo for something that can actually work is not a safety loss.
+- **Verify the phrase by asking for words back.** Rejected for the invite path
+  — it makes the wall taller at the moment we are trying to lower it. It is the
+  right shape for the deliberate create flow if that ever needs strengthening.
+- **A toast after joining.** Rejected: a reminder that can be dismissed into
+  nowhere is worse than the gate it replaced, because it also feels handled.
+- **Auto-join without the welcome screen.** Rejected: the screen names the hub,
+  shows who hosts it and its icon, and is the only confirmation between a link
+  someone was handed and joining. One click on a screen that says where you are
+  going is not the friction that was hurting.
+- **Defer until the passkey path returns.** Rejected: that path has no date, it
+  depends on WebAuthn PRF support this codebase does not control, and the
+  invite flow is the one people actually arrive through today.
+
+**Tradeoff accepted**: there is now a window in which an identity exists with
+no copy anywhere. It closes the first time the user posts, and the marker
+persists until they act — but a browser wiped before either still loses the
+identity, silently. That is the price of not asking for 24 words at the door,
+and it is why the state is a fixture rather than a notification.
+
 ## Passkeys belong to the hub, so the user build has none
 
 **Decision** (2026-08-29): a passkey affordance is rendered only when the page
