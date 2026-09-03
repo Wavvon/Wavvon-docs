@@ -7,12 +7,22 @@
 > provider testing found the ecosystem too immature: Bitwarden serves
 > no third-party PRF on any browser and Windows Hello 25H2 is
 > create-only (constraints below) — only Google Password Manager
-> remained untested. The derivation spec, the refuse-on-unverified
-> invariant (decisions.md), and `PRF_SALT_LABEL` in
-> `packages/core/src/identity/prf.ts` (pinned protocol constant) are
-> kept for when providers mature; reinstating means restoring the
-> removed `apps/web/src/platform/prfIdentity.ts` surface from git
-> history and re-running the provider matrix.
+> remained untested. The derivation spec and the refuse-on-unverified
+> invariant (decisions.md) are kept for when providers mature.
+>
+> **Update (2026-09-04): the last code went too.** `prf.ts` in
+> `packages/core` outlived the surface it served by seven weeks — a salt
+> string, a one-line encode, an unused error class and a length check around
+> `bytesToHex`, kept alive by its own test and carrying a "never change this"
+> comment for a compatibility surface that never had a user: the PRF path
+> lived on `develop` from 2026-07-11 to 2026-07-19 and the first release
+> after it, v0.4.0, already contained the removal. **This document is now the
+> only home of the constant** (below, and in the constraints list): the salt is
+> `wavvon-master/v1` and the 32-byte PRF output *is* the identity entropy, the
+> slot BIP39 entropy occupies. Reinstating means restoring
+> `apps/web/src/platform/prfIdentity.ts` from git history (clients `9afe8b0`
+> reverses cleanly) and re-running the provider matrix; the thirty lines that
+> were just deleted are the trivial part of that.
 
 Today Wavvon generates an Ed25519 keypair from a random seed, stores
 the seed in `localStorage` (web) or `~/.wavvon/identity.json`
@@ -447,7 +457,10 @@ Constraints:
   Bitwarden browser extension for PRF.
 - The PRF label (`"wavvon-master/v1"`) is a versioned protocol
   constant — must be identical across all clients and never changed
-  (a different label derives a different master key).
+  (a different label derives a different master key). It lives here
+  rather than in code: no client implements the path today, and a
+  constant with no caller is a claim about compatibility that nothing
+  keeps.
 
 ---
 

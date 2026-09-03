@@ -2303,9 +2303,11 @@ identity on a shared device).
 [webauthn-auth.md](webauthn-auth.md) is implemented by using the
 WebAuthn **PRF extension output (32 bytes) directly as the identity
 entropy** — the exact slot BIP39 entropy occupies. The PRF eval salt is
-the pinned protocol constant `wavvon-master/v1` (in
-`packages/core/src/identity/prf.ts`; must be byte-identical on every
-client, never changed — only versioned alongside). Everything
+the pinned protocol constant `wavvon-master/v1` (must be byte-identical on
+every client, never changed — only versioned alongside). *Since 2026-09-04 that
+constant is specified in [webauthn-auth.md](webauthn-auth.md) and nowhere in
+code: `packages/core/src/identity/prf.ts` was deleted along with the last of
+this path, having never reached a release.* Everything
 downstream (HKDF master derivation, subkey 0, entropy ↔ 24-word
 phrase) is untouched, so a passkey-created identity can still reveal
 its 24 words, and the phrase remains the domain-independent backup —
