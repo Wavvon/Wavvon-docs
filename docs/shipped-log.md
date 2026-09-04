@@ -4,6 +4,16 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **The live browser job runs all 86 specs (2026-09-04)**: `54-ttt-game` —
+  the one spec that covers the bot mini-app relay end to end, launch card
+  through both players' game modals to a finished board — skipped itself
+  whenever `TTT_BOT_PUBKEY` was unset, and did it silently, so the job had
+  been reporting green having run 85 of 86. `e2e-live.yml` now builds
+  `ttt-bot` with the hub, starts it, and reads the pubkey off the bot's own
+  first line of output. Nothing needed pre-seeding: the bot's authenticate loop
+  already waits for the invite, and the spec performs the invite and the
+  capability grant itself. Rehearsed locally against a fresh hub and a fresh
+  bot identity before landing.
 - **A browser inside the topology harness (2026-09-04)**: `e2e-topology` has
   a `browser` stage. It boots a hub owned by the live suite's deterministic
   identity — read out of `e2e/live/helpers/live.ts` rather than copied, so a

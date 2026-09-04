@@ -107,9 +107,6 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
     it and see what starts failing before trusting this job on voice; whether
     Chromium on a runner accepts the hub's self-signed WebTransport cert is
     untested and only starts mattering then;
-  - `54-ttt-game` skips itself unless a ttt-bot is running, silently, so this
-    job reports green having run 85 of 86. Either start the bot in the workflow
-    or accept it knowingly;
   - point a run at a farm-hosted `/hub/<slug>`, which is what the URL override
     was the prerequisite for.
 
