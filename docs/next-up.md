@@ -139,15 +139,23 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   mode by the absence of `WAVVON_DATABASE_URL`, version-scoped installs, a
   refusal with instructions on a major mismatch, `doctor` reporting mode and
   data directory, and backup/restore through the bundled `pg_dump`. Left:
-  - **musl.** `initdb`'s locale support is thin there and the release
-    workflow builds two musl targets. Nothing has run the embedded start on
-    one — the suite that proves it works has only ever run on Windows and
-    whatever CI is. Run it on a musl build before claiming the install story.
+  - **musl: it does not work, and the decision is what to do about it**
+    (measured 2026-09-05, shipped log). The archive is picked by build target
+    and the musl one is the odd one out: its `initdb` declares
+    `libicuuc.so.74` dynamically where the glibc build links ICU statically,
+    no current Alpine ships that soname (3.24 has ICU 78), and its
+    `libpq.so.5` also wants krb5. `embedded_pg_flow` on Alpine is 1 passed /
+    4 failed. The hub now explains the failure instead of printing relocation
+    output, but the **release still ships two musl targets whose advertised
+    "no prerequisites" path cannot run**. Three ways out, none taken yet: add
+    a glibc binary to the release for operators who want bundled mode; drop
+    bundled mode's claim for musl in the docs and make `doctor` say so; or
+    carry ICU with the archive. The Docker image is unaffected — it is
+    `debian:trixie-slim` built with `rust:1-slim-trixie`, so it gets the
+    glibc archive.
   - **the actual major upgrade.** The refusal is tested; the dump-with-old,
     restore-with-new path it names has never been walked end to end, because
     doing that needs two hub binaries carrying two PostgreSQL majors.
-  - image and binary size: the archive is compiled in, so both grew. Measure
-    and record it rather than discovering it in a release.
 
 - [ ] **Desktop live-drive verification — DMs and pairing.** Both are pinned
   by cross-language vector tests and neither has been driven in a real desktop

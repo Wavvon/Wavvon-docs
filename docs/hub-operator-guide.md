@@ -61,6 +61,18 @@ backups — and keep the total underneath it, or connections get refused
 outright. Several hubs on one PostgreSQL server is the case to watch: five
 hubs at the default already reach 25.
 
+### The bundled PostgreSQL needs glibc
+
+Leaving `WAVVON_DATABASE_URL` unset makes the hub start and manage its own
+PostgreSQL, and that works on Windows and on any glibc Linux — including the
+`ghcr.io/wavvon/hub` image, which is Debian. It does **not** work on a
+musl-only system such as Alpine: the PostgreSQL binaries for that target are
+not self-contained, they need `libicuuc.so.74` and krb5, and no current Alpine
+ships ICU at that version. The static `wavvon-hub-linux-*` binaries from a
+release are musl builds, so on Alpine point `WAVVON_DATABASE_URL` at a
+PostgreSQL you provide. A database you built is never touched by bundled mode,
+which is the whole rule that path follows.
+
 ### CORS
 
 The REST API ships with CORS fully open (`*`) by default. This is safe: every protected endpoint requires a bearer token and there is no cookie-based credential, so there is no CSRF surface. Any origin can read public data or authenticate with its own keypair.

@@ -31,6 +31,33 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   already waits for the invite, and the spec performs the invite and the
   capability grant itself. Rehearsed locally against a fresh hub and a fresh
   bot identity before landing.
+- **The bundled PostgreSQL does not run on musl, and now says so
+  (2026-09-05)**: `embedded_pg_flow` had only ever run on Windows and on CI's
+  ubuntu-22.04. Run on Alpine 3.24 with a musl-native build — `rust:1-alpine`,
+  so the test *executes* rather than cross-compiles — it is 1 passed / 4
+  failed, every failure a wall of `Error loading shared library
+  libicuuc.so.74` and `symbol not found` relocations out of `initdb`.
+  The cause is not `initdb`'s locale support, which is what this item had
+  guessed. The archive is chosen by build target, and the musl one is the odd
+  one out: `readelf -d` on its `initdb` declares libpq, **libicuuc.so.74**
+  and libc.musl, while the glibc build declares only libpq, libm and libc —
+  ICU is static there, which is why CI has been green on a distro shipping
+  ICU 70. No current Alpine can satisfy that soname (3.24 ships ICU 78, so
+  `apk add icu-libs` does not help) and its `libpq.so.5` additionally wants
+  `libgssapi_krb5.so.2`. So "download a binary and run it, no prerequisites"
+  holds on Windows and on glibc — including the `ghcr.io/wavvon/hub` image,
+  which is `debian:trixie-slim` — and fails on exactly the static musl
+  binaries the release builds for "runs anywhere". The hub now turns that into
+  a sentence naming ICU and `WAVVON_DATABASE_URL` instead of relocation output
+  from a program the operator never ran, with the non-loader errors passing
+  through untouched; the operator guide says which builds bundled mode works
+  on. What to *do* about the release stays open (next-up).
+  **Sizes, while measuring:** the compiled-in archive is 12,184,736 B for
+  glibc, 26,108,430 B for musl x86_64 and 54,068,902 B on Windows — the
+  Windows one is the outlier because it is the only one bundling its own DLLs.
+  Against v0.5.0, the last release before the bundle
+  (`wavvon-hub-linux-x86_64` 51,746,776 B, aarch64 32,579,144 B), that puts
+  the next musl binary near 78 MB and the image about 12 MB heavier.
 - **Three bugs between a browser and a farm-hosted hub (2026-09-05)**: the
   `farmbrowser` stage in `e2e-topology` points the live suite at a hub behind a
   farm's `/hub/<pubkey>` proxy — the shape every farm customer's hub is reached
