@@ -118,8 +118,9 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   formation across two hubs, federated channel reads, the alliance voice grant
   and its confinement, `voice_remote_join`, the cert pull between two hubs,
   directory publish + search, one farm end to end, and two farms with an
-  alliance across the boundary. **16 scenarios**, green (the seed stage went
-  with the seed crate). It has found five real bugs so far, each invisible to
+  alliance across the boundary, and one live browser spec over a hub it
+  booted. **17 scenarios**, green (the seed stage went with the seed crate).
+  It has found five real bugs so far, each invisible to
   the in-process suites for the same reason — those construct their own state,
   so the real defaults and the real proxy were never in the picture (shipped
   log). What it does not cover yet:
@@ -127,10 +128,12 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
     token, and stops there — no datagram crosses. This proves admission, not
     audio, and two clients on a real network remains the only thing that proves
     audio.
-  - **a browser over the top.** Tried, and it works —
-    `WAVVON_E2E_HUB_URL=http://localhost:<port>` against a topology hub runs
-    `11-channel-crud` 5/5 in 22 seconds. Not wired into `run.mjs` yet, which is
-    all that is left here.
+  - **a browser over a *federated* pair, or a farm-hosted hub.** The
+    `browser` stage drives one hub the harness booted (`11-channel-crud`, 5/5
+    in 22s), which was the prerequisite. Pointing the same suite at the far
+    side of an alliance, or at a farm's `/hub/<slug>`, is now a
+    `WAVVON_E2E_HUB_URL` away — and the farm-hosted run is also the third item
+    under the browser-CI entry above.
 
 - [ ] **Bundled PostgreSQL — the tail.** The hub carries its own PostgreSQL
   since 2026-08-30 (decisions.md,

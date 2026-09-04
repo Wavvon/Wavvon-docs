@@ -4,6 +4,17 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **A browser inside the topology harness (2026-09-04)**: `e2e-topology` has
+  a `browser` stage. It boots a hub owned by the live suite's deterministic
+  identity — read out of `e2e/live/helpers/live.ts` rather than copied, so a
+  changed seed cannot leave the stage booting a hub the suite does not own —
+  and runs the live Playwright project against it, `11-channel-crud` by
+  default, `E2E_BROWSER_SPECS` for others. 17 scenarios green. It deliberately
+  does not repeat all 86 live specs, which `e2e-live.yml` already runs against
+  a hub of its own: what this proves is that a hub *this harness* booted is one
+  the web client can drive, which is the prerequisite for pointing the suite at
+  the far side of an alliance or at a farm's `/hub/<slug>`. A spec filter that
+  matches nothing fails the stage rather than passing empty.
 - **The desktop commands that spoke to routes the hub never had (2026-09-04)**:
   `create_bot` was the reported symptom — it posted `{ name }` to `POST /bots`,
   which is `ext_invite_bot` and wants `{ pubkey, note? }`, because the hub has
