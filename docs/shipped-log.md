@@ -4,6 +4,23 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **The browser accepts the hub's self-signed voice cert (2026-09-04)**: the
+  live job set no `WAVVON_PUBLIC_URL`, so the hub advertised no
+  `voice_wt_url` and no voice spec ever opened a transport. Setting it changes
+  none of the results — 86 passed / 1 skipped with it, the same without — and
+  that is the finding: every voice spec asserts on roster state the hub pushes
+  over the WebSocket, so all of them pass identically whether the transport
+  connected, failed, or was never attempted. Which means the question that had
+  been filed as "untested" — does Chromium accept the hub's self-signed
+  WebTransport cert through `serverCertificateHashes` — was not one this suite
+  could answer at all. It can now, and the answer is yes:
+  `58-voice-wt-handshake` opens a transport with a token the hub cannot have
+  minted and asserts the failure is the hub's own session rejection
+  (`ERR_METHOD_NOT_SUPPORTED`, from `session_request.forbidden()`) with
+  nothing certificate-shaped in it, then repeats with a wrong hash and asserts
+  `QUIC_TLS_CERTIFICATE_UNKNOWN`. The negative control is what makes the first
+  half a measurement rather than an absence of evidence. It proves the
+  handshake, not audio.
 - **The live browser job runs all 86 specs (2026-09-04)**: `54-ttt-game` —
   the one spec that covers the bot mini-app relay end to end, launch card
   through both players' game modals to a finished board — skipped itself

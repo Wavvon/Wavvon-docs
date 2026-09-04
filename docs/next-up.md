@@ -101,12 +101,15 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   12 passed in 1h49m had two causes, both fixed (shipped log): CI served the
   **Vite dev server**, and the app's own **once-per-load self-reload** landed
   in the middle of interactions. Left:
-  - the workflow sets no `WAVVON_PUBLIC_URL`, matching the local run it was
-    verified against. That leaves `/info.voice_wt_url` null, so the voice specs
-    pass without a datagram ever crossing — they cover UI state, not audio. Set
-    it and see what starts failing before trusting this job on voice; whether
-    Chromium on a runner accepts the hub's self-signed WebTransport cert is
-    untested and only starts mattering then;
+  - **audio**, still. `WAVVON_PUBLIC_URL` is set now, so the hub advertises a
+    transport, and setting it changed nothing: 86 passed / 1 skipped locally
+    either way. That is the finding — every voice spec asserts on roster state
+    the hub pushes over the WebSocket, so all of them pass whether the
+    transport connected, failed, or was never attempted. The cert question is
+    settled separately (`58-voice-wt-handshake`, shipped log): Chromium does
+    accept the hub's self-signed cert through `serverCertificateHashes`. What
+    no spec here can do is prove a datagram carried audio, and two clients on a
+    real network remains the only thing that does;
   - point a run at a farm-hosted `/hub/<slug>`, which is what the URL override
     was the prerequisite for.
 
