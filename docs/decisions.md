@@ -6,6 +6,59 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## A paired device authenticates at the hub, never at the farm
+
+**Decision** (2026-09-05, implemented web + farm the same day): a farm-managed
+hub tells clients to send `/auth/*` to the farm — that is what
+`/info.farm_url` means, and it is what gives a farm one token across all its
+hubs. An identity holding a **subkey cert** is exempt: it authenticates at the
+hub itself.
+
+Resolving a subkey to the identity it speaks for is the hub's job and only the
+hub can do it. `resolve_canonical_identity` reads either the cert the client
+presents or the device row the pairing flow registered with *that hub*, and a
+farm has neither. So a paired device sent to the farm got a farm token whose
+subject was its own subkey — and the hub, which trusts a farm token's subject
+completely, seated it as a brand-new user. The join succeeded. Nothing logged
+anything. The device was simply somebody else, on every farm-hosted hub, and
+the two accounts diverged from there: separate roles, separate DM ratchet,
+separate everything.
+
+The farm's own `/auth/verify` now also resolves a **presented** cert
+(`subkey_cert` in the body, which every client already sends) to its master,
+filling in the `master` field its token payload has always declared and the
+`farm_users.master_pubkey` column that has always existed — the code said
+"no cert resolution in Phase 1 — that lives on the hub still". That is worth
+having on its own, but it does not cover this case: the web pairing flow does
+not carry a cert into the join, it registers the device with the hub, so the
+farm sees no cert to resolve.
+
+**Alternatives considered.**
+
+*Give the farm a device registry.* The farm would hold certs farm-wide and
+resolve any of its hubs' paired devices. It is the shape that keeps SSO for
+paired devices too, and it is a real feature: a second identity store, its own
+revocation path, and a new answer to "which of these two registries is
+authoritative when they disagree". Not for a case that today has no reported
+user.
+
+*Have the hub re-resolve the farm token's subject.* The hub would look up the
+subject in its own device table and swap in the master. Cheap, and wrong in a
+way that is hard to see: it makes a farm token mean something different
+depending on which hub redeems it, and the hub cannot tell "this subkey belongs
+to a master I know" from "this pubkey happens to be in my devices table for
+another reason" without the cert the token never carried.
+
+**Tradeoff.** A paired device loses farm SSO: it authenticates per hub, like
+every device on a standalone hub does. In exchange it is the same user
+everywhere, which is the whole point of pairing.
+
+**Outcome.** `28-pairing` passes against a farm-hosted `/hub/<pubkey>` — it
+had been failing there, and only there, since the shape existed. Found by
+pointing the live suite at a farm-hosted hub through e2e-topology's
+`farmbrowser` stage; no in-process suite could see it, because both halves
+(client and farm) behaved exactly as written.
+
 ## An invite link does not stop at the recovery phrase
 
 **Decision** (2026-09-03, implemented web the same day): a visitor who arrives

@@ -165,8 +165,18 @@ has one row here.
 
 Note this table holds the *canonical* pubkey, the same resolution the
 hub does today in `resolve_canonical_identity`
-(`hub/src/auth/handlers.rs:29` in Wavvon-server). That logic moves to
-the farm verbatim.
+(`hub/src/auth/handlers.rs:29` in Wavvon-server).
+
+> **Revised 2026-09-05: that logic does not move to the farm verbatim.** The
+> farm resolves a cert a client **presents** in `/auth/verify` — that shipped,
+> along with the `master_pubkey` column and the token's `master` field. What
+> it cannot resolve is a device the pairing flow registered with a *hub*, and
+> that is the ordinary case: the web flow registers the device rather than
+> carrying its cert into the join. So a paired device authenticates **at its
+> hub**, not at the farm, and gives up farm SSO to stay the same user
+> everywhere. Rationale, alternatives and how it was found in
+> [decisions.md](decisions.md), "A paired device authenticates at the hub,
+> never at the farm".
 
 #### `pending_challenges`
 
@@ -315,9 +325,10 @@ These hub features become farm-level in Phase 1:
 - **Challenge-response signature flow**.
 - **Security-level PoW check** (`min_security_level`). Becomes a farm
   setting; one PoW proof per user applies to every hub on the farm.
-- **Cross-device cert resolution** (`resolve_canonical_identity`). The
-  farm is the source of truth for the user's canonical pubkey across
-  paired devices.
+- **Cross-device cert resolution** (`resolve_canonical_identity`) — **only
+  for a cert the client presents.** The farm verifies it and speaks for the
+  master; it holds no device registry, so a device registered with a hub is
+  resolved by that hub and authenticates there (see the revision note above).
 - **Identity-axis state**: `subkey_revocations`, `subkey_certs`,
   `pairing`, `prefs`, `dh_keys`, `friends` (the personal-axis state
   listed in [home-hub.md](home-hub.md)). The farm *is* the home hub

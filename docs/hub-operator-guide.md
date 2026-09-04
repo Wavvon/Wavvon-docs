@@ -73,6 +73,8 @@ WAVVON_CORS_ORIGINS=https://app.example.com,https://dashboard.example.com
 
 If you restrict origins, add the serving origin of any browser client (including a hub that self-serves the web client) to the list. WebSocket connections (`/ws`) are not subject to CORS.
 
+**A farm has the same setting, and it is not optional to think about.** A farm-hosted hub is reached through the farm proxy, and its `/info.farm_url` tells clients to send `/auth/*` to the farm itself — so a browser talks to both. `WAVVON_CORS_ORIGINS` on the farm covers the farm own routes (the proxy passes the hub headers through, and a second set would be a duplicate a browser rejects). It defaults to `*` there too; a farm that restricts origins and forgets the client origin refuses every join, and the client shows only "could not reach".
+
 ---
 
 ## Hub ownership

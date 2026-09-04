@@ -110,30 +110,28 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
     accept the hub's self-signed cert through `serverCertificateHashes`. What
     no spec here can do is prove a datagram carried audio, and two clients on a
     real network remains the only thing that does;
-  - point a run at a farm-hosted `/hub/<slug>`, which is what the URL override
-    was the prerequisite for.
 
 - [ ] **Topology e2e — the stages not yet built.** `e2e-topology/` at the
   monorepo root drives real hub binaries plus the discovery site: alliance
   formation across two hubs, federated channel reads, the alliance voice grant
   and its confinement, `voice_remote_join`, the cert pull between two hubs,
   directory publish + search, one farm end to end, and two farms with an
-  alliance across the boundary, and one live browser spec over a hub it
-  booted. **17 scenarios**, green (the seed stage went with the seed crate).
-  It has found five real bugs so far, each invisible to
-  the in-process suites for the same reason — those construct their own state,
-  so the real defaults and the real proxy were never in the picture (shipped
-  log). What it does not cover yet:
+  alliance across the boundary, one live browser spec over a hub it booted,
+  and the live suite over a hub behind a farm proxy. **18 scenarios**, green
+  (the seed stage went with the seed crate). It has found **eight** real bugs
+  so far, each invisible to the in-process suites for the same reason — those
+  construct their own state, and neither Node's `fetch` nor `axum_test` is a
+  browser, so the real defaults, the real proxy and the real CORS preflight
+  were never in the picture (shipped log). What it does not cover yet:
   - **audio.** The visitor is admitted and handed a relay URL, cert hash and
     token, and stops there — no datagram crosses. This proves admission, not
     audio, and two clients on a real network remains the only thing that proves
     audio.
-  - **a browser over a *federated* pair, or a farm-hosted hub.** The
-    `browser` stage drives one hub the harness booted (`11-channel-crud`, 5/5
-    in 22s), which was the prerequisite. Pointing the same suite at the far
-    side of an alliance, or at a farm's `/hub/<slug>`, is now a
-    `WAVVON_E2E_HUB_URL` away — and the farm-hosted run is also the third item
-    under the browser-CI entry above.
+  - **a browser over a *federated* pair.** `browser` drives a hub the harness
+    booted and `farmbrowser` drives one behind a farm proxy (86 passed, 1 skipped, 12.1 min);
+    what neither does is point the suite at the far side of an alliance — the
+    channel one hub shares read from the other, in a real client. One more
+    `WAVVON_E2E_HUB_URL` away.
 
 - [ ] **Bundled PostgreSQL — the tail.** The hub carries its own PostgreSQL
   since 2026-08-30 (decisions.md,

@@ -31,6 +31,47 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   already waits for the invite, and the spec performs the invite and the
   capability grant itself. Rehearsed locally against a fresh hub and a fresh
   bot identity before landing.
+- **Three bugs between a browser and a farm-hosted hub (2026-09-05)**: the
+  `farmbrowser` stage in `e2e-topology` points the live suite at a hub behind a
+  farm's `/hub/<pubkey>` proxy — the shape every farm customer's hub is reached
+  on, and one no suite had ever driven. It boots its own farm, because the farm
+  makes whoever created a hub its owner and `creation_policy` is
+  `admin_only`: the only route to a farm-hosted hub the suite owns is a farm
+  whose admin *is* the suite's identity, so the harness derives that identity
+  from the seed the suite states and signs as it. The first run found three
+  things, each invisible to every in-process suite for the same reason —
+  `fetch` from Node and `axum_test` send no Origin and follow no link.
+  **The farm had no CORS layer at all.** A farm-hosted hub's `/info` carries
+  `farm_url`, and the hub's own source says clients route `/auth/*` there when
+  it is set. So the preflight for `POST /auth/challenge` came back with no
+  `Access-Control-Allow-Origin` and the browser refused to send it: **no web
+  client not served by the farm's own origin could join a farm-hosted hub**, and
+  the symptom was the welcome screen quietly reappearing with "Could not reach".
+  The layer covers the farm's own routes only — the proxied hub answers with its
+  own CORS headers, and a second set is a duplicate a browser rejects outright.
+  **A `wavvon://` permalink dropped the hub's path.** The client could not read
+  the links it writes: "Copy channel link" on a path-hosted hub produces
+  `wavvon://host/hub/<pubkey>/channel/<id>`, and `parseHubInput`'s
+  `wavvon://` branch took everything up to the first slash as the host and the
+  rest as the invite code — so pasting it back reached the *farm root* with
+  `hub/<pubkey>/channel/<id>` sitting in the code. The http(s) branch had been
+  fixed for exactly this shape; the deep-link branch never was.
+  `02-nested-channels` compared the permalink against the hub's *host* alone,
+  which is why it had never noticed: on a hub that owns its origin the two
+  strings are identical.
+  **A paired device landed on every farm-hosted hub as a stranger.** Resolving a
+  subkey to the identity it speaks for is the hub's job — off the presented cert
+  or off the device the pairing flow registered with that hub — and the farm has
+  neither, so it minted a token whose subject was the device's own subkey and
+  the hub, which trusts a farm token's subject completely, seated a brand-new
+  user. The join succeeded; nothing logged anything. A paired device now
+  authenticates at its hub and gives up farm SSO to stay the same user
+  everywhere (decisions.md, "A paired device authenticates at the hub, never at
+  the farm"); separately the farm now resolves a cert a client *does* present,
+  filling in the `master` field its token payload always declared and the
+  `farm_users.master_pubkey` column that always existed — the code had it as
+  "no cert resolution in Phase 1".
+  The whole live suite now runs through the farm proxy: 86 passed, 1 skipped in 12.1 minutes — the skip is 54-ttt-game, which needs its bot process.
 - **A browser inside the topology harness (2026-09-04)**: `e2e-topology` has
   a `browser` stage. It boots a hub owned by the live suite's deterministic
   identity — read out of `e2e/live/helpers/live.ts` rather than copied, so a
