@@ -4,33 +4,6 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
-- **The browser accepts the hub's self-signed voice cert (2026-09-04)**: the
-  live job set no `WAVVON_PUBLIC_URL`, so the hub advertised no
-  `voice_wt_url` and no voice spec ever opened a transport. Setting it changes
-  none of the results — 86 passed / 1 skipped with it, the same without — and
-  that is the finding: every voice spec asserts on roster state the hub pushes
-  over the WebSocket, so all of them pass identically whether the transport
-  connected, failed, or was never attempted. Which means the question that had
-  been filed as "untested" — does Chromium accept the hub's self-signed
-  WebTransport cert through `serverCertificateHashes` — was not one this suite
-  could answer at all. It can now, and the answer is yes:
-  `58-voice-wt-handshake` opens a transport with a token the hub cannot have
-  minted and asserts the failure is the hub's own session rejection
-  (`ERR_METHOD_NOT_SUPPORTED`, from `session_request.forbidden()`) with
-  nothing certificate-shaped in it, then repeats with a wrong hash and asserts
-  `QUIC_TLS_CERTIFICATE_UNKNOWN`. The negative control is what makes the first
-  half a measurement rather than an absence of evidence. It proves the
-  handshake, not audio.
-- **The live browser job runs all 86 specs (2026-09-04)**: `54-ttt-game` —
-  the one spec that covers the bot mini-app relay end to end, launch card
-  through both players' game modals to a finished board — skipped itself
-  whenever `TTT_BOT_PUBKEY` was unset, and did it silently, so the job had
-  been reporting green having run 85 of 86. `e2e-live.yml` now builds
-  `ttt-bot` with the hub, starts it, and reads the pubkey off the bot's own
-  first line of output. Nothing needed pre-seeding: the bot's authenticate loop
-  already waits for the invite, and the spec performs the invite and the
-  capability grant itself. Rehearsed locally against a fresh hub and a fresh
-  bot identity before landing.
 - **The bundled PostgreSQL does not run on musl, and now says so
   (2026-09-05)**: `embedded_pg_flow` had only ever run on Windows and on CI's
   ubuntu-22.04. Run on Alpine 3.24 with a musl-native build — `rust:1-alpine`,
@@ -99,6 +72,33 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   `farm_users.master_pubkey` column that always existed — the code had it as
   "no cert resolution in Phase 1".
   The whole live suite now runs through the farm proxy: 86 passed, 1 skipped in 12.1 minutes — the skip is 54-ttt-game, which needs its bot process.
+- **The browser accepts the hub's self-signed voice cert (2026-09-04)**: the
+  live job set no `WAVVON_PUBLIC_URL`, so the hub advertised no
+  `voice_wt_url` and no voice spec ever opened a transport. Setting it changes
+  none of the results — 86 passed / 1 skipped with it, the same without — and
+  that is the finding: every voice spec asserts on roster state the hub pushes
+  over the WebSocket, so all of them pass identically whether the transport
+  connected, failed, or was never attempted. Which means the question that had
+  been filed as "untested" — does Chromium accept the hub's self-signed
+  WebTransport cert through `serverCertificateHashes` — was not one this suite
+  could answer at all. It can now, and the answer is yes:
+  `58-voice-wt-handshake` opens a transport with a token the hub cannot have
+  minted and asserts the failure is the hub's own session rejection
+  (`ERR_METHOD_NOT_SUPPORTED`, from `session_request.forbidden()`) with
+  nothing certificate-shaped in it, then repeats with a wrong hash and asserts
+  `QUIC_TLS_CERTIFICATE_UNKNOWN`. The negative control is what makes the first
+  half a measurement rather than an absence of evidence. It proves the
+  handshake, not audio.
+- **The live browser job runs all 86 specs (2026-09-04)**: `54-ttt-game` —
+  the one spec that covers the bot mini-app relay end to end, launch card
+  through both players' game modals to a finished board — skipped itself
+  whenever `TTT_BOT_PUBKEY` was unset, and did it silently, so the job had
+  been reporting green having run 85 of 86. `e2e-live.yml` now builds
+  `ttt-bot` with the hub, starts it, and reads the pubkey off the bot's own
+  first line of output. Nothing needed pre-seeding: the bot's authenticate loop
+  already waits for the invite, and the spec performs the invite and the
+  capability grant itself. Rehearsed locally against a fresh hub and a fresh
+  bot identity before landing.
 - **A browser inside the topology harness (2026-09-04)**: `e2e-topology` has
   a `browser` stage. It boots a hub owned by the live suite's deterministic
   identity — read out of `e2e/live/helpers/live.ts` rather than copied, so a
