@@ -265,20 +265,6 @@ to the [shipped log](shipped-log.md).
   have the mic-test meter say plainly when the level never crosses the gate.
   Reopen as a bug the first time someone reports going silent.
 
-- **Desktop's `create_bot` cannot work, and never has.** The hub has no
-  bot-creation concept: a bot is an external Ed25519 identity you *invite*, so
-  `POST /bots` is `ext_invite_bot` and wants
-  `{ pubkey: <64 hex>, note? }`, returning an invite token. The Tauri command in
-  `apps/desktop/src-tauri/src/bots.rs` posts `{ name }` to that route — a
-  leftover from a superseded "the hub mints bots" model. It has never been
-  exercised: its only caller is `HubBotsSection.tsx`, which nothing renders,
-  which is why nothing ever reported it. `list_bots` is fine.
-  The fix is a deletion, not a repair — `HubBotsSection` plus the `create_bot`
-  and `list_bots` commands, all three halves. Desktop bot admin would return
-  through the shared `ExternalBotSection` against the invite-by-pubkey route,
-  whenever desktop is prioritised. Left out of the 2026-09-04 dead-code sweep
-  because deleting the component alone strands two Rust commands.
-
 - **Discord importer needs a live run** — `export` with a real bot token +
   `apply` against a running hub never exercised live.
 

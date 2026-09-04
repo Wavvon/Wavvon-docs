@@ -5,7 +5,8 @@
 // be intentional, e.g. documented-but-gated endpoints).
 //
 // Usage: node scripts/check-openapi-coverage.mjs [path-to-Wavvon-server-checkout]
-//   default checkout location: ../hub (local layout) or _hub (CI)
+//   default checkout location: ../server or ../Wavvon-server (local layout),
+//   ../hub or _hub (CI)
 
 import { readFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
@@ -15,7 +16,9 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const hubArg = process.argv[2];
 const hubRoot = hubArg
   ? hubArg
-  : ["../hub", "_hub"].map((p) => join(repoRoot, p)).find(existsSync);
+  : ["../server", "../Wavvon-server", "../hub", "_hub"]
+      .map((p) => join(repoRoot, p))
+      .find(existsSync);
 
 // The hub crate moved from hub/ to crates/hub/ in the workspace
 // restructure; accept either layout so the check keeps working against
@@ -28,7 +31,7 @@ const serverRsPath = hubRoot
 
 if (!serverRsPath) {
   console.error(
-    `check-openapi-coverage: Wavvon-server checkout not found (tried ${hubRoot ?? "../hub, _hub"})`,
+    `check-openapi-coverage: Wavvon-server checkout not found (tried ${hubRoot ?? "../server, ../Wavvon-server, ../hub, _hub"})`,
   );
   process.exit(2);
 }

@@ -4,6 +4,44 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **The desktop commands that spoke to routes the hub never had (2026-09-04)**:
+  `create_bot` was the reported symptom — it posted `{ name }` to `POST /bots`,
+  which is `ext_invite_bot` and wants `{ pubkey, note? }`, because the hub has
+  no bot-creation concept at all. Reading the rest of the file found the same
+  rot around it: `rotate_bot_token` addressed `/bots/:pk/rotate-token`, a route
+  that exists nowhere; `list_bots` deserialized `GET /bots` into a
+  `public_key`/`display_name`/`token` shape the route has never returned, so it
+  could not parse; and it had reached live code too — `useSlashCommands`
+  invoked `admin_list_bots` and `admin_get_bot_detail`, neither a registered
+  command, inside a catch that swallowed the failure, so desktop slash-command
+  autocomplete has always been empty; `get_bot_profile` asked
+  `GET /bots/:pubkey`, registered for DELETE only; and the external-bot admin
+  panel added and removed bots on `POST`/`DELETE /admin/bots/external`, of which
+  only the GET exists. The four dead commands, `HubBotsSection` and the
+  `NativeBot`/`BotAdminInfo`/`BotDetailInfo`/`BotCreatedResult` type family that
+  described the minted-bot model are gone; one correct `list_bots` on
+  `GET /bots` now feeds both the profile card and the slash commands, the way
+  the web client does, and the two admin calls point at the routes that answer.
+- **A sweep for the rest of the plumbing no screen reaches (2026-09-04)**: the
+  bot commands rotted because nothing exercised them, so the same question was
+  asked of everything else. Desktop: **26** Tauri commands registered in
+  `invoke_handler` and invoked by no frontend, some superseded by a hub-scoped
+  twin (`rsvp_event` by `rsvp_event_hub`), plus the account-path helpers they
+  orphaned. Web: `sendComponentInteraction` (ContentArea sends the same WS
+  frame inline), `getAlliance`, `fetchMyCert`, `getHubInfo`, `searchUsers`,
+  `renameSavedHub`, `generateIdentity`, and the four per-slot event commands —
+  EventComposer posts its slots with the event itself. `packages/ui`: two
+  unused icons, the slot rsvp payload builders, `isTemporaryChannel`,
+  `normalizeSpawnerNameTemplate`; `packages/core`: `newProfileId`.
+  `apps/web/src/platform/webrtc.ts`, 166 lines, imported by nothing. And
+  `packages/platform` — a types-only package no file has ever imported, not
+  even as a devDependency, while both apps carry their own copy of the
+  interfaces it declared. ~1,050 lines out, every suite green. The server
+  workspace came back clean (rustc sees its own dead code) and its 241 routes
+  are all still registered and documented; the directory site had one dead
+  component and one validator with no caller, which turned out to be a missing
+  check rather than dead code — `POST /api/bots` accepted any capability
+  string while the detail page renders a closed set.
 - **Joining from an invite link stopped asking for 24 words at the door
   (2026-09-03)**: a friend following an invite met four screens before a first
   message, one of them the recovery phrase behind a button reading "I saved my
