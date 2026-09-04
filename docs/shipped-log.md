@@ -4,6 +4,19 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **The far side of an alliance, in a real client (2026-09-05)**: alliance
+  coverage was one-sided — the client suite creates an alliance on the hub the
+  browser is already on, and this harness proved the cross-hub read over HTTP.
+  Neither had put a browser on hub B looking at a channel hosted by hub A,
+  which is what an alliance is for. `e2e-topology`s `alliancebrowser` stage
+  builds the alliance between two hubs the suite owns and hands
+  `59-alliance-federated-read` the channel, the message and the host hub name;
+  the spec asserts the sidebar group, the host label and that the message
+  posted on the *other* hub renders. The stage renames the host hub first,
+  because both boot as "my-hub" and the label assertion would otherwise pass on
+  either. 19 scenarios green. Learned writing it: a centre click on that row
+  lands on the "join voice on the other hub" button, which stops propagation
+  and selects nothing.
 - **The bundled PostgreSQL does not run on musl, and now says so
   (2026-09-05)**: `embedded_pg_flow` had only ever run on Windows and on CI's
   ubuntu-22.04. Run on Alpine 3.24 with a musl-native build — `rust:1-alpine`,

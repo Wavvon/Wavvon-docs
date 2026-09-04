@@ -117,7 +117,8 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   and its confinement, `voice_remote_join`, the cert pull between two hubs,
   directory publish + search, one farm end to end, and two farms with an
   alliance across the boundary, one live browser spec over a hub it booted,
-  and the live suite over a hub behind a farm proxy. **18 scenarios**, green
+  the live suite over a hub behind a farm proxy, and a browser reading a
+  channel the allied hub hosts. **19 scenarios**, green
   (the seed stage went with the seed crate). It has found **eight** real bugs
   so far, each invisible to the in-process suites for the same reason — those
   construct their own state, and neither Node's `fetch` nor `axum_test` is a
@@ -127,11 +128,12 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
     token, and stops there — no datagram crosses. This proves admission, not
     audio, and two clients on a real network remains the only thing that proves
     audio.
-  - **a browser over a *federated* pair.** `browser` drives a hub the harness
-    booted and `farmbrowser` drives one behind a farm proxy (86 passed, 1 skipped, 12.1 min);
-    what neither does is point the suite at the far side of an alliance — the
-    channel one hub shares read from the other, in a real client. One more
-    `WAVVON_E2E_HUB_URL` away.
+  - **alliance voice in a browser.** `alliancebrowser` now reads a channel the
+    allied hub hosts (`59-alliance-federated-read`), and `farmbrowser` runs the
+    whole suite behind a farm proxy (86 passed, 1 skipped, 12.1 min). What none
+    of them drives is the 🔊 on that federated row, which dials the owning
+    hub's relay direct — the one alliance path where the client talks to a hub
+    it never joined.
 
 - [ ] **Bundled PostgreSQL — the tail.** The hub carries its own PostgreSQL
   since 2026-08-30 (decisions.md,
