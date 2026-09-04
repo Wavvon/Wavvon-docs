@@ -4,6 +4,28 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Alliance voice had never connected (2026-09-05)**: driving the 🔊 on a
+  federated channel row for the first time — e2e-topology's `alliancebrowser`
+  stage, `60-alliance-voice` — found two bugs in a row. The join was **thrown
+  away**: `handleAllianceVoiceJoin` opens a socket to the allied hub and sends
+  `voice_join` on it, `HubWebSocket.send` drops what it is handed while the
+  socket is still CONNECTING, and a socket built microseconds earlier always
+  is. It failed as "Voice join timed out" ten seconds later, on every hub,
+  always — the app's own socket works only because it has been open since boot.
+  `openAllianceVoiceVisit` now waits for the socket, and one that never opens
+  fails there rather than as a timeout on a frame nobody received. Then, with
+  the join landing, the voice bar read a bare `#`: the channel lives on the
+  other hub so the local list cannot name it, and `voiceChannelNameHint`, which
+  exists for exactly that, was only ever set for a voice *move*. It now comes
+  off the grant — the same name the confirm prompt already showed.
+  Both needed a browser: the HTTP-level topology stage proves the grant and the
+  relay URL, and passes with a client that could use neither. With them fixed,
+  the WebTransport session to the *allied* hub's relay comes up, which is the
+  first proof of a client dialling a hub it never joined. One trap worth
+  knowing for the next spec: Playwright dismisses dialogs by default, and this
+  join asks through `window.confirm` because the visitor's IP reaches the other
+  hub — so an unhandled prompt aborts the join silently and looks exactly like
+  the bug.
 - **The far side of an alliance, in a real client (2026-09-05)**: alliance
   coverage was one-sided — the client suite creates an alliance on the hub the
   browser is already on, and this harness proved the cross-hub read over HTTP.

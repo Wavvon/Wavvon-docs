@@ -117,9 +117,9 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   and its confinement, `voice_remote_join`, the cert pull between two hubs,
   directory publish + search, one farm end to end, and two farms with an
   alliance across the boundary, one live browser spec over a hub it booted,
-  the live suite over a hub behind a farm proxy, and a browser reading a
-  channel the allied hub hosts. **19 scenarios**, green
-  (the seed stage went with the seed crate). It has found **eight** real bugs
+  the live suite over a hub behind a farm proxy, and a browser reading *and
+  joining voice in* a channel the allied hub hosts. **19 scenarios**, green
+  (the seed stage went with the seed crate). It has found **ten** real bugs
   so far, each invisible to the in-process suites for the same reason — those
   construct their own state, and neither Node's `fetch` nor `axum_test` is a
   browser, so the real defaults, the real proxy and the real CORS preflight
@@ -128,12 +128,11 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
     token, and stops there — no datagram crosses. This proves admission, not
     audio, and two clients on a real network remains the only thing that proves
     audio.
-  - **alliance voice in a browser.** `alliancebrowser` now reads a channel the
-    allied hub hosts (`59-alliance-federated-read`), and `farmbrowser` runs the
-    whole suite behind a farm proxy (86 passed, 1 skipped, 12.1 min). What none
-    of them drives is the 🔊 on that federated row, which dials the owning
-    hub's relay direct — the one alliance path where the client talks to a hub
-    it never joined.
+  - **audio across an alliance.** `alliancebrowser` drives the 🔊 on a
+    federated row and the WebTransport session to the *allied* hub's relay
+    comes up (`60-alliance-voice`; the voice label is set from `onReady`,
+    which fires after `transport.ready`, so a named label is an open
+    transport). What no harness proves is a datagram anyone could hear.
 
 - [ ] **Bundled PostgreSQL — the tail.** The hub carries its own PostgreSQL
   since 2026-08-30 (decisions.md,
