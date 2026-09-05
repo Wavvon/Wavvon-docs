@@ -4,6 +4,34 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **"Leave hub" stops lying, and asks first (2026-09-05)**: the control removed
+  a hub on a mis-click with no question, and it had never left anything —
+  `removeHub` is local, and there is no leave endpoint on the hub to call. The
+  design work found that first, which moved the whole feature: a mis-click is
+  cheap and reversible (the invite gate is `has_roles == 0` and every member
+  has `builtin-everyone`, so re-adding just works), and what is expensive is
+  invisible. A removed *home* hub is still named in the signed designation, so
+  other people's hubs keep delivering DMs there while this device stops reading
+  them — the invisible-DM failure the 2026-08-30 read-from-the-home-hub fix
+  addressed, reached from the other side.
+  So: **Remove from this device**, with a confirmation that says you stay a
+  member, and — when it applies — what a removed home hub keeps doing. It links
+  to Settings, where that list is edited, and never edits it itself: a paired
+  device could not, and an automatic designation edit is the bug found earlier
+  the same day. Removing the last home hub is allowed, with the warning naming
+  what stops working; refusing would hold someone in a hub they asked to be rid
+  of. A failed home-hub lookup leaves the dialog silent rather than guessing
+  "not a home hub", which is the wrong way to be wrong here.
+  The hub may attach an operator-written farewell (`farewell_label`, the
+  `welcome_label` pattern, 280 chars counted as chars), rendered attributed and
+  secondary — the app's words say what removing does, the hub's sit beside them
+  marked as the hub's, because that moment is when a hub has the most incentive
+  to mislead. Admin field wired on both clients rather than web only.
+  A capability string was written for it and removed: clients read a nullable
+  field here rather than branching on behaviour, which is why `welcome_label`
+  has none either. Design and the calls: decisions.md, "Leave hub does not
+  leave". What is still missing — an *actual* server-side leave — is now its
+  own future-features entry rather than an assumption.
 - **Joining a second hub no longer rewrites your home hub list (2026-09-05)**:
   `ensureHomeHubDesignation` publishes a list naming the one hub it was handed
   and ran on *every* join. A hub that has never seen the designation answers
