@@ -4,6 +4,26 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Desktop's modal tree left App.tsx (2026-09-06)**: the ~275-line
+  `{showX && <XModal/>}` tail — the same move web made on 2026-08-31, and the
+  parity gap the refactor item named. It joins the three modals already in
+  `components/AppModals.tsx`; App.tsx goes 2,062 → 1,793 lines.
+  **The prop list is where this differs from web's version.** Web flattened
+  every value into its own prop and needed a 145-line `appModalsProps.ts` to
+  type them. Here the hooks that already own a cluster (`useAddHubFlow`,
+  `useChannelCrud`, `useVoice`) travel whole, one prop each: the same type
+  safety through `ReturnType`, and a hook gaining a field costs nothing at the
+  boundary. The price is that App.tsx had to *name* those hook calls before
+  destructuring them, which is the only edit the move made outside the imports
+  it killed.
+  Two things fell out of doing it. The DM encryption warning's three buttons
+  were still English literals, so they became keys (`modal.dismiss`,
+  `dm.encryption_warning.send_anyway`) rather than moving as-is. And
+  `find-hardcoded`'s JSX text-node regex was reporting the code between two
+  adjacent `invoke<Foo[]>(…)` calls as a label — the closing `]>` pairs with
+  the next call's `<`, and everything between reads as a text node. The
+  lookbehind drops it now; the desktop baselines had been quietly carrying
+  those, so the count fell to 190 without a word being translated.
 - **You can actually leave a hub now (2026-09-06)**: `DELETE /me`. Joining a
   community had been one-way — the router had `voice/leave` and
   `alliances/{id}/leave` and nothing for a person, so a client could only

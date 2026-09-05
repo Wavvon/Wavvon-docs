@@ -154,14 +154,15 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   long. Build it reusable.
 
 - [ ] **App.tsx refactor — desktop parity + convergence.** Web 1,665 lines /
-  desktop 2,058, counted 2026-09-05. The hook-extraction phase landed
-  2026-07-28 and after, and the **modal render tree left web on 2026-08-31**
-  (`components/layout/AppModals.tsx`, 213 lines out of App.tsx). The container
-  phase is now **all** of the mechanism this item gets: decisions.md 2026-09-05
-  declined the state store, so what is left shrinks App.tsx by removing
-  duplication, not by moving plumbing. Left:
-  - **desktop parity pass** on the web slices desktop still lacks — including
-    this one: desktop's App.tsx still carries its own modal tree;
+  desktop 1,793, counted 2026-09-06. The hook-extraction phase landed
+  2026-07-28 and after, the **modal render tree left web on 2026-08-31**
+  (`components/layout/AppModals.tsx`, 213 lines out of App.tsx) and **desktop
+  on 2026-09-06** (275 lines, shipped log — there the hooks that own a cluster
+  of the values travel whole instead of being flattened into thirty props).
+  The container phase is now **all** of the mechanism this item gets:
+  decisions.md 2026-09-05 declined the state store, so what is left shrinks
+  App.tsx by removing duplication, not by moving plumbing. Left:
+  - **desktop parity pass** on the web slices desktop still lacks;
   - **convergence** — the actual payoff: web/desktop hook pairs (`useDms`, `useScreenShare`, `useWhisper`, …) differ mainly in platform access, which can travel in via an injected actions object like `packages/ui` components already do. Hoist converged pairs into `packages/ui`, delete both app copies. App.tsx stays app-local orchestration by design.
     **Three pairs are converged (2026-09-05, shipped log): `useUnreadCounts`,
     `useWhisper`, `useTypingIndicators`.** The pattern they set: platform
@@ -239,7 +240,7 @@ to the [shipped log](shipped-log.md).
   delivery target — now hold **none**: what the scan still lists there is a MIME
   type, a class name, the brand, `{user}` in a spawner template, a doc comment
   the text-node regex tore in half, and the four language names in the picker,
-  which a language chooser shows in their own language on purpose. **223 are
+  which a language chooser shows in their own language on purpose. **190 are
   left and all of them are in `apps/desktop`**, which is deliberate: web is the
   delivery target, desktop is future (see the delivery note above), and its
   `PairingSection` alone is 40 of them.
