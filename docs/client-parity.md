@@ -560,7 +560,12 @@ lookup, and DM fan-out and mirror-forward skipped it with no error anywhere
 ([home-hub.md](home-hub.md), decisions.md "Devices stay subkeys, and a device
 certifies itself at first auth").
 
-**Still open on desktop, and cosmetic**: this device does not appear in its own
-`device_list`, which reads `subkey_certs` from the hub. Auth records the master
-on the user row without inserting a cert row, and web registers separately for
-exactly that reason. The link everything else depends on is made either way.
+**Closed the same day, on the hub rather than in the client**: a device did not
+appear in its own `device_list`, which reads `subkey_certs`, because auth wrote
+only `users.master_pubkey` — the link every home-hub lookup needs, but not what
+that screen lists. Web had been registering separately and never noticed;
+desktop has no such call. `resolve_canonical_identity` now records the cert it
+just verified, so both writes happen in one place and any future client gets it
+by presenting a cert. Web keeps its POST: it issues the cert *after* the
+session authenticated without one, so that call is what makes the device
+visible before the next sign-in.

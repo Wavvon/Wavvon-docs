@@ -57,7 +57,7 @@ had a "recently shipped" section, whatever this line used to claim):
 17. [android-client.md](android-client.md) — Tauri 2 Android wrapper around the browser platform layer, side-loaded APK
     - [install-android.md](install-android.md) — end-user guide: enable unknown sources, download APK, Play Protect warning
     - [client-monorepo.md](client-monorepo.md) — **shipped (2026-06-13)**: the three client repos were consolidated into the one pnpm-workspace Wavvon-client monorepo (`packages/core|ui|platform|i18n` + `apps/*`); staged migration, git-subtree history preservation, CI/release/updater cutover. Hub server stays separate. See [decisions.md](decisions.md).
-    - [client-parity.md](client-parity.md) — **living tracker** of feature gaps across web / desktop (web leads; the Android client was removed 2026-07-12). Current: desktop does not read hub `capabilities`, and a self-certified desktop device does not appear in its own device list.
+    - [client-parity.md](client-parity.md) — **living tracker** of feature gaps across web / desktop (web leads; the Android client was removed 2026-07-12). Current: desktop does not read hub `capabilities`.
     - [state-access-design.md](state-access-design.md) — how App.tsx and the shared components get their state: **decided 2026-09-05**, containers only — `packages/ui` stays prop-only, React Context rejected, the store deferred behind a named trigger. Read it before proposing a state library
 18. [bots.md](bots.md) — external bot ecosystem: invite-by-pubkey, slash commands, webhook dispatch, per-hub directory
 19. [accessibility.md](accessibility.md) — keyboard navigation, ARIA / screen-reader support, i18n strategy across desktop / web / Android

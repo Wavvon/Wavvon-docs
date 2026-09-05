@@ -4,6 +4,22 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Auth records the cert it verifies, so a device appears in its own device
+  list (2026-09-05)**: two writes that should have been one. Auth wrote
+  `users.master_pubkey` — the link every home-hub lookup needs — and nothing
+  else, while the Devices screen lists `subkey_certs`. A device whose cert
+  arrived at auth rather than through `POST /identity/{master}/devices` was
+  therefore correctly linked to its master and absent from its owner's own
+  device list, with nothing reporting the difference.
+  Web had been registering separately and never met the case; desktop, which
+  started self-certifying at auth the same day, has no such call. Fixed on the
+  hub rather than by adding a POST to desktop, so the two writes cannot drift
+  again and any future client gets it by presenting a cert. `post_device`'s
+  upsert became `upsert_subkey_cert` and both paths now write the same row the
+  same way; the auth-side call is best-effort, because a registry write must
+  not fail a sign-in. Web keeps its POST — it issues the cert *after* the
+  session authenticated without one, so that call is what makes the device
+  visible before the next sign-in.
 - **`useWhisper` and `useTypingIndicators` converged too (2026-09-05)**: two
   more pairs into `packages/ui`, and the second one is where converging stopped
   being plumbing.
