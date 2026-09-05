@@ -10,8 +10,12 @@ phase 3 below. Builds on the shipped recovery phrase
 ([identity.md](identity.md)) and the now-shipped multi-device + home-hub work
 ([multi-device.md](multi-device.md), [home-hub.md](home-hub.md)).
 
-The third layer, hub-hosted recovery with no artifact to keep, is
-[identity-vault.md](identity-vault.md) and stays parked.
+There is no third layer. Hub-hosted recovery with no artifact to keep was
+designed and **rejected** on 2026-09-05: a hub may hold what you signed or
+encrypted, never what can reconstitute you ([decisions.md](decisions.md);
+the analysis survives in [identity-vault.md](identity-vault.md)). The two
+paths below are the only two, which is exactly why they are worth making
+easy — and why the UI should say plainly that losing both is final.
 
 The recovery phrase already covers "I formatted my PC" — paste 24 words,
 get the same keypair. This doc designs the **two next layers** that sit

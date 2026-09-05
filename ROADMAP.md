@@ -33,6 +33,13 @@ months. The reasoning lives in [decisions.md](docs/decisions.md).
 - **Concurrent mic test while in voice** — the live meter covers it.
 - **Central authority of any kind** — no global directory, identity service,
   or DHT.
+- **Any hub-held copy of a master seed, however wrapped** — including the
+  designed hub-hosted identity vault, rejected 2026-09-05. A hub may hold
+  anything you signed or encrypted and nothing that can reconstitute you; a
+  wrapped seed is the identity, one passphrase away. The two recovery paths
+  are the 24 words and the `.wavvon-backup` file, and losing both is the
+  user's loss to take ([decisions.md](docs/decisions.md),
+  [identity-vault.md](docs/identity-vault.md)).
 - **Subscriptions, premium tiers, or in-chat advertising.**
 - **Telemetry collection or data sales.**
 - **Global web-of-trust / negative reputation** — federated ban lists are

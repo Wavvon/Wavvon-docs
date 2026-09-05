@@ -6,6 +6,62 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## A hub may hold what you sign or encrypt, never what can reconstitute you — the identity vault is rejected
+
+**Decision** (2026-09-05, user call): the hub-hosted identity vault
+([identity-vault.md](identity-vault.md)) is **not built**, and this is not a
+deferral. It had been parked since 2026-07-19 pending the first external
+pilot; that trigger is withdrawn, because no amount of evidence about how
+people lose identities changes what the feature is.
+
+The vault would store a passphrase-wrapped copy of the **master seed** on the
+user's home hubs, so someone who kept neither the 24 words nor a
+`.wavvon-backup` file could recover by remembering a passphrase. The design is
+complete and would work. Its own doc is honest about the price: the hub holds
+brute-forceable ciphertext of the seed, an operator or anyone with a database
+dump can attack it offline forever, and no rate limiting applies because the
+attacker never touches the endpoint. Same crypto as the file, far wider
+exposure.
+
+**The rule that decides it, stated once so it decides the next one too: a hub
+may hold anything the user has signed or encrypted, and nothing that can
+reconstitute the user.** A hub is not, in any sense, the owner of an account.
+It holds *profiles* — how you appear in that community — plus records you
+signed (the home hub list, device certs) and blobs you encrypted (prefs, DM
+history). Every one of those is inert without you. A wrapped master seed is
+the single exception: it is the identity, one passphrase away, and putting it
+on someone else's machine makes that machine a place your identity can be
+taken from. Losing both of your own copies is the user's loss to take.
+
+**Alternatives considered.**
+
+*Build it opt-in, behind Argon2id and strong-passphrase warnings.* This was the
+recommendation on the table, and it does bound the damage rather than pretend
+to remove it. Rejected because the mitigations are all quantitative — a better
+KDF, a longer passphrase, a self-hosted slot — and the objection is not. The
+exposure exists the moment the ciphertext leaves the device, whatever the work
+factor.
+
+*Keep parking it behind the pilot.* Rejected as its own small cost: an
+undecided question gets re-argued every time someone reads the wiki, and this
+one had already been reopened twice. A "no" with a reason ends it; a "later"
+does not.
+
+**Tradeoff, accepted deliberately.** Someone who keeps neither the phrase nor
+a backup file loses their identity, permanently, with no recourse — no reset,
+no support path, because there is no account to reset. That is the cost of the
+project's central claim rather than a gap in it, and the honest thing is to
+make the two recovery paths easy and say plainly that they are the only two.
+
+**Outcome.** It also closes one of the three ways out of the own-DM
+`[decryption failed]` limit: syncing the sender's plaintext stash through the
+prefs blob needs a paired device to derive the blob key, which needs the vault
+(decisions.md, "Devices stay subkeys"). Two remain — re-encrypting each message
+to the sender's own DH key, which is a cross-repo wire-format change for a
+convenience, and the honest UI message, which shipped the same day. Matrix
+answered this wall with 4S, server-side encrypted secret storage; that is the
+same trade under a different name and the same answer applies.
+
 ## "Leave hub" does not leave, so it stops saying it does — and a confirmation names what stays behind
 
 **Decision** (2026-09-05, design; execution in next-up.md): the sidebar's
@@ -203,9 +259,11 @@ naming — a paired device has no local entropy to derive the prefs blob key, so
 is the same wall Matrix hit and answered with server-side encrypted secret
 storage ([MSC1946](https://github.com/matrix-org/matrix-spec-proposals/pull/1946),
 shipped as 4S and now the default in Element). Our equivalent,
-[identity-vault.md](identity-vault.md), stays parked — but from today it is
-parked for a *named* reason: it is the price of per-device keys for a user who
-keeps nothing, not an optional extra.
+[identity-vault.md](identity-vault.md), stayed parked — and was **rejected
+later the same day** (see the entry at the top of this file). So the price
+named here is one the project declines to pay: per-device keys stay, and the
+user who keeps nothing loses their identity. What that costs concretely is the
+own-message stash, which now has no cheap route at all.
 
 **Outcome.** Two things had to change together, and the second was only visible
 once the first was written. `!!subkey_cert` was standing in for "this is a
@@ -1983,6 +2041,11 @@ community-axis (hub-scoped), client-only, reuses the one read-gated
 `GET /events` call the list already makes.
 
 ## Hub-hosted identity vault: opt-in, passphrase-locked, handle-addressed
+
+> **SUPERSEDED 2026-09-05** — the vault is rejected outright, and the pilot
+> trigger below is withdrawn. See the entry at the top of this file, "A hub
+> may hold what you sign or encrypt, never what can reconstitute you". Kept
+> for what it weighed and how.
 
 > **PARKED 2026-07-19 (user call, same day as the design)**: not built,
 > not scheduled. Revisit **after the first external pilot** — real

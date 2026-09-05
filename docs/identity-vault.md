@@ -4,10 +4,28 @@ The third recovery layer, split out of
 [identity-recovery.md](identity-recovery.md) (Part 1: the .wavvon-backup
 file; Part 2: recovery contacts) per the ~focused-doc convention.
 
-**Status**: design — no code yet; **PARKED 2026-07-19 (user call):
-revisit after the first external pilot**, when real identity-loss
-patterns can justify (or kill) the hub-held-ciphertext trade-off. Do not
-build without that re-decision.
+**Status: REJECTED 2026-09-05 (user call). Not parked — decided.** See
+[decisions.md](decisions.md), "A hub may hold what you sign or encrypt, never
+what can reconstitute you".
+
+The rule that killed it is one sentence and applies past this document: a hub
+may hold anything the user signed or encrypted, and nothing that can
+reconstitute the user. A wrapped master seed is the single thing on the
+personal axis that fails that test — it *is* the identity, one passphrase
+away — so storing it on someone else's machine makes that machine a place the
+identity can be taken from. Someone who keeps neither the 24 words nor a
+`.wavvon-backup` file loses their identity, and that is accepted as the cost
+of the project's central claim rather than a gap in it.
+
+The earlier "PARKED until the first external pilot" is superseded: the trigger
+is withdrawn, because no evidence about how people lose identities changes
+what the feature is.
+
+**The document is kept whole below**, and not because it might come back. It
+is the most careful write-up in the wiki of what it costs to move key material
+off-device — the locator derivation, the offline-brute-force bound, the
+enumeration defence — and any future proposal that puts secrets on a hub has
+to answer the same three problems. Read it as the analysis, not as a plan.
 
 **Why it is parked rather than dropped** (added 2026-09-05, decisions.md
 "Devices stay subkeys, and a device certifies itself at first auth"): keeping

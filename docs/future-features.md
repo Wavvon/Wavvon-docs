@@ -190,15 +190,6 @@ learns the language list. The path is also already spoken for — `/join/{code}`
 `/adopt`, `/hub/{slug}` — so a language segment would ride along on shared
 invite links and open in the *sender's* language.
 
-## Hub-hosted identity vault — designed, build gated
-
-The odd one out: this **has** a design ([identity-vault.md](identity-vault.md))
-and so would belong in next-up by the usual rule, but the decision to build it
-is deliberately deferred. **Do not build** until after the first external
-pilot, when real identity-loss patterns can justify or kill the
-hub-held-ciphertext trade-off (decisions.md, 2026-07-19). Kept here rather
-than in the wishlist because the intent is not in doubt — only the evidence.
-
 ---
 
 > Demand-gated tails of shipped features live in their own docs, not here:

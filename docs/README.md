@@ -47,7 +47,7 @@ had a "recently shipped" section, whatever this line used to claim):
 13. [multi-device.md](multi-device.md) — master+subkey identity, QR pairing protocol
     - [home-hub.md](home-hub.md) — personal-axis state: the home hub list, its replication, and DM canonicalization. Designation, device registry, revocations, pairing state, the encrypted prefs blob and DM mirror-forward are built; the canonical DM inbox the clients read from, and the friend list, are still design
 14. [e2e-encryption.md](e2e-encryption.md) — E2E encrypted DMs: X25519 from Ed25519 seed, static ECDH + AES-GCM, signed envelopes, group sender keys
-    - [identity-recovery.md](identity-recovery.md) — recovery UX beyond the phrase: passphrase-wrapped `.wavvon-backup` export/import (Part 1) + per-hub recovery contacts (Part 2, vouch not auto-grant) + pointer to the hub-hosted identity vault ([identity-vault.md](identity-vault.md), no-file recovery from a home hub)
+    - [identity-recovery.md](identity-recovery.md) — recovery UX beyond the phrase: passphrase-wrapped `.wavvon-backup` export/import (Part 1) + per-hub recovery contacts (Part 2, vouch not auto-grant) + the rejected hub-hosted vault ([identity-vault.md](identity-vault.md) — kept as the analysis of what moving key material off-device costs, not as a plan)
     - [recovery-attestation.md](recovery-attestation.md) — completes recovery contacts: the split request/attest flow, the `recovery-attestation/v1` signed envelope, and the signature verification that makes the threshold real (shipped 2026-07-20; note which key signs — roster identity, not master)
     - [wire-format.md](wire-format.md) — canonical byte-level spec for all signed envelopes in the identity crate (multi-device + E2E DM + identity verification); test vectors for client implementors
 15. [server-tags.md](server-tags.md) — self-tags (discovery keywords) + portable signed hub badges
@@ -76,7 +76,7 @@ had a "recently shipped" section, whatever this line used to claim):
 - [screen-share-modal.md](screen-share-modal.md) — unified desktop screen-share picker: Tauri `list_capture_sources` command, thumbnail grid, single-modal UX replacing the current two-step OS overlay
 - [nested-channels-ux.md](nested-channels-ux.md) — nested-channel UX gaps: channel permalinks (breadcrumb resolution), deep-nesting sidebar strategy (capped indent + drill-in), and channel permission overwrites (net-new file-system-style cascade — data model, resolver, routes, UI)
 - [settings-ia.md](settings-ia.md) — **implemented 2026-07-20** — unified Settings information architecture + profile model: one tab structure both clients render from `packages/ui`, converging desktop off the deleted profile-pool and onto multi-account (decided 2026-07-20); unblocks the `ProfileTab` + `IdentityBackupSection` parity passes
-- [future-features.md](future-features.md) — intent settled, design pending: alliance member discovery, Android QR pairing, passkey-from-desktop, desktop parity, visibility push, the build-gated identity vault
+- [future-features.md](future-features.md) — intent settled, design pending: alliance member discovery, Android QR pairing, passkey-from-desktop, desktop parity, visibility push, language packs
 - [bot-capability-layer.md](bot-capability-layer.md) — **Phases 1–2 shipped 2026-07-19** — the consent spine for the "Telegram-class bot runtime → games" pillar: capability request/grant model, interactive-UI runtime choice (declarative components vs sandboxed webview game modal), voice/video injection gates, abuse controls, phased first playable
 
 ### Archived designs
@@ -94,7 +94,7 @@ Reading order is for learning the system end-to-end. This section is for
 
 ### Identity & access
 - **Keypair, recovery phrase, auth** — [identity.md](identity.md)
-- **Identity backup & recovery contacts** — [identity-recovery.md](identity-recovery.md); **hub-hosted vault** — [identity-vault.md](identity-vault.md)
+- **Identity backup & recovery contacts** — [identity-recovery.md](identity-recovery.md); **hub-hosted vault, rejected 2026-09-05** — [identity-vault.md](identity-vault.md)
 - **Multi-device pairing (QR, master+subkey)** — [multi-device.md](multi-device.md)
 - **Wire format spec (signed envelopes, byte sequences, test vectors)** — [wire-format.md](wire-format.md)
 - **Roles & permissions** — [data-model.md](data-model.md), [decisions.md](decisions.md)
