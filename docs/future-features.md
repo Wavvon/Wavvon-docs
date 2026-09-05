@@ -82,37 +82,6 @@ than a given:
 None of it is blocking. Adding one is now a single edit in `HubMenuItems`
 rather than two that have to agree.
 
-## Actually leaving a hub — the feature the button implied
-
-Split out of the leave-confirmation work on 2026-09-05 (decisions.md, "Leave
-hub does not leave"), which found that **no such feature exists**: the router
-has `/bots/{id}/voice/leave` and `/alliances/{id}/leave` and nothing for a
-person leaving a hub. `removeHub` only forgets the hub on this device, so
-someone who has joined a community stays in its roster, keeps their roles and
-stays a deliverable DM recipient — with no way to change that themselves.
-
-The confirmation work makes this **visible** rather than fixing it: the control
-now says what it does. What it does not do is give anyone a way out, and for a
-project whose pitch is that you own your identity, "you cannot remove yourself
-from a community you joined" is a gap worth naming.
-
-Undesigned because the questions are not the dialog's:
-
-- **What happens to what they wrote.** Messages are the community's record and
-  the author's words at once. Tombstone the author and keep the text, delete
-  both, or let the leaver choose? Each is a different promise, and moderation
-  history (bans reference a pubkey) has to survive whichever wins.
-- **Can an operator refuse?** A ban is the hub removing a person; leaving is the
-  person removing themselves. If those meet — someone leaving to dodge a
-  pending report — the ban list must still work afterwards.
-- **Is it federated?** Alliance-visible membership and cross-hub DM routing both
-  read the roster. A departure that one side of an alliance knows about and the
-  other does not is the drift class this project keeps finding.
-- **And rejoining.** Today it is free, because the invite gate is
-  `has_roles == 0` and every member has `builtin-everyone`. An actual leave
-  presumably drops the roles, which silently re-arms the invite gate — so
-  leaving an invite-only hub would become one-way. That may be right; it should
-  be chosen rather than inherited.
 ## Desktop parity backlog
 
 Named custom themes, data-export archive compat, and LAN discovery UX (mDNS +

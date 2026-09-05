@@ -6,6 +6,60 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Leaving a hub clears the profile and the membership, and keeps the pubkey as an anchor
+
+**Decision** (2026-09-05, design; execution in next-up.md): a person can ask a
+hub to remove them, and what that does is delete their **profile** and their
+**roles**, keeping the `users` row as a bare pubkey. Not a row delete, and not
+a scrub of what they wrote.
+
+The shape is settled by two things that are already true rather than by taste.
+
+**The row cannot go.** Twenty-two tables carry a foreign key to
+`users(public_key)` — `messages`, `bans`, `mutes`, `message_reports`,
+`conversation_members`, `user_roles`, reactions, RSVPs, `soundboard_clips`,
+and more. A hard delete either fails on those constraints or cascades through
+the community's record and its moderation history. A departure that erases the
+ban on the person departing is not a feature.
+
+**The rule from the same day says what to remove instead**: a hub holds a
+*profile*, never an account ("A hub may hold what you sign or encrypt, never
+what can reconstitute you"). So leaving removes exactly what the hub was
+holding on the person's behalf — `display_name`, `avatar`, `bio`, `pronouns`,
+`status_message`, `activities`, `accent_color`, `cover`, `favorite_hubs`,
+`birthday`, `name_color` — plus every `user_roles` row, which is what
+"member" means here. What stays is the pubkey and the record it anchors.
+
+**Alternatives considered.**
+
+*Delete the row and let the cascades run.* Rejected above: it takes the ban
+list and the reports with it, and the messages are the community's record as
+much as the author's words.
+
+*Tombstone the author on each message instead (rewrite `sender`).* Rejected:
+it rewrites history rather than annotating it, breaks reply chains and
+reactions that key off the sender, and federated copies on allied hubs would
+not be rewritten anyway — so the same message would show two different authors
+depending on which hub you read it from.
+
+*Let the leaver choose whether their messages go.* Rejected for the first
+release. It is a real position, but it is a per-message deletion feature
+wearing a departure's clothes, and it needs an answer for federated copies
+before it can promise anything.
+
+**Tradeoff.** Someone leaving is still visible in the history they wrote,
+under a pubkey with no name. That is honest about what a shared record is, and
+it is less than they might expect — so the confirmation has to say it, in the
+same voice as the remove-from-device one.
+
+**Outcome — the consequence to design against, not inherit.** Dropping the
+roles silently re-arms the invite gate: it is `has_roles == 0`, and
+`assign_initial_roles` grants `builtin-everyone` on a first auth, so today
+anyone who ever joined can come back freely. After a real leave they cannot,
+on an invite-only hub. That may well be right — leaving should mean something
+— but it must be *chosen*, said in the confirmation, and not discovered later
+by someone who assumed the door stayed open.
+
 ## A hub may hold what you sign or encrypt, never what can reconstitute you — the identity vault is rejected
 
 **Decision** (2026-09-05, user call): the hub-hosted identity vault
