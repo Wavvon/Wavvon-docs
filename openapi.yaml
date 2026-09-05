@@ -636,6 +636,30 @@ paths:
               properties:
                 display_name: { type: string }
                 avatar: { type: string, nullable: true }
+    delete:
+      summary: Leave this hub
+      description: |
+        Removes the caller from the hub: profile fields cleared, every role
+        deleted, sessions ended. The `users` row itself is **kept** as a bare
+        pubkey — moderation records and message authorship reference it, so a
+        departure must not take a ban or a report with it. Messages,
+        reactions and RSVPs are untouched; the author becomes a pubkey with
+        no name.
+
+        Self only. Removing someone else is `/moderation`.
+
+        Note that membership *is* the roles, and the invite gate is "has no
+        roles", so on an `invite_only` hub this makes the return that is
+        otherwise free require a fresh invite. Clients say so before asking.
+
+        Advertised as the `hub.leave` capability; a hub without it answers 404
+        and the client must not offer the action.
+      tags: [Me]
+      responses:
+        "204":
+          description: Left the hub
+        "409":
+          description: The caller is the owner — transfer ownership first
 
   # ── Passkey / device credential management ──────────────────────────────────
 
