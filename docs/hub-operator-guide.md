@@ -68,10 +68,17 @@ PostgreSQL, and that works on Windows and on any glibc Linux — including the
 `ghcr.io/wavvon/hub` image, which is Debian. It does **not** work on a
 musl-only system such as Alpine: the PostgreSQL binaries for that target are
 not self-contained, they need `libicuuc.so.74` and krb5, and no current Alpine
-ships ICU at that version. The static `wavvon-hub-linux-*` binaries from a
-release are musl builds, so on Alpine point `WAVVON_DATABASE_URL` at a
-PostgreSQL you provide. A database you built is never touched by bundled mode,
-which is the whole rule that path follows.
+ships ICU at that version. The static `wavvon-hub-linux-x86_64` and
+`wavvon-hub-linux-aarch64` binaries from a release are musl builds, so on those
+point `WAVVON_DATABASE_URL` at a PostgreSQL you provide. A database you built
+is never touched by bundled mode, which is the whole rule that path follows.
+
+You are told this before it costs you anything. A musl build **refuses bundled
+mode up front** — it does not download an archive, create a data directory or
+reach `initdb` — and `wavvon-hub --doctor` reports it as a FAIL with the same
+sentence, so a pre-flight check catches it rather than a first boot. If you
+want the bundled database on x86_64 Linux, take
+**`wavvon-hub-linux-x86_64-glibc`** from the same release instead.
 
 ### CORS
 

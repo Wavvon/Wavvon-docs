@@ -437,27 +437,41 @@ The baked-in web client is served at `/` here too, over the proxy's TLS —
 ## 3. Bare binary + systemd
 
 No Docker. Run the released `wavvon-hub` binary as a native systemd
-service. Currently the published release binary is **Linux x86_64**
-(an aarch64 binary build is a known-broken item in ROADMAP; on aarch64
-use Docker or build from source).
+service. A release publishes three hub binaries, and **which one you take
+decides whether you need to provide a database**:
+
+| Artifact | Build | Bundled PostgreSQL |
+|---|---|---|
+| `wavvon-hub-linux-x86_64` | musl, static | **no** — set `WAVVON_DATABASE_URL` |
+| `wavvon-hub-linux-aarch64` | musl, static | **no** — set `WAVVON_DATABASE_URL` |
+| `wavvon-hub-linux-x86_64-glibc` | glibc | yes |
+
+The musl builds depend on nothing and run anywhere, including Alpine, but
+their bundled PostgreSQL binaries are not self-contained — see
+[The bundled PostgreSQL needs glibc](hub-operator-guide.md#the-bundled-postgresql-needs-glibc).
+Take the `-glibc` one if you want the hub to manage its own database and your
+distribution is an ordinary glibc Linux; take a musl one if you already have a
+PostgreSQL, or if your system has no glibc at all.
 
 **Install** from a GitHub release:
 
 ```bash
-# Download wavvon-hub-linux-x86_64 from the Wavvon-server releases page,
-# then:
+# Download the artifact you picked from the table above, then:
 sudo install -o root -g root -m 755 wavvon-hub-linux-x86_64 \
   /usr/local/bin/wavvon-hub
 wavvon-hub --version
+wavvon-hub --doctor    # says which database mode this binary will use
 ```
 
 The cargo target is named `hub`; the install examples here keep the
 on-disk name `wavvon-hub` for clarity.
 
-**Database** — this method does not bring one. Set up PostgreSQL and a
+**Database** — a musl binary does not bring one. Set up PostgreSQL and a
 `WAVVON_DATABASE_URL` first: [Providing PostgreSQL](#providing-postgresql).
 Verify with `psql "$WAVVON_DATABASE_URL" -c 'select version();'` before
-starting the service, or the unit will just fail on boot.
+starting the service, or the unit will just fail on boot. With the `-glibc`
+binary you can instead leave `WAVVON_DATABASE_URL` unset and let the hub run
+its own; `--doctor` reports which it will do and where the data lives.
 
 **systemd unit** — `/etc/systemd/system/wavvon-hub.service`:
 

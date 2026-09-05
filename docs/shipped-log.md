@@ -4,6 +4,30 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **The musl builds stop promising a bundled database they cannot start
+  (2026-09-05)**: the release shipped two musl hub binaries whose advertised
+  no-prerequisites path could not run — their PostgreSQL archive needs
+  `libicuuc.so.74` and krb5, and no current Alpine has either. Of the three
+  ways out, two were taken and the third (carrying ICU alongside the archive)
+  rejected as fighting the upstream archive for a case an extra artifact
+  solves outright.
+  Bundled mode now **refuses up front** on musl — `BUNDLED_AVAILABLE` is a
+  `cfg!(target_env)` constant, so the answer exists before anything is
+  downloaded, unpacked or initialised, where before the operator got a wall of
+  relocation errors *and* a half-built data directory to clean up. `--doctor`
+  reports it as a FAIL with the same sentence, from one shared
+  `unavailable_reason()` so the two cannot drift, which makes a pre-flight
+  check catch what used to surface at first boot. And the release now also
+  publishes `wavvon-hub-linux-x86_64-glibc`, so "let the hub run its own
+  database" is an artifact an operator can actually download rather than a
+  claim with no binary behind it.
+  `embedded_pg_flow`'s five happy-path tests are gated to non-musl and joined
+  by a musl-only test asserting the refusal touches neither `pg/` nor
+  `pgdata/`. Not a skip: on the one target where bundled mode misbehaves the
+  file now runs the assertion that is true there, instead of four failures.
+  While in the docs: `hosting.md` had been calling the aarch64 binary a
+  known-broken roadmap item since before it was fixed on 2026-07-01 and
+  shipping since 2026-07-06.
 - **Every device certifies itself at first auth, so a hub can tell which master
   a member is (2026-09-05)**: the remaining half of the DM fan-out gap, and it
   was a one-line trigger rather than the model. The roster→master link comes
