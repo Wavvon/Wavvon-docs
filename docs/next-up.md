@@ -234,32 +234,6 @@ Committed, cannot proceed.
 real and unfixed, not that anyone is on it. When one is fixed its entry moves
 to the [shipped log](shipped-log.md).
 
-- **The English UI is translated everywhere it ships; `apps/desktop` is not
-  done.** 1,011 hardcoded strings at the start of 2026-09-01, measured by
-  `packages/i18n/find-hardcoded.mjs`. The shared package and the web app — the
-  delivery target — now hold **none**: what the scan still lists there is a MIME
-  type, a class name, the brand, `{user}` in a spawner template, a doc comment
-  the text-node regex tore in half, and the four language names in the picker,
-  which a language chooser shows in their own language on purpose. **190 are
-  left and all of them are in `apps/desktop`**, which is deliberate: web is the
-  delivery target, desktop is future (see the delivery note above), and its
-  `PairingSection` alone is 40 of them.
-  Now gated three ways: `check-i18n` proves the catalogs agree with each other —
-  same keys, valid ICU, same placeholder names — and `check-hardcoded` fails CI
-  when a file gains a literal, so the number only ratchets down
-  (`hardcoded-baseline.json`, re-banked with `--baseline` after each batch). A
-  vitest suite covers the keys neither can see: the ones built from an id at
-  render time (`hub.admin.roles.perm.<id>`, `channel.icon.<id>`,
-  `shortcuts.action.<id>`).
-  What the work actually was, since "replace strings with t()" undersells it:
-  **six module-level English label maps** (permissions, channel icons, keyboard
-  shortcuts, skin bases, themes, RSVP) became id lists with the words in the
-  catalogs; prose spliced around values became one key with an argument; and a
-  partly-translated file turned out to be the norm rather than the exception —
-  a second component in the same file with no translator of its own is how
-  `ReactionBar`, `AttachmentList`, `ForumReplyRow` and others kept rendering
-  English inside files that looked done.
-
 - **Voice audio was choppy across the internet** — cause found and fixed
   2026-08-21 (no playout scheduling in the web client; see shipped log). The
   jitter only exists on a real network, so **the audible confirmation is still

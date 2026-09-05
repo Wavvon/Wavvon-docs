@@ -4,6 +4,34 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **The desktop app speaks four languages (2026-09-06)**: the last 190
+  hardcoded English strings, all of them in `apps/desktop`, are keys. What the
+  scan still lists is **34 findings and not one a UI string** — a MIME type, a
+  class name, the brand, `{user}` in a spawner template, a doc comment the
+  text-node regex tore in half, a CSS value the expression scan reads as prose,
+  and the four language names in the picker, which a language chooser shows in
+  their own language on purpose.
+  **Most of it was reuse, not new keys.** Wherever web had already named the
+  same thing — passkeys, trusted devices, home hubs, accounts, discover,
+  push-to-talk, the approval screen — desktop now reads that entry, so the two
+  clients say the same words in four languages by construction. New keys went
+  only where desktop has UI web does not: the pairing wizard (34 of them, with
+  its own confirm/deny and fingerprint check), the screen-share picker, the hub
+  browser, identity restore, the account gate.
+  **The parts a scan-and-replace does not reach**, each a real defect if
+  missed: `THEMES` in `constants.ts` was a module-level English label map — the
+  sixth of them — and name and tagline now come from
+  `settings.skin.base.<id>` and `settings.theme.tagline.<id>`, with the tagline
+  family added to the template-label test because neither check can see a key
+  built from an id at render time. `ThemePicker` maps over `t`, which shadowed
+  the translator and type-checked happily; it binds `t: translate` instead.
+  `HubCard` is a second component inside `HubBrowser.tsx` and needed its own
+  `useTranslation` — the same shape that left `ReactionBar` and friends English
+  inside files that looked done. `RestoreIdentitySection`'s `window.confirm`
+  text is user-facing and no JSX scan finds it by shape. Three plural ternaries
+  became ICU plurals (home hub save count, bot-challenge attempts remaining,
+  the browser's approximate member count), and prose spliced around a value
+  became one key with an argument in six places.
 - **Desktop's modal tree left App.tsx (2026-09-06)**: the ~275-line
   `{showX && <XModal/>}` tail — the same move web made on 2026-08-31, and the
   parity gap the refactor item named. It joins the three modals already in
