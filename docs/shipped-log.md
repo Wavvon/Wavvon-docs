@@ -4,6 +4,23 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Your own sent DM stops calling itself a decryption failure (2026-09-05)**:
+  a ratchet cannot decrypt its own outbound envelopes, so the only readable
+  copy of a message you sent is the one the sending device stashed locally. A
+  second device had none and rendered `[decryption failed]` — the same words a
+  tampered message gets — reporting a design limit as breakage on every
+  message, every time someone paired a device. It now says you sent it from
+  another device and only that device keeps a readable copy, which is also true
+  of a cleared local stash.
+  Two things it deliberately does not do. Someone else's unreadable message
+  still says failure, and so does one whose **cert chain did not verify** —
+  that branch does not consult who the sender claims to be, because softening a
+  trust failure to "sent from another device" is the reassuring way to hide the
+  one case worth noticing. And it does not close the gap: the choice of the
+  three real fixes stays open, and this was picked precisely because it
+  forecloses none of them (syncing the stash needs the identity vault, which
+  stays parked behind the pilot).
+  Both strings are translated; the literal never was.
 - **"Leave hub" stops lying, and asks first (2026-09-05)**: the control removed
   a hub on a mis-click with no question, and it had never left anything —
   `removeHub` is local, and there is no leave endpoint on the hub to call. The

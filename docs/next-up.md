@@ -285,8 +285,19 @@ to the [shipped log](shipped-log.md).
 - **Bot deferred scope** — bot DMs: no timeline. (Voice/video injection and
   bot-launched game modals shipped 2026-07-19 as capability-layer Phases 1–2.)
 
-- **Own encrypted DMs from another device show "[decryption failed]"** — the
-  own-plaintext stash is device-local by nature (a ratchet can't decrypt its
-  own envelopes), so a paired second device can't render messages the first
-  device sent. Edge of the tracked paired-device canonical-DM follow-up
+- **A second device cannot show the messages you sent from the first.** The
+  own-plaintext stash is device-local by nature — a ratchet cannot decrypt its
+  own envelopes, so the sending device keeps the only readable copy. Still
+  true; what changed on 2026-09-05 is that it no longer *reports* itself as
+  breakage: it said "[decryption failed]", which is what a tampered message
+  says, and now says you sent it from another device (shipped log).
+  Closing it properly is a choice of three, and one is already out. Syncing
+  the stash through the prefs blob is the cheapest but needs the **identity
+  vault** — a paired device has no local entropy to derive the blob key — so it
+  inherits that decision's trigger ([identity-vault.md](identity-vault.md),
+  decisions.md "Devices stay subkeys"). Re-encrypting each message to the
+  sender's own DH key is a second ciphertext per message and a cross-repo
+  wire-format change for a convenience, and is not worth it. Doing nothing
+  further is now an honest state rather than a broken-looking one.
+  Edge of the tracked paired-device canonical-DM follow-up
   ([client-parity.md](client-parity.md) pairing item).
