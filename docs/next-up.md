@@ -221,16 +221,17 @@ Committed, cannot proceed.
 real and unfixed, not that anyone is on it. When one is fixed its entry moves
 to the [shipped log](shipped-log.md).
 
-- **A DM inbox is read from one home hub, not merged across the list.** Fixed
-  2026-08-30 as far as the reported symptom goes — the client reads DMs from the
-  home hub rather than from whichever hub is on screen — but the other half of
-  [home-hub.md](home-hub.md) "DM delivery" is still missing: **the accepting hub
-  does not mirror to its peers**. So a user with two home hubs whose sender
-  reached slot 1 sees nothing while their client is reading slot 0. One home hub
-  is the overwhelming common case and the client falls through to the first
-  reachable entry, which is why this is a tail case rather than the same bug
-  again — but until mirroring exists, "any hub in the list is authoritative" is
-  a claim the code does not keep.
+- **A home hub cannot always tell which master a member is.** The DM mirror
+  landed 2026-09-05 (shipped log) and closes the reported half: an accepting hub
+  now forwards to the recipient's other home hubs, so the inboxes converge.
+  What it cannot do is find a list it has no key for. The list is signed by, and
+  stored under, the **master** pubkey; a hub links a roster pubkey to a master
+  only from a device cert, written at auth or when one is registered — and a
+  single device whose owner never named it in Settings has never issued one. For
+  those identities no hub can find the list at all, which is also why a sender's
+  hub declines to fan out. The candidates are a self-cert issued at identity
+  creation rather than at device naming, or recording the link when a
+  designation is published by an authenticated client. Neither is designed yet.
 
 - **The English UI is translated everywhere it ships; `apps/desktop` is not
   done.** 1,011 hardcoded strings at the start of 2026-09-01, measured by

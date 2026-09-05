@@ -4,6 +4,29 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **A DM now reaches every home hub, not just the one it landed on
+  (2026-09-05)**: home-hub.md "DM delivery" step 2, the half that was never
+  built. A sender's hub fans out to the recipient's whole list *when it has
+  it*, and usually it does not — a designation lives on the recipient's home
+  hubs, so the sender falls back to the single address recorded on the
+  conversation. One hub then held the message and never forwarded it, and a
+  client reading a different slot saw nothing: "any hub in the list is
+  authoritative" held for reads and not for writes.
+  The accepting hub now queues a copy for every other hub in the list, through
+  the outbox that already carries backoff, bounce and restart survival —
+  "as soon as they're reachable" means a peer that is down still has to
+  converge. A `mirror` flag on the delivery stops a copy being copied: dedupe
+  by `message_id` already makes a second arrival a no-op, but without the flag
+  n hubs would exchange n² deliveries before the dedupe settled. `dm_outbox`
+  remembers the flag, because the retry worker rebuilds the envelope from
+  `dm_messages` and would otherwise rebuild a copy as an original.
+  The test is three real hubs — A knows only B, B accepts, C is the slot the
+  recipient is reading — and it fails with the forward disabled, which is the
+  only way to know it is testing anything.
+  It is bounded by what a hub knows: the list is stored under the *master*
+  pubkey, and the roster→master link comes only from a device cert. An identity
+  that never issued one has no list any hub can find — now the remaining known
+  issue, and the reason a sender's hub does not fan out for those users either.
 - **Alliance voice had never connected (2026-09-05)**: driving the 🔊 on a
   federated channel row for the first time — e2e-topology's `alliancebrowser`
   stage, `60-alliance-voice` — found two bugs in a row. The join was **thrown

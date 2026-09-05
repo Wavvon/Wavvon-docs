@@ -191,14 +191,25 @@ The mirror-forward step reuses `FederationClient::post_dm` with a
 from "I'm the original recipient." A peer hub that sees a duplicate
 `message_id` short-circuits.
 
-**Status (2026-08-30).** Steps 1 and 4 are built. Step 3 is built as far as
-one hub goes: the client reads DMs from the home hub — the first entry in the
-list it can reach — rather than from whichever hub is on screen, which is the
-bug that made delivered messages invisible. **Step 2 is not built**: an
-accepting hub stores the DM and does not forward it to the other home hubs, so
-inboxes do not yet converge and a client reading slot 0 will not see what
-arrived at slot 1. Until it is, "any hub in the list is authoritative" holds
-for reads and not for writes.
+**Status (2026-09-05).** All four steps are built. Step 3 reads from the home
+hub — the first entry in the list it can reach — rather than from whichever hub
+is on screen, which is the bug that made delivered messages invisible. Step 2
+went in on 2026-09-05: the accepting hub queues a copy for every other hub in
+the recipient's list, through the same outbox that already carries backoff,
+bounce and restart survival, because "as soon as they're reachable" means a
+peer that is down still has to converge. `mirror` on the delivery marks a copy
+so it is never copied again — dedupe by `message_id` alone would let n hubs
+exchange n² deliveries before settling — and the outbox remembers the flag
+across a retry.
+
+**What bounds it is what the hub knows about the recipient.** This list is
+signed by, and stored under, the **master** key, which is not the pubkey a
+roster knows anyone by; a hub links the two only from a device cert, at auth or
+when one is registered. An identity that has never presented one — a single
+device whose owner never named it — has no list any hub can find, so nothing
+mirrors and, for the same reason, a sender's hub does not fan out either. The
+fix for that is a link, not more forwarding: see the known issue in
+[next-up.md](next-up.md).
 
 ## Picking, moving, self-hosting
 
