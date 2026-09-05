@@ -6,6 +6,74 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## "Leave hub" does not leave, so it stops saying it does — and a confirmation names what stays behind
+
+**Decision** (2026-09-05, design; execution in next-up.md): the sidebar's
+**Leave hub** becomes **Remove from this device**, it asks first, and the
+confirmation says what removing does *not* do. A real server-side leave is a
+separate feature, filed in [future-features.md](future-features.md) rather than
+folded into this.
+
+Reading the code to design the confirmation turned up that the entry this was
+drawn from rested on a wrong premise, and that the label has been lying:
+
+- **`removeHub` is purely local** (Wavvon-clients:
+  `apps/web/src/platform/commands/hubs.ts`). It closes the socket, drops the
+  session, forgets the saved hub and the token. It does not call the hub.
+- **There is no leave endpoint to call.** Wavvon-server's router has
+  `/bots/{id}/voice/leave` and `/alliances/{id}/leave` and nothing for a person
+  leaving a hub. Leaving a community is not a thing the hub knows how to be
+  told, so the user stays in the roster, keeps their roles, and stays a
+  deliverable DM recipient — permanently.
+- **Rejoining is free**, contrary to the "rejoining an invite-only hub is not
+  something the user can do alone" this was written on. The invite gate is
+  `has_roles == 0`, and `assign_initial_roles` gives every member
+  `builtin-everyone` on their first auth, so anyone who has ever joined skips
+  the gate on the way back in.
+
+So the risk is not the one the entry named. A mis-click is cheap and reversible.
+What is expensive is invisible: **if the hub is a home hub, the signed
+designation still names it.** Senders keep delivering DMs to a hub this client
+no longer has a session for, the inbox goes quiet, and nothing says why — the
+same invisible-DM failure the 2026-08-30 read-from-the-home-hub fix was for,
+arrived at from the other side. The prefs blob and the device registry live
+there too.
+
+**Alternatives considered.**
+
+*Keep the word "leave" and make the confirmation carry the nuance.* Rejected:
+the dialog would spend its first sentence undoing its own button. A control
+that says one thing and does another is a defect whatever the dialog adds, and
+the fix is free.
+
+*Have leaving re-sign the designation to drop the hub.* Tempting — it makes the
+word honest — and rejected on two counts. It needs the master seed, so a paired
+device could not do it, giving the same button two meanings depending on which
+device you are at. And silently editing a signed identity record as a side
+effect of a local UI action is the exact shape of the bug found earlier the
+same day, where an automatic single-hub designation won on sequence and reset
+someone's home hubs. Editing that list stays deliberate, in Settings.
+
+*Refuse to remove the last home hub.* Rejected: it holds the user hostage in a
+hub they have asked to be rid of. Allowed, with the warning naming what stops
+working rather than a wall.
+
+**Tradeoff.** The user still cannot actually leave a community they joined —
+this decision makes that visible instead of fixing it, which is worse for
+anyone who wanted out and better than the status quo, where they believed they
+had left. The real leave has its own questions (what happens to their messages,
+whether an operator can refuse, whether it is a tombstone or a delete) and
+answering them inside a confirmation-dialog design would have buried them.
+
+**Outcome.** Also settled, since the dialog needs them: the hub may attach an
+operator-written farewell, on the `welcome_label` pattern — a `hub_settings`
+key served on `/info`, plain text, length-capped, edited in hub admin. It is
+rendered as **mediated**: attributed to the hub, visually secondary to the
+app's own words, never styled as a warning the client is making, because the
+moment someone is leaving is exactly when a hub has an incentive to mislead.
+It stays in whatever language the operator wrote it in while the dialog around
+it is translated; a mixed-language dialog is the honest outcome.
+
 ## Client state access: containers only. No context, and no store until a ref mirror actually breaks something
 
 **Decision** (2026-09-05): shared components in `packages/ui` stay **prop-only**,

@@ -12,6 +12,40 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
 
 ## 🔨 In flight
 
+- [ ] **"Leave hub" stops lying, and asks first.** Designed 2026-09-05 —
+  decisions.md, "Leave hub does not leave". Today `hub.leave` calls
+  `handleRemoveHub` → `removeHub`, which forgets the hub on this device and
+  never contacts it, so a mis-click removes a hub with no question and the user
+  silently stays a member of it. Web leads; the dialog is a `packages/ui`
+  component so desktop inherits it.
+  - **Rename the control.** `hub.leave` → "Remove from this device", in all
+    four catalogues. Both call sites in `ChannelSidebar.tsx` (the hub dropdown
+    and the hub context menu) use the same key, so this is one string.
+  - **The confirmation**, two buttons — cancel and remove. It states three
+    things, in this order: you stay a member and can add the hub back; this
+    device forgets its session and token; and *if it is one of your home hubs*,
+    what stays behind.
+  - **The home-hub warning is the point.** `getHomeHubDesignation` already
+    tells the client whether this hub is in the list. When it is: senders keep
+    delivering DMs there and this client will not read them, and the prefs blob
+    and device registry live there too. Link to Settings → Manage accounts →
+    Home hubs, which is where the list is edited — **the dialog never edits it**
+    (decisions.md has the two reasons).
+  - **The last home hub** is allowed, with the warning naming what stops
+    working: nowhere for DMs to be delivered, prefs stop syncing, a new device
+    cannot find the identity's hubs.
+  - **The operator's farewell.** New `hub_settings` key on the `welcome_label`
+    pattern — served on `/info`, plain text, `chars().count()` capped, cleared
+    by the empty string, edited in hub admin beside the welcome label. Rendered
+    attributed to the hub and visually secondary; never styled as the client's
+    own warning. Server change carries a capability string, per the repo rule.
+  - **Also fires on account switch and on desktop**, both of which carry their
+    own copy of the flow — out of scope for the first pass, tracked in
+    client-parity.md when web lands.
+  - Not in scope, and now its own future-features entry: an *actual* leave. The
+    hub has no endpoint for one, and giving it one is a different feature with
+    its own questions.
+
 - [ ] **Split the web client into a hub build and a user build.** Designed
   2026-08-25 — decisions.md, "Two web clients: one per hub, one per user". One
   codebase, two targets: the hub build shows one hub and its interconnections,

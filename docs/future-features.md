@@ -74,55 +74,42 @@ question rather than a given:
   its pubkey, and which one to copy depends on what the person is about to
   paste it into. Both, labelled, is the likely answer.
 
-Not blocking, and pairs with the leave-confirmation entry below: the leave item
-is in this menu, so whichever ships second inherits the other's behaviour.
+Not blocking, and it inherits from the leave-confirmation work
+([next-up.md](next-up.md)): the leave item is in this menu, and it is being
+renamed and given a confirmation, so a right-click menu built afterwards picks
+that up rather than reproducing today's version.
 
-## Leaving a hub asks first, and the hub gets a word in
+## Actually leaving a hub — the feature the button implied
 
-**Every** leave gets a confirmation, not only the ones that cost something. A
-mis-click currently removes a hub outright — `handleRemoveHub`
-(`clients/apps/web/src/hooks/useHubLifecycle.ts`) drops it with no question —
-and rejoining an invite-only hub is not something the user can do alone.
+Split out of the leave-confirmation work on 2026-09-05 (decisions.md, "Leave
+hub does not leave"), which found that **no such feature exists**: the router
+has `/bots/{id}/voice/leave` and `/alliances/{id}/leave` and nothing for a
+person leaving a hub. `removeHub` only forgets the hub on this device, so
+someone who has joined a community stays in its roster, keeps their roles and
+stays a deliverable DM recipient — with no way to change that themselves.
 
-Two layers on top of that plain confirmation:
+The confirmation work makes this **visible** rather than fixing it: the control
+now says what it does. What it does not do is give anyone a way out, and for a
+project whose pitch is that you own your identity, "you cannot remove yourself
+from a community you joined" is a gap worth naming.
 
-**1. Say so when it is a home hub.** The code has no idea whether it is, and it
-usually is: the first hub an account signs in to becomes one automatically
-([home-hub.md](home-hub.md)). That matters more since 2026-08-30, when DMs
-started being read from the home hub rather than from whichever hub is on
-screen. Removing a home hub locally does **not** edit the signed designation,
-so senders keep delivering there — to a hub this client no longer has a session
-for. The inbox goes quiet and nothing says why, which is the invisible-DM
-failure that fix was for, arrived at from the other direction. Prefs, device
-certs and the designation itself live there too. The dialog should say which of
-those the user is walking away from, and point at Settings → Manage accounts →
-Home hubs, where the list is actually edited.
+Undesigned because the questions are not the dialog's:
 
-**2. Let the hub add its own message.** A farewell, a "you can come back with
-this invite", a link to the community's rules — operator-written, shown in the
-confirmation. Same shape as `welcome_label`: a `hub_settings` key, served on
-`/info` so a client can render it without a session, edited in hub admin.
-
-Design questions, none of them obvious:
-
-- **What the dialog offers.** Cancel / leave anyway / edit the home hub list
-  first — and whether leaving can re-sign the designation itself, which needs
-  the master key (a paired device cannot).
-- **The last entry.** An account whose home hub list is empty has nowhere for
-  its personal state to live. Refuse, warn harder, or allow it and say plainly
-  what stops working?
-- **The hub's message is not ours.** It is operator-written text shown at the
-  moment someone is leaving, which is exactly when a hub has an incentive to
-  mislead ("you will lose your messages"). Render it as mediated — attributed
-  to the hub, visually secondary to the app's own words, never styled as a
-  warning the client is making. Same discipline as a badge's issuer or an
-  alliance visitor's hub-vouched name. Plain text, length-capped, no markup;
-  `welcome_label` is the precedent to copy, including how it is sanitised.
-- **One language.** The operator writes it once; the surrounding dialog is
-  translated. A mixed-language dialog is the honest outcome and worth stating.
-- **Where else this fires.** Account switch, and the desktop client, which
-  carries its own copy of the flow.
-
+- **What happens to what they wrote.** Messages are the community's record and
+  the author's words at once. Tombstone the author and keep the text, delete
+  both, or let the leaver choose? Each is a different promise, and moderation
+  history (bans reference a pubkey) has to survive whichever wins.
+- **Can an operator refuse?** A ban is the hub removing a person; leaving is the
+  person removing themselves. If those meet — someone leaving to dodge a
+  pending report — the ban list must still work afterwards.
+- **Is it federated?** Alliance-visible membership and cross-hub DM routing both
+  read the roster. A departure that one side of an alliance knows about and the
+  other does not is the drift class this project keeps finding.
+- **And rejoining.** Today it is free, because the invite gate is
+  `has_roles == 0` and every member has `builtin-everyone`. An actual leave
+  presumably drops the roles, which silently re-arms the invite gate — so
+  leaving an invite-only hub would become one-way. That may be right; it should
+  be chosen rather than inherited.
 ## Desktop parity backlog
 
 Named custom themes, data-export archive compat, and LAN discovery UX (mDNS +
