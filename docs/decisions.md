@@ -6,6 +6,81 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Devices stay subkeys, and a device certifies itself at first auth
+
+**Decision** (2026-09-05, implemented web + hub the same day): Wavvon keeps the
+master-key → per-device-cert identity model, and issues a device its self-cert
+the first time it **authenticates at a hub** — not the first time its owner
+opens Settings → Devices and types a name.
+
+The question that forced this was the reverse one: whether to drop subkeys
+entirely, give every device the same master seed by importing an exported
+profile, and stop replicating personal-axis state at all. That framing came
+from a real frustration — the roster-pubkey/master-pubkey split is invisible
+until something crosses it, and then it silently does nothing.
+
+What settled it is that the split was never the bug. **The trigger was.** The
+cert is the only thing linking a roster pubkey to the master a home hub list is
+signed by and stored under, and `issueSelfCert` was reachable only from the
+device *naming* flow. Almost nobody names a device, so almost no identity had a
+link on any hub: no hub could find its designation, DM mirroring skipped it, and
+a sender's hub declined to fan out — with no error anywhere. Binding an
+identity-critical record to a cosmetic action is the defect; the record itself
+is fine.
+
+**Alternatives considered.**
+
+*One key, N devices, carried as an exported file.* Delete pairing and subkeys
+(≈210 references in the server, ≈200 in the clients), make multi-device an
+import of the `.wavvon-backup`/`wavvon-archive` the clients already produce, and
+shrink the home hub designation to a single hub. Genuinely smaller, and it
+dissolves the roster/master split by construction rather than fixing it.
+Rejected on evidence: Matrix converged independently on exactly Wavvon's shape —
+cross-signing ([MSC1756](https://github.com/matrix-org/matrix-spec-proposals/pull/1756))
+has a master key signing a self-signing key that signs each device, and a device
+is registered at **login**, with its name purely cosmetic. Per-device keys buy
+two things the single-key model cannot: revoking one device without burning the
+identity, and a compromised device that does not hand over the whole identity.
+The opposite path exists in the wild (Nostr: the key *is* the identity, carried
+around by hand) and its lived failure mode is exactly private-key hygiene.
+
+*Matrix's own answer to "where do I deliver?"* is worth recording because we
+cannot copy it: their MXID is `@user:server`, so the server is inside the
+identity and DNS resolves delivery — no designation, no signed list, no link to
+maintain. They paid for it with a decade of no account portability
+([MSC1228](https://github.com/matrix-org/matrix-spec-proposals/pull/1228), open
+since 2018), and are now moving toward keys-as-user-IDs to get it back
+([MSC4243](https://github.com/matrix-org/matrix-spec-proposals/pull/4243),
+[MSC4080](https://github.com/matrix-org/matrix-spec-proposals/pull/4080),
+[MSC4348](https://github.com/matrix-org/matrix-spec-proposals/pull/4348) — none
+with a qualifying implementation yet). Wavvon already has key-as-identity, which
+is why it meets this problem first and has nothing finished to copy.
+
+**Tradeoff.** Keeping per-device keys keeps the machinery: certs, revocations,
+pairing, and a device that holds no master seed. It also keeps a coupling worth
+naming — a paired device has no local entropy to derive the prefs blob key, so
+"sync the own-message stash through the prefs blob" is not available to it. That
+is the same wall Matrix hit and answered with server-side encrypted secret
+storage ([MSC1946](https://github.com/matrix-org/matrix-spec-proposals/pull/1946),
+shipped as 4S and now the default in Element). Our equivalent,
+[identity-vault.md](identity-vault.md), stays parked — but from today it is
+parked for a *named* reason: it is the price of per-device keys for a user who
+keeps nothing, not an optional extra.
+
+**Outcome.** Two things had to change together, and the second was only visible
+once the first was written. `!!subkey_cert` was standing in for "this is a
+paired device" in four places, and once every device holds a cert that proxy
+inverts — `ensureHomeHubDesignation` would have stopped publishing for
+everyone, trading a silent bug for a worse one. The exact test is local: a
+paired device's seed derives a *different* master than the cert it was handed
+names, so `holdsMasterSeed()` (Wavvon-clients:
+`apps/web/src/identity/store.ts`) is the predicate, and all four sites use it.
+On the hub, the fan-out resolver
+(Wavvon-server: `crates/hub/src/routes/dms/messages.rs`) read only
+`users.master_pubkey` while the mirror path's `master_of` already fell back to
+`subkey_certs` — so a member whose cert was registered without a re-auth was
+mirrored to but never fanned out to. Both now call `master_of`.
+
 ## A paired device authenticates at the hub, never at the farm
 
 **Decision** (2026-09-05, implemented web + farm the same day): a farm-managed

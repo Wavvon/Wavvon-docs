@@ -204,12 +204,15 @@ across a retry.
 
 **What bounds it is what the hub knows about the recipient.** This list is
 signed by, and stored under, the **master** key, which is not the pubkey a
-roster knows anyone by; a hub links the two only from a device cert, at auth or
-when one is registered. An identity that has never presented one — a single
-device whose owner never named it — has no list any hub can find, so nothing
-mirrors and, for the same reason, a sender's hub does not fan out either. The
-fix for that is a link, not more forwarding: see the known issue in
-[next-up.md](next-up.md).
+roster knows anyone by; a hub links the two only from a device cert. That link
+used to be conditional on the owner naming a device in Settings, so most
+identities had none and nothing mirrored or fanned out for them, silently.
+Since 2026-09-05 a device issues and registers its self-cert on the same
+hub-connect path that publishes this designation, and in that order — the link
+has to exist before the list it points at (decisions.md, "Devices stay
+subkeys"). Both resolvers read the link the same way: `users.master_pubkey`
+first, then `subkey_certs`, since a cert registered on connect predates the
+auth that presents it.
 
 ## Picking, moving, self-hosting
 

@@ -221,18 +221,6 @@ Committed, cannot proceed.
 real and unfixed, not that anyone is on it. When one is fixed its entry moves
 to the [shipped log](shipped-log.md).
 
-- **A home hub cannot always tell which master a member is.** The DM mirror
-  landed 2026-09-05 (shipped log) and closes the reported half: an accepting hub
-  now forwards to the recipient's other home hubs, so the inboxes converge.
-  What it cannot do is find a list it has no key for. The list is signed by, and
-  stored under, the **master** pubkey; a hub links a roster pubkey to a master
-  only from a device cert, written at auth or when one is registered — and a
-  single device whose owner never named it in Settings has never issued one. For
-  those identities no hub can find the list at all, which is also why a sender's
-  hub declines to fan out. The candidates are a self-cert issued at identity
-  creation rather than at device naming, or recording the link when a
-  designation is published by an authenticated client. Neither is designed yet.
-
 - **The English UI is translated everywhere it ships; `apps/desktop` is not
   done.** 1,011 hardcoded strings at the start of 2026-09-01, measured by
   `packages/i18n/find-hardcoded.mjs`. The shared package and the web app — the

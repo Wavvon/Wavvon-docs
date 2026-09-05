@@ -4,6 +4,28 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Every device certifies itself at first auth, so a hub can tell which master
+  a member is (2026-09-05)**: the remaining half of the DM fan-out gap, and it
+  was a one-line trigger rather than the model. The roster→master link comes
+  only from a device cert, and `issueSelfCert` was reachable only from the
+  device *naming* flow in Settings → Devices — an action almost nobody performs,
+  so almost no identity had a link on any hub, no hub could find its
+  designation, and neither mirroring nor fan-out happened, silently. Certs are
+  now issued on the same hub-connect path that already published the home hub
+  designation, in that order: the link has to exist before the list it points
+  at. Matrix registers a device at login and treats its name as cosmetic; ours
+  now does too (decisions.md, "Devices stay subkeys").
+  Two things had to move together. `!!subkey_cert` was standing in for "this is
+  a paired device" in four places, and once every device holds a cert that proxy
+  inverts — `ensureHomeHubDesignation` would have stopped publishing for
+  *everyone*, which is a worse silent bug than the one being fixed. The real
+  predicate is local and exact: a paired device's seed derives a different
+  master than the cert it was handed names, so `holdsMasterSeed()` decides, and
+  a test pins it because nothing else would have said so. On the hub there were
+  two resolvers for the same question — the mirror path's `master_of` fell back
+  to `subkey_certs`, the fan-out read only `users.master_pubkey` — so a member
+  whose cert was registered without a re-auth was mirrored to but never fanned
+  out to. Both call `master_of` now.
 - **A DM now reaches every home hub, not just the one it landed on
   (2026-09-05)**: home-hub.md "DM delivery" step 2, the half that was never
   built. A sender's hub fans out to the recipient's whole list *when it has
