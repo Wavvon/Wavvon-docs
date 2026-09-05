@@ -41,24 +41,18 @@ a choice not yet made: a native WebAuthn plugin, or a system-browser handoff.
 current web-only delivery target — there is no web-viable subset (passkey
 registration in a browser already works; the bug *is* the webview).
 
-## Right-click a hub — reaching the menu that already exists
+## Hub menu — entries the reference clients have and this one does not
 
-The hub menu is built: the chevron beside the hub name opens it, and it already
-carries invite people, hub settings, create channel, a notifications submenu,
-hide silenced channels, mark all as read, and leave — with the admin-only
-entries gated on permission, which is the member/owner split. What is missing
-is the **gesture**: right-click on the hub does nothing, and that is where
-people from other clients go first.
+The gesture and the menu are both built: the chevron beside the hub name and a
+right-click on the hub header open the same list — invite people, hub settings,
+create channel, a notifications submenu, hide silenced channels, mark all as
+read, and remove-from-this-device — with the admin-only entries gated on
+permission. They render from one component since 2026-09-05, so an entry added
+here appears under both gestures and cannot drift (they already had: same
+items, different order).
 
-So the work is one `onContextMenu` on the hub header (and on each icon in the
-hub rail) opening the same dropdown at the pointer — **not** a second menu.
-One control, one set of items, two ways to reach it; a right-click menu with a
-different list would be exactly the context-dependent relocation the client's
-conventions rule out, and it would drift the moment an entry is added to one
-and not the other.
-
-Entries the reference clients have and this menu does not, each its own small
-question rather than a given:
+What is left is which entries to add at all, each its own small question rather
+than a given:
 
 - **Mute with a duration** (15 min / 1 h / until tomorrow) — today notification
   mode is a permanent choice; a timed one needs somewhere to keep the expiry
@@ -74,10 +68,8 @@ question rather than a given:
   its pubkey, and which one to copy depends on what the person is about to
   paste it into. Both, labelled, is the likely answer.
 
-Not blocking, and it inherits from the leave-confirmation work
-([next-up.md](next-up.md)): the leave item is in this menu, and it is being
-renamed and given a confirmation, so a right-click menu built afterwards picks
-that up rather than reproducing today's version.
+None of it is blocking. Adding one is now a single edit in `HubMenuItems`
+rather than two that have to agree.
 
 ## Actually leaving a hub — the feature the button implied
 

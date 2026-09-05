@@ -4,6 +4,16 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **One hub menu behind two gestures (2026-09-05)**: the chevron dropdown and
+  the right-click menu on the hub header were two copies of the same seven
+  items, kept in step by hand — and had already stopped being: same items,
+  different order. `HubMenuItems` is now the list, rendered by both with only
+  the class names differing, so an entry added once appears under both.
+  It also corrects what future-features.md said the work was. That entry read
+  "right-click on the hub does nothing, and that is where people from other
+  clients go first"; the gesture had been built since. What was actually
+  missing was anything keeping the two menus telling the same story — which is
+  the failure the entry itself predicted, arrived at from the other end.
 - **Your own sent DM stops calling itself a decryption failure (2026-09-05)**:
   a ratchet cannot decrypt its own outbound envelopes, so the only readable
   copy of a message you sent is the one the sending device stashed locally. A
