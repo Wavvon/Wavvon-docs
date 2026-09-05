@@ -1,9 +1,15 @@
 # Block / Mute / Ignore — User-Level Controls
 
-**Status**: design — partial code exists (`blocked_users.json`,
-`load_blocked_users`/`save_blocked_users` in Wavvon-desktop). This doc
-designs the full system and the migration of the existing per-device
-list onto personal-axis storage.
+**Status**: design — **partly built**. DM blocking is enforced on the hub
+(`dm_blocks` table; `is_dm_blocked` in `crates/hub/src/routes/identity.rs`
+gates `send_dm` with a success-shaped response so the sender cannot detect
+the block), and `blocked_users` rides the encrypted prefs blob, so the
+per-device list has already moved onto personal-axis storage for that field.
+The rest of this doc — the mute/ignore distinction and its UX — is still
+design.
+
+> Repo naming: what this doc calls Wavvon-desktop is now `apps/desktop/` in
+> the Wavvon-clients monorepo.
 
 This is the **user-level** toolset, distinct from hub moderation. A hub
 ban/kick/timeout/hub-mute is a *community* acting on a member; it lives

@@ -1,14 +1,28 @@
 # Multi-Device Pairing
 
-**Status**: design — no code yet. This doc covers the
-identity model and the QR pairing flow. The storage layer that holds
-the device registry, revocation list, and prefs blob lives in
+**Status**: **shipped on the web client**; all five phases below are
+built. The identity model (master + per-device subkeys), the pairing
+protocol (`crates/hub/src/routes/pairing.rs`), cert registration and
+revocation, cert-carrying auth (`resolve_canonical_identity`) and DM
+attribution (Mechanism A + B) all exist and are covered by tests and
+shared wire vectors. **`apps/desktop` is behind** — see the gap in
+[client-parity.md](client-parity.md). The storage layer that holds the
+device registry, revocation list, and prefs blob lives in
 [home-hub.md](home-hub.md) — read that first if you haven't.
 
 The goal: one user, many devices (phone + desktop + laptop), under a
-single identity. Today every device generates its own keypair and is
-treated as a separate user; pasting the recovery phrase on a second
-device *replaces* the second device's identity instead of pairing it.
+single identity. Before this, every device generated its own keypair and
+was treated as a separate user; pasting the recovery phrase on a second
+device *replaced* the second device's identity instead of pairing it.
+
+**When a device gets its cert: at its first authentication**, on the
+same hub-connect path that publishes the home hub designation, and
+before it (decisions.md, "Devices stay subkeys, and a device certifies
+itself at first auth"). This used to happen only when the user named a
+device in Settings, which almost nobody does — so almost no identity had
+a roster→master link on any hub, and DM fan-out and mirroring silently
+skipped them. Naming a device is now cosmetic: it re-issues the cert
+with a new label, exactly as Matrix treats a device name.
 
 ## Decisions (TL;DR)
 
@@ -201,20 +215,31 @@ that interact directly with this pairing protocol.
 ## Migration of existing single-key identities
 
 The current `Identity` (single Ed25519 key derived from the phrase)
-becomes `subkey 0` of a master derived from the same phrase. On
-upgrade:
+becomes `subkey 0` of a master derived from the same phrase. This is not
+a one-time migration step the user performs — it is what every identity
+does on connecting to a hub:
 
-1. Client computes master from existing phrase.
-2. Master self-signs a `SubkeyCert` for the existing key, labeled
-   "this device" by default.
-3. Client prompts user to pick a home hub list, pre-filled with the
-   first 1-2 hubs in their hub list.
-4. Client posts the cert and the initial `HomeHubList` designation
-   to every hub in the list.
+1. Client computes master from the existing phrase.
+2. Master self-signs a `SubkeyCert` for the existing key, labeled with
+   the device's name or "This device" by default, and registers it
+   (`ensureSelfDeviceCert`).
+3. Client publishes a `HomeHubList` naming the hub it just reached, if
+   the identity has none (`ensureHomeHubDesignation`). There is no
+   picker: an account with no hub is not a thing that exists, so the
+   list starts as the one hub the user actually reached and grows only
+   if they want redundancy ([home-hub.md](home-hub.md)).
+4. Both run fire-and-forget, cert first — the roster→master link has to
+   exist before the list it points at is worth looking up.
 5. Future logins to any upgraded hub use `{ existing_key_sig, cert }`.
    Logins to a hub that hasn't upgraded yet still work because the
    subkey *is* the existing pubkey — old hubs see the same identity
    they always saw.
+
+Only a device holding the entropy can do steps 1–3; a paired device
+holds a subkey and skips both. The test for that is local rather than
+"does it have a cert", because every device has one now: a paired
+device's seed derives a *different* master than the cert it was handed
+names (`holdsMasterSeed`).
 
 This is the property that makes the migration painless: subkey 0 has
 the same pubkey as today's identity, so non-upgraded hubs see no
@@ -233,6 +258,9 @@ Pairing-specific surfaces:
 | Compromised master (phrase leaked) | Same as today — phrase compromise = identity compromise. Revocation can't save you if master itself is leaked. New phrase = new identity. |
 
 ## Phasing
+
+*All five phases are built on the web client. Kept as the record of the
+order they were taken in, and of what each one had to be safe against.*
 
 1. **Phase 1 — derive master + subkey 0, no protocol change.** Add
    master derivation, mint subkey 0 from existing phrase, wire
@@ -264,22 +292,30 @@ Pairing-specific surfaces:
   voice settings, but per-device overrides (different mic on
   different devices) need a UI distinction.
 
-## Files this design will touch
+## Where this lives
 
 Identity-specific code paths. Home-hub storage paths are listed in
-[home-hub.md](home-hub.md). Paths under `identity/` and `hub/` live in
-Wavvon-server; paths under `desktop/` live in Wavvon-desktop.
+[home-hub.md](home-hub.md).
 
-- `identity/src/lib.rs` (Wavvon-server) — `MasterIdentity`,
-  `DeviceSubkey`, `SubkeyCert`, derivation helpers.
-- `identity/src/recovery.rs` (Wavvon-server) — phrase → master + subkey 0.
-- `hub/src/auth/handlers.rs` (Wavvon-server) — accept `(sig, cert)`.
-- `hub/src/auth/middleware.rs` (Wavvon-server) — verify cert, check
-  revocation cache.
-- `desktop/src-tauri/src/lib.rs` (Wavvon-desktop) — master/subkey
-  storage (master kept cold, subkey hot).
-- `desktop/src/` (Wavvon-desktop) — pairing UI: show QR, scan QR,
-  confirm fingerprint.
+Wavvon-server:
+
+- `crates/identity/src/lib.rs` — `MasterIdentity`, `DeviceSubkey`,
+  `SubkeyCert`, derivation helpers.
+- `crates/hub/src/auth/handlers.rs` — accepts `(sig, cert)`;
+  `resolve_canonical_identity` writes `users.master_pubkey`.
+- `crates/hub/src/auth/middleware.rs` — cert verification, revocation cache.
+- `crates/hub/src/routes/pairing.rs` — offer/claim/complete/status.
+- `crates/hub/src/routes/identity.rs` — device registry, revocations.
+
+Wavvon-clients (web; desktop equivalents are the parity gap):
+
+- `apps/web/src/platform/commands/identity.ts` — `ensureSelfDeviceCert`,
+  `ensureHomeHubDesignation`, cert/revocation/pairing calls.
+- `apps/web/src/identity/store.ts` — the account record, `masterPubkeyOf`,
+  `holdsMasterSeed`.
+- `apps/web/src/components/settings/DevicesSection.tsx` — device list,
+  rename (re-issues the cert), pairing UI.
+- `packages/core/src/identity/wire.ts` — the byte-for-byte mirror.
 
 ## Implementation — DM attribution & DH fix
 

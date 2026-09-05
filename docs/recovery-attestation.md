@@ -1,24 +1,35 @@
 # Recovery-contact attestation collection
 
-**Status**: design. Completes Part 2 phase 3 of
-[identity-recovery.md](identity-recovery.md) (recovery contacts) — the
-attestation-gathering step that shipped only as a stub. Depends on
-[wire-format.md](wire-format.md) discipline and the master-key identity
-of [multi-device.md](multi-device.md).
+**Status**: **SHIPPED 2026-07-20** — server `4240377`, clients `cf6b39d`
+(shipped log). Completed Part 2 phase 3 of
+[identity-recovery.md](identity-recovery.md) (recovery contacts): the
+attestation-gathering step that had shipped only as a stub. Sections 2–5
+below are the design as built, kept as the record of *why* it is shaped
+this way; §1 is what it replaced.
 
 Scope: how a designated recovery contact *learns of* a rotation request,
 *attests* to it with a signed envelope, and how the hub *counts* those
-attestations toward the threshold. Contact designation and the admin
-review/decide step already ship; this doc fills the hole between them.
+attestations toward the threshold.
+
+> **Which key signs an attestation.** The **roster identity key** — the
+> pubkey the hub knows the contact by — not the derived multi-device
+> master. Contacts are designated by hub-known pubkeys and the hub verifies
+> against those, so a client that reaches for the master key produces
+> signatures that never verify. That was a real bug on both clients; both
+> repos' `CLAUDE.md` carry the warning. The master signs only multi-device
+> material (subkey certs, revocations, designations).
 
 ---
 
-## 1. Current state — where the dead end is
+## 1. What this replaced — the dead end as it stood
 
-Shipped and working (`hub/src/routes/recovery.rs`, Wavvon-server; tables
-`recovery_settings`, `recovery_contacts`, `key_rotation_requests`,
-`rotation_attestations` — note the table names drifted from the
-`recovery_rotation_requests`/`recovery_attestations` in
+*Historical. Every defect below was fixed by the 2026-07-20 work; the
+current code is described in §2–§5.*
+
+Shipped and working before that (`crates/hub/src/routes/recovery.rs`,
+Wavvon-server; tables `recovery_settings`, `recovery_contacts`,
+`key_rotation_requests`, `rotation_attestations` — note the table names
+drifted from the `recovery_rotation_requests`/`recovery_attestations` in
 identity-recovery.md):
 
 - Owner designation: `PUT`/`GET /recovery/contacts`,
@@ -30,30 +41,29 @@ identity-recovery.md):
   (transfers non-owner roles to the new key, deletes old sessions),
   `.../deny`.
 
-Three defects make the feature inert end to end:
+Three defects made the feature inert end to end. **All three are closed** —
+if you are reading this to decide whether the feature works, it does:
 
-1. **No split request/attest flow.** `rotate-key` takes attestations
-   *inline* in the requester's single POST. There is **no** standalone
-   endpoint for a contact to submit an attestation against an existing
-   request, and no per-request GET for a contact to fetch what to sign. A
-   contact has no reachable action, so every client posts
-   `attestations: []` (Wavvon-desktop `src-tauri/src/farm.rs:653`; the web
-   `RecoveryContactsSection` has owner + admin UI but no contact path).
-2. **No signature verification.** The hub stores `signature` as an opaque
-   string and counts it (`recovery.rs` `post_rotate_key`); it never
-   verifies it. Contact pubkeys are public, so a requester can fabricate
-   `{attester: <known contact pubkey>, signature: "x"}` for each contact
-   and hit threshold with zero real vouching. **Threshold is currently
-   meaningless.** This is the load-bearing hole.
-3. **No identity-crate envelope.** `identity/src/recovery.rs` holds only
-   BIP39 phrase helpers. There is no attestation signing-bytes helper, wire
-   tag, or test vector — nothing for client and hub to agree on
-   byte-for-byte.
+1. ~~**No split request/attest flow.**~~ `rotate-key` took attestations
+   *inline* in the requester's single POST, with no standalone endpoint for
+   a contact to submit one and no per-request GET to fetch what to sign.
+   **Fixed**: `GET /recovery/rotation-request/{id}` and
+   `POST /recovery/rotation-request/{id}/attest` exist and are registered
+   in `server.rs`; inline attestations are now *rejected* with a message
+   naming the new flow, rather than silently accepted.
+2. ~~**No signature verification.**~~ The hub stored `signature` as an
+   opaque string and counted it, so a requester could fabricate one per
+   known (public) contact pubkey and hit threshold with zero real vouching.
+   **Fixed**: `post_attest` verifies Ed25519 over the bound bundle
+   (`wavvon_identity::verify_signature`) and rejects a non-contact attester;
+   `post_rotate_key` additionally verifies a new-key proof, so the opener
+   is proven to hold `new_pubkey`.
+3. ~~**No identity-crate envelope.**~~ **Fixed**:
+   `recovery_attestation_signing_bytes` and `recovery_request_signing_bytes`
+   live in the identity crate under `wavvon/recovery-attestation/v1` and
+   `wavvon/recovery-request/v1`, mirrored in TS with shared vectors.
 
-`rotate-key` is also unauthenticated (the new key has no session yet),
-which is acceptable but means the opener isn't proven to hold `new_pubkey`.
-
-## 2. Proposed design
+## 2. The design, as built
 
 Minimal completion of the already-committed design: keep the tables and the
 admin path; add the missing envelope, split the flow, and verify signatures.
@@ -62,7 +72,8 @@ admin path; add the missing envelope, split the flow, and verify signatures.
 `recovery_attestation_signing_bytes(hub_pubkey, old_pubkey, new_pubkey,
 request_nonce)` under tag `b"wavvon/recovery-attestation/v1\0"`,
 length-prefixed like every sibling in `wire.rs`. The contact signs those
-bytes with their **master** key. `hub_pubkey` binds the attestation to one
+bytes with their **roster identity** key — the pubkey the hub knows them by
+(see the note at the top). `hub_pubkey` binds the attestation to one
 hub; `request_nonce` binds it to one request. This is the exact bound
 bundle identity-recovery.md §"What a contact can attest" already specified.
 
@@ -97,7 +108,7 @@ propagation — two-axis and no-central-authority preserved.
 ## 3. Security analysis
 
 - **Signature verification is the fix.** After it, an attestation counts
-  only if signed by a designated contact's master key over the
+  only if signed by a designated contact's roster identity key over the
   hub-bound, nonce-bound bundle. The fabrication hole in defect 2 closes.
 - **Stolen device / contact key.** An attacker holding one *contact's* key
   produces one real attestation — below threshold for `K ≥ 2`. An attacker
@@ -110,8 +121,9 @@ propagation — two-axis and no-central-authority preserved.
   a hub you distrust can't be socially recovered *against* either way.
 - **Replay/freshness.** `hub_pubkey` in the bundle blocks cross-hub replay;
   the server-generated per-request `nonce` blocks cross-request replay. A
-  bounded-window expiry sweep (not yet implemented — see decision point)
-  limits how long a half-gathered request lingers.
+  bounded-window expiry sweep (the 14-day flip to `expired`, in
+  `crates/hub/src/retention_worker.rs`) limits how long a half-gathered
+  request lingers.
 - **Why threshold holds.** It is a *filter to earn admin attention*, not an
   authorization. K colluding/compromised contacts still can't grant
   anything; the admin scopes the transfer and the owner role never rides
@@ -151,7 +163,7 @@ Wire-format changes are cross-repo: the identity crate and TS
 3. **Clients** (Wavvon-clients; web leads per
    [client-parity.md](client-parity.md)): requester status view (poll
    `GET :id`, show count/K, shareable id); **contact review card** (paste
-   id → `GET :id` → sign the bundle with the master key → `POST attest`).
+   id → `GET :id` → sign the bundle with the roster identity key → `POST attest`).
    This unblocks hoisting `RecoveryContactsSection` into `packages/ui`.
 
 Order 1 → 2 → 3; step 1 gates 2 and 3 because both sign/verify the same

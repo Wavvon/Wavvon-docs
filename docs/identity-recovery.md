@@ -1,8 +1,17 @@
 # Identity Recovery UX
 
-**Status**: design — no code yet. Builds on the shipped recovery phrase
-([identity.md](identity.md)) and the committed multi-device + home-hub
-designs ([multi-device.md](multi-device.md), [home-hub.md](home-hub.md)).
+**Status**: **both parts shipped.** Part 1 (`.wavvon-backup`) landed with the
+2026-07-20 Settings IA work — one Argon2id + AES-256-GCM format shared by TS
+and Rust, asserted byte-identical against a common test vector. Part 2
+(recovery contacts) is complete end to end since 2026-07-20 as well; the
+attestation half is written up in
+[recovery-attestation.md](recovery-attestation.md), which supersedes Part 2
+phase 3 below. Builds on the shipped recovery phrase
+([identity.md](identity.md)) and the now-shipped multi-device + home-hub work
+([multi-device.md](multi-device.md), [home-hub.md](home-hub.md)).
+
+The third layer, hub-hosted recovery with no artifact to keep, is
+[identity-vault.md](identity-vault.md) and stays parked.
 
 The recovery phrase already covers "I formatted my PC" — paste 24 words,
 get the same keypair. This doc designs the **two next layers** that sit

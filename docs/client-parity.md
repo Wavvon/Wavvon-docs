@@ -532,3 +532,36 @@ the gap closes when a desktop feature actually needs to branch on a hub's
 version — parse `capabilities` into the session record and mirror
 `hubSupports`. Rationale: decisions.md, "Hub capabilities are advertised, not
 inferred from a version number".
+
+## Device self-certification and designation on connect — web only (2026-09-05)
+
+Web issues and registers a device's own `SubkeyCert` on connecting to a hub,
+and publishes a `HomeHubList` naming that hub if the identity has none —
+`ensureSelfDeviceCert` / `ensureHomeHubDesignation` in
+`apps/web/src/platform/commands/identity.ts`, both fire-and-forget from
+`connectHub`, cert first. **Desktop does neither.** `src-tauri/src/devices.rs`
+only lists and revokes; nothing there POSTs a cert to
+`/identity/{master}/devices`, and `home_hub.rs::build_designation` publishes
+only when the user drives the Home Hubs UI by hand.
+
+This is the gap web just closed, still open on desktop, and it fails the same
+silent way: the roster→master link exists only in a device cert, so a
+desktop-only identity is invisible to every hub's home-hub lookup. DM fan-out
+and mirror-forward skip it, with no error on either side
+([home-hub.md](home-hub.md), decisions.md "Devices stay subkeys, and a device
+certifies itself at first auth").
+
+There is **no workaround on desktop**, because there is no self-cert path at
+all: the registered Tauri commands are `devices::device_list`,
+`devices::device_revoke` and the eight `pairing::*` ones, and none of them
+issues a cert for *this* device. Pairing hands a cert to the *claiming*
+device, so a desktop that pairs a phone leaves the phone linked and itself
+not. Web at least had the Settings → Devices route before this change; desktop
+never had one.
+
+Closing it is the Tauri-side equivalent of the two web helpers, on whichever
+path `hub_session.rs` uses to authenticate: derive the master, self-sign a
+cert for the identity's own pubkey, POST it to `/identity/{master}/devices`,
+then publish the designation if `GET /identity/{master}/designation` 404s.
+Web is the delivery target so this waits on desktop being picked up again —
+but it is a correctness gap, not a cosmetic one.

@@ -1,6 +1,10 @@
 # Forum channel type
 
-**Status**: design committed. Not built. Federation deferred to v2.
+**Status**: **built** — `crates/hub/src/routes/posts.rs` +
+`post_models.rs` on the hub, covered by `forum_flow.rs`; post tags shipped
+2026-07-21 (§10). Federation across alliances is still designed-not-built
+(§9). Per-section statuses below are authoritative where they differ from
+this line.
 
 A **forum channel** is a channel whose content is an ordered list of
 titled *posts*, each carrying its own reply thread, instead of a

@@ -6,7 +6,10 @@ games fall out" pillar ([future-features.md §3](future-features.md),
 it defines the *grant model* that governs them and the runtime choice
 that turns "a bot with capabilities" into "a game."
 
-**Status: design.** Several legs already ship in isolation — message
+**Status: Phases 1–2 shipped 2026-07-19** (voice/video injection and
+bot-launched game modals); the consent spine exists on the hub as
+capability grants, covered by `crates/hub/tests/bot_capability_grants_flow.rs`.
+Later phases below are still design. Several legs already ship in isolation — message
 components + embeds + mini-app launch ([bots.md §11, §17](bots.md)),
 `can_speak_voice` audio injection ([soundboard.md §2](soundboard.md)),
 the screen-share relay ([ws-protocol.md](ws-protocol.md) `screen_share_*`).

@@ -1,6 +1,12 @@
 # Custom Themes (User Skins)
 
-**Status:** designed, not built. Personal-axis, v1.
+**Status:** **built on web** — `apps/web/src/components/settings/
+CustomThemesSection.tsx`, reached from the Appearance tab; the theme library
+and the active selection are account-scoped in the per-account store since
+2026-07-19 (shipped log). Personal-axis, v1. **Not yet in the prefs blob**, so
+themes do not follow the user to another device — that is the remaining piece
+of this design, and it is why the archive still carries `themes` as its own
+section ([data-export.md](data-export.md) §2).
 
 > Paths in this doc predate the client monorepo. The clients now live in
 > the Wavvon-client monorepo: read `Wavvon-desktop/desktop/` as

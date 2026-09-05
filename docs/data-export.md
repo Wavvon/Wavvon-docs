@@ -5,8 +5,15 @@ passphrase-encrypted archive of everything on the user's **personal
 axis**: identity, home-hub designations, prefs, devices, and decrypted
 DM history. Data sovereignty as a checkable feature, not a promise.
 
-**Status: export implemented on web (v1); import deferred.** See
-"Implementation notes" below.
+**Status: export and import both implemented on web (v1).** Import landed
+after this doc's notes were written: `apps/web/src/utils/archiveRestore.ts`
+(`parseArchiveDocument` → `planRestore` against a
+`readExistingAccountSnapshot` → `applyRestorePlan`, with a skipped/restored
+summary), driven from `FullArchiveSection`'s restore mode and covered by
+`archiveRestore.test.ts`. **Cross-client import is still deferred** — the web
+`wavvon-archive` envelope and the desktop identity-backup envelope remain
+structurally similar but distinct formats, and reconciling them needs a shared
+envelope spec first. See "Implementation notes" below.
 
 ---
 
@@ -40,8 +47,10 @@ DM history. Data sovereignty as a checkable feature, not a promise.
   `devices.subkey_certs`/`revocations` are plaintext, signed records
   (not E2E ciphertext) fetched read-only from the active hub's existing
   `/identity/{pubkey}/...` routes — no new server surface. A missing
-  designation (404, e.g. a single-hub user who never configured one)
-  is an empty result, not an abort. These routes are keyed by the
+  designation (404) is an empty result, not an abort. That is now the rare
+  case rather than the common one: since 2026-09-05 both the cert and the
+  designation are published on first connect, so an identity normally has
+  both by the time it can reach this screen ([multi-device.md](multi-device.md)). These routes are keyed by the
   HKDF-derived **master** pubkey, not the device/canonical pubkey DMs
   use — v1 originally queried them with the wrong (device) pubkey for
   entropy-holding identities, silently returning empty designation/device

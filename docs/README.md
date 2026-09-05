@@ -42,9 +42,10 @@ had a "recently shipped" section, whatever this line used to claim):
     - [hub-creation-wizard.md](hub-creation-wizard.md) — **superseded**: a hub is self-hosted and no client creates one. Kept for the reasoning
 12. [gaming.md](gaming.md) — game distribution platform: tiers, registry, hub admin install + permissions, six-call SDK, farm-level games
 13. [multi-device.md](multi-device.md) — master+subkey identity, QR pairing protocol
+    - [home-hub.md](home-hub.md) — personal-axis state: the home hub list, its replication, and DM canonicalization. Designation, device registry, revocations, pairing state, the encrypted prefs blob and DM mirror-forward are built; the canonical DM inbox the clients read from, and the friend list, are still design
 14. [e2e-encryption.md](e2e-encryption.md) — E2E encrypted DMs: X25519 from Ed25519 seed, static ECDH + AES-GCM, signed envelopes, group sender keys
     - [identity-recovery.md](identity-recovery.md) — recovery UX beyond the phrase: passphrase-wrapped `.wavvon-backup` export/import (Part 1) + per-hub recovery contacts (Part 2, vouch not auto-grant) + pointer to the hub-hosted identity vault ([identity-vault.md](identity-vault.md), no-file recovery from a home hub)
-    - [recovery-attestation.md](recovery-attestation.md) — completes recovery contacts: the split request/attest flow, the `recovery-attestation/v1` signed envelope, and the signature-verification fix that makes the threshold real (design, decisions pending)
+    - [recovery-attestation.md](recovery-attestation.md) — completes recovery contacts: the split request/attest flow, the `recovery-attestation/v1` signed envelope, and the signature verification that makes the threshold real (shipped 2026-07-20; note which key signs — roster identity, not master)
     - [wire-format.md](wire-format.md) — canonical byte-level spec for all signed envelopes in the identity crate (multi-device + E2E DM + identity verification); test vectors for client implementors
 15. [server-tags.md](server-tags.md) — self-tags (discovery keywords) + portable signed hub badges
     - [hub-certifications.md](hub-certifications.md) — anti-spam Layer 2: hub-signs-user reputation certs, portable PoW credit
@@ -53,7 +54,7 @@ had a "recently shipped" section, whatever this line used to claim):
 17. [android-client.md](android-client.md) — Tauri 2 Android wrapper around the browser platform layer, side-loaded APK
     - [install-android.md](install-android.md) — end-user guide: enable unknown sources, download APK, Play Protect warning
     - [client-monorepo.md](client-monorepo.md) — **shipped (2026-06-13)**: the three client repos were consolidated into the one pnpm-workspace Wavvon-client monorepo (`packages/core|ui|platform|i18n` + `apps/*`); staged migration, git-subtree history preservation, CI/release/updater cutover. Hub server stays separate. See [decisions.md](decisions.md).
-    - [client-parity.md](client-parity.md) — **living tracker** of feature gaps across web / desktop / android (web leads). Current: android is missing role assignment via the right-click menu; web/android lack a create/delete-role UI.
+    - [client-parity.md](client-parity.md) — **living tracker** of feature gaps across web / desktop (web leads; the Android client was removed 2026-07-12). Current: desktop lacks device self-certification and designation-on-connect, and does not read hub `capabilities`.
 18. [bots.md](bots.md) — external bot ecosystem: invite-by-pubkey, slash commands, webhook dispatch, per-hub directory
 19. [accessibility.md](accessibility.md) — keyboard navigation, ARIA / screen-reader support, i18n strategy across desktop / web / Android
 20. [forum.md](forum.md) — forum channel type: post-list variant, posts + reply threads, `create_posts`/`manage_posts` permissions, FTS search; §9 designs alliance federation (read-through proxy, owning hub authoritative — designed, not built)
@@ -68,12 +69,11 @@ had a "recently shipped" section, whatever this line used to claim):
 
 ### Future direction (designed, not built)
 
-- [home-hub.md](home-hub.md) — personal-axis state: home hub list, replication, DM canonicalization
 - [screen-share-modal.md](screen-share-modal.md) — unified desktop screen-share picker: Tauri `list_capture_sources` command, thumbnail grid, single-modal UX replacing the current two-step OS overlay
 - [nested-channels-ux.md](nested-channels-ux.md) — nested-channel UX gaps: channel permalinks (breadcrumb resolution), deep-nesting sidebar strategy (capped indent + drill-in), and channel permission overwrites (net-new file-system-style cascade — data model, resolver, routes, UI)
-- [settings-ia.md](settings-ia.md) — unified Settings information architecture + profile model: one tab structure both clients render from `packages/ui`, converging desktop off the deleted profile-pool and onto multi-account (decided 2026-07-20); unblocks the `ProfileTab` + `IdentityBackupSection` parity passes
+- [settings-ia.md](settings-ia.md) — **implemented 2026-07-20** — unified Settings information architecture + profile model: one tab structure both clients render from `packages/ui`, converging desktop off the deleted profile-pool and onto multi-account (decided 2026-07-20); unblocks the `ProfileTab` + `IdentityBackupSection` parity passes
 - [future-features.md](future-features.md) — intent settled, design pending: alliance member discovery, Android QR pairing, passkey-from-desktop, desktop parity, visibility push, the build-gated identity vault
-- [bot-capability-layer.md](bot-capability-layer.md) — the consent spine for the "Telegram-class bot runtime → games" pillar: capability request/grant model, interactive-UI runtime choice (declarative components vs sandboxed webview game modal), voice/video injection gates, abuse controls, phased first playable
+- [bot-capability-layer.md](bot-capability-layer.md) — **Phases 1–2 shipped 2026-07-19** — the consent spine for the "Telegram-class bot runtime → games" pillar: capability request/grant model, interactive-UI runtime choice (declarative components vs sandboxed webview game modal), voice/video injection gates, abuse controls, phased first playable
 
 ### Archived designs
 
@@ -133,7 +133,7 @@ Reading order is for learning the system end-to-end. This section is for
 - **AFK channel (auto-move idle voice users)** — [afk-channel.md](afk-channel.md)
 - **Video / webcam in voice channels** — [video-voice.md](video-voice.md)
 - **Voice transport v2 (WebTransport + E2E, shipped 2026-08-07)** — [voice-transport-v2.md](voice-transport-v2.md)
-- **Cross-hub voice in alliance channels (designed, not built)** — [alliances.md](alliances.md)
+- **Cross-hub voice in alliance channels (shipped: hub 2026-08-22, web 2026-08-29)** — [alliances.md](alliances.md)
 - **Networked voice fix + voice encryption plan** (Phase 1 shipped; Phases 1.5/2 superseded by voice-transport-v2) — [voice-networking-design.md](voice-networking-design.md)
 - **Screen share** — [screen-share.md](screen-share.md) (v1 transport), [screen-share-webrtc.md](screen-share-webrtc.md) (v2 WebRTC)
 - **Screen share unified modal (desktop, designed)** — [screen-share-modal.md](screen-share-modal.md)
@@ -142,11 +142,11 @@ Reading order is for learning the system end-to-end. This section is for
 - **Hub-to-hub auth** — [identity.md](identity.md), [federation.md](federation.md)
 - **Alliances (multi-hub groups)** — [alliances.md](alliances.md)
 - **Shared channels across alliance** — [alliances.md](alliances.md)
-- **Voice in alliance channels (designed, not built)** — [alliances.md](alliances.md) "Voice in alliance channels"
+- **Voice in alliance channels (shipped: hub 2026-08-22, web 2026-08-29)** — [alliances.md](alliances.md) "Voice in alliance channels"
 - **Federated DMs (outbox model)** — [federation.md](federation.md)
 - **Federated reactions on alliance reads** — [federation.md](federation.md)
 - **Forum post federation across alliances** — [forum.md](forum.md) §9 (shipped 2026-07-19)
-- **Certification relay inside a farm (designed, not built)** — [hub-certifications.md](hub-certifications.md) §11
+- **Certification relay inside a farm (shipped 2026-08-29)** — [hub-certifications.md](hub-certifications.md) §11
 - **Farm multi-node data plane (designed, not built)** — [farm-model.md](farm-model.md) "Multi-node data plane"
 
 ### Hosting & ecosystem

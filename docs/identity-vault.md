@@ -7,7 +7,17 @@ file; Part 2: recovery contacts) per the ~focused-doc convention.
 **Status**: design — no code yet; **PARKED 2026-07-19 (user call):
 revisit after the first external pilot**, when real identity-loss
 patterns can justify (or kill) the hub-held-ciphertext trade-off. Do not
-build without that re-decision. Extends the Part 1 `.wavvon-backup`
+build without that re-decision.
+
+**Why it is parked rather than dropped** (added 2026-09-05, decisions.md
+"Devices stay subkeys, and a device certifies itself at first auth"): keeping
+per-device keys is what makes this layer load-bearing rather than optional. A
+paired device holds no master seed and therefore no local entropy to derive
+the prefs blob key, so anything keyed off the master — the blob, and any
+future own-message stash inside it — is out of its reach without a
+hub-retrievable secret. Matrix hit the same wall and answered it with 4S
+(server-side encrypted secret storage), now the default in Element. So this is
+the price of per-device keys for a user who keeps nothing, not an extra. Extends the Part 1 `.wavvon-backup`
 envelope and the personal-axis storage model ([home-hub.md](home-hub.md)).
 This is the provider-independent successor to what passkey PRF promised
 ([webauthn-auth.md](webauthn-auth.md)): recovery on a fresh device with

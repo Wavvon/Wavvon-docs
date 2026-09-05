@@ -3525,7 +3525,7 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   256→4096, H21 handle_typing ban check, H22 badge-offer rate-limit + duplicate
   guard, H23 preview SSRF proxy-aware + redirect IP guard. DB indexes H12/H13
   verified present. W25/W27 already fixed by monorepo consolidation + identity
-  refactor. Full finding list: [`code-audit-2026-06-11.md`](code-audit-2026-06-11.md).
+  refactor. Full finding list: [`code-audit-2026-06-11.md`](../code-audit-2026-06-11.md).
 
 - **Per-hub subkey revocation propagation (2026-06-30)** — background worker polls
   each master key's home hub every 6 hours, verifies Ed25519 signatures, and inserts
@@ -3542,8 +3542,8 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   anatomy, voice control bar, emoji picker, chat column max-width, channel hash
   glyph, WelcomeScreen browse wiring, whisper portal, camera picker, leave-voice
   button, screen-share picker thumbnails, role submenu, banner channel editing.
-  Details: [`design-review-2026-06-13.md`](design-review-2026-06-13.md) and
-  [`pilot-feedback-2026-06-12.md`](pilot-feedback-2026-06-12.md).
+  Details: [`design-review-2026-06-13.md`](../design-review-2026-06-13.md) and
+  [`pilot-feedback-2026-06-12.md`](../pilot-feedback-2026-06-12.md).
 
 - **Forum reactions + attachments (2026-07-01)** — `post_reactions` and
   `reply_reactions` tables added; `attachments` JSON column on `posts` and
