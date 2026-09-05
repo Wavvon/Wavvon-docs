@@ -6,7 +6,9 @@ you the rationale and points you to the right files.
 
 ## Reading order
 
-If you're new, read in this order:
+Never seen Wavvon before? Start with
+[getting-started.md](getting-started.md) — what it is and why it is
+self-hosted, for a reader who has not run one. Then read in this order:
 
 1. [architecture.md](architecture.md) — what runs where, the four repos (hub server, the Wavvon-client monorepo, docs, discovery) and the crates inside Wavvon-server
 2. [identity.md](identity.md) — keypairs, recovery, auth
@@ -26,6 +28,7 @@ If you're new, read in this order:
 - [hub-operator-guide.md](hub-operator-guide.md) — **operating** a running hub: config reference, ownership, bootstrap, backup/restore, upgrade path, hardening
 - [packaging.md](packaging.md) — cross-platform packaging, code signing, auto-update, CI/CD, hub Docker image
 - [performance.md](performance.md) — load test plan for WS broadcast, search, voice relay; suspected ceilings and "good enough" thresholds (designed, not started)
+- [hub-scaling.md](hub-scaling.md) — how one hub scales from a handful of users toward a million, and what changes at each threshold (tiers 1–3 shipped: Tantivy search, PostgreSQL, optional read replicas)
 
 ### Onboarding & anti-abuse
 
@@ -55,6 +58,7 @@ had a "recently shipped" section, whatever this line used to claim):
     - [install-android.md](install-android.md) — end-user guide: enable unknown sources, download APK, Play Protect warning
     - [client-monorepo.md](client-monorepo.md) — **shipped (2026-06-13)**: the three client repos were consolidated into the one pnpm-workspace Wavvon-client monorepo (`packages/core|ui|platform|i18n` + `apps/*`); staged migration, git-subtree history preservation, CI/release/updater cutover. Hub server stays separate. See [decisions.md](decisions.md).
     - [client-parity.md](client-parity.md) — **living tracker** of feature gaps across web / desktop (web leads; the Android client was removed 2026-07-12). Current: desktop lacks device self-certification and designation-on-connect, and does not read hub `capabilities`.
+    - [state-access-design.md](state-access-design.md) — how App.tsx and the shared components get their state: **decided 2026-09-05**, containers only — `packages/ui` stays prop-only, React Context rejected, the store deferred behind a named trigger. Read it before proposing a state library
 18. [bots.md](bots.md) — external bot ecosystem: invite-by-pubkey, slash commands, webhook dispatch, per-hub directory
 19. [accessibility.md](accessibility.md) — keyboard navigation, ARIA / screen-reader support, i18n strategy across desktop / web / Android
 20. [forum.md](forum.md) — forum channel type: post-list variant, posts + reply threads, `create_posts`/`manage_posts` permissions, FTS search; §9 designs alliance federation (read-through proxy, owning hub authoritative — designed, not built)

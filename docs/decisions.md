@@ -6,6 +6,78 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Client state access: containers only. No context, and no store until a ref mirror actually breaks something
+
+**Decision** (2026-09-05): shared components in `packages/ui` stay **prop-only**,
+App.tsx keeps its per-app containers, and the store proposed as Phase 2 of
+[state-access-design.md](state-access-design.md) is **not built**. React Context
+is rejected outright. This closes a proposal that had been open since
+2026-07-29 without a decision, which is its own cost — an undecided document
+gets re-read and re-argued every time someone touches App.tsx.
+
+What settled it is that the proposal named its own stopping condition — *"if
+Phase 1 alone lands App.tsx somewhere the user is happy with, stop there and
+skip Phase 2 — the ref mirroring is a papercut, not a fire"* — and that
+condition is met. Measured 2026-09-05:
+
+- **Phase 1 shipped and hit its estimate.** `ChannelSidebarContainer`,
+  `SettingsPageContainer`, `HubAdminContainer` and `AppModals` all exist on
+  web; App.tsx is 1,679 lines against the ~1,650 predicted.
+- **Phase 2's justification grew rather than shrank**, and that turns out not
+  to matter. The hand-mirrored refs in web App.tsx were ~13 when the proposal
+  was written and are **19** now; `useWsHandlers` is still frozen (`useMemo`,
+  deps `[]`).
+- **The bug class the store was meant to remove has never occurred.** The
+  proposal's tradeoff paragraph justifies the second state model as buying
+  safety from "a frozen memo capturing first-render values". Searching all
+  **4,107 lines** of [shipped-log.md](shipped-log.md) — which records every
+  real defect this project has found — for stale refs, stale closures and
+  frozen handlers returns **nothing**. Nineteen ref mirrors are plumbing we
+  pay for in lines, not a source of defects.
+
+The classes that *do* recur in that log are silent fallthroughs, cross-hub and
+cross-client gaps, and name drift across process boundaries. A store addresses
+none of them.
+
+**Alternatives considered.**
+
+*React Context slices.* Rejected on three counts, all still true: a context
+re-renders every consumer on any value change, so voice state changing several
+times a second would re-render the message list unless we hand-maintain the
+memo discipline a selector gives free; it does nothing for the frozen WS
+registry, which reads outside render and would keep every ref; and it turns
+"an optional prop a client omits" into "a context field both clients must
+supply", directly against the union rule that made the 2026-07-20
+consolidation work.
+
+*The ~30-line `useSyncExternalStore` store.* The strongest option on paper —
+selectors plus readable/writable outside React, no new dependency — and still
+declined, because it buys a second state model ("where does this live?" on
+every new feature) against a cost that has produced no bugs. It is deferred,
+not refused: see the trigger below.
+
+*Convergence instead.* [next-up.md](next-up.md) already names the better lever
+for the same file: web/desktop hook pairs (`useDms`, `useScreenShare`,
+`useWhisper`, …) differ mainly in platform access, so they can be hoisted into
+`packages/ui` with an injected actions object and **both app copies deleted**.
+That removes duplicated code; a store only moves plumbing inside one file.
+Desktop is still at 2,055 lines, and it is duplication rather than prop
+threading that keeps it there.
+
+**Tradeoff.** App.tsx stays larger than a store would leave it, and every new
+piece of WS-visible state still costs a hand-written ref mirror — a real,
+recurring papercut we are choosing to keep paying. Accepted because the
+alternative is a permanent second state model bought against a hypothetical.
+
+**Outcome.** The trigger to reopen is named and narrow: **the first real defect
+caused by a stale ref mirror or a frozen handler reading first-render values.**
+When that lands, the store is a ~30-line `packages/core` module and the plan is
+already written — Phase 2 of state-access-design.md, unchanged. Two secondary
+triggers from the proposal also stand: render tests arriving in `packages/ui`
+(providers would then have a harness cost they lack today), and the Android
+rewrite becoming near-term (a third client raises the value of components that
+self-serve state).
+
 ## Devices stay subkeys, and a device certifies itself at first auth
 
 **Decision** (2026-09-05, implemented web + hub the same day): Wavvon keeps the

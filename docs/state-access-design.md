@@ -1,12 +1,26 @@
 # Client state access: props, context, or a store
 
-**Status: PROPOSAL, awaiting review.** Nothing here is decided; no
-`decisions.md` entry exists yet (the draft one is at the bottom).
-Phase 1 (containers — no new state mechanism, no decision required) was
-implemented 2026-07-29, clients commit `7eba1fe`: web App.tsx landed at
-1,689 lines (est. was ~1,650), desktop at 2,050 (est. ~1,900; the
-voice-move overlay cluster and modals were kept out of the sidebar
-container's scope). Phases 2–3 remain unimplemented pending review.
+**Status: DECIDED 2026-09-05 — containers only.** See
+[decisions.md](decisions.md), "Client state access: containers only. No
+context, and no store until a ref mirror actually breaks something".
+
+- **Phase 1 — done.** Implemented 2026-07-29 (clients `7eba1fe`) and extended
+  since: `ChannelSidebarContainer`, `SettingsPageContainer`,
+  `HubAdminContainer`, `AppModals`. Web App.tsx is 1,679 lines against the
+  ~1,650 estimated; desktop 2,055 against ~1,900 (the voice-move overlay
+  cluster and modals were kept out of the sidebar container's scope, and
+  desktop's parity pass is still open in [next-up.md](next-up.md)).
+- **Phase 2 (store) — not built, deferred with a trigger.** The stopping
+  condition this document itself named under "What would change my mind" was
+  met. The refs it exists to delete have grown from ~13 to 19, and that class
+  of bug has still never appeared in 4,107 lines of
+  [shipped-log.md](shipped-log.md) — so it is a papercut, as this doc
+  predicted, not a fire. Reopen on the first real defect caused by one.
+- **Phase 3 (personal-axis slice) — not built.** Depends on Phase 2.
+- **React Context — rejected outright**, on the three counts in Option 2 below.
+
+The evaluation below is kept as written: it is the reasoning the decision
+rests on, and Phase 2's plan is intact should the trigger fire.
 
 Context: after the two App.tsx refactor passes (decisions.md 2026-07-28
 /29) web is 1,868 lines and desktop 2,274, and what's left is dominated
@@ -205,11 +219,20 @@ rejected 2026-07-28), and moving the `packages/ui` hooks' state anywhere.
 
 ---
 
-## Draft decisions.md entry (only if accepted)
+## Draft decisions.md entry — NOT the decision that was taken
+
+**Superseded.** The entry below was drafted when this doc recommended
+containers *plus* a store. The decision actually taken on 2026-09-05 accepted
+the containers and declined the store; it lives in
+[decisions.md](decisions.md) and is authoritative. Kept because the one claim
+it rests on is worth remembering as a mistake: it justifies the store as
+protecting against "a frozen memo capturing first-render values — the real bug
+class", and that bug class had by then never occurred once in this codebase.
+Nobody checked before writing it down.
 
 > ## Client state access: containers now, a tiny store for WS-visible state; no context
 >
-> **Decision (PROPOSED, not yet accepted)**: shared components in
+> **Decision (PROPOSED — never accepted; see above)**: shared components in
 > `packages/ui` stay prop-only. App.tsx shrinks in two phases: (1)
 > per-app container components absorb the prop threading for the three
 > highest-prop call sites (`ChannelSidebar`, `ContentArea`,
