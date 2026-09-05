@@ -163,16 +163,29 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   - **desktop parity pass** on the web slices desktop still lacks — including
     this one: desktop's App.tsx still carries its own modal tree;
   - **convergence** — the actual payoff: web/desktop hook pairs (`useDms`, `useScreenShare`, `useWhisper`, …) differ mainly in platform access, which can travel in via an injected actions object like `packages/ui` components already do. Hoist converged pairs into `packages/ui`, delete both app copies. App.tsx stays app-local orchestration by design.
-    **`useUnreadCounts` is done (2026-09-05, shipped log)** and is the pattern
-    for the rest: platform access injected as optional deps, the pure map
-    transitions in `utils/` where they can be tested without a renderer. It
-    also set expectations — the pairs had drifted in *both* directions, so
-    converging is a union pass and not a port, and line counts barely moved.
-    Remaining pairs by divergence: `useWhisper` (108/130), `useAlliances`
-    (97/48, desktop is missing features), `useTypingIndicators` (119/130),
-    `useSettingsProfile` (197/133), then the big three that are mostly
-    platform transport — `useDms` (141/358), `useScreenShare` (146/327),
-    `useVideo` (144/331).
+    **Three pairs are converged (2026-09-05, shipped log): `useUnreadCounts`,
+    `useWhisper`, `useTypingIndicators`.** The pattern they set: platform
+    access injected as deps, pure logic in `utils/` where it can be tested
+    without a renderer (`packages/ui` has no jsdom), and each merge is a
+    *union* — the copies had drifted in both directions, so there is no
+    "behind" client to port from. Expect behaviour questions, not just
+    plumbing: two of the three fixed a real desktop bug on the way.
+    **The remaining pairs were surveyed and are not the same job**, so do not
+    plan them as more of the above:
+    - `useAlliances` (97/48) — **entangled, converge with `useChannelMessages`
+      or not at all.** Desktop is not missing the federated-channel feature;
+      it keeps selection and messages in `useChannelMessages` while web keeps
+      them here. Same drift shape as `unreadDms`, and splitting the pair means
+      touching both hooks anyway.
+    - `useSettingsProfile` (197/133) — **not a pair worth merging.** Only the
+      theme/skin state is shared. Web additionally owns multi-account
+      switching (including a sessionStorage hand-off that exists because a
+      browser reloads), the custom-theme store and the recovery phrase;
+      desktop handles those in `AccountRoot` and `ManageAccountsTab`. The
+      union would be mostly `if (web)`.
+    - `useDms` (141/358), `useScreenShare` (146/327), `useVideo` (144/331) —
+      the size gap is platform transport, not drift. Worth doing last, and
+      only if the deps object stays smaller than what it replaces.
   - Not worth extracting (checked 2026-07-27): message send/edit.
 
 - [ ] **List-endpoint pagination — remaining lists.** One keyset dialect

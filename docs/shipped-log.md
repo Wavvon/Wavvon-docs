@@ -4,6 +4,33 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **`useWhisper` and `useTypingIndicators` converged too (2026-09-05)**: two
+  more pairs into `packages/ui`, and the second one is where converging stopped
+  being plumbing.
+  **Whisper** was the easy case — the state machine was already identical line
+  for line, so only persistence and transport moved into deps. Two divergences
+  had to be settled rather than papered over: web sends the receive opt-out to
+  *every* connected session and desktop only to the active hub (both right,
+  since the hub holds it per connection and desktop authenticates per hub, so
+  the dep keeps each answer), and inbound pushes arrive through web's WS
+  handler registry but a Tauri event on desktop, so `subscribeInbound` is
+  optional and only desktop passes it. Taking the union fixed a desktop bug:
+  leaving voice cleared only the inbound half there, so the whisper button
+  stayed lit with nothing behind it.
+  **Typing indicators** had actually diverged in behaviour. Desktop keyed
+  entries by bare pubkey and filtered by channel where the event arrived, so
+  whoever was typing when you left a channel appeared to be typing in the one
+  you switched to, until the 5s sweep caught up; entries are keyed by scope now
+  (`channelId:pubkey`, web's shape) and both apps filter at render through one
+  `typingForScope` helper. Expiry went the other way and took desktop's single
+  1s sweep over web's per-entry `setTimeout`, which scheduled a timer per
+  keystroke-burst per person, each holding a closure over the map. Desktop's
+  `chat-typing`/`dm-typing` handlers now pass the scope id they were already
+  filtering on. App copies: 108/130 → 54/69 and 119/130 → 63/30.
+  The three remaining pairs were surveyed and are **not** the same job —
+  `useAlliances` is entangled with `useChannelMessages`, `useSettingsProfile`
+  shares almost nothing, and the big three differ by platform transport rather
+  than drift. Recorded in next-up.md so nobody re-derives it.
 - **One `useUnreadCounts` for both clients (2026-09-05)**: the first converged
   hook pair, and the pattern for the rest. The two copies had drifted in *both*
   directions rather than one being behind — web owned `unreadDms` and seeding
