@@ -217,12 +217,21 @@ auth that presents it.
 ## Picking, moving, self-hosting
 
 **The first hub an account signs in to becomes its home hub**, published
-automatically (slot 0, sequence 1) by the client that reaches a hub and finds no
-designation for that account — see the 2026-08-25 entry in
+automatically (slot 0, sequence 1) by the client — see the 2026-08-25 entry in
 [decisions.md](decisions.md). It never overwrites an existing designation,
 including one the user emptied on purpose, and a paired device skips it because
 a subkey cannot sign a `HomeHubList`. Editing the list stays where it was:
 Settings → Manage accounts → Home hubs.
+
+**On the identity's first hub only, and the client decides that — not the
+hub.** A hub answering 404 means it has not seen this designation, which is not
+the same as there not being one; every hub the user joins later answers 404 too.
+Publishing on each join would leave hub B holding a single-hub list naming
+itself while hub A holds the real one, and sequence cannot break that tie
+because both are 1. Worse where the client signs with `cached sequence + 1`:
+the newcomer's list wins outright and the user's home hubs are silently reset
+to whichever hub they joined last (fixed 2026-09-05, shipped log). So the
+client publishes only when this identity knows no other hub.
 
 An account with no hub is not a thing that exists, so there is no first-launch
 picker: the list starts as the one hub the user actually reached, and grows if

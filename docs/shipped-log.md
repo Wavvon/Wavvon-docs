@@ -4,6 +4,22 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Joining a second hub no longer rewrites your home hub list (2026-09-05)**:
+  `ensureHomeHubDesignation` publishes a list naming the one hub it was handed
+  and ran on *every* join. A hub that has never seen the designation answers
+  404 whether or not one exists elsewhere — and every hub joined after the
+  first answers 404 — so hub B ended up holding a single-hub list naming
+  itself while hub A held the real one, with sequence unable to break the tie
+  at 1 apiece.
+  Desktop's copy, written the same day, was worse: it went through
+  `set_home_hub_list`, which signs with `cached sequence + 1`. Consumers take
+  the highest sequence, so that list would have **won** everywhere — "I joined
+  another hub" quietly resetting the user's home hubs to that hub. Found by
+  re-reading the new code rather than by a test, which is the honest way to
+  describe it: nothing in either suite was watching for it.
+  Both clients now publish only on an identity's first hub. Desktop returns
+  early when the device already holds a designation; web reads whether any
+  other hub is saved, before the join adds this one.
 - **Auth records the cert it verifies, so a device appears in its own device
   list (2026-09-05)**: two writes that should have been one. Auth wrote
   `users.master_pubkey` — the link every home-hub lookup needs — and nothing
