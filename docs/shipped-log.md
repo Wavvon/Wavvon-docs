@@ -4,6 +4,22 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Desktop certifies its own device too, closing the gap web closed the same
+  day (2026-09-05)**: `apps/desktop` had no self-cert path at all — the
+  registered Tauri commands were `device_list`, `device_revoke` and the eight
+  `pairing::*`, none of which issues a cert for *this* device — so a
+  desktop-only identity was invisible to every hub's home-hub lookup, and
+  unlike web there was not even a Settings workaround.
+  The cert now rides on `/auth/verify` rather than a registration POST,
+  because the hub's auth upsert already writes `users.master_pubkey` from the
+  cert it is handed: the whole link, inside a request the client was making
+  anyway. Nothing persists it — re-derivable from the seed, upserted by
+  (master, subkey), and `device_list` reads certs from the hub. It is built at
+  `authenticate()` rather than at credential load because the cert carries the
+  hub URL as its designation-of-last-resort and only the caller knows it.
+  The designation follows on the join path, cert first. It no-ops on anything
+  but a 404, so an existing list, one the user emptied on purpose, and a hub
+  that answered 5xx are all left alone rather than overwritten on a guess.
 - **The musl builds stop promising a bundled database they cannot start
   (2026-09-05)**: the release shipped two musl hub binaries whose advertised
   no-prerequisites path could not run — their PostgreSQL archive needs

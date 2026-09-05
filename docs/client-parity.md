@@ -533,35 +533,34 @@ version — parse `capabilities` into the session record and mirror
 `hubSupports`. Rationale: decisions.md, "Hub capabilities are advertised, not
 inferred from a version number".
 
-## Device self-certification and designation on connect — web only (2026-09-05)
+## Device self-certification and designation on connect — CLOSED 2026-09-05
 
 Web issues and registers a device's own `SubkeyCert` on connecting to a hub,
 and publishes a `HomeHubList` naming that hub if the identity has none —
 `ensureSelfDeviceCert` / `ensureHomeHubDesignation` in
 `apps/web/src/platform/commands/identity.ts`, both fire-and-forget from
-`connectHub`, cert first. **Desktop does neither.** `src-tauri/src/devices.rs`
-only lists and revokes; nothing there POSTs a cert to
-`/identity/{master}/devices`, and `home_hub.rs::build_designation` publishes
-only when the user drives the Home Hubs UI by hand.
+`connectHub`, cert first. **Desktop now does both too**, on the same day and by a different route — the
+cert rides on `/auth/verify` (`auth_creds.rs::self_signed_cert`), since the
+hub's auth upsert already writes `users.master_pubkey` from a presented cert,
+and `home_hub.rs::ensure_designation` follows it on the join path. What follows
+is what the gap was.
 
-This is the gap web just closed, still open on desktop, and it fails the same
-silent way: the roster→master link exists only in a device cert, so a
-desktop-only identity is invisible to every hub's home-hub lookup. DM fan-out
-and mirror-forward skip it, with no error on either side
+Before that, `devices.rs` only listed and revoked, nothing POSTed a cert to
+`/identity/{master}/devices`, and `home_hub.rs` published a designation only
+when the user drove the Home Hubs screen by hand. The registered Tauri commands
+were `devices::device_list`, `devices::device_revoke` and the eight
+`pairing::*`, none of which issues a cert for *this* device — pairing hands one
+to the *claiming* device, so a desktop that paired a phone left the phone
+linked and itself not. There was no workaround either: web at least had the
+Settings → Devices route.
+
+The failure was silent on both ends. The roster→master link exists only in a
+device cert, so a desktop-only identity was invisible to every hub's home-hub
+lookup, and DM fan-out and mirror-forward skipped it with no error anywhere
 ([home-hub.md](home-hub.md), decisions.md "Devices stay subkeys, and a device
 certifies itself at first auth").
 
-There is **no workaround on desktop**, because there is no self-cert path at
-all: the registered Tauri commands are `devices::device_list`,
-`devices::device_revoke` and the eight `pairing::*` ones, and none of them
-issues a cert for *this* device. Pairing hands a cert to the *claiming*
-device, so a desktop that pairs a phone leaves the phone linked and itself
-not. Web at least had the Settings → Devices route before this change; desktop
-never had one.
-
-Closing it is the Tauri-side equivalent of the two web helpers, on whichever
-path `hub_session.rs` uses to authenticate: derive the master, self-sign a
-cert for the identity's own pubkey, POST it to `/identity/{master}/devices`,
-then publish the designation if `GET /identity/{master}/designation` 404s.
-Web is the delivery target so this waits on desktop being picked up again —
-but it is a correctness gap, not a cosmetic one.
+**Still open on desktop, and cosmetic**: this device does not appear in its own
+`device_list`, which reads `subkey_certs` from the hub. Auth records the master
+on the user row without inserting a cert row, and web registers separately for
+exactly that reason. The link everything else depends on is made either way.

@@ -210,20 +210,6 @@ Committed, cannot proceed.
 real and unfixed, not that anyone is on it. When one is fixed its entry moves
 to the [shipped log](shipped-log.md).
 
-- **`apps/desktop` never certifies its own device, so no hub can tell which
-  master it is.** Web closed this on 2026-09-05 (shipped log): a device
-  self-signs and registers its `SubkeyCert` on connect, which is the only link
-  between a roster pubkey and the master a home hub list is stored under.
-  Desktop has no such path at all — the registered Tauri commands are
-  `devices::device_list`, `devices::device_revoke` and the eight `pairing::*`,
-  none of which issues a cert for *this* device, and `home_hub.rs` publishes a
-  designation only when the user drives the Home Hubs UI by hand. So a
-  desktop-only identity is invisible to every hub's home-hub lookup: DM
-  fan-out and mirror-forward skip it silently, and unlike web there is no
-  Settings workaround. Not urgent while web is the delivery target, but it is
-  a correctness gap, not a cosmetic one. Recipe in
-  [client-parity.md](client-parity.md).
-
 - **The English UI is translated everywhere it ships; `apps/desktop` is not
   done.** 1,011 hardcoded strings at the start of 2026-09-01, measured by
   `packages/i18n/find-hardcoded.mjs`. The shared package and the web app — the
