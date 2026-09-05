@@ -20,8 +20,13 @@ Two gaps left in the alliance area now that space-sharing (2026-07-05),
 forum federation (2026-07-19) and the voice design (2026-08-22, in
 [alliances.md](alliances.md)) are accounted for:
 
-- **Member discovery beyond invite tokens** — no way to browse an alliance's
-  membership; joining is still invite-driven.
+- **Member discovery beyond invite tokens** — *people*, not hubs. The member
+  **hubs** are already browsable: `GET /alliances/{id}` returns each one's
+  pubkey, name and URL, and the client lists them. What has no surface at all
+  is the people on them — nothing federates a user list, so meeting someone on
+  an allied hub still means an invite token or already knowing they are there.
+  Worth saying because the two read the same in a sentence and only one is
+  missing.
 - **Game launch / lobby federation across an alliance** —
   [gaming.md](gaming.md), [bot-capability-layer.md](bot-capability-layer.md).
 
@@ -55,8 +60,14 @@ What is left is which entries to add at all, each its own small question rather
 than a given:
 
 - **Mute with a duration** (15 min / 1 h / until tomorrow) — today notification
-  mode is a permanent choice; a timed one needs somewhere to keep the expiry
-  and something to expire it.
+  mode is a permanent choice. The mechanism it needs now exists: presence
+  stores an absolute `until` beside the status and applies it on load
+  (`packages/ui/src/utils/presenceExpiry.ts`, 2026-09-05), so a timed mute is
+  that shape pointed at `hubNotifyMode` rather than a new one. Copy the
+  deadline, not the timer — a timer alone is what made timed presence
+  permanent across a reload. What is left is where it lives: notify mode is
+  per hub *and* per channel, so an expiry per entry is a different storage
+  question from presence's one per user.
 - **Create category** and **create event** — both exist elsewhere in the UI;
   the question is only whether the hub menu is a second door to them.
 - **Per-hub profile** — Wavvon has hub profiles already

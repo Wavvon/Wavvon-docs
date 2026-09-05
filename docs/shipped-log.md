@@ -4,6 +4,20 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **A timed presence status survives a reload (2026-09-05)**: "clear after" was
+  a `setTimeout` and nothing else, so it lived exactly as long as the page —
+  set Away for an hour, reload, and you were Away until you noticed and changed
+  it by hand. A reload quietly turned a timed status into a permanent one, and
+  presence is what other people see, so that is the wrong direction to fail in.
+  What is persisted is a deadline now: an absolute `until`, not a remaining
+  duration, because a duration restarts every time it is written back. An
+  expired one comes back online, one with time left comes back with the
+  remainder counting, and anything unparseable is online — the safe direction,
+  since the alternative is telling everyone you are away when you are not. The
+  timer stays for the reverting-while-open half; it is just no longer the only
+  thing holding the promise.
+  Found while checking whether "mute with a duration" could reuse an existing
+  expiry mechanism. It can now; before, it would have inherited this.
 - **One hub menu behind two gestures (2026-09-05)**: the chevron dropdown and
   the right-click menu on the hub header were two copies of the same seven
   items, kept in step by hand — and had already stopped being: same items,
