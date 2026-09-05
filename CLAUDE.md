@@ -9,13 +9,14 @@ self-hosted, federated voice+text community platform. No code, no build step:
 Markdown plus `openapi.yaml`.
 
 ```
-docs/            the wiki — ~87 documents. Start at docs/README.md.
+docs/            the wiki — 89 documents. Start at docs/README.md.
 ROADMAP.md       an index over docs/next-up.md, future-features.md, wishlist.md
 openapi.yaml     the hub HTTP API contract
 CONTRIBUTING.md  branching model and workflow for every Wavvon repo
 COMPARISON.md    feature comparison
 assets/          images used by the docs
-scripts/         check-openapi-coverage.mjs
+.github/         CI: the doc-link check
+scripts/         check-openapi-coverage.mjs, check-doc-links.mjs
 ```
 
 Sibling repos:
@@ -45,6 +46,14 @@ cut it back to rationale and pointers.
 New documents go under `docs/` **and into `README.md`'s reading order** — a doc
 nobody can find from the index is a doc nobody reads. Keep files under ~200
 lines; split when they grow.
+
+`scripts/check-doc-links.mjs` enforces that, and CI runs it on every push and
+PR. It fails on a document with no inbound link, and on a relative `.md` link
+that resolves to nothing. Both had already happened: `state-access-design.md`
+sat undecided for six weeks because nothing pointed at it, `getting-started.md`
+was unreachable from anywhere, and three links in `shipped-log.md` aimed inside
+`docs/` at files that live at the repo root. Link syntax inside backticks or a
+fenced block is ignored, so writing *about* the convention is safe.
 
 ### `docs/decisions.md`
 
