@@ -167,10 +167,13 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   rather than loudly, and this missing harness is why the DM bugs survived so
   long. Build it reusable.
 
-- [ ] **App.tsx refactor — desktop parity + convergence.** Web 1,642 lines /
-  desktop 2,055, counted 2026-08-31. The hook-extraction phase landed
+- [ ] **App.tsx refactor — desktop parity + convergence.** Web 1,679 lines /
+  desktop 2,055, counted 2026-09-05. The hook-extraction phase landed
   2026-07-28 and after, and the **modal render tree left web on 2026-08-31**
-  (`components/layout/AppModals.tsx`, 213 lines out of App.tsx). Left:
+  (`components/layout/AppModals.tsx`, 213 lines out of App.tsx). The container
+  phase is now **all** of the mechanism this item gets: decisions.md 2026-09-05
+  declined the state store, so what is left shrinks App.tsx by removing
+  duplication, not by moving plumbing. Left:
   - **desktop parity pass** on the web slices desktop still lacks — including
     this one: desktop's App.tsx still carries its own modal tree;
   - **convergence** — the actual payoff: web/desktop hook pairs (`useDms`, `useScreenShare`, `useWhisper`, …) differ mainly in platform access, which can travel in via an injected actions object like `packages/ui` components already do. Hoist converged pairs into `packages/ui`, delete both app copies. App.tsx stays app-local orchestration by design.
@@ -220,6 +223,20 @@ Committed, cannot proceed.
 **Open, and not necessarily scheduled** — a bug being listed here says it is
 real and unfixed, not that anyone is on it. When one is fixed its entry moves
 to the [shipped log](shipped-log.md).
+
+- **`apps/desktop` never certifies its own device, so no hub can tell which
+  master it is.** Web closed this on 2026-09-05 (shipped log): a device
+  self-signs and registers its `SubkeyCert` on connect, which is the only link
+  between a roster pubkey and the master a home hub list is stored under.
+  Desktop has no such path at all — the registered Tauri commands are
+  `devices::device_list`, `devices::device_revoke` and the eight `pairing::*`,
+  none of which issues a cert for *this* device, and `home_hub.rs` publishes a
+  designation only when the user drives the Home Hubs UI by hand. So a
+  desktop-only identity is invisible to every hub's home-hub lookup: DM
+  fan-out and mirror-forward skip it silently, and unlike web there is no
+  Settings workaround. Not urgent while web is the delivery target, but it is
+  a correctness gap, not a cosmetic one. Recipe in
+  [client-parity.md](client-parity.md).
 
 - **The English UI is translated everywhere it ships; `apps/desktop` is not
   done.** 1,011 hardcoded strings at the start of 2026-09-01, measured by
