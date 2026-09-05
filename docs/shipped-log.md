@@ -4,6 +4,29 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **One `useUnreadCounts` for both clients (2026-09-05)**: the first converged
+  hook pair, and the pattern for the rest. The two copies had drifted in *both*
+  directions rather than one being behind — web owned `unreadDms` and seeding
+  from the server, desktop owned persistence, the per-hub counts and the tray
+  badge, and both set the identical document title from their own App.tsx — so
+  neither client had all of it and converging was a union pass, not a port.
+  The union lives in `packages/ui` with the platform half injected
+  (`loadPersisted`, `persist`, `onTotalChange`), which keeps the hook itself
+  network-free as that directory requires; the title moved in because it was
+  the same string on both sides. Desktop's DM unread left `useDms` on the way:
+  one owner is what lets the badge and the title see the whole picture.
+  Two things fixed in passing. Desktop persisted from *inside* a state
+  updater — twice under StrictMode, and during render; it is an effect now,
+  guarded so restoring the saved map does not immediately save it back. And
+  the map transitions became pure functions in `utils/`, tested there since
+  `packages/ui` has no jsdom: what the tests pin is that each returns the same
+  object when nothing changed, because that identity is what makes React skip
+  the re-render *and* the persistence effect skip a disk write. A version that
+  always rebuilt would look correct and save on every message into an
+  already-unread channel.
+  Line counts barely moved (web App.tsx 1,679 → 1,665, desktop 2,055 → 2,058)
+  and that is the honest measure: the win is one implementation instead of two
+  that disagreed.
 - **Desktop certifies its own device too, closing the gap web closed the same
   day (2026-09-05)**: `apps/desktop` had no self-cert path at all — the
   registered Tauri commands were `device_list`, `device_revoke` and the eight

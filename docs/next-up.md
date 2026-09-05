@@ -153,8 +153,8 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   rather than loudly, and this missing harness is why the DM bugs survived so
   long. Build it reusable.
 
-- [ ] **App.tsx refactor — desktop parity + convergence.** Web 1,679 lines /
-  desktop 2,055, counted 2026-09-05. The hook-extraction phase landed
+- [ ] **App.tsx refactor — desktop parity + convergence.** Web 1,665 lines /
+  desktop 2,058, counted 2026-09-05. The hook-extraction phase landed
   2026-07-28 and after, and the **modal render tree left web on 2026-08-31**
   (`components/layout/AppModals.tsx`, 213 lines out of App.tsx). The container
   phase is now **all** of the mechanism this item gets: decisions.md 2026-09-05
@@ -163,6 +163,16 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   - **desktop parity pass** on the web slices desktop still lacks — including
     this one: desktop's App.tsx still carries its own modal tree;
   - **convergence** — the actual payoff: web/desktop hook pairs (`useDms`, `useScreenShare`, `useWhisper`, …) differ mainly in platform access, which can travel in via an injected actions object like `packages/ui` components already do. Hoist converged pairs into `packages/ui`, delete both app copies. App.tsx stays app-local orchestration by design.
+    **`useUnreadCounts` is done (2026-09-05, shipped log)** and is the pattern
+    for the rest: platform access injected as optional deps, the pure map
+    transitions in `utils/` where they can be tested without a renderer. It
+    also set expectations — the pairs had drifted in *both* directions, so
+    converging is a union pass and not a port, and line counts barely moved.
+    Remaining pairs by divergence: `useWhisper` (108/130), `useAlliances`
+    (97/48, desktop is missing features), `useTypingIndicators` (119/130),
+    `useSettingsProfile` (197/133), then the big three that are mostly
+    platform transport — `useDms` (141/358), `useScreenShare` (146/327),
+    `useVideo` (144/331).
   - Not worth extracting (checked 2026-07-27): message send/edit.
 
 - [ ] **List-endpoint pagination — remaining lists.** One keyset dialect
