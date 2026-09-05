@@ -14,8 +14,13 @@ There is no third layer. Hub-hosted recovery with no artifact to keep was
 designed and **rejected** on 2026-09-05: a hub may hold what you signed or
 encrypted, never what can reconstitute you ([decisions.md](decisions.md);
 the analysis survives in [identity-vault.md](identity-vault.md)). The two
-paths below are the only two, which is exactly why they are worth making
-easy — and why the UI should say plainly that losing both is final.
+paths below are the only two, which is exactly why they are worth making easy.
+
+The product already said so before the rule was written down:
+`identity_backup.prompt.body` and `settings.account.identity_backup.only_copy`
+both tell the user this identity exists only in this browser and that nobody
+holds a copy, **the hub operator included**. That line was accurate and is now
+also policy.
 
 The recovery phrase already covers "I formatted my PC" — paste 24 words,
 get the same keypair. This doc designs the **two next layers** that sit
