@@ -12,41 +12,6 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
 
 ## 🔨 In flight
 
-- [ ] **Leaving a hub, for real.** Designed 2026-09-05 — decisions.md,
-  "Leaving a hub clears the profile and the membership". Today a person cannot
-  ask a hub to remove them at all: the router has `voice/leave` and
-  `alliances/{id}/leave` and nothing for a member, so joining a community is
-  one-way and "Remove from this device" only forgets it locally.
-  - **`DELETE /me`**, authenticated, self only — no admin variant in this pass;
-    kicking someone is already `moderation`'s job and means something else.
-  - **What it does**: clear the profile columns on `users` (`display_name`,
-    `avatar`, `bio`, `pronouns`, `status_message`, `activities`,
-    `accent_color`, `cover`, `favorite_hubs`, `birthday`, `name_color`), delete
-    every `user_roles` row, drop sessions. The row itself **stays** — 22 tables
-    have a foreign key to `users(public_key)`, including `bans`, `mutes` and
-    `message_reports`, and a departure that erases the ban on the departing
-    person is not a feature.
-  - **What it does not do**: touch `messages`, reactions, RSVPs or forum posts.
-    The record is the community's; the author becomes a pubkey with no name.
-  - **The invite gate re-arms, and that has to be said out loud.** It is
-    `has_roles == 0`, so dropping the roles means an invite-only hub will
-    refuse the return that is free today. Decide it deliberately: the
-    confirmation says "you will need a new invite to come back" when
-    `invite_only`, and says nothing when the hub is open.
-  - **An operator cannot refuse**, and moderation is unaffected because the row
-    survives: a pending report still resolves, a ban still applies, and
-    re-joining lands on the same pubkey the ban names.
-  - **Federation**: nothing to push. Alliance visibility reads the *hub* roster
-    of member hubs, not people, and allied hubs hold their own copies of
-    federated messages, which are not rewritten (see the rejected
-    tombstone-the-author alternative).
-  - **Client**: a second, heavier confirmation, distinct from
-    remove-from-this-device and reachable from Settings rather than the hub
-    menu — the two must not be one click apart, since one is reversible and
-    this is not.
-  - Capability string required (`hub.leave` — the client must not offer it
-    against a hub that would 404).
-
 - [ ] **Split the web client into a hub build and a user build.** Designed
   2026-08-25 — decisions.md, "Two web clients: one per hub, one per user". One
   codebase, two targets: the hub build shows one hub and its interconnections,

@@ -4,6 +4,39 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **You can actually leave a hub now (2026-09-06)**: `DELETE /me`. Joining a
+  community had been one-way — the router had `voice/leave` and
+  `alliances/{id}/leave` and nothing for a person, so a client could only
+  forget a hub locally while the hub kept you in the roster, with your roles,
+  as a deliverable DM recipient, forever.
+  **What leaving does was decided by two facts, not by taste.** The row cannot
+  go: 22 tables carry a foreign key to `users(public_key)`, including `bans`,
+  `mutes` and `message_reports`, so a hard delete either fails or takes the
+  moderation history with the person it was about. And a hub holds a profile,
+  never an account (decisions.md, the day before), which says what to remove
+  instead — the profile columns, every `user_roles` row, the sessions. The
+  pubkey stays as the anchor; messages, reactions and RSVPs are untouched, and
+  the author becomes a pubkey with no name.
+  Two things fell out rather than being built. The roster needed no new
+  filter: `/users` already requires a role row, so clearing the membership is
+  what removes someone from the member list. And the owner is refused with 409
+  — letting them go leaves a hub nobody can administer and nobody who can let
+  anyone back in.
+  **The consequence that had to be chosen rather than inherited**: membership
+  *is* the roles and the invite gate is `has_roles == 0`, so leaving an
+  invite-only hub makes the return that is free today need a fresh invite.
+  Decided as correct, tested, and said in the confirmation — only where the
+  hub actually is invite-only, read from `/info` at open time, because warning
+  about it on an open hub would be noise.
+  Rewriting the author on each message was considered and rejected: it breaks
+  reply chains and reactions, and federated copies on allied hubs would not be
+  rewritten, so one message would show two authors depending which hub you
+  read it from.
+  Writing the invite-gate test needed `invite_only` set straight into
+  `hub_settings` — only bootstrap writes it, there is no admin route, and a
+  PATCH carrying it is ignored in silence. Same gap that once hid a federation
+  bug. Also worth knowing: `check-openapi-coverage` counts *paths*, so a new
+  method on an existing path is invisible to it; the spec was updated by hand.
 - **A timed presence status survives a reload (2026-09-05)**: "clear after" was
   a `setTimeout` and nothing else, so it lived exactly as long as the page —
   set Away for an hour, reload, and you were Away until you noticed and changed
