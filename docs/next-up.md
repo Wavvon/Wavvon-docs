@@ -132,7 +132,8 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   alliance across the boundary, one live browser spec over a hub it booted,
   the live suite over a hub behind a farm proxy, and a browser reading *and
   joining voice in* a channel the allied hub hosts, and the PostgreSQL major
-  upgrade walked the way the hub's own refusal describes it. **23 scenarios**,
+  upgrade walked across two real majors the way the hub's own refusal
+  describes it. **23 scenarios**,
   green (the seed stage went with the seed crate). It has found **thirteen**
   real bugs so far, each invisible to the in-process suites for the same
   reason — those construct their own state, and neither Node's `fetch` nor
@@ -171,10 +172,14 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
     tools at the bundled install), and the hub never stopped the PostgreSQL it
     started, so an operator's Ctrl-C left a postmaster holding the directory
     the refusal tells them to move (shipped log).
-  - what still needs two binaries, and is all that is left here: whether a
-    `pg_dump` taken by major N restores into N+1. That is PostgreSQL's own
-    contract rather than this hub's code, and arranging it means building the
-    hub twice against two bundled archives.
+  - **[done 2026-09-10]** and then the same stage across two *genuinely*
+    different majors. Building the hub twice turned out to be one environment
+    variable — `POSTGRESQL_VERSION` is read by the bundling crate's build
+    script — so `pgupgrade` now boots a hub carrying PostgreSQL 17, fills a
+    real 17 data directory, backs it up with 17's own `pg_dump`, meets the 18
+    hub's refusal, and has 18's `pg_restore` read that archive. Same public
+    key, messages intact, both version-scoped installs still on disk. **This
+    item is closed**: nothing about the upgrade is unproven any more.
 
 - [ ] **Desktop live-drive verification — the tail.** The harness exists
   (2026-09-06, shipped log): `clients/apps/web/e2e/desktop/`, Tauri dev +

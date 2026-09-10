@@ -4,6 +4,26 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **The PostgreSQL major upgrade is proven across two real majors
+  (2026-09-10)**: the last unproven line on the bundled-database work, and it
+  had been filed as needing two hub binaries carrying two PostgreSQL majors —
+  which turned out to be one environment variable. `POSTGRESQL_VERSION` is read
+  by the bundling crate's build script, so a second binary is
+  `POSTGRESQL_VERSION="=17.6.0" cargo build -p wavvon-hub --target-dir
+  target-pg17`. `e2e-topology`'s `pgupgrade` stage now runs the genuine
+  article: the 17 hub fills a real 17 data directory, its own `pg_dump` takes
+  the archive, the 18 hub refuses to start on that directory — naming both
+  commands and the major it found, and leaving `PG_VERSION` as it was — and
+  18's `pg_restore` reads 17's dump into a fresh 18 directory. The hub comes
+  back **under the same public key** with its message, the moved-aside
+  directory is untouched, and **both version-scoped installs are still on
+  disk**, which is the whole reason the layout keeps them: the old major's
+  binaries are the only thing that can still read the old major's data. That
+  last assertion had never been made anywhere. The earlier same-day version of
+  this stage arranged the mismatch by writing the previous major into
+  `PG_VERSION`; it is gone, since keeping a weaker duplicate of a sequence the
+  real one covers is just a second thing to maintain.
+
 - **The rest of the media suite proves delivery, not admission
   (2026-09-10)**: the two silent-voice bugs found earlier the same day both hid
   behind specs that assert on state the hub pushes over the WebSocket, so the
