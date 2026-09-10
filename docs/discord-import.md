@@ -9,9 +9,19 @@ objection every switching community raises.
 **Status: implemented 2026-07-04** (server `a85e37f`, crate
 `crates/discord-import`), with one deviation from this doc: role
 `color` is applied directly on `apply` (role appearance shipped in hub
-`31c291b` before the importer did). **Not yet exercised live** —
-`export` against a real bot token and `apply` against a running hub
-remain to be done (unit coverage is fixture-based by design).
+`31c291b` before the importer did).
+
+**`apply` is exercised live since 2026-09-11**, by `e2e-topology`'s
+`discordimport` stage: a hand-written manifest against a real hub binary,
+with every assertion made against the hub's own API rather than against the
+tool's report. That the manifest can be hand-written is the design (`3 says
+so), and it is what makes this half reachable without Discord at all.
+`export` still needs a bot token and a real guild, and stays unexercised.
+
+The first live run found the path did not work: `apply` assumed the first
+identity on a fresh hub becomes owner — a posture inherited from the deleted
+demo-seed — and a fresh hub has been invite-only since the invite-first
+default landed, so it got a flat 403 from `/auth/verify`. See `2.
 
 **Scope: structure only.** No message history, no member accounts, no
 emoji in v1 (see §7).
@@ -56,10 +66,21 @@ It drives **only public hub HTTP routes** — channel create
 channel permission overwrites (`routes/channel_permissions.rs`). No new
 hub surface is needed.
 
-Like demo-seed, `apply` requires a **fresh hub** (refuses if channels
-already exist) — idempotent re-runs and merge-into-existing are v2
-concerns. The importing identity must be the hub admin (first user or
-provided credentials, same options as demo-seed).
+`apply` requires a **fresh hub** (refuses if channels already exist) —
+idempotent re-runs and merge-into-existing are v2 concerns.
+
+**It arrives by invite, and that invite has to carry admin rights**, because
+it creates roles and channels. A fresh hub is invite-only and mints exactly
+one owner-granting invite on first boot — the hub logs it as
+`First-boot owner invite: <hub>/join/<code>` and `wavvon-hub --doctor`
+prints it — so the normal path is `apply --invite <code>`. An operator who
+already owns the hub can instead mint an invite that grants an admin role and
+pass that; the tool only needs the code.
+
+Without one it refuses with a sentence saying where the code is, rather than
+the bare 403 it used to produce. That 403 was the whole reason this had never
+worked: the doc said "the first user", and the first user has not been able to
+simply walk in since the invite-first default.
 
 ## 3. Manifest format
 

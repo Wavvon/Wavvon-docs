@@ -4,6 +4,35 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **The Discord importer could not import into a Wavvon hub (2026-09-11)**:
+  it had sat in Known issues as "needs a live run" since it shipped in July,
+  and the run took ten minutes once the premise was checked. `export` needs a
+  bot token and a real guild; the *manifest between the halves is designed to
+  be hand-written* (`3 says so outright), so `apply` — the half that touches
+  this system — is reachable with no Discord at all.
+
+  The first attempt got a flat 403 from `/auth/verify`. `apply` generates an
+  identity and assumed the first identity on a fresh hub becomes owner, a
+  posture it inherited from demo-seed, which has since been deleted; and a
+  fresh hub has been invite-only since the invite-first default. The two facts
+  never met until something actually ran. It now takes `--invite <code>` —
+  the one-time owner invite the hub logs on first boot, or any invite that
+  grants an admin role — and refuses with a sentence naming where to find one
+  rather than a bare 403.
+
+  The second defect was quieter: the manifest's `unmapped` field, documented
+  as "Discord permission bits with no Wavvon equivalent. **Kept for the
+  report**, never applied", reached nobody — `ApplyReport` had no field for
+  it. An operator was never told which of a role's powers did not survive the
+  import, which is the silent loss the report exists to prevent.
+
+  Covered by `e2e-topology`'s `discordimport` stage: a hand-written manifest
+  against a real hub binary, with every assertion made against the hub's own
+  API — roles with their priority, colour and mapped permissions, `@everyone`
+  folded onto the builtin role rather than duplicated, channels under the
+  right parents — because a report is the tool grading itself. Plus the
+  refusal, since a hub that will not have you is not something to work around.
+
 - **A soundboard clip is proven to reach the room, and silence not to
   (2026-09-11)**: the last untested leg of the voice path, and the one P7 said
   outright it was not testing ("not observable under fake audio"). Two claims
