@@ -6,6 +6,46 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## A targeted WS message goes to every session that pubkey has open
+
+**Decision** (2026-09-10): `ws_key_senders` is keyed
+`pubkey -> session_id -> sender`, and `AppState::send_to_user` delivers to
+**all** of a pubkey's live sessions. It covers voice sender-key distribution
+(`voice_key_request`, `voice_key_received`) and mini-app messages addressed
+to a user.
+
+It replaced one sender per pubkey, which was not a design so much as an
+omission: connecting inserted under the pubkey, disconnecting removed the
+pubkey, so a second socket for the same identity overwrote the first and then
+the first socket's teardown deleted the entry the second had just written.
+Whoever survived was registered nowhere. For voice that means no sender key
+arrives, so every datagram is discarded at the key lookup — the room, the
+roster and the relay all correct, and complete silence. Two tabs, a paired
+device, or the overlap of an ordinary reconnect is enough. Found 2026-09-10
+(shipped log).
+
+**The alternative was to deliver to the session that is actually in voice**,
+which is the appealing answer and is not available: the hub tracks voice
+membership by *pubkey*, not by socket, so it cannot name the socket. It could
+be made to — thread a session id through `voice_channels` and the bind map —
+but that is a wider change for a narrower guarantee, and it would still leave
+mini-app delivery guessing.
+
+**The tradeoff is a few wasted frames.** A user with three tabs open gets the
+key bundle on all three, and the two that are not in voice ignore it: the web
+client no-ops when `voiceSessionRef` is null. The frames are small, the fan-out
+is bounded by how many sockets one person has open, and the failure mode of
+guessing wrong is that somebody hears nothing with nothing reporting it.
+Sending to all of them is the reading that cannot be wrong.
+
+**Outcome**: shipped 2026-09-10. Guarded by two tests in
+`voice_encryption_flow` — one that a closed sibling session does not
+unregister the survivor, one that a live sibling gets the bundle too — and, at
+the product level, by `62-voice-datagram`, which fails with the readout
+reading "—" if the key never arrives. `bot_sessions` and the screen-share
+teardown already worked this way, each with a comment saying why; this brings
+the third such map into line.
+
 ## The pairing code is the signed offer itself, not a pointer to it
 
 **Decision** (2026-09-06): the string an existing device shows and a new device

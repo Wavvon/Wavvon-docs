@@ -174,17 +174,52 @@ with per-role colour/icon, passkeys, hub trusted devices. Not present on
 either under any name: the channel permission-overwrite tab, event role slots,
 the quiet-hours schedule.
 
-What is genuinely still web-only is **the moderation suite**, and it is the
-whole of desktop's remaining admin gap: `AutomodWebhookSection`,
-`FederatedBanlistSection`, `FullArchiveSection`, `OutgoingWebhooksSection` —
-about 1,200 lines of web-local components plus the Tauri commands each needs.
-`ContentReportsSection` was the fifth and **shipped to desktop 2026-09-08**
-(shipped log): hoisted to `packages/ui`, desktop gained `list_reports` /
-`review_report` and a moderation tab to hold them. The rest follow one
-section at a time, for the same reason — each is its own transport half.
+The moderation suite was desktop's remaining admin gap and is **closed as of
+2026-09-10**. `ContentReportsSection` went first (2026-09-08), then
+`AutomodWebhookSection` and `FederatedBanlistSection`, then
+`OutgoingWebhooksSection` — one section at a time, because each is its own
+transport half. All four live in `packages/ui` prop-only; desktop's commands
+are on the active session like the rest of its moderation surface.
 
-Still web-only beyond that: events with role slots + reminders, the full
-encrypted data-export archive.
+The outgoing-webhook port is worth two notes for the next one of these. It
+took `EventSubscriptionEditor` and the four webhook shapes into
+`packages/ui` with it — a section's *pure* dependencies travel, they do not
+get duplicated. And its `PATCH` command builds its body by hand, for the
+reason `set_moderation_settings` does: Tauri collapses "argument omitted" and
+"argument explicitly null" into one `None`, while the endpoint reads an absent
+field as "leave it alone", so passing nulls for the fields the caller did not
+touch would clear them.
+
+### `FullArchiveSection` is not a hoist (measured 2026-09-10)
+
+The other web-only admin component, and it does not travel the way the
+moderation sections did. It assembles the archive out of the **browser's own**
+account store — `utils/dataExport`, `utils/archiveCrypto`,
+`utils/archiveRestore` over IndexedDB — and on restore it can *create and
+switch accounts* through `@identity/index`. Desktop keeps all of that in Rust
+behind a different model (`~/.wavvon/accounts.json` plus a directory per
+account, driven from `AccountRoot` and `ManageAccountsTab`). Hoisting the
+component would leave the half that matters behind; giving desktop the feature
+means writing the archive assembly against its own storage, which is a
+feature port and should be filed as one — not as parity plumbing.
+
+Still web-only beyond that: events with role slots + reminders, and the full
+encrypted data-export archive above.
+
+### Desktop has no connection readout at all (found 2026-09-10)
+
+Web's `ConnectionStatus` chip reports round-trip latency with its spread,
+inbound voice packet loss, and the relay-measured outbound loss. Desktop's
+`HubAdminContainer`-side wiring aside, the app never passes
+`connectionStatus` into `ContentArea`, so nothing renders anywhere.
+
+Not plumbing: web's numbers come from a WebSocket `ping`/`pong` probe loop in
+`platform/ws.ts` and from the voice session folding each datagram's cleartext
+counter in `platform/voice.ts`. Desktop's socket and voice pipeline are both
+Rust, so those counters have to be measured there and surfaced as events
+before there is anything to show. Worth doing rather than leaving: the
+inbound-loss row is what made two silent-voice bugs visible on 2026-09-10
+(shipped log), and on desktop there would have been nothing to look at.
 
 
 Added 2026-09-07: **the mic test's verdict** — web's meter now names the case

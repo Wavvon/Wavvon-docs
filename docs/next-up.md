@@ -101,15 +101,18 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   12 passed in 1h49m had two causes, both fixed (shipped log): CI served the
   **Vite dev server**, and the app's own **once-per-load self-reload** landed
   in the middle of interactions. Left:
-  - **audio**, still. `WAVVON_PUBLIC_URL` is set now, so the hub advertises a
-    transport, and setting it changed nothing: 86 passed / 1 skipped locally
-    either way. That is the finding — every voice spec asserts on roster state
-    the hub pushes over the WebSocket, so all of them pass whether the
-    transport connected, failed, or was never attempted. The cert question is
-    settled separately (`58-voice-wt-handshake`, shipped log): Chromium does
-    accept the hub's self-signed cert through `serverCertificateHashes`. What
-    no spec here can do is prove a datagram carried audio, and two clients on a
-    real network remains the only thing that does;
+  - **[done 2026-09-10]** audio, and it was hiding a total product failure.
+    Every voice spec asserted on roster state the hub pushes over the
+    WebSocket, so all of them passed whether the transport connected, failed
+    or was never attempted — and `58-voice-wt-handshake` had settled only the
+    cert question. `62-voice-datagram` closes it at the product level: two
+    real clients in one channel, asserting the receiver's inbound packet-loss
+    readout stops saying "—", which happens only after a datagram is parsed,
+    unsealed with a key that came over the WebSocket, and Opus-decoded. Its
+    first run found that **two web clients could not hear each other at all**
+    (shipped log) — 657 datagrams arriving and all 657 dropped for want of a
+    key. What no spec here can still do is prove a speaker made a sound; two
+    clients on a real network remains the only thing that does;
   - **[done 2026-09-07]** the residual flakiness — four specs, one cause, and
     it was a product bug rather than a test one: a hub whose startup re-auth
     met a 429 was dropped from the restored list silently, which is the
@@ -128,21 +131,29 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   directory publish + search, one farm end to end, and two farms with an
   alliance across the boundary, one live browser spec over a hub it booted,
   the live suite over a hub behind a farm proxy, and a browser reading *and
-  joining voice in* a channel the allied hub hosts. **19 scenarios**, green
-  (the seed stage went with the seed crate). It has found **ten** real bugs
-  so far, each invisible to the in-process suites for the same reason — those
-  construct their own state, and neither Node's `fetch` nor `axum_test` is a
-  browser, so the real defaults, the real proxy and the real CORS preflight
-  were never in the picture (shipped log). What it does not cover yet:
-  - **audio.** The visitor is admitted and handed a relay URL, cert hash and
-    token, and stops there — no datagram crosses. This proves admission, not
-    audio, and two clients on a real network remains the only thing that proves
-    audio.
-  - **audio across an alliance.** `alliancebrowser` drives the 🔊 on a
-    federated row and the WebTransport session to the *allied* hub's relay
-    comes up (`60-alliance-voice`; the voice label is set from `onReady`,
-    which fires after `transport.ready`, so a named label is an open
-    transport). What no harness proves is a datagram anyone could hear.
+  joining voice in* a channel the allied hub hosts, and the PostgreSQL major
+  upgrade walked the way the hub's own refusal describes it. **23 scenarios**,
+  green (the seed stage went with the seed crate). It has found **thirteen**
+  real bugs so far, each invisible to the in-process suites for the same
+  reason — those construct their own state, and neither Node's `fetch` nor
+  `axum_test` is a browser or an operator, so the real defaults, the real
+  proxy, the real CORS preflight and the real upgrade sequence were never in
+  the picture (shipped log). What it does not cover yet:
+  - **[done 2026-09-10]** audio across an alliance — and it was another total
+    failure hiding behind an assertion about admission.
+    `63-alliance-voice-audio` puts a second real client on the **host** hub
+    (a different identity: the relay keys participants by pubkey, so one
+    identity cannot stand on both ends of a room) and asserts the visitor's
+    inbound-loss readout resolves. It found that **alliance voice carried no
+    audio at all**: both DH-key halves resolved against the wrong hub, so
+    neither side could wrap for the other, and the hub's visitor allowlist had
+    been ready for it from the start with no client using it (shipped log).
+    The stage now mints a host-hub invite and passes `WAVVON_E2E_ALLIANCE_*`
+    so the spec can stand up that far side.
+  - **a datagram anyone could hear.** Both specs above prove the chain up to
+    Opus decode, which is everything but the speaker. That last step has no
+    harness and is not going to get one — two clients on a real network is
+    the only thing that proves it, and that is the pilot item below.
 
 - [ ] **Bundled PostgreSQL — the tail.** The hub carries its own PostgreSQL
   since 2026-08-30 (decisions.md,
@@ -150,9 +161,20 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   mode by the absence of `WAVVON_DATABASE_URL`, version-scoped installs, a
   refusal with instructions on a major mismatch, `doctor` reporting mode and
   data directory, and backup/restore through the bundled `pg_dump`. Left:
-  - **the actual major upgrade.** The refusal is tested; the dump-with-old,
-    restore-with-new path it names has never been walked end to end, because
-    doing that needs two hub binaries carrying two PostgreSQL majors.
+  - **[done 2026-09-10]** the major upgrade, walked end to end by
+    `e2e-topology`'s new `pgupgrade` stage: fill a bundled hub, kill it, back
+    it up with the real binary, write the previous major into `PG_VERSION`,
+    meet the refusal, follow its instructions, and find the hub back **under
+    the same public key** with its data intact and the old data directory
+    untouched. It found two bugs on its first run — `backup` could not find
+    `pg_dump` on a *running* bundled hub (the adopt path never pointed the
+    tools at the bundled install), and the hub never stopped the PostgreSQL it
+    started, so an operator's Ctrl-C left a postmaster holding the directory
+    the refusal tells them to move (shipped log).
+  - what still needs two binaries, and is all that is left here: whether a
+    `pg_dump` taken by major N restores into N+1. That is PostgreSQL's own
+    contract rather than this hub's code, and arranging it means building the
+    hub twice against two bundled archives.
 
 - [ ] **Desktop live-drive verification — the tail.** The harness exists
   (2026-09-06, shipped log): `clients/apps/web/e2e/desktop/`, Tauri dev +
@@ -178,7 +200,17 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   The container phase is now **all** of the mechanism this item gets:
   decisions.md 2026-09-05 declined the state store, so what is left shrinks
   App.tsx by removing duplication, not by moving plumbing. Left:
-  - **desktop parity pass** on the web slices desktop still lacks;
+  - **desktop parity pass** on the web slices desktop still lacks. The
+    outgoing-webhook manager landed 2026-09-10 (shipped log) — the last
+    section of the admin surface that was web-only, hoisted prop-only with
+    nine new Tauri commands. What the same pass found, and what is left:
+    `FullArchiveSection` is **not a hoist** (it assembles the archive from the
+    browser's own account store and can create and switch accounts, which
+    desktop keeps in Rust behind a different model), events with role slots
+    are still web-only, and desktop has **no connection readout at all** —
+    it passes no `connectionStatus`, and its ping and voice packet loss would
+    have to be measured in the Rust pipeline before there were numbers to
+    show. Details in [client-parity.md](client-parity.md);
   - **convergence** — the actual payoff: web/desktop hook pairs (`useDms`, `useScreenShare`, `useWhisper`, …) differ mainly in platform access, which can travel in via an injected actions object like `packages/ui` components already do. Hoist converged pairs into `packages/ui`, delete both app copies. App.tsx stays app-local orchestration by design.
     **Four pairs are converged: `useUnreadCounts`, `useWhisper`,
     `useTypingIndicators` (2026-09-05) and `useAlliances` (2026-09-07) —

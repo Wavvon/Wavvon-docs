@@ -4,6 +4,116 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Two web clients in a voice channel could not hear each other
+  (2026-09-10)**: the whole of voice, silent, on the delivery target — and
+  every voice spec green, because they all assert on roster state the hub
+  pushes over the WebSocket. `ws_key_senders` held **one sender per pubkey**:
+  connecting inserted under the pubkey and disconnecting removed the pubkey,
+  so a second socket for the same identity overwrote the first and then the
+  *first* socket's teardown deleted the entry the second had just written.
+  Whoever was left was registered nowhere, and every targeted message to them
+  was dropped with nothing reporting it — no `voice_key_request`, no
+  `voice_key_received`, so no sender key, so every datagram discarded at the
+  key lookup. Two tabs, a paired device, or the overlap of an ordinary
+  reconnect is enough to arrange it; the browser suite arranged it by minting
+  an invite in a second context under the owner's own saved session. Now
+  keyed `pubkey -> session_id -> sender` and fanned out to every live session
+  — the same discipline `bot_sessions` and the screen-share teardown already
+  had, with the comment saying why. Measured on the way: 657 datagrams
+  arrived, parsed and mapped to the right sender, and all 657 were dropped for
+  want of a key. Covered by `voice_encryption_flow`'s two new tests and, at
+  the product level, by the new `62-voice-datagram` spec — see below.
+
+- **Alliance voice carried no audio at all (2026-09-10)**: the room came up,
+  the roster was right, the WebTransport session to the allied hub's relay
+  opened, `60-alliance-voice` was green — and nobody could hear anybody. E2E
+  voice keys are wrapped static-static X25519, so both sides have to resolve
+  each other's DH keys **on the hub the room is on**, and neither half did
+  it: the visitor's key manager looked its peers up through `activeSession()`
+  — its *own* hub, where a stranger on the allied hub has published nothing —
+  and it never published its own key over there, so nobody could wrap for it
+  either. A 404 is the lenient "skip this peer" reading, which is correct for
+  key distribution and is why this was completely silent. The hub was ready
+  for it all along: `ALLIANCE_VOICE_ALLOWED_PATHS` has carried both DH routes
+  from the start, its comment saying "with only one, a visitor can be heard or
+  can hear, never both" — no client had ever used the publish half. Fixed by
+  binding the lookup to `voiceVisitRef.current?.hubUrl` and publishing the
+  signed record to the owning hub with the voice-only token, before the
+  socket, since a key offer can arrive the moment we join. The publish is
+  **not** best-effort: a room you can talk into and hear nothing from is worse
+  than a join that refuses and says so.
+
+- **`wavvon-hub backup` could not find `pg_dump` on a running bundled hub
+  (2026-09-10)**: the command is for the install story where PostgreSQL was
+  never installed, and on that story it failed with "Install the PostgreSQL
+  client tools" — advice for a machine that is carrying them. `start` points
+  `WAVVON_PG_BIN_DIR` at the bundled install; a CLI command run while the hub
+  is up (or after it was killed, leaving its postmaster running) takes the
+  *adopt* path instead, which skipped that. The one test that covered it
+  started a server first, so it never saw the case an operator always hits.
+  Adoption now calls the same `point_tools_at_bundled` helper. Found by the
+  new `pgupgrade` topology stage on its first run.
+
+- **The hub stops the PostgreSQL it started (2026-09-10)**: the handle's own
+  comment said it was held so "shutdown can stop it deliberately", and nothing
+  ever did — the serve future never returned, so Ctrl-C left an orphaned
+  postmaster holding the data directory. Adopting an orphan on the next start
+  was already handled; the hazard is the *upgrade* path, where the hub's own
+  refusal tells the operator to move `pgdata` aside. On Windows that fails
+  while a postmaster holds it, and on Linux it succeeds while the postmaster
+  keeps writing to the moved directory — the half-migration the version check
+  exists to prevent.
+
+- **The connection readout has a home in an alliance channel (2026-09-10)**:
+  `ConnectionStatus` renders inside `ChannelHeader` and nowhere else, so with
+  an alliance channel selected there was no chip — and an alliance channel is
+  where a voice room on someone else's hub lives, which makes the
+  inbound-loss row the only thing in the app that says whether that room's
+  audio is arriving. Its own doc comment claims one fixed home; now it has one
+  in that view too. Desktop passes no `connectionStatus` at all and so has no
+  readout anywhere — filed in
+  [client-parity.md](client-parity.md), since its ping and voice loss would
+  have to be measured on the Rust side first.
+
+- **Two e2e claims that a broken transport cannot pass (2026-09-10)**:
+  `62-voice-datagram` puts two real clients in one voice channel and asserts
+  the receiver's **inbound packet-loss** figure stops reading "—", which
+  happens only after a datagram has been parsed, unsealed with a key that
+  arrived over the WebSocket, and Opus-decoded — capture, encode, seal, relay
+  fan-out, unseal, decode, in one assertion — plus the relay's own outbound
+  count as the independent other half. `63-alliance-voice-audio` makes the
+  same claim across a hub boundary, with a second real client on the *host*
+  hub (a different identity: the relay keys participants by pubkey, so one
+  identity cannot stand on both ends of a room). Both use the music audio
+  profile, which turns the silence gate off, so the fake capture device
+  transmits continuously instead of having to trip a threshold. What they
+  still do not prove is that a speaker made a sound; two clients on a real
+  network remain the only thing that does.
+
+- **The PostgreSQL major upgrade is walked end to end (2026-09-10)**:
+  `e2e-topology`'s new `pgupgrade` stage boots a bundled hub, fills it, kills
+  it, takes a backup with the real binary, writes the previous major into
+  `PG_VERSION`, meets the refusal, follows the printed instructions — move the
+  data directory aside, restore — and asserts the hub comes back **under the
+  same public key** with its message intact and the moved-aside directory
+  untouched. One binary carries one major, so the mismatch is arranged rather
+  than genuine; what stays unproven is the narrow part that needs two
+  binaries, whether a `pg_dump` from major N restores into N+1, which is
+  PostgreSQL's contract and not this hub's code. It found two of the bugs
+  above on its first run.
+
+- **The outgoing-webhook manager is on desktop (2026-09-10)**: the last
+  section of the admin surface that was web-only. Hoisted to `packages/ui`
+  prop-only, taking `EventSubscriptionEditor` and the four webhook shapes with
+  it; desktop gained nine active-session Tauri commands, with the `PATCH`
+  body built by hand for the reason `set_moderation_settings` builds its own —
+  Tauri cannot tell an omitted argument from an explicit null, and this
+  endpoint reads an absent field as "leave it alone". `FullArchiveSection`,
+  the other web-only piece, turned out **not to be a hoist**: it assembles the
+  archive from the browser's own account store and can create and switch
+  accounts, all of which desktop keeps in Rust behind a different model — see
+  [client-parity.md](client-parity.md).
+
 - **A web group DM is refused rather than encrypted to one member
   (2026-09-07)**: group DMs use sender keys, which the web client does not
   implement — and it knows, because reading one renders "🔒 Encrypted message
