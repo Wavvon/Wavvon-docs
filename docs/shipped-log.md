@@ -4,6 +4,36 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **The rest of the media suite proves delivery, not admission
+  (2026-09-10)**: the two silent-voice bugs found earlier the same day both hid
+  behind specs that assert on state the hub pushes over the WebSocket, so the
+  obvious next question was which other media features were covered the same
+  way. All of them were. `15-screen-share` asserted the viewer's
+  `.screen-share-panel` renders — it renders from `screen_share_started`, and
+  the `<video>` inside gets its source separately, so a share whose chunks
+  never arrive passes. `20-camera-video` asserted a tile that is not the local
+  "You" tile appears — that tile appears when the peer *track* arrives, and a
+  track can be negotiated and carry no picture. `64-screen-share-frames` and
+  `65-camera-frames` assert the decoded picture instead: `videoWidth` is read
+  off a decoded frame and is 0 until one exists, and `currentTime` only
+  advances while decoded media plays. **Both paths turned out to work** —
+  1920×1080 at `readyState` 4 over the MSE chunk relay, and both directions of
+  the WebRTC mesh — so this is coverage rather than a fix, on two features that
+  had none.
+
+- **A whisper is proven to stay private (2026-09-10)**: whisper is a
+  confidentiality guarantee and nothing exercised it end to end. The client
+  spec asserts badges, banners and the inbox, all of which the hub pushes, so
+  it passed whether the audio went to one person or to the whole room — which
+  is the entire difference the feature makes. Proven now where the guarantee
+  lives: three real WebTransport sessions against the relay, A whispering to B
+  only, asserting B receives the datagram *marked as a whisper* and C's receive
+  times out. With a baseline first, since a negative assertion also passes on a
+  relay that delivers nothing at all, and a second half that stops the whisper
+  and watches C hear A again — a whisper that permanently silenced you to the
+  room would be its own bug. Verified to bite: with the relay's whisper branch
+  disabled the test fails naming the leak.
+
 - **Two web clients in a voice channel could not hear each other
   (2026-09-10)**: the whole of voice, silent, on the delivery target — and
   every voice spec green, because they all assert on roster state the hub
