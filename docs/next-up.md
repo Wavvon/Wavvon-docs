@@ -216,13 +216,18 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
     outgoing-webhook manager landed 2026-09-10 (shipped log) — the last
     section of the admin surface that was web-only, hoisted prop-only with
     nine new Tauri commands. What the same pass found, and what is left:
-    `FullArchiveSection` is **not a hoist** (it assembles the archive from the
-    browser's own account store and can create and switch accounts, which
-    desktop keeps in Rust behind a different model), and events with role slots
-    are still web-only. The connection readout, filed here on 2026-09-10, is
-    **done 2026-09-11**: desktop measures round trip on its socket and inbound
-    voice loss in its Rust pipeline, and renders the shared chip (shipped log).
-    Details in [client-parity.md](client-parity.md);
+    the connection readout is **done 2026-09-11** — desktop measures round trip
+    on its socket and inbound voice loss in its Rust pipeline, and renders the
+    shared chip (shipped log) — and "events with role slots + reminders" turned
+    out **never to have been a gap**: the shared `ContentArea` passes
+    `slotClaimSupported` as a literal, so both clients have had it all along.
+    That leaves exactly one thing genuinely web-only, and it is **not parity
+    plumbing**: `FullArchiveSection` assembles its archive from the browser's
+    own account store and, on restore, creates and switches accounts — which
+    desktop keeps in Rust behind a different model. Porting it is a feature
+    with a design question in it (what "restore into a new account" means when
+    an account is a directory), so it wants a decision before code. Details in
+    [client-parity.md](client-parity.md);
   - **convergence** — the actual payoff: web/desktop hook pairs (`useDms`, `useScreenShare`, `useWhisper`, …) differ mainly in platform access, which can travel in via an injected actions object like `packages/ui` components already do. Hoist converged pairs into `packages/ui`, delete both app copies. App.tsx stays app-local orchestration by design.
     **Four pairs are converged: `useUnreadCounts`, `useWhisper`,
     `useTypingIndicators` (2026-09-05) and `useAlliances` (2026-09-07) —

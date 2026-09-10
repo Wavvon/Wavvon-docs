@@ -203,8 +203,23 @@ component would leave the half that matters behind; giving desktop the feature
 means writing the archive assembly against its own storage, which is a
 feature port and should be filed as one — not as parity plumbing.
 
-Still web-only beyond that: events with role slots + reminders, and the full
-encrypted data-export archive above.
+### "Events with role slots + reminders" was never a gap (checked 2026-09-11)
+
+It sat on this list as web-only and is on both clients, and has been for as
+long as the shared `ContentArea` has rendered `EventsPanel`: that call site
+passes `slotClaimSupported` as a literal, so both apps get slot claiming from
+the same component, and both pass `reminder_minutes` straight through their
+create-event paths.
+
+Third time an entry here has been stale in the same direction — the
+2026-09-08 audit found most of the list was, and the connection readout below
+went from "filed" to "closed" in a day. **Check the code before believing a
+row in this file**, and prefer deleting a stale row to carrying it: a parity
+list nobody trusts is worse than a shorter one that is true.
+
+So the only thing left that is genuinely web-only is the full encrypted
+data-export archive, and that one is a feature port rather than parity
+plumbing — see above.
 
 ### Desktop's connection readout — CLOSED 2026-09-11
 

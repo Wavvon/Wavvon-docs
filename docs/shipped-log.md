@@ -4,6 +4,25 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **A soundboard clip is proven to reach the room, and silence not to
+  (2026-09-11)**: the last untested leg of the voice path, and the one P7 said
+  outright it was not testing ("not observable under fake audio"). Two claims
+  in one run, and the first is what makes the second mean anything. The mic is
+  shut out by setting the VAD threshold to 1.0 — RMS is at most 1.0 and the
+  gate is a strict `energy > threshold`, so Chromium's fake capture device can
+  never open it — and with both clients gated the listener's inbound-loss
+  readout stays "—", which is the silence gate doing its job. Then the clip
+  plays, and the readout resolves: the clip is the only thing that could have
+  opened the gate, so the number is about the clip and not the microphone.
+  Verified to bite by not playing it.
+
+  What unblocked this was a real Ogg Opus fixture. P7 builds a synthetic
+  four-byte clip that satisfies the hub's container check and would never
+  survive `decodeAudioData`, so there was no `activeClip` to hear;
+  `e2e/fixtures/tone-440.ogg` is 4 KB of actual Opus from ffmpeg. The judgement
+  that this spec was not worth building came from assuming that fixture was
+  expensive, and it was one command.
+
 - **Desktop has a connection readout (2026-09-11)**: filed as a parity gap
   the day before and closed here, because of what it is for — the inbound-loss
   row is the only thing in either client that says whether voice is actually
