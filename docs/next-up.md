@@ -190,11 +190,18 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   (`01`–`03`). Left:
   - the desktop→web DM leg is done (shipped log): the fix was not in the DM
     path but in **which identity the desktop signs as**, and it left a
-    question worth carrying — every hub-verified signature now routes through
-    `auth_creds::hub_identity`, but a *paired* desktop device still signs
-    group envelopes and sender-key distributions with its subkey, which the
-    hub verifies against the canonical with no cert tier. Same gap on web.
-    Nothing exercises it yet.
+    question worth carrying — a paired device signs group envelopes and
+    sender-key distributions with its subkey, which the hub verified against
+    the canonical with no cert tier.
+  - **[done 2026-09-11]** that question, and it was worth carrying: exercising
+    it found **three** defects stacked on the same request, and **group DMs had
+    never worked from any device at all** (shipped log). The hub's missing cert
+    tier was one; the desktop client also signed over the wrapped key *packed
+    with its nonce*, which the hub can never reproduce, and omitted the
+    per-recipient `iteration` the hub requires — so the body was refused before
+    any signature was read. Covered now by three hub tests and two client ones,
+    and the two distribution call sites are one function rather than copies
+    that had drifted.
 
 - [ ] **App.tsx refactor — desktop parity + convergence.** Web 1,665 lines /
   desktop 1,793, counted 2026-09-06. The hook-extraction phase landed
@@ -211,11 +218,11 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
     nine new Tauri commands. What the same pass found, and what is left:
     `FullArchiveSection` is **not a hoist** (it assembles the archive from the
     browser's own account store and can create and switch accounts, which
-    desktop keeps in Rust behind a different model), events with role slots
-    are still web-only, and desktop has **no connection readout at all** —
-    it passes no `connectionStatus`, and its ping and voice packet loss would
-    have to be measured in the Rust pipeline before there were numbers to
-    show. Details in [client-parity.md](client-parity.md);
+    desktop keeps in Rust behind a different model), and events with role slots
+    are still web-only. The connection readout, filed here on 2026-09-10, is
+    **done 2026-09-11**: desktop measures round trip on its socket and inbound
+    voice loss in its Rust pipeline, and renders the shared chip (shipped log).
+    Details in [client-parity.md](client-parity.md);
   - **convergence** — the actual payoff: web/desktop hook pairs (`useDms`, `useScreenShare`, `useWhisper`, …) differ mainly in platform access, which can travel in via an injected actions object like `packages/ui` components already do. Hoist converged pairs into `packages/ui`, delete both app copies. App.tsx stays app-local orchestration by design.
     **Four pairs are converged: `useUnreadCounts`, `useWhisper`,
     `useTypingIndicators` (2026-09-05) and `useAlliances` (2026-09-07) —

@@ -5980,6 +5980,14 @@ paths:
                       wrap_nonce_hex: { type: string }
                       iteration: { type: integer }
                 signature_hex: { type: string, description: "Ed25519 signature over canonical bytes" }
+                signer_cert:
+                  type: object
+                  description: >-
+                    Present when a paired device's subkey signed the
+                    distribution. The signature is then checked against
+                    signer_cert.subkey_pubkey, and the cert's master against
+                    the authenticated session. Absent means the canonical key
+                    signed for itself.
 
   # ── DM block set ──────────────────────────────────────────────────────────
 

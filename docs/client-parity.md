@@ -206,20 +206,27 @@ feature port and should be filed as one — not as parity plumbing.
 Still web-only beyond that: events with role slots + reminders, and the full
 encrypted data-export archive above.
 
-### Desktop has no connection readout at all (found 2026-09-10)
+### Desktop's connection readout — CLOSED 2026-09-11
 
-Web's `ConnectionStatus` chip reports round-trip latency with its spread,
-inbound voice packet loss, and the relay-measured outbound loss. Desktop's
-`HubAdminContainer`-side wiring aside, the app never passes
-`connectionStatus` into `ContentArea`, so nothing renders anywhere.
+Filed the previous day as a gap and closed the next, because it was worth
+more than it looked: the inbound-loss row is what made two silent-voice bugs
+visible, and desktop had nothing to look at.
 
-Not plumbing: web's numbers come from a WebSocket `ping`/`pong` probe loop in
-`platform/ws.ts` and from the voice session folding each datagram's cleartext
-counter in `platform/voice.ts`. Desktop's socket and voice pipeline are both
-Rust, so those counters have to be measured there and surfaced as events
-before there is anything to show. Worth doing rather than leaving: the
-inbound-loss row is what made two silent-voice bugs visible on 2026-09-10
-(shipped log), and on desktop there would have been nothing to look at.
+It was not plumbing — desktop's socket and voice pipeline are both Rust, so
+both numbers had to be measured there first. The socket task now runs the same
+two-second `ping`/`pong` probe web does (the hub echoes the nonce and keeps no
+state, so the nonce *is* the send timestamp), and `crates/voice`'s receive task
+folds every opened packet's cleartext `ctr` into a per-sender `LossTracker`.
+One `connection_stats` command reports both plus the relay's outbound figure,
+and `ConnectionStatus` from `packages/ui` renders it.
+
+Two things kept deliberately identical to web rather than merely similar:
+**median round trip with mean absolute deviation** (one stalled probe on a
+flaky link must not move the headline number, and squaring the outlier the
+median just ignored would put it back), and **null means "no number", never
+zero** — before the first pong, out of voice, or on a hub without
+`voice.loss`. Two clients answering "how is my connection" with
+differently-computed numbers is worse than one client not answering.
 
 
 Added 2026-09-07: **the mic test's verdict** — web's meter now names the case

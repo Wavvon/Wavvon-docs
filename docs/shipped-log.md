@@ -4,6 +4,60 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Desktop has a connection readout (2026-09-11)**: filed as a parity gap
+  the day before and closed here, because of what it is for — the inbound-loss
+  row is the only thing in either client that says whether voice is actually
+  arriving, and it is what made two silent-voice bugs visible on 2026-09-10.
+  Desktop had nothing to look at.
+
+  Not plumbing: both numbers live in Rust. The socket task runs the same
+  two-second `ping`/`pong` probe as web — the hub echoes the nonce and keeps
+  no state, so the nonce is the send timestamp and no table of outstanding
+  probes is needed — and `crates/voice`'s receive task folds every opened
+  packet's cleartext `ctr` into a per-sender `LossTracker`, counted after the
+  packet opens and not before, since a packet that failed to open is not one
+  that sender sent us. One `connection_stats` command reports both plus the
+  relay's outbound figure, and `packages/ui`'s `ConnectionStatus` renders it
+  unchanged.
+
+  Kept identical to web on purpose rather than merely similar: median
+  round-trip with mean absolute deviation, and null meaning "no number" and
+  never zero. Two clients answering "how is my connection" with
+  differently-computed numbers is worse than one client not answering.
+
+- **Group DMs never worked, from any device (2026-09-11)**: filed as a
+  question worth carrying — "a paired device still signs group envelopes and
+  sender-key distributions with its subkey, which the hub verifies against the
+  canonical with no cert tier; nothing exercises it yet" — and exercising it
+  found three independent defects stacked on the same request, any one of which
+  is fatal.
+
+  The hub's side was the filed one: the tiered verification that lets a paired
+  device sign with its subkey and prove the link with a cert had been built for
+  the 1:1 envelope only. The group envelope and the sender-key distribution
+  verified against the canonical pubkey directly, which a paired device cannot
+  produce a signature for. Fixed by one `verify_tiered_signature` used by all
+  three, plus `bind_cert_master` for the half that matters — a valid cert from
+  *any* identity must not let its holder sign as this session.
+
+  The client's side was worse, and applied to **every** device. The desktop
+  distribution packed the wrapped key and its nonce into one `"wrapped:nonce"`
+  string and passed that as the `wrapped_hex` half of the signing pairs, so it
+  signed over something the hub — which signs over `wrapped_key_hex` alone —
+  could never reproduce. And the request omitted each recipient's
+  `iteration`, which the hub requires and `openapi.yaml` has always listed, so
+  the body failed to deserialize before any signature was looked at. Either
+  one means no member ever receives a sender key, and nobody can send under a
+  key nobody was given. The signing-bytes *mirror* was correct, which is
+  exactly why no wire vector caught it: the caller was wrong, not the encoder.
+
+  The two distribution call sites — first send and leave-triggered rotation —
+  were copies that had already drifted (the rotation signed with the device's
+  own key instead of routing through `auth_creds::hub_identity`), so they are
+  now one function. Nothing about the wire format changed: the cert rides
+  alongside the signature and never under it. Web is unaffected — it refuses
+  group sends outright, having no sender-key implementation.
+
 - **The PostgreSQL major upgrade is proven across two real majors
   (2026-09-10)**: the last unproven line on the bundled-database work, and it
   had been filed as needing two hub binaries carrying two PostgreSQL majors —

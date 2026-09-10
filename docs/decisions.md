@@ -6,6 +6,34 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Cert-chained signing covers group DMs and sender keys too
+
+**Amendment** (2026-09-11) to "Paired-device DMs attribute to canonical via
+cert-chained envelopes" below, which is unchanged in substance: the rule now
+applies to **all three** payloads a device signs for a conversation — the 1:1
+envelope, the group envelope, and the sender-key distribution — rather than to
+the first alone.
+
+It was never a decision to leave the other two out. They verified the
+signature against the canonical pubkey with no cert tier, which a paired
+device cannot produce: it holds its own subkey and the cert naming it, and
+nothing else. So group DMs worked from exactly one device per identity — the
+one that created it — and failed everywhere else, which on a platform whose
+identity model is "a keypair and as many devices as you like" is most of them.
+
+**The alternative was to give paired devices the canonical signing key**, and
+it is the one the whole multi-device design exists to avoid: a device that
+holds the canonical key *is* the identity, and pairing would stop being
+revocable. The cert chain is what makes a device disownable.
+
+The hub now runs one `verify_tiered_signature` for all three, because the same
+rule implemented three times is the shape that produced this gap. No wire
+format changed: the cert rides alongside the signature and has never been
+under it.
+
+**Outcome**: shipped 2026-09-11, with tests for the paired happy path, a cert
+from another master, and the unchanged cert-less path.
+
 ## A targeted WS message goes to every session that pubkey has open
 
 **Decision** (2026-09-10): `ws_key_senders` is keyed
