@@ -65,6 +65,18 @@ member who was there first, permanently.
   token, created_at. Holds push-invite cards until the receiving admin
   accepts or declines.
 
+## Where sharing is edited
+
+Two surfaces, one row. The hub admin panel's alliance list answers *what does
+this alliance carry*; the **Alliances tab in a channel's settings** answers
+*who can see this channel* — every alliance this hub is in, a checkbox each,
+and for a category the choice between the space alone and everything beneath
+it. Both write the same `alliance_shared_channels` row.
+
+The tab is admin-only because `share_channel` and `unshare_channel` require
+`admin` on the hub. There is no separate manage-alliances permission today; if
+one is introduced, the tab follows it rather than defining it.
+
 ## Routes
 
 All in `hub/src/routes/alliances/` (Wavvon-server):
