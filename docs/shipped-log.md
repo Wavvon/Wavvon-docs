@@ -4,7 +4,17 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
-- **The Discord importer could not import into a Wavvon hub (2026-09-11)**:
+- **The Discord importer is gone (2026-09-14)**: `crates/discord-import`,
+  its design doc and `e2e-topology`'s `discordimport` stage are deleted.
+  `export` had needed a real bot token and a real guild since July and never
+  got one, so half the tool was untestable here for its whole life while the
+  whole of it carried workspace, audit and release weight. If migration comes
+  back it comes back as a separate bot against the public API — decisions.md,
+  "The Discord importer is dropped".
+
+- **The Discord importer could not import into a Wavvon hub (2026-09-11)**
+  — *the tool was dropped three days later (above); kept as the record of what
+  the run found*:
   it had sat in Known issues as "needs a live run" since it shipped in July,
   and the run took ten minutes once the premise was checked. `export` needs a
   bot token and a real guild; the *manifest between the halves is designed to
@@ -4272,9 +4282,9 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   reminder-offset↔minutes mapping) covered by vitest. Desktop/Android
   UI not yet built.
 
-- **Discord server import CLI (2026-07-04)** — new
-  `crates/discord-import` workspace crate implementing
-  [`discord-import.md`](discord-import.md) (server `a85e37f`).
+- **Discord server import CLI (2026-07-04)** — *removed 2026-09-14; the
+  design doc went with it.* New `crates/discord-import` workspace crate
+  (server `a85e37f`).
   `export --guild <id>` reads structure via a read-only bot
   (Discord API v10, 429-aware) into the neutral versioned manifest;
   `apply --hub <url>` replays it onto a fresh hub (demo-seed-style

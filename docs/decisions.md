@@ -6,6 +6,33 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## The Discord importer is dropped; migration would come back as a bot
+
+**Decision** (2026-09-14, user call): `crates/discord-import` is deleted,
+along with its design doc and the `discordimport` stage in `e2e-topology`.
+Supersedes "Discord import: two-stage CLI with a neutral, reviewable manifest"
+below, which stays on file for the manifest shape.
+
+**Why**: half the tool could never be exercised here. `export` needs a real
+bot token and a real guild, so it sat in Known issues as untested from July
+2026 to the day it was deleted, and nothing in this project can stand in for
+either. Meanwhile the crate was a workspace member, a line in every audit and
+release, and an e2e stage — carrying cost for a tool no switching community
+had ever run end to end.
+
+**Alternatives considered**:
+
+- **Keep it and wait for a live run** — rejected: it had been waiting for two
+  months with no one able to supply the credential.
+- **Keep `apply` and drop `export`** — rejected: `apply` alone is a
+  manifest replayer with no producer, and the hub's public API is already
+  that, minus a binary.
+
+**Outcome**: if migration comes back it comes back as a **separate bot**
+against the public API, outside this workspace — it keeps its own token
+handling, releases on its own clock, and cannot make the hub's release carry
+an unexercised binary. The manifest design below is the part to reuse.
+
 ## Cert-chained signing covers group DMs and sender keys too
 
 **Amendment** (2026-09-11) to "Paired-device DMs attribute to canonical via
@@ -3101,6 +3128,8 @@ valuable, safety-critical part.
 
 ## Discord import: two-stage CLI with a neutral, reviewable manifest
 
+**Superseded 2026-09-14** by "The Discord importer is dropped" above.
+
 **Decision** (designed 2026-07-04, not yet implemented): the migration
 tool is a standalone workspace CLI (`discord-import`, modeled on
 `demo-seed`) with two stages: `export` reads a guild's structure via a
@@ -3109,8 +3138,7 @@ overwrites — no privileged intents) and writes a neutral, versioned,
 human-editable `import-manifest.json`; `apply` replays that manifest
 onto a **fresh** hub through existing public HTTP routes only.
 Structure only in v1 — members, history, and emoji are reported as
-skipped, never silently dropped. Full design:
-[discord-import.md](discord-import.md).
+skipped, never silently dropped.
 
 **Why**: "do we have to rebuild everything?" is the first objection
 every switching community raises, and structure is the cheap 90% of

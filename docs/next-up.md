@@ -133,9 +133,9 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   the live suite over a hub behind a farm proxy, and a browser reading *and
   joining voice in* a channel the allied hub hosts, and the PostgreSQL major
   upgrade walked across two real majors the way the hub's own refusal
-  describes it, and the Discord importer's `apply` half driven from a
-  hand-written manifest. **25 scenarios**,
-  green (the seed stage went with the seed crate). It has found **fifteen**
+  describes it. **23 scenarios**,
+  green (the seed stage went with the seed crate, and the `discordimport`
+  stage with the importer). It has found **fifteen**
   real bugs so far, each invisible to the in-process suites for the same
   reason — those construct their own state, and neither Node's `fetch` nor
   `axum_test` is a browser or an operator, so the real defaults, the real
@@ -322,14 +322,6 @@ to the [shipped log](shipped-log.md).
   2026-08-21 (no playout scheduling in the web client; see shipped log). The
   jitter only exists on a real network, so **the audible confirmation is still
   outstanding** — it needs a session on the pilot. Reopen this if it persists.
-
-- **Discord importer: `export` needs a live run** — the `apply` half is
-  exercised since 2026-09-11 (`e2e-topology`'s `discordimport` stage, a
-  hand-written manifest against a real hub, asserted through the hub's API).
-  It found two defects, both fixed: `apply` could not authenticate against a
-  fresh hub at all, and the report dropped the permissions it could not map
-  (shipped log). `export` still needs a real bot token and a real guild, and
-  nothing here can stand in for either.
 
 - **Windows installer unsigned** — SmartScreen warning; "More info → Run
   anyway". See the code-signing blocker.

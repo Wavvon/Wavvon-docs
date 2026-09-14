@@ -10,7 +10,7 @@ the discovery service are each their own repo.
 Wavvon              ── docs, ROADMAP.md, openapi.yaml (this repo)
 Wavvon-server       ── Rust workspace: hub/, identity/, store/, hub-env/,
                        farm/, agent/, plus bot-kit/, demo-seed/,
-                       discord-import/, ttt-bot/
+                       ttt-bot/
 Wavvon-clients      ── pnpm + Cargo monorepo for every client:
                        apps/web (Vite + React, two builds),
                        apps/desktop (Tauri 2 + React),

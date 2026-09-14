@@ -25,6 +25,12 @@ months. The reasoning lives in [decisions.md](docs/decisions.md).
 - **Maintain / converge the old Android client** — removed 2026-07-12;
   clean-slate rewrite if mobile is prioritized
   ([android-rewrite-notes.md](docs/android-rewrite-notes.md)).
+- **A Discord importer inside this workspace** — `crates/discord-import`
+  deleted 2026-09-14. Its `export` half needed a real bot token and a real
+  guild, which nobody could supply, so it was never exercised end to end while
+  costing workspace, audit and release weight. Migration comes back, if it
+  comes back, as a separate bot against the public API
+  ([decisions.md](docs/decisions.md)).
 - **SQLite (or any second) hub storage backend** — PostgreSQL is the only
   backend; a dual backend silently broke revocation and federated-ban checks,
   and two engines means two migration sets forever
