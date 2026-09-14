@@ -12,46 +12,6 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
 
 ## 🔨 In flight
 
-- [ ] **Split the web client into a hub build and a user build.** Designed
-  2026-08-25 — decisions.md, "Two web clients: one per hub, one per user". One
-  codebase, two targets, selected by `MULTI_HUB` in `apps/web/src/constants.ts`
-  (`VITE_BUILD_TARGET`, `vite build --mode hub` → `dist-hub`), with
-  `scripts/check-hub-build.mjs` asserting the dropped screens are absent from
-  the bundle. The flag, the member-invite path, the early handoff link, the
-  late `postMessage` handover, the passkey question and both halves of the
-  build pipeline all shipped between 2026-08-26 and 2026-08-29 (shipped log).
-  **What is left is one thing: deploying the user build.** `discovery/` is
-  already a running Next.js site and is the obvious host, but it has no
-  deployment of its own yet, and `USER_CLIENT_URL` stays null until that host
-  has a domain — which is also what keeps the handover button and its
-  `check-hub-build` marker dormant.
-  - LAN mode keeps the hub build as its only web path — an HTTPS page cannot
-    reach an `http://` or self-signed LAN hub ([lan-mode.md](lan-mode.md)).
-
-- [ ] **App.tsx refactor — the tail.** Web 1,665 lines / desktop 1,793,
-  counted 2026-09-06. Hook extraction and both modal render trees landed
-  between 2026-07-28 and 2026-09-06 (shipped log), and decisions.md 2026-09-05
-  declined the state store, so nothing left here shrinks App.tsx by moving
-  plumbing. Two things remain, and neither is the mechanical work the item
-  started as:
-  - **the full encrypted data-export archive on desktop** — the only surface
-    still genuinely web-only, and it is a **feature port with a design question
-    in it** (what "restore into a new account" means when an account is a
-    directory on disk rather than a browser store), not parity plumbing
-    ([client-parity.md](client-parity.md)). Everything else on that list closed
-    or turned out never to have been a gap: the outgoing-webhook manager
-    2026-09-10, the connection readout 2026-09-11, and event role slots, which
-    both clients have had all along.
-  - **hook convergence** — four pairs are merged (`useUnreadCounts`,
-    `useWhisper`, `useTypingIndicators`, `useAlliances`). The rest were
-    surveyed 2026-09-07 and are **not the same job**: `useSettingsProfile` is
-    not really a pair, `useDms` needs desktop's send path moved into a command
-    layer first, and `useScreenShare`/`useVideo` have diverged in *features*
-    rather than transport, so converging them is the parity work above wearing
-    a hoist's clothes. Measurements and verdicts:
-    [client-parity.md](client-parity.md). Do one if the surrounding code is
-    being reworked anyway; do not schedule them for their own sake.
-
 - [ ] **First external operator pilot.** A hub is live on an external
   operator's own server, **wiped and rebuilt on v0.5.0 (2026-08-21)** after an
   in-place 0.3.2 → 0.5.0 upgrade proved the migration path; the old install
@@ -63,12 +23,18 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   items fixed same day, the rest in Known issues. Host details and
   per-deployment steps stay out of this repo.
 
+  **Waiting on the next release** (decided 2026-09-14): the pilot runs v0.5.0
+  and everything since is unreleased, so onboarding it now would onboard it
+  onto a build we are about to replace. Cutting the release is what unblocks
+  this item and the one below.
+
 - [ ] **Voice v2 across the internet — confirm the fix on the pilot.** It has
   crossed: audio arrives over WebTransport/QUIC, so port, cert trust tier and
   relay all work. It arrived choppy, and the cause turned out to be the web
   client scheduling every frame on arrival rather than the network (fixed
   2026-08-21). What is left is one two-client session on the pilot to hear
-  whether it is actually gone.
+  whether it is actually gone — so it waits on the pilot, which waits on the
+  release.
 
   **It is also the last unproven step in voice at all.** Both harnesses now
   drive the chain to Opus decode — `62-voice-datagram` between two web clients
@@ -80,6 +46,21 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
 ## 🚧 Blocked
 
 Committed, cannot proceed.
+
+- **Hosting the user web build** — the split itself is done: one codebase, two
+  targets on `MULTI_HUB` (`apps/web/src/constants.ts`, `VITE_BUILD_TARGET`,
+  `vite build --mode hub` → `dist-hub`), `scripts/check-hub-build.mjs` proving
+  the dropped screens leave the bundle, both halves of the release pipeline
+  shipping both artifacts, and the early handoff link plus the late
+  `postMessage` handover both built and driven across two real origins
+  (shipped log, 2026-08-26 → 08-29). What is missing is **somewhere to put
+  it**: there is no VPS and no domain (2026-09-14), `discovery/` has no
+  deployment of its own, and `USER_CLIENT_URL` stays null until one exists —
+  which is also what keeps the handover button and its `check-hub-build`
+  marker dormant. Nothing here is code.
+  - LAN mode keeps the hub build as its only web path regardless — an HTTPS
+    page cannot reach an `http://` or self-signed LAN hub
+    ([lan-mode.md](lan-mode.md)).
 
 - **Windows code-signing** — blocked until the project reaches meaningful
   popularity; ship unsigned with the documented SmartScreen workaround
