@@ -12,6 +12,37 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
 
 ## 🔨 In flight
 
+- [ ] **Permission model review.** Not designed — the task is to look, then
+  decide. Two lists that should agree already do not, found in the first minute
+  of reading and not investigated further:
+
+  - `ALL_PERMISSIONS` in `hub/src/permissions.rs` holds **20** strings;
+    `ALL_PERMISSIONS` in `packages/ui/src/components/admin/RolesSection.tsx`
+    holds **15**, and they are not a subset of each other.
+  - Six the hub enforces are absent from the roles UI, so **no admin can grant
+    them from any client**: `manage_games`, `create_posts`, `manage_posts`,
+    `start_game`, `create_events`, `use_soundboard`.
+  - One the UI offers, `manage_bots`, is not in the hub's list at all. Whether
+    anything enforces it is exactly the sort of thing to check rather than
+    assume — a permission that grants nothing and a permission nobody can grant
+    fail in opposite directions and both look fine.
+
+  What the review should cover, beyond reconciling the two lists:
+
+  - **Which permissions are enforced anywhere.** One grep per constant, and a
+    check that the answer is not zero.
+  - **Where `admin` stands in for a permission that exists.** The alliance
+    routes are the known case (item above); the question is how many others
+    there are, and whether `admin`-only is the right answer for each.
+  - **Which permissions are meaningful per channel** versus hub-wide only. The
+    overwrite cascade applies to any of them today, including ones where a
+    channel-scoped answer is meaningless.
+  - **Whether the checks agree with the docs** — `permissions.md` and
+    `nested-channels-ux.md` both describe the model, and this session has
+    twice found a doc asserting something no code did.
+  - A check that keeps the two lists honest afterwards, in the shape of the
+    other repo checkers rather than a promise to remember.
+
 - [ ] **Alliance permissions — stop making federation an admin job.** Designed
   2026-09-14 (decisions.md, "Alliance permissions: one hub permission plus a
   per-alliance grant list"). All ten alliance endpoints require `admin`, so
