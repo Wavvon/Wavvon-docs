@@ -332,7 +332,13 @@ Hard-coded in v1, regardless of role:
   requires one), and `is_encrypted` is decided by whether the *sender*
   attached an envelope. So a conversation with a bot in it can only carry
   cleartext, on a surface whose whole promise is the opposite. The hub now
-  refuses at all three doors (`first_bot_among` in `routes/dms/models.rs`);
+  refuses at all four doors — create, add member, send, and the federated
+  delivery (`first_bot_among` in `routes/dms/models.rs`). The federated one
+  reaches only as far as it honestly can: `is_bot` is a local flag and the
+  wire format carries nothing like it, so a hub recognises a bot it knows and
+  takes a stranger's word that a sender is a person — the hub holding the
+  bot's row is the one that refuses it at the send.
+
   bot DMs stay a separate design space, and the design has to answer the key
   question before the route question.
 - **Cannot acknowledge or submit "not a bot" challenges** —

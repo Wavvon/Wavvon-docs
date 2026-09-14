@@ -4,6 +4,14 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **The bot-DM rule left the federated door open (2026-09-14)**: the guard
+  below covered create, add-member and send, and `/federation/dm` walks none
+  of them — it auto-creates the conversation and stores the message. A bot
+  invited to two allied hubs could still reach a person by being *delivered*.
+  Same helper, fourth call site, with the limit stated where it matters:
+  `is_bot` is local and unsigned across the wire, so a hub can only recognise
+  a bot it knows.
+
 - **Bots were never actually kept out of DMs (2026-09-14)**: `bots.md` has
   listed "cannot send DMs from a bot identity" among the hard-coded v1 limits
   since bots shipped, and no code read that sentence. A bot authenticates
