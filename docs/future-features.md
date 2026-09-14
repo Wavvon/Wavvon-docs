@@ -92,33 +92,11 @@ than a given:
 None of it is blocking. Adding one is now a single edit in `HubMenuItems`
 rather than two that have to agree.
 
-## The full data-export archive on desktop
-
-Web has it and desktop does not, and it is the **only** surface left that is
-genuinely web-only (everything else on the parity list closed, or turned out
-never to have been a gap — [client-parity.md](client-parity.md)). It is filed
-here rather than in next-up because it is **a feature port with a design
-question in it, not parity plumbing** (measured 2026-09-10).
-
-Web's `FullArchiveSection` assembles the archive out of the browser's own
-account store (`utils/dataExport`, `utils/archiveCrypto`, `utils/archiveRestore`
-over IndexedDB) and, on restore, can *create and switch accounts*. Desktop
-keeps all of that in Rust behind a different model — `~/.wavvon/accounts.json`
-plus a directory per account, driven from `AccountRoot` and
-`ManageAccountsTab` — so "restore into a new account" has to be decided before
-it can be built. The envelopes differ too: web's `wavvon-archive` and
-desktop's identity-backup share Argon2id parameters and nothing else, and
-cross-client import is deferred pending a shared envelope spec
-([data-export.md](data-export.md) §0).
-
-**Gated on desktop delivery.** Web is the only delivery target today and the
-desktop client is not seriously distributable while code-signing is blocked,
-so this would be an archive feature for a client nobody can install cleanly.
-Same reasoning as the language packs below.
-
 ## Desktop parity backlog
 
-Named custom themes and LAN discovery UX (mDNS + QR). The whisper gaps, the `SoundboardPlayed` chip,
+Named custom themes and LAN discovery UX (mDNS + QR). The measured list of
+controls that reach only one client lives in [next-up.md](next-up.md) and in
+`clients/scripts/parity-baseline.json`, which is the one CI enforces. The whisper gaps, the `SoundboardPlayed` chip,
 `hub_updated`/`channels_updated`/`member_updated`, the duplicate
 channel-appearance modal and paired-device E2E (pairing Mechanism A) all
 closed 2026-08-08. Details in [client-parity.md](client-parity.md).

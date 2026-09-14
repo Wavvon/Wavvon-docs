@@ -217,9 +217,39 @@ went from "filed" to "closed" in a day. **Check the code before believing a
 row in this file**, and prefer deleting a stale row to carrying it: a parity
 list nobody trusts is worse than a shorter one that is true.
 
-So the only thing left that is genuinely web-only is the full encrypted
-data-export archive, and that one is a feature port rather than parity
-plumbing — see above.
+### The list was short because it was measured by reading it (2026-09-14)
+
+"The only thing left that is genuinely web-only is the archive" stood here
+until somebody counted from the code, and it was wrong by ten. `packages/ui`
+components are prop-only, so a platform-bound feature arrives as an **optional
+prop**, and a component whose prop is absent hides its control — no error, no
+blank space, nothing to notice. Counting optional `on*`/`render*` props that
+only one app passes found:
+
+| Control | Missing on |
+|---|---|
+| `onJoinAllianceVoice` — join an allied hub's voice channel | desktop |
+| `renderBotCapabilities` — grant/revoke a bot's capabilities | desktop |
+| `renderRecoveryContacts` — recovery contacts admin | desktop |
+| `onLeaveHub` — server-side leave from the remove dialog | desktop |
+| `onTrustIssuer` — trust a certification issuer | desktop |
+| `onListWhisperRoles` — whisper role targeting | desktop |
+| `onStartConversation` — DM from the member list | desktop |
+| `onHubProfileSaved`, `onSavedOffDevice` | desktop |
+| `onEditBanner` — edit a banner channel from its context menu | web |
+
+Plus one that is a bug rather than a gap: web passes `onOpenImage={() => {}}`,
+so an image attachment is a button that does nothing, while desktop opens its
+`Lightbox`.
+
+**`clients/scripts/check-parity-props.mjs` now does this counting**, with
+`scripts/parity-baseline.json` holding the known gaps so CI fails on a new one
+rather than on the backlog. Porting a feature means deleting its line. That is
+the answer to the warning three paragraphs up: not "check the code before
+believing a row", but a check that cannot be believed without the code.
+
+The full encrypted data-export archive stays a *feature port with a design
+question in it* rather than parity plumbing — see above, and next-up.md.
 
 ### Desktop's connection readout — CLOSED 2026-09-11
 

@@ -12,6 +12,60 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
 
 ## 🔨 In flight
 
+- [ ] **Client parity — eleven controls reach only one client.** Measured from
+  the code on 2026-09-14, not from this list: `packages/ui` components are
+  prop-only, so a platform-bound feature arrives as an optional prop an app may
+  omit — and a component whose prop is absent **hides its control**. That is
+  the sharing model working and also how a feature goes missing with nothing
+  failing. `pnpm run check-parity` in `clients/` reports them;
+  `scripts/parity-baseline.json` is the to-do list and CI fails on a new one.
+
+  **Missing on desktop:**
+  - **alliance voice join** (`onJoinAllianceVoice`) — the 🔊 button beside an
+    allied hub's channel is web-only, so desktop cannot join alliance voice at
+    all. Worth naming loudly: the alliance-voice audio path was proved on
+    2026-09-10 by two *web* clients, so nothing has ever exercised this on
+    desktop.
+  - **bot capability grants** (`renderBotCapabilities`) — the admin surface for
+    the granted-not-self-declared model
+    ([bot-capability-layer.md](bot-capability-layer.md) §1). Absent on desktop,
+    so an operator on desktop cannot grant or revoke one.
+  - **recovery contacts admin** (`renderRecoveryContacts`).
+  - **leave hub from the remove dialog** (`onLeaveHub`) — desktop gets
+    remove-from-this-device without the server-side leave.
+  - **trust a certification issuer** (`onTrustIssuer`).
+  - **whisper role targeting** (`onListWhisperRoles`).
+  - **start a DM from the member list** (`onStartConversation`).
+  - **hub profile saved callback** (`onHubProfileSaved`) and **backup
+    acknowledgement** (`onSavedOffDevice`) — smaller, same shape.
+
+  **Missing on web:**
+  - **edit a banner channel from the channel context menu** (`onEditBanner`).
+  - **opening an image attachment** — not a missing prop but a stubbed one:
+    `apps/web/src/components/layout/ContentArea.tsx` passes
+    `onOpenImage={() => {}}`, and `MessageAttachments` renders the image inside
+    a button. So on web every image attachment is a clickable control that does
+    nothing; desktop opens its `Lightbox`. This one is a bug, not a gap.
+
+- [ ] **The full encrypted data-export archive on desktop.** Web has it
+  (`FullArchiveSection` — identity, home hubs, prefs, devices and decrypted DM
+  history into a passphrase-encrypted `wavvon-archive`, export *and* restore,
+  [data-export.md](data-export.md)); desktop has none of it.
+
+  **The design question first, because it is real and small:** web builds the
+  archive from the browser's account store and on restore can create and switch
+  accounts; desktop keeps accounts in Rust (`~/.wavvon/accounts.json` plus a
+  directory per account, driven from `AccountRoot` / `ManageAccountsTab`), so
+  *what "restore into a new account" does there* has to be decided before the
+  port. Second question, separable: the two envelopes share Argon2id parameters
+  and nothing else, so cross-client import needs a shared envelope spec or an
+  explicit "not interchangeable" ([data-export.md](data-export.md) §0).
+
+  **Not gated on desktop distribution** (decided 2026-09-14): an unsigned
+  installer warns and installs, so desktop users exist and the archive is
+  exactly the feature they would want before trusting one client with an
+  identity.
+
 - [ ] **First external operator pilot.** A hub is live on an external
   operator's own server, **wiped and rebuilt on v0.5.0 (2026-08-21)** after an
   in-place 0.3.2 → 0.5.0 upgrade proved the migration path; the old install
