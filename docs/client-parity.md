@@ -658,3 +658,70 @@ just verified, so both writes happen in one place and any future client gets it
 by presenting a cert. Web keeps its POST: it issues the cert *after* the
 session authenticated without one, so that call is what makes the device
 visible before the next sign-in.
+
+---
+
+## Hook convergence — the pairs, and which are worth merging (surveyed 2026-09-07)
+
+Web and desktop each keep their own copy of the app-level hooks. Where a pair
+differs only in platform access, the difference can be injected as a deps
+object the way `packages/ui` components already take callback props, and the
+two copies collapse into one. **Four pairs have been merged**:
+`useUnreadCounts`, `useWhisper`, `useTypingIndicators` (2026-09-05) and
+`useAlliances` (2026-09-07).
+
+The pattern those set: platform access injected as deps, pure logic in
+`utils/` where it can be tested without a renderer (`packages/ui` has no
+jsdom), and each merge treated as a **union** — the copies had drifted in both
+directions, so there is no "behind" client to port from. Expect behaviour
+questions rather than plumbing: two of the first three fixed a real desktop
+bug on the way, and `useAlliances` surfaced two more (a composer cleared
+before a send could be refused, and a failed *refresh* reported as a failed
+send) plus one unreachable desktop branch that was deleted.
+
+**The remaining pairs are not the same job.** Do not plan them as more of the
+above.
+
+### `useSettingsProfile` (197 lines web / 133 desktop) — not a pair worth merging
+
+Only the theme/skin state is shared. Web additionally owns multi-account
+switching (including a `sessionStorage` hand-off that exists because a browser
+reloads), the custom-theme store and the recovery phrase; desktop handles
+those in `AccountRoot` and `ManageAccountsTab`. The union would be mostly
+`if (web)`.
+
+### `useDms` (142 / 361) — converges everywhere except the send
+
+The returned keys line up (seven outright, three more differing only in name),
+but that flatters it: the two hooks sit at **different layers**. Web's
+encryption lives entirely in `platform/commands/dms.ts` and the hook is a
+state container; desktop keeps the whole decision tree inline — group vs 1:1,
+the `no_sender_key` retry, `fetch_dh_key`, `init_dr_session`. Converging the
+send means first moving desktop's tree into its own command layer, which is a
+refactor of the DM path rather than a hoist. State, selection, loading and the
+WS arms would converge cheaply and save about as many lines as the shared hook
+plus two adapters would add — so **not worth doing for its own sake**; do it
+if the send path is being reworked anyway.
+
+The union item that *was* visible is done: `encryptionWarning` had shipped on
+desktop only, and closing that gap is what surfaced the unencrypted DM
+fallback (shipped log, 2026-09-07). `EncryptionWarningModal` now lives in
+`packages/ui` and both clients use it.
+
+### `useScreenShare` and `useVideo` — not pairs at all
+
+16 returned keys web / 5 desktop with **one** in common, and 9 / 16 with one
+in common. They have diverged in *features*, in both directions: web owns
+screen-share viewing, hub streams, subscriptions and watch/stop-watch while
+desktop owns only start/stop; desktop owns video backgrounds, camera
+switching, device selection and pinning while web owns the remote-stream
+plumbing. Converging them means building the missing halves first — that is
+**parity work**, not a hoist, and treating it as a hoist would silently drop
+whichever side went second.
+
+An earlier note claiming "the size gap is platform transport, not drift" was
+wrong; the measurement above replaced it.
+
+### Not worth extracting from App.tsx at all (checked 2026-07-27)
+
+Message send/edit.
