@@ -103,24 +103,7 @@ to the [shipped log](shipped-log.md).
 - **Windows installer unsigned** — SmartScreen warning; "More info → Run
   anyway". See the code-signing blocker.
 
-- **Bot deferred scope** — bot DMs: no timeline. (Voice/video injection and
-  bot-launched game modals shipped 2026-07-19 as capability-layer Phases 1–2.)
-
-- **A second device cannot show the messages you sent from the first.** The
-  own-plaintext stash is device-local by nature — a ratchet cannot decrypt its
-  own envelopes, so the sending device keeps the only readable copy. Still
-  true; what changed on 2026-09-05 is that it no longer *reports* itself as
-  breakage: it said "[decryption failed]", which is what a tampered message
-  says, and now says you sent it from another device (shipped log).
-  **This is now close to permanent.** Of the three ways out, two are gone.
-  Syncing the sender's stash through the prefs blob needed a paired device to
-  derive the blob key, which needed the identity vault — rejected outright on
-  2026-09-05, so that route is closed rather than waiting. Re-encrypting each
-  message to the sender's own DH key remains possible and is not worth it: a
-  second ciphertext on every message and a cross-repo wire-format change, for
-  the convenience of reading your own sent history on a second device. What
-  shipped is the third: saying so honestly.
-  Reopen only if someone actually asks for their sent history across devices —
-  and then the answer is the re-encryption, priced accordingly.
-  Edge of the tracked paired-device canonical-DM follow-up
-  ([client-parity.md](client-parity.md) pairing item).
+- **Bot deferred scope** — bot DMs: no timeline, and refused at the hub since
+  2026-09-14 rather than merely unbuilt ([bots.md](bots.md)). (Voice/video
+  injection and bot-launched game modals shipped 2026-07-19 as
+  capability-layer Phases 1–2.)

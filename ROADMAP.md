@@ -46,6 +46,14 @@ months. The reasoning lives in [decisions.md](docs/decisions.md).
   are the 24 words and the `.wavvon-backup` file, and losing both is the
   user's loss to take ([decisions.md](docs/decisions.md),
   [identity-vault.md](docs/identity-vault.md)).
+- **Syncing your own sent DMs to a second device** — a ratchet cannot decrypt
+  its own envelopes, so the sending device holds the only readable copy. Of
+  the three ways out, the stash sync died with the rejected identity vault,
+  re-encrypting every message to your own DH key is a cross-repo wire-format
+  change bought for a convenience, and the third — saying plainly that you
+  sent it from another device — shipped 2026-09-05. Reopen only if someone
+  asks, and then the price is the re-encryption
+  ([decisions.md](docs/decisions.md)).
 - **Subscriptions, premium tiers, or in-chat advertising.**
 - **Telemetry collection or data sales.**
 - **Global web-of-trust / negative reputation** — federated ban lists are

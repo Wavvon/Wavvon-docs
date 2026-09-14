@@ -23,7 +23,7 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
 
   The first attempt got a flat 403 from `/auth/verify`. `apply` generates an
   identity and assumed the first identity on a fresh hub becomes owner, a
-  posture it inherited from demo-seed, which has since been deleted; and a
+  posture it inherited from demo-seed; and a
   fresh hub has been invite-only since the invite-first default. The two facts
   never met until something actually ran. It now takes `--invite <code>` —
   the one-time owner invite the hub logs on first boot, or any invite that

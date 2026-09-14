@@ -319,11 +319,22 @@ Hard-coded in v1, regardless of role:
   has no audio-injection path for bot processes. Blocked for now, not
   forever — see *What's deferred* below for the voice-bot design space
   (music playback, TTS, translation).
-- **Cannot send DMs from a bot identity** (v1). The DM outbox model
-  ([federation.md](federation.md)) assumes a human-curated friend
-  graph; bot DMs are a separate design space. Deferred.
-- **Cannot participate in E2E encrypted DMs** — bots publish no DH
-  key ([e2e-encryption.md](e2e-encryption.md) requires one).
+- **Cannot take part in DMs at all** (v1) — **enforced in the hub since
+  2026-09-14**, and until then it was a sentence in this file that no code
+  read. A bot authenticates through the ordinary session flow, so its token
+  reaches `POST /conversations` and `POST /conversations/{id}/messages`
+  exactly like a person's; `create_conversation` has never gated on a friend
+  graph, so nothing stopped a bot opening a DM, being opened one, being added
+  to a group, or sending.
+
+  The reason it must not is **not** that DMs are unimplemented for bots — it
+  is that a bot publishes no DH key ([e2e-encryption.md](e2e-encryption.md)
+  requires one), and `is_encrypted` is decided by whether the *sender*
+  attached an envelope. So a conversation with a bot in it can only carry
+  cleartext, on a surface whose whole promise is the opposite. The hub now
+  refuses at all three doors (`first_bot_among` in `routes/dms/models.rs`);
+  bot DMs stay a separate design space, and the design has to answer the key
+  question before the route question.
 - **Cannot acknowledge or submit "not a bot" challenges** —
   paradoxical and unnecessary; bots are already invited explicitly.
 - **Cannot be a hub admin** in the federation sense — federation
@@ -1193,8 +1204,11 @@ The bot appears in `GET /voice/participants` with `is_bot: true`.
 ## What's deferred
 
 - **Bot DMs** — bots as DM participants (notifications, transactional
-  messages). Needs a friend-graph rethink and probably a separate
-  `bot_dms` table; not in v1.
+  messages). The hub refuses them outright since 2026-09-14 (§ hard-coded
+  limits), so designing this means answering the **key** question first: a bot
+  with a DH key and a ratchet is a bot doing identity crypto, and a bot
+  without one means a cleartext DM. Probably a separate `bot_dms` table too,
+  but that is the easy half.
 - **OAuth-style scoped tokens per capability** — today a bot's token
   is broad ("act as this bot identity"). Capability tokens
   ("subscribe to channel X only", "post to channel Y only") are a

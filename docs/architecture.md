@@ -15,7 +15,7 @@ Wavvon-clients      ── pnpm + Cargo monorepo for every client:
                        apps/web (Vite + React, two builds),
                        apps/desktop (Tauri 2 + React),
                        crates/voice (Rust),
-                       packages/core|i18n|ui|platform (shared TS)
+                       packages/core|i18n|ui (shared TS)
 Wavvon-discovery    ── Next.js directory: hubs, clients, bots, providers, docs
 ```
 
