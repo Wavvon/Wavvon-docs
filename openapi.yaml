@@ -2526,6 +2526,14 @@ paths:
       tags: [Federation]
 
   /federation/alliance-member:
+    delete:
+      summary: A hub tells the other members that it is leaving the alliance
+      description: >-
+        Removes the **calling** hub's own membership row and nothing else, so
+        the authenticated peer is the whole authorisation. Without it a
+        departure was local: the partners kept the row, kept calling the hub,
+        and kept letting it read what the alliance shares.
+      tags: [Federation]
     post:
       summary: A hub that just joined an alliance announces itself to the other members
       description: >-

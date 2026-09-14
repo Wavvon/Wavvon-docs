@@ -4,6 +4,39 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Leaving an alliance was a local act, and a missed announcement was
+  permanent (2026-09-14)**: two more found by the new `alliancestress` stage,
+  which drives the edge cases that only exist between real hubs — a member that
+  goes down and comes back, a member that leaves, an invite token pointed at
+  the wrong alliance, a channel unshared and shared again, one channel in two
+  alliances, and a voice grant for something not shared. Six of those eight
+  held on the first run. Two did not.
+
+  **A hub that left stayed a member everywhere else.** `DELETE
+  /alliances/{id}/leave` deleted the local rows and told nobody, so the
+  partners kept the row, kept calling the hub, kept showing it in the member
+  list — and, because `alliance_members` is what the visibility guard reads, a
+  hub that had left could still read the channels shared into the alliance it
+  left. A leaver now tells every member it knows
+  (`DELETE /federation/alliance-member`), which removes **the caller's own**
+  row and nothing else: a hub may unmake its own membership and nobody else's,
+  so the authenticated peer is the whole authorisation.
+
+  **A hub that was down when somebody joined never found out.** The join
+  announcement is best-effort and nothing re-sent it, so one missed message
+  blinded a hub to that member for good — the same failure it was added to fix,
+  one level down. Now the question answers itself: when a local caller lists an
+  alliance, the hub asks the members it knows and adds whoever they name.
+  Additions only, and only from hubs already in the alliance — a member vouches
+  for a member, the same standing the announcement requires. A peer's own call
+  does not reconcile, which is what stops two hubs asking each other about each
+  other forever.
+
+  Both were invisible to every existing test for the same reason: they need a
+  hub to stop and start again, which a suite that builds its own `AppState`
+  cannot do. `hub()` in the harness grew `stop()`/`start()` so a hub can go
+  down and come back as the *same* hub — identity, alliances and all.
+
 - **An alliance of three never converged (2026-09-14)**: joining told exactly
   two hubs. The joiner pulled the member list from the inviter; the inviter
   recorded the joiner; nobody told the members who were already there. Every

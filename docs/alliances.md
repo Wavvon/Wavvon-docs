@@ -37,6 +37,14 @@ Defined in `hub/src/db/migrations.rs` (Wavvon-server):
   the hub has chosen to share), plus `include_descendants BOOLEAN NOT
   NULL DEFAULT FALSE`. When true, the row shares not just that space but
   the whole tree beneath it (see "Recursive space sharing" below).
+**Leaving tells the partners** (`DELETE /federation/alliance-member`): it
+removes the calling hub's own row and nothing else, so the authenticated peer
+is the whole authorisation. And because both announcements are best-effort, a
+hub that misses one repairs itself: listing an alliance asks the members it
+knows and adds whoever they name — additions only, from hubs already in the
+alliance. A peer's own call does not reconcile, which is what keeps two hubs
+from asking each other about each other forever.
+
 **An alliance of three converges because the joiner says so.** A join tells
 two hubs — the joiner pulls the member list from the inviter, the inviter
 records the joiner — and every hub's fan-out walks its *own* member rows. So
