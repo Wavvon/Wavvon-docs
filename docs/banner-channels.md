@@ -12,7 +12,7 @@ as regular channels.
 ## Schema
 
 Two nullable columns added to `channels` via `ALTER TABLE` in
-`hub/src/migrations.rs` in Wavvon-server:
+`hub/src/db/migrations.rs` in Wavvon-server:
 
 - `banner_url TEXT` — external HTTPS image URL; the hub stores the string
   only and never fetches it. The client loads it directly.

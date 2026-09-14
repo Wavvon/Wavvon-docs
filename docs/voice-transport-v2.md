@@ -13,7 +13,7 @@
 
 - **One transport instead of two.** Today the hub relays voice twice —
   raw UDP for desktop (`hub/src/main.rs` relay loop) and binary frames
-  over a dedicated WebSocket for web (`hub/src/routes/voice_ws.rs`).
+  over a dedicated WebSocket for web (`hub/src/routes/ws/handlers/voice.rs`).
   Two code paths, two client stacks, sentinel-address bookkeeping.
 - **Web gets real-time-grade voice.** The WS relay is TCP: one lost
   packet stalls everything behind it. WebTransport datagrams are
@@ -158,7 +158,7 @@ mirrored to TS; voice-key code MUST be) and asserted by the desktop
 
 - Hub: the raw-UDP relay loop + VXRG/VXRA + `voice_addr_map` +
   `voice_consumed_tokens` + sentinel addresses; the whole
-  `routes/voice_ws.rs` web relay; `voice_ws_senders`; the parallel
+  `routes/ws/handlers/voice.rs` web relay; `voice_ws_senders`; the parallel
   whisper SocketAddr target set (pubkey-keyed sessions make one set
   enough).
 - Desktop: `transport.rs` UDP socket (replaced by a wtransport

@@ -294,7 +294,7 @@ in `styles.css` to logical, and the first RTL locale ships.
 - **Plurals**: ICU MessageFormat via `i18next-icu`.
 - **Dates**: `Intl.DateTimeFormat` with the active locale. The existing
   `formatDayLabel` / `formatFullTimestamp` / `formatRelative` helpers
-  in `desktop/src/utils/format.ts` get a `locale` parameter and
+  in `packages/core/src/format.ts` get a `locale` parameter and
   delegate to `Intl`.
 - **Numbers**: `Intl.NumberFormat` for unread counts above 99 and
   attachment file sizes.

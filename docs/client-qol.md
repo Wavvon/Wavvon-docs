@@ -1,5 +1,10 @@
 # Client Quality-of-Life
 
+> **Storage note.** Written when the hub ran on SQLite. PostgreSQL is the
+> only backend since 2026-08-08, so the "single-file deployment" argument
+> behind storing custom emoji as base64 in the database is gone — the
+> tradeoff wants re-deciding before that part is built, not copying.
+
 Seven features that sharpen daily use without changing Wavvon's shape.
 Each is small in isolation; grouped here because they share the same
 constraints — federated (no global coordinator), two-axis state

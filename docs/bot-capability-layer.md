@@ -37,7 +37,7 @@ game surface. That spine is this doc.
 
 Today `bot_profiles.capabilities` (`hub/src/db/migrations.rs:694`, JSON
 array, default `'[]'`) holds a **self-declared** list and the voice gate
-reads it directly (`hub/src/routes/voice_ws.rs:72-92`). This doc splits
+reads it directly (`hub/src/routes/ws/handlers/voice.rs`). This doc splits
 the concept in two and makes the gate check the intersection:
 
 - **Requested** — `bot_profiles.capabilities`, unchanged. What the bot
@@ -296,7 +296,7 @@ grants the admin toggled — which is the point of the capability layer.
   granted_by, granted_at, PRIMARY KEY (bot_pubkey, capability))`; backfill
   from `bot_profiles.capabilities`. Additive only.
 - `bots/capabilities.rs` (new) — `effective_capabilities()` resolver.
-- `routes/voice_ws.rs` — switch the shipped gate to the resolver.
+- `routes/ws/handlers/voice.rs` — switch the shipped gate to the resolver.
 - `routes/ws/screen_share.rs` — bot gate at `screen_share_start`
   (`can_inject_video` + channel `READ_MESSAGES`).
 - `routes/ws/handlers/mini_app.rs` — `can_use_interactive_ui` gate on

@@ -330,8 +330,8 @@ WS messages.
 | Read `packet_type`, tag per-sender entry, whisper-path gain | `voice/src/playback.rs` (Wavvon-desktop) |
 | Stamp `0x01`/`0x00`; route whisperer frames to `whisper_targets` | `hub/src/` UDP relay (Wavvon-server) |
 | `whisper_targets` + `whisper_target_defs` state | `hub/src/state.rs` (Wavvon-server) |
-| `voice_whisper_start/stop` handlers; target resolution + live re-resolve on join/leave | `hub/src/routes/ws.rs` + `chat_models.rs` (Wavvon-server) |
-| `voice_whisper_started/stopped` targeted delivery via `to_pubkeys` | `hub/src/routes/ws.rs` (Wavvon-server) |
+| `voice_whisper_start/stop` handlers; target resolution + live re-resolve on join/leave | `hub/src/routes/ws/` + `chat_models.rs` (Wavvon-server) |
+| `voice_whisper_started/stopped` targeted delivery via `to_pubkeys` | `hub/src/routes/ws/` (Wavvon-server) |
 | Whisper lists in the prefs blob; home hub list API | Wavvon-desktop prefs layer + home hub list API (Wavvon-server) |
 | Activation modes, target selector, indicators | Wavvon-desktop / Wavvon-web / Wavvon-android |
 | `start_whisper` / `stop_whisper` Tauri commands | `desktop/src-tauri/` (Wavvon-desktop) |

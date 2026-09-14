@@ -1,7 +1,9 @@
 # Data Model
 
 The hub uses PostgreSQL (via sqlx). Schema migrations run automatically at
-startup via the `store` crate (`store/src/migrations.rs` in Wavvon-server).
+startup from the hub crate (`hub/src/db/migrations.rs` in Wavvon-server); the
+`store` crate holds the `HubStore` trait and its implementations, not the
+schema.
 This page is a map, not the schema — read the migrations file for column-level
 detail.
 

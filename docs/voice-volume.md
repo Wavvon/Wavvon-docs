@@ -157,7 +157,7 @@ platform-appropriate slider implementation.
 |---|---|
 | UDP packet header: add 2-byte `sender_id`; bump protocol version | `voice/src/protocol.rs` (Wavvon-desktop) |
 | Fan-out: stamp each packet with the sender's `sender_id` | `hub/src/` UDP relay (Wavvon-server) |
-| `voice_roster_update` WS message (send on voice join + roster change) | `hub/src/routes/ws.rs` + `chat_models.rs` (Wavvon-server) |
+| `voice_roster_update` WS message (send on voice join + roster change) | `hub/src/routes/ws/` + `chat_models.rs` (Wavvon-server) |
 | Per-sender receive pipeline + gain multiplier | `voice/src/playback.rs` (Wavvon-desktop) |
 | `voice_gains` prefs blob field; load/save | Wavvon-desktop identity/prefs layer |
 | Volume slider UI on participant rows | Wavvon-desktop / Wavvon-web / Wavvon-android |

@@ -178,18 +178,22 @@ release, produced by Wavvon-server's own CI:
 
 ### Environment
 
-| Var | Default | Purpose |
-|---|---|---|
-| `DATABASE_URL` | `sqlite://hub.db` | SQLite path |
-| `BIND_ADDR` | `0.0.0.0:3000` | HTTP/WS listener |
-| `HUB_IDENTITY_PATH` | `~/.wavvon/hub_identity.json` | Ed25519 keypair location |
-| `VOICE_UDP_PORT` | `3001` | Voice relay UDP socket |
+Every key is `WAVVON_*` and the authoritative table is
+`wavvon-hub --help`, generated from the binary itself — see
+[hub-operator-guide.md](hub-operator-guide.md). The four this page used to
+list by hand (`DATABASE_URL`, `BIND_ADDR`, `HUB_IDENTITY_PATH`,
+`VOICE_UDP_PORT`) were names the hub has never read; the real ones are
+`WAVVON_DATABASE_URL`, `WAVVON_HTTP_PORT` and `WAVVON_VOICE_UDP_PORT`, and
+`hub_identity.json` is written to the process working directory rather than
+configured.
 
 ### Docker Compose for self-hosters
 
 The release ships a sample `docker-compose.yml` that runs the hub
-image, mounts a volume for the SQLite file + identity, maps ports 3000
-(TCP) and 3001 (UDP), and wires the env vars above. Operators who want
+image, mounts a volume for the data directory + identity, maps ports 3000
+(TCP) and 3001 (UDP), and wires the env vars above. The hub bundles its own
+PostgreSQL and manages it when `WAVVON_DATABASE_URL` is unset, so the volume
+holds a data directory rather than a single file. Operators who want
 TLS terminate it in a reverse proxy (Caddy / nginx); see `hosting.md`.
 
 ---

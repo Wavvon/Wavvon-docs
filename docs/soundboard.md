@@ -86,7 +86,7 @@ overlap with your own previous clip).
 ## 2. Bot audio injection
 
 **Status: implemented on the hub.** The gate lives in `voice_ws_task`
-(`hub/src/routes/voice_ws.rs`): an `is_bot=true` session (external bots —
+(`hub/src/routes/ws/handlers/voice.rs`): an `is_bot=true` session (external bots —
 Ed25519 identity, normal challenge/verify session token, capabilities in
 `bot_profiles`) connecting to `/voice/ws` is checked for `can_speak_voice`
 in its capabilities plus effective channel-scoped `read_messages` before

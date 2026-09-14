@@ -37,7 +37,7 @@ Hub B pushes via WebSocket if recipient is online
 Retry logic and failover live in the worker. The outbox survives
 restarts because it's a database table.
 
-Routes: `hub/src/routes/dms.rs` (Wavvon-server). Models:
+Routes: `hub/src/routes/dms/` (Wavvon-server). Models:
 `hub/src/routes/dm_models.rs` (Wavvon-server).
 
 ### Why outbox-style
@@ -51,7 +51,7 @@ Routes: `hub/src/routes/dms.rs` (Wavvon-server). Models:
 
 When Hub B reads messages from Hub A's shared alliance channel, Hub B
 gets the messages *and* their reactions in one shot.
-`hub/src/routes/alliances.rs::get_alliance_channel_messages` in
+`hub/src/routes/alliances/::get_alliance_channel_messages` in
 Wavvon-server loads reactions for both local and remote rows by
 reusing `messages::load_reactions` (made `pub(crate)` for this).
 
@@ -140,4 +140,4 @@ All paths below live in the `hub/` crate of Wavvon-server.
 | Inbound handlers     | `hub/src/federation/handlers.rs` |
 | DM outbox worker     | `hub/src/dm_worker.rs` |
 | Wire models          | `hub/src/federation/models.rs` |
-| Alliance routes      | `hub/src/routes/alliances.rs` |
+| Alliance routes      | `hub/src/routes/alliances/` |

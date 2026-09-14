@@ -31,7 +31,7 @@ Defined in `hub/src/db/migrations.rs` (Wavvon-server):
 
 ## Routes
 
-All in `hub/src/routes/alliances.rs` (Wavvon-server):
+All in `hub/src/routes/alliances/` (Wavvon-server):
 
 | Route                                                | Who      | Purpose                              |
 |------------------------------------------------------|----------|--------------------------------------|

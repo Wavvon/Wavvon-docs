@@ -274,7 +274,7 @@ such authority.
 **Hub routes**:
 - `GET /info` (`routes/health.rs`): add `self_tags`, `nsfw`, and
   `badges: { payload, signature }[]` (accepted, non-expired only).
-- `routes/discovery.rs` (or extend the existing directory-sign route):
+- `routes/directory.rs` (or extend the existing directory-sign route):
   `PATCH /admin/discovery` to set `self_tags` + `nsfw` (admin-only,
   enforces normalisation + the 12-cap + reserved-word rejection).
 - `routes/badges.rs` (new): `POST /admin/badges/grant` (admin issues a

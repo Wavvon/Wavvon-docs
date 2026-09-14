@@ -379,7 +379,7 @@ Key metrics:
 | `hub_messages_total` | Chat messages sent (counter) |
 | `hub_auth_attempts_total` | Auth verifications (labelled `ok`/`failed`) |
 | `hub_voice_participants` | UDP voice relay participants right now |
-| `hub_db_query_duration_seconds` | SQLite query latency histogram |
+| `hub_db_query_duration_seconds` | Database query latency histogram |
 
 Logs are emitted in JSON to stdout (structured, `tracing`-based). Pipe to
 `journald`, Loki, or any JSON log aggregator.

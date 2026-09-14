@@ -1,6 +1,13 @@
 # Performance ceiling
 
-> Status: designed, not started. This doc covers what we expect to find
+> Status: designed, not started — **and written when the hub ran on SQLite
+> with FTS5 search.** PostgreSQL is the only backend since 2026-08-08
+> (ROADMAP, Won't do) and search is Tantivy, so every SQLite-specific
+> number, WAL note and LIKE-vs-FTS5 comparison below is about an engine this
+> project no longer runs. The axes and the method survive; the figures do
+> not.
+>
+> This doc covers what we expect to find
 > when we measure, what the current code makes us suspect the bottleneck
 > is, and how to attack each axis in order. No source changes happen
 > until the first round of measurements lands.
@@ -70,7 +77,7 @@ Memory and file descriptors come next, but later than people assume:
 ### Load test design
 
 - **Tool**: a custom Rust harness in a new `loadtest/` workspace
-  crate (alongside `hub/`, `seed/`, `identity/` in Wavvon-server).
+  crate (alongside `hub/` and `identity/` in Wavvon-server).
   k6 doesn't speak our auth (challenge/sign/exchange) cleanly, and
   hand-rolling 10k concurrent WS clients in tokio is straightforward
   and gives us metrics in the same process. The harness reuses the
@@ -317,7 +324,7 @@ results go into [`hosting.md`](hosting.md) as a sizing guide.
 - `hub/src/state.rs:84-102` (Wavvon-server) — broadcast channels
 - `hub/src/main.rs:83-86` (Wavvon-server) — channel capacity
 - `hub/src/main.rs:151-182` (Wavvon-server) — UDP voice relay loop
-- `hub/src/routes/ws.rs:85-89, 174-235` (Wavvon-server) — fan-out loop
+- `hub/src/routes/ws/` (Wavvon-server) — fan-out loop
 - `hub/src/routes/messages.rs:355-376` (Wavvon-server) — search query
 - `hub/src/db/migrations.rs` (Wavvon-server) — where FTS5 will be added
 - `voice/` crate in Wavvon-desktop — see [voice.md](voice.md)

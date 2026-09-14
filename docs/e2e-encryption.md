@@ -1,10 +1,15 @@
 # End-to-End Encrypted Direct Messages
 
-DMs today are plaintext in the hub's SQLite (`dm_messages.content`,
-`hub/src/db/migrations.rs:432-443` in Wavvon-server). The hub operator
-can read every conversation. This doc designs E2E encryption that lets
-hubs **store and relay** without **decrypt**. v1 covers 1:1 text DMs
-and their attachments only.
+> **Shipped.** This reads as a design doc because it was one; the state it
+> describes as "today" is the state *before* it. DMs are end-to-end encrypted
+> now, the store is PostgreSQL rather than SQLite, and a web DM cannot leave
+> unencrypted without the sender being asked (shipped log, 2026-09-07).
+
+When this was written, DMs were plaintext in the hub's database
+(`dm_messages.content`, `hub/src/db/migrations.rs` in Wavvon-server) and the
+hub operator could read every conversation. This doc designs the E2E
+encryption that lets hubs **store and relay** without **decrypt**. v1 covers
+1:1 text DMs and their attachments only.
 
 ---
 
@@ -314,10 +319,10 @@ GroupSenderKeyEntry {   // returned from GET /conversations/:id/sender-keys
 | Change | File |
 |---|---|
 | New `group_sender_key_distributions` table | `hub/src/db/migrations.rs` |
-| `PUT /conversations/:id/sender-keys` — validate sig, upsert blobs | new handler in `hub/src/routes/dms.rs` |
-| `GET /conversations/:id/sender-keys` — return my received blobs | new handler in `hub/src/routes/dms.rs` |
+| `PUT /conversations/:id/sender-keys` — validate sig, upsert blobs | new handler in `hub/src/routes/dms/` |
+| `GET /conversations/:id/sender-keys` — return my received blobs | new handler in `hub/src/routes/dms/` |
 | `SendDmRequest` accepts `group_encrypted_envelope` | `hub/src/routes/dm_models.rs` |
-| `send_dm` validates group envelope signature, stores under `is_group_encrypted=1` | `hub/src/routes/dms.rs` |
+| `send_dm` validates group envelope signature, stores under `is_group_encrypted=1` | `hub/src/routes/dms/` |
 | `FederatedDmRequest` carries `group_encrypted_envelope` | `hub/src/routes/dm_models.rs` |
 | `dm_messages` gains `is_group_encrypted INTEGER NOT NULL DEFAULT 0` | `hub/src/db/migrations.rs` |
 
@@ -384,7 +389,7 @@ All hub-side paths below live in Wavvon-server.
 | `dm_messages.ciphertext_json` TEXT NULL | same | Holds the envelope JSON for encrypted msgs; `content` stays NULL when encrypted |
 | New table `dh_keys (pubkey PK, dh_pubkey_hex, signature_hex, published_at)` | same | One row per user; replicated across the home hub list like `home_hub_designations` |
 | `GET/PUT /identity/:pubkey/dh-key` routes | new `hub/src/routes/dh_keys.rs` | Mirrors the existing identity-keyed write+read shape |
-| `send_dm` accepts encrypted envelopes | `hub/src/routes/dms.rs:132-288` | New `SendDmRequest` variant; on encrypted, verifies signature, persists envelope, leaves `content` NULL |
+| `send_dm` accepts encrypted envelopes | `hub/src/routes/dms/` | New `SendDmRequest` variant; on encrypted, verifies signature, persists envelope, leaves `content` NULL |
 | `list_dm_messages` returns the envelope when `is_encrypted=1` | same file, ~290 | `content` field becomes `Option<String>`; client decodes ciphertext locally |
 | Federated DM delivery carries the envelope | `FederatedDmRequest` in `hub/src/routes/dm_models.rs` | New optional `encrypted_envelope` field; existing `content/signature` stays for legacy plaintext peers |
 
@@ -749,7 +754,7 @@ No schema change.
 
 - Identity model and Ed25519 seed: `identity/src/lib.rs:23-127` (Wavvon-server)
 - Existing signed wire types (signing pattern this doc reuses): `identity/src/wire.rs:32-191` (Wavvon-server)
-- Current plaintext DM storage and federation path: `hub/src/routes/dms.rs` (Wavvon-server)
+- Current plaintext DM storage and federation path: `hub/src/routes/dms/` (Wavvon-server)
 - DM schema: `hub/src/db/migrations.rs:432-471` (Wavvon-server)
 - Multi-device / master + subkey: [multi-device.md](multi-device.md)
 - Home hub list (where DH keys are replicated): [home-hub.md](home-hub.md)

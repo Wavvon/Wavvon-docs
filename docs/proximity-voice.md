@@ -297,7 +297,7 @@ is heard at full manual-gain volume.
 | Piece | Repo / file |
 |---|---|
 | `voice_zones` in-memory state | `hub/src/state.rs` (Wavvon-server) |
-| `voice_zone_create/destroy`, `voice_position_update` WS handlers | `hub/src/routes/ws.rs` + `chat_models.rs` (Wavvon-server) |
+| `voice_zone_create/destroy`, `voice_position_update` WS handlers | `hub/src/routes/ws/` + `chat_models.rs` (Wavvon-server) |
 | `manage_voice` permission | hub DB migration + roles (Wavvon-server) |
 | `voice_zone_state` on voice join | WS join handler (Wavvon-server) |
 | Client position map + attenuation evaluation | `voice/src/playback.rs` (Wavvon-desktop) |

@@ -4,8 +4,8 @@ This is the complete wire contract for the hub's WebSocket endpoint. Together
 with [`openapi.yaml`](../openapi.yaml) (REST) it is sufficient to implement a
 client in any language without reading the hub's Rust source.
 
-Source of truth: `hub/hub/src/routes/chat_models.rs` (`WsClientMessage`,
-`WsServerMessage`) and `hub/hub/src/routes/ws.rs` (dispatch loop). Every field
+Source of truth: `hub/src/routes/chat_models.rs` (`WsClientMessage`,
+`WsServerMessage`) and `hub/src/routes/ws/` (dispatch loop). Every field
 listed here matches the serde wire output exactly.
 
 ---

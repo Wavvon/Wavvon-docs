@@ -286,7 +286,7 @@ client prefs.
 | Change | Where |
 |---|---|
 | New WS envelopes (`ScreenShareStart`/`Chunk`/`Stop` + `*Started`/`ChunkOut`/`Stopped`) | `hub/src/routes/chat_models.rs` in Wavvon-server (extend the enums at line 175 and 196) |
-| Binary frame correlation (envelope ↔ next binary frame) | `hub/src/routes/ws.rs` (Wavvon-server) |
+| Binary frame correlation (envelope ↔ next binary frame) | `hub/src/routes/ws/` (Wavvon-server) |
 | In-memory `ActiveShare` map per channel | `hub/src/state.rs` (Wavvon-server, sibling of `voice_channels`) |
 | Init-chunk cache per active stream | Same map, fixed-size byte buffer per stream |
 | Permission check on `ScreenShareStart` | Reuses existing channel-membership + role check |

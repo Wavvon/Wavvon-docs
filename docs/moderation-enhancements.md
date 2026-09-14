@@ -9,7 +9,7 @@ operator owns, and (3) a member-driven report queue. None introduces a
 global source of truth; each keeps the decision local to the operator.
 
 Authoritative code lives in `Wavvon-server`
-(`hub/src/routes/moderation.rs`, `hub/src/banlist_worker.rs`,
+(`hub/src/routes/moderation/`, `hub/src/banlist_worker.rs`,
 admin routes). Client surfaces live in `Wavvon-desktop` (mirrored in
 `Wavvon-web` and `Wavvon-android`). Repo names are called out per piece
 below so the backend-engineer and frontend-engineer agents don't drift.
@@ -98,7 +98,7 @@ and keeps the positive and negative reputation channels separate.
 
 - *Hub* (Wavvon-server): publisher endpoint `GET /federation/banlist`
   (unauthenticated, signature is the authority — same pattern as
-  `/info` badge serving) in `hub/src/routes/moderation.rs`; the 6-hour
+  `/info` badge serving) in `hub/src/routes/moderation/`; the 6-hour
   sync job in `hub/src/banlist_worker.rs`; the `/auth/verify` gate
   change; migration for
   `federated_bans` and the `banlist_sources` + per-source policy +
@@ -196,7 +196,7 @@ report with a message preview, reporter info, and channel + timestamp
 context. The admin acts via `POST /admin/reports/:id/review` with
 `{ "action": "dismiss" | "delete_message" | "ban_user", "note"?: "..." }`.
 The action applies immediately (reusing the existing
-`hub/src/routes/moderation.rs` delete/ban paths) and the report flips to
+`hub/src/routes/moderation/` delete/ban paths) and the report flips to
 `reviewed`. Admin permission required (`manage_users`).
 
 **Reporter privacy.** Reporters are stored (needed for dedup) but never

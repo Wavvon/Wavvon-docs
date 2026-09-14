@@ -3206,7 +3206,7 @@ endpoint (`/voice/ws`), not over WebRTC. Native clients keep their UDP
 path; the hub fan-out routes each relayed frame to both UDP (desktop,
 Android) and WS (web) participants in one channel. The browser frames the
 same Opus wire format as UDP, encoding/decoding with the `opusscript` WASM
-codec. Hub handler is `hub/src/routes/voice_ws.rs` (Wavvon-server); the
+codec. Hub handler is `hub/src/routes/ws/handlers/voice.rs` (Wavvon-server); the
 client side is `VoiceWsSession` in `apps/web/src/platform/voice.ts`
 (Wavvon-client). Full data flow in [voice.md](voice.md).
 

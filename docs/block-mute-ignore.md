@@ -268,7 +268,7 @@ changes.
 | `PUT /identity/dm-blocks` | Replace the plaintext DM-block set (projection of the block list). Authenticated as the user. |
 | `GET /identity/dm-blocks` | Read it back (for a freshly-paired device to reconcile). |
 
-DM ingestion (`hub/src/routes/dms.rs` and the federation inbound handler
+DM ingestion (`hub/src/routes/dms/` and the federation inbound handler
 in `hub/src/federation/handlers.rs`, both Wavvon-server) gains a
 block-set check before store-and-push. Nothing else on the wire changes.
 

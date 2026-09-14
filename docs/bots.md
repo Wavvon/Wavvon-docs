@@ -53,7 +53,7 @@ Reuses the existing challenge-response signature flow (see
    optionally merges the `bot_meta` (see section 4), and issues a
    session token carrying a `kind: 'bot'` claim.
 6. The bot opens the existing client WebSocket
-   (`hub/src/routes/ws.rs` in Wavvon-server) with that token.
+   (`hub/src/routes/ws/` in Wavvon-server) with that token.
 
 Why reuse `users` (with `is_bot=1`) rather than a parallel `bots`
 table: the role/permission, ban/mute, channel-membership, and message
@@ -314,11 +314,11 @@ doesn't care that the actor is a bot.
 
 Hard-coded in v1, regardless of role:
 
-- **Cannot join voice (v1).** The voice relay (`voice/` crate in
-  Wavvon-desktop) currently handles only human microphone streams and
-  has no audio-injection path for bot processes. Blocked for now, not
-  forever — see *What's deferred* below for the voice-bot design space
-  (music playback, TTS, translation).
+- ~~**Cannot join voice (v1).**~~ **Shipped 2026-07-19** and this entry was
+  stale against §18 of this same file. An `is_bot` session on `/voice/ws` is
+  admitted when the bot holds the `can_speak_voice` grant and refused with a
+  sentence when it does not (`hub/src/routes/ws/handlers/voice.rs`), and
+  `DELETE /bots/{id}/voice/leave` takes it back out.
 - **Cannot take part in DMs at all** (v1) — **enforced in the hub since
   2026-09-14**, and until then it was a sentence in this file that no code
   read. A bot authenticates through the ordinary session flow, so its token
@@ -556,7 +556,7 @@ the application.
   `PUT /bots/me/subscriptions`.
 - `PUT /bots/me/subscriptions` — replaces the full subscription set for
   the authenticated bot.
-- Hub event dispatcher: `hub/src/routes/ws.rs` broadcast path extended
+- Hub event dispatcher: `hub/src/routes/ws/` broadcast path extended
   to fan out `hub_event` envelopes to subscribed bots. New module
   `hub/src/bots/events.rs` owns subscription matching and push.
 - `hub_audit_log(id, event_type, at, actor_pubkey, target_pubkey,

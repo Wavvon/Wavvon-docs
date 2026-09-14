@@ -67,7 +67,7 @@ had a "recently shipped" section, whatever this line used to claim):
 23. [block-mute-ignore.md](block-mute-ignore.md) — user-level block / ignore / quiet-hours (DND): personal-axis prefs-blob state, client-side filtering, server-enforced DM block
 24. [discovery-v2.md](discovery-v2.md) — Wavvon-discovery enhancements: hub uptime tracking, farm browsing, global search, anonymous aggregate analytics
 25. [client-qol.md](client-qol.md) — client quality-of-life: global search, drafts, custom emojis, events, polls, thread collapse, notification grouping
-26. [store-trait-design.md](store-trait-design.md) — database abstraction: trait-based store, crate split (wavvon-store / wavvon-store-sqlite, wavvon-store-postgres as future community contribution), migration path
+26. [store-trait-design.md](store-trait-design.md) — database abstraction: the `HubStore` trait split and its PostgreSQL implementation (the SQLite backend it was written around is gone — PostgreSQL is the only one)
 27. [custom-themes.md](custom-themes.md) — user-created skins: CSS token system, .wavvonskin file format, export/import, persistence
 28. [brand.md](brand.md) — motto, one-liner, logo brief and asset checklist (final logo asset still pending)
 

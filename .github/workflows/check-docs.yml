@@ -14,3 +14,4 @@ jobs:
         with:
           node-version: '22'
       - run: node scripts/check-doc-links.mjs
+      - run: node scripts/check-doc-paths.mjs
