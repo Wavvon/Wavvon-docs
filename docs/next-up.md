@@ -54,6 +54,56 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   - A check that keeps the two lists honest afterwards, in the shape of the
     other repo checkers rather than a promise to remember.
 
+- [ ] **Bots are users, and `is_bot` should have to earn its existence.** Not
+  designed — the task is to establish what the flag is still for, and replace
+  what it is not. Prompted by a question with no good answer: an admin invites
+  a bot by typing 64 hex characters, and the hub has no way to know whether a
+  process or a person is behind them.
+
+  **The hole that starts it.** `POST /bots` inserts the row with
+  `is_bot = TRUE` and `ON CONFLICT DO NOTHING`. That protects an existing
+  member — their row is untouched, so nobody can be converted — but it protects
+  nobody else: a **stranger's** pubkey, belonging to a person who simply has
+  not joined yet, gets a fresh `bot_pending` row with the flag set, and every
+  later read treats them as a bot. *Open question the review must answer rather
+  than assume*: what happens today when such a pubkey authenticates normally,
+  without asserting `is_bot`.
+
+  Two more things found on the way, both small and both worth fixing whatever
+  the review concludes:
+
+  - Inviting a pubkey that is already a member **returns 200 with a token that
+    can never work** — `/auth/verify` looks for a row with `is_bot = TRUE` and
+    that row is not one. A no-op that reports success.
+  - `POST /bots` accepts **`manage_roles`** or `admin`, while the
+    `/admin/bots/*` routes require `admin`. So inviting a bot is already
+    delegable and granting its capabilities is not, which may be right — but it
+    is not what anyone would guess, and it undercuts "bots are admission,
+    therefore admin" as an argument (see the `manage_bots` note above).
+
+  **The direction to evaluate**: keep bots as ordinary users and let each
+  behaviour key off something real instead of a label.
+
+  | What `is_bot` gates today | The candidate replacement |
+  |---|---|
+  | Skipping the invite-code gate | An invite code — the 32-byte bot token already is one, on a separate path |
+  | No default role | Invites already carry `grant_role_id` |
+  | Voice admission | `can_speak_voice`, which already gates it *alongside* the flag |
+  | Game launch cards, result embeds | `can_use_interactive_ui`, same shape |
+  | Exclusion from DMs | **Publishes no DH key** — which is the actual reason, and a property rather than a label |
+  | Session expiry | A property of the invite or the session, not of the identity |
+  | The badge in the UI | Deriving it from a `bot_profiles` row |
+
+  If every row of that table holds, `is_bot` becomes derived or unnecessary,
+  and the ~65 flag reads across 12 files become checks against things that are
+  true rather than things that were declared. If one does not hold, that row is
+  the reason the flag stays — and then it should say so in one place instead of
+  being consulted in sixty-five.
+
+  Sequencing note: this overlaps the permission review above (both ask "what
+  should this check actually read"), and the DM guard shipped 2026-09-14 reads
+  `is_bot` — whatever replaces it has to keep that door shut.
+
 - [ ] **Alliance permissions — stop making federation an admin job.** Designed
   2026-09-14 (decisions.md, "Alliance permissions: one hub permission plus a
   per-alliance grant list"). All ten alliance endpoints require `admin`, so
