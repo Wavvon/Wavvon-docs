@@ -5,6 +5,19 @@ channels, reactions, and (eventually) voice and games. A hub can be in
 multiple alliances; users access alliance content through their home hub
 without joining every member hub separately.
 
+**And they do not merge.** A hub allied with one community for raids and
+another for a hobby shares different channels into each, and the two partners
+are not allied with each other. Every alliance route therefore asks *the
+caller* which alliances it is in, not just which alliance a channel is shared
+into — `require_alliance_visibility` in
+`hub/src/routes/alliances/models.rs`. A local caller passes by definition
+(their hub is in the alliance); the question is about a **federating peer**,
+because a peer token is not a relationship: any key may authenticate with
+`is_hub=true` and no invite, deliberately. Until 2026-09-14 nothing asked, and
+a stranger hub could list every alliance a hub was in and read the channels
+shared into them (shipped log). Proved by `e2e-topology`'s `alliancesplit`
+stage, which needs three real hubs to pose the question.
+
 ```
 "WoW Alliance" = Hub A + Hub B
   Hub A shares #raids

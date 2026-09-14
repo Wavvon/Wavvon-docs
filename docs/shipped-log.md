@@ -4,6 +4,38 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **A hub with a token could read every alliance of every hub (2026-09-14)**:
+  alliances are not supposed to merge — a hub allied with one community for
+  raids and another for a hobby shares different channels into each, and the
+  two partners are not allied. That was true of the *sharing* and never of the
+  *reading*.
+
+  Any key may authenticate at a hub with `is_hub=true` and no invite. That
+  exemption is deliberate and is itself an earlier e2e finding: without it two
+  hubs with default settings could never form an alliance, because a fresh hub
+  is invite-only. But a peer token is not a relationship, and nothing checked
+  that a caller belonged to the alliance it was asking about. So any hub on the
+  internet could authenticate at any hub, call `GET /alliances` and be handed
+  the id and name of every alliance that hub is in, then list each one's shared
+  channels and read their messages. The routes trusted the alliance membership
+  of the **channel** and never asked about the caller.
+
+  `require_alliance_visibility` now runs at every door that takes an alliance
+  id — list, detail, shared channels, messages, the forum reads and writes,
+  share/unshare, and the voice grant. A local caller is unaffected: their hub
+  is in the alliance by definition. The list filters rather than refuses; the
+  rest answer 404, because whether an alliance exists here is itself the thing
+  being withheld.
+
+  Found by asking what the model was supposed to do, not by a failure. Proved
+  by `e2e-topology`'s new `alliancesplit` stage, which needs **three** real
+  hubs — the caller that matters is a hub holding a peer token, which only a
+  second binary produces, and the alliance it must not see needs a third.
+  Against the previous binary the stranger is handed both alliances by name;
+  against this one, none, while the real partner still reads its own channel
+  over federation — which is what proves the refusal is about the alliance and
+  not about peers.
+
 - **Ten of the eleven one-client controls, closed (2026-09-14)**: each was a
   shared component hiding a control because its optional prop was never
   passed, so nothing failed and nothing looked missing.
