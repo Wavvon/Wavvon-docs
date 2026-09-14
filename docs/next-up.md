@@ -104,6 +104,56 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   should this check actually read"), and the DM guard shipped 2026-09-14 reads
   `is_bot` — whatever replaces it has to keep that door shut.
 
+- [ ] **The invite list never forgets anything.** `list_invites`
+  (`hub/src/routes/invites.rs`) selects every row, ordered by creation date,
+  with **no condition on `expires_at` and none on `uses >= max_uses`** (checked
+  2026-09-15). So an invite that expired in July and one that burned its single
+  use months ago sit in the admin panel next to the live ones, and the list
+  only grows. An operator looking for "which way in is currently open" has to
+  work it out row by row.
+
+  The decisions to make, none of them large:
+
+  - **Filter, mark, or both.** Hiding dead invites is the smallest fix;
+    marking them (`expired`, `used up`) and offering a filter keeps the history
+    readable. A third option — showing live ones by default with a "show all"
+    — is what the rest of the admin panel does elsewhere, so it is probably the
+    house style.
+  - **Whether dead rows should be deleted at all.** They are a record of who
+    invited whom, which moderation may want; the retention worker exists and
+    could take them after a while.
+  - **Whether a live invite can be revoked**, which is the other half of the
+    same screen and worth checking while in there.
+
+  Noticed on the way, for the permission review above: listing invites requires
+  **`manage_channels`**. That is the permission for making channels, and
+  nothing about an invite is a channel.
+
+- [ ] **"Add this bot to my hub", without hand-rolling an invite.** An idea,
+  not a design. Today an admin who wants one specific bot has to mint an invite
+  and get the code to its operator; what they want is a button that means *this
+  bot, and only this bot, may come in*.
+
+  The piece that does not exist yet, and is the whole point: **an invite bound
+  to a pubkey**. Invites are bearer codes — whoever holds the string may use
+  it, once or many times. "Only this bot" is therefore approximate today: the
+  code could be redeemed by anyone it reaches. A single-use invite that names
+  the pubkey it admits makes the promise exact, and it is just as useful for
+  admitting one *person* you already know the key of.
+
+  Then the button is thin: mint a pubkey-bound, single-use invite with an
+  optional role grant, and deliver it. Delivery is the second open question —
+  the operator can paste it, or the hub can push to an endpoint the bot
+  advertises, which is the shape the alliance push-invite already uses for
+  hubs.
+
+  **Sequencing**: this lands naturally *after* the bot-flag review above. If
+  bots stop being special, `POST /bots` collapses into "mint a pubkey-bound
+  invite with a role grant" and this button is simply how that is offered —
+  one flow for admitting anybody, with the bot case being the one where the
+  recipient is a process. Building the button first would harden the special
+  case instead of removing it.
+
 - [ ] **Alliance permissions — stop making federation an admin job.** Designed
   2026-09-14 (decisions.md, "Alliance permissions: one hub permission plus a
   per-alliance grant list"). All ten alliance endpoints require `admin`, so
