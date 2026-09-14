@@ -22,10 +22,21 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   - Six the hub enforces are absent from the roles UI, so **no admin can grant
     them from any client**: `manage_games`, `create_posts`, `manage_posts`,
     `start_game`, `create_events`, `use_soundboard`.
-  - One the UI offers, `manage_bots`, is not in the hub's list at all. Whether
-    anything enforces it is exactly the sort of thing to check rather than
-    assume — a permission that grants nothing and a permission nobody can grant
-    fail in opposite directions and both look fine.
+  - One the UI offers, `manage_bots`, appears **nowhere in the Rust
+    workspace** (checked 2026-09-15) and every bot admin route requires
+    `admin`. It is a checkbox that saves into `role_permissions` and grants
+    nothing. **Decided: delete it from the UI list rather than wire it** — what
+    it would gate is admitting a participant to the hub and deciding what it
+    may do, which is admission plus capability-granting, and the capability
+    layer's premise is "requested by the bot, granted by the admin". A second
+    key to that door is not a delegation, it is a duplicate.
+
+    Worth the sentence because it is the **opposite answer to the alliance
+    one above, from the same question**: an alliance is an ongoing relationship
+    with an outsider and whoever runs it decides nothing about who joins *this*
+    hub, so delegating it is sound. Bots are people arriving. Without this
+    written down, the inconsistency reads like an oversight and somebody puts
+    `manage_bots` back.
 
   What the review should cover, beyond reconciling the two lists:
 
