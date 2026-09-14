@@ -37,6 +37,11 @@ Defined in `hub/src/db/migrations.rs` (Wavvon-server):
   the hub has chosen to share), plus `include_descendants BOOLEAN NOT
   NULL DEFAULT FALSE`. When true, the row shares not just that space but
   the whole tree beneath it (see "Recursive space sharing" below).
+Leaving also **drops the whole local mirror** — the other hubs' rows, the
+shared channels, the alliance itself — rather than only cleaning up when the
+last member walks out, and `GET /alliances/{id}` answers only for an alliance
+this hub is actually in.
+
 **Leaving tells the partners** (`DELETE /federation/alliance-member`): it
 removes the calling hub's own row and nothing else, so the authenticated peer
 is the whole authorisation. And because both announcements are best-effort, a

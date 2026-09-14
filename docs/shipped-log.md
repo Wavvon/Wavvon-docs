@@ -4,6 +4,38 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **The alliance stress sweep: 26 scenarios, four stages, five bugs
+  (2026-09-14)**: alliances got the harness they never had. Four
+  `e2e-topology` stages now drive them end to end with real binaries —
+  `alliancesplit` (one hub in two alliances that must not leak into each
+  other), `alliancestress` (a member down, back, and gone), `alliancechurn`
+  (the shape changing under a live alliance), `alliancedrift` (five hubs, a
+  deleted channel, a join race, the addresses the rows hold).
+
+  What held on the first run is worth recording too, because it is the part
+  nobody has to touch: a member that is down costs its own channels and nothing
+  else rather than turning the list into an error; a returning member reappears
+  without a repair step; an invite token minted for one alliance does not open
+  another; unsharing is not a one-way door; the same channel shared into two
+  alliances reaches both partners and neither learns of the other; a voice
+  grant is refused for a channel the alliance does not carry; a hub cannot
+  share a channel it does not own; a space shared with its descendants carries
+  a child added afterwards; leaving and rejoining works; two hubs joining in
+  the same instant both land; and five hubs converge on the same view.
+
+  What did not, and is now fixed: the **leave** left a mirror behind (cleanup
+  only ran when the member count hit zero, so every departure but the last kept
+  the other hubs' rows, the shared channels and the alliance row — and
+  `GET /alliances/{id}` answered from them). The detail route now also requires
+  that this hub is a member, because a row can outlive membership for a moment
+  and answering from it describes something untrue.
+
+  One expectation of the harness was wrong rather than the code: a message
+  written through the alliance arrives on the owning hub **prefixed** with who
+  said it and where, because a federated write is signed by the visiting hub
+  and the owner cannot attribute it to a person it has never seen. The scenario
+  now asserts that shape deliberately instead of demanding a bare body.
+
 - **Leaving an alliance was a local act, and a missed announcement was
   permanent (2026-09-14)**: two more found by the new `alliancestress` stage,
   which drives the edge cases that only exist between real hubs — a member that
