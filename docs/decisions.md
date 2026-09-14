@@ -6,6 +6,85 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Alliance permissions: one hub permission plus a per-alliance grant list, not a third overwrite axis
+
+**Decision** (2026-09-14, designed with the user; not yet built): alliance
+management stops being `admin`-only and gains two things — a hub-wide
+`manage_alliances` permission for the acts that belong to the hub, and a plain
+`alliance_managers(alliance_id, role_id)` grant list for the acts that belong
+to one relationship. **Not** a third allow/deny/inherit axis mirroring channel
+overwrites.
+
+**The problem.** All ten alliance endpoints require `admin`, so delegating "you
+handle our federation with that other community" means handing over the whole
+hub — roles, bans, settings, everything. That is the wrong price for a job
+whose whole scope is one relationship. It also gets worse now that a channel's
+own settings can share it (this file, "Where sharing is edited"): the surface
+is in front of every operator and gated on the one permission nobody wants to
+give out.
+
+**Why not a third axis.** Channel overwrites are allow/deny/inherit per role,
+cascading down an ancestor chain, because channels are many, nested, and
+inherit by default. Alliances are a handful, flat, and each is a relationship
+rather than a container — there is nothing for a cascade to cascade through,
+and "deny" has no meaning against a baseline that grants nothing. Copying the
+machinery would build a matrix to express a list.
+
+**The split, by what the act is actually about.**
+
+*Hub-scoped* — there is no alliance yet, or the act is the hub's own posture,
+so a hub permission carries it (`manage_alliances`):
+
+- create an alliance
+- accept or decline a pending invite (entering a relationship at all)
+- leave an alliance
+
+*Alliance-scoped* — about one existing relationship, so the grant list carries
+it:
+
+- invite another hub into it, including the direct push
+- share and unshare a channel
+- the per-share policies (`forum_remote_write`, `voice_remote_join`)
+
+`admin` and `manage_alliances` are implicitly in every alliance's list; the
+list only ever adds. Granting the list itself stays `admin`.
+
+**The trap, and the reason this is not just a rename.** Sharing a channel into
+an alliance is *also a channel act*: it exposes that channel to people outside
+this hub. If managing an alliance alone authorised sharing, the person trusted
+with one federation link could expose a private staff channel they cannot even
+read. So the share/unshare check is **both** — manage-this-alliance **and**
+`manage_channels` on the channel being shared. The person who decides *who we
+federate with* and the person who decides *what leaves this hub* are allowed to
+be different people, and the permission model should let them be.
+
+**These are local permissions, and that has to stay legible.** They govern what
+*our* members may do with *our* alliance rows. A partner hub's roles mean
+nothing here, and nothing about this crosses a hub boundary — there is no
+federated permission, and no grant to a hub. The name "alliance permission"
+invites exactly that misreading, so it is worth the sentence in the UI too.
+
+**Alternatives considered.**
+
+- **Only `manage_alliances`, hub-wide** — the cheap half, and it does answer
+  the original complaint. Rejected as the whole answer because it collapses
+  every alliance into one trust level: the person who handles the raiding pact
+  can then rewrite the one with the neighbouring community. Worth shipping
+  first, though (see below).
+- **A full overwrite table per alliance** — rejected above.
+- **Per-alliance roles**, i.e. an alliance having its own roster — rejected:
+  roles are a hub's own vocabulary, and a second role system whose members are
+  hubs rather than people is a different feature (and one the certifications
+  design already declined for trust, "trust stays one hop").
+
+**Rollout.** `manage_alliances` first: it is one constant, one check swapped in
+ten handlers, and it makes the common case possible. The grant list follows,
+with its own capability string (`alliance.permissions`) so a client does not
+offer a delegation an older hub would answer 403 to. Until a hub advertises it,
+clients keep asking for `admin`.
+
+**Outcome**: designed, not built (next-up.md).
+
 ## The Discord importer is dropped; migration would come back as a bot
 
 **Decision** (2026-09-14, user call): `crates/discord-import` is deleted,

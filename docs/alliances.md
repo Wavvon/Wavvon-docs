@@ -74,8 +74,12 @@ and for a category the choice between the space alone and everything beneath
 it. Both write the same `alliance_shared_channels` row.
 
 The tab is admin-only because `share_channel` and `unshare_channel` require
-`admin` on the hub. There is no separate manage-alliances permission today; if
-one is introduced, the tab follows it rather than defining it.
+`admin` on the hub — as does every other alliance route. That is designed to
+change: decisions.md, "Alliance permissions: one hub permission plus a
+per-alliance grant list". The tab will follow the permission rather than define
+it, and sharing will want `manage_channels` on the channel alongside the
+alliance grant, because putting a channel in front of outsiders is a channel
+act as much as an alliance one.
 
 ## Routes
 

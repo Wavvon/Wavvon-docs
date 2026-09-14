@@ -12,6 +12,32 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
 
 ## 🔨 In flight
 
+- [ ] **Alliance permissions — stop making federation an admin job.** Designed
+  2026-09-14 (decisions.md, "Alliance permissions: one hub permission plus a
+  per-alliance grant list"). All ten alliance endpoints require `admin`, so
+  delegating one federation link means handing over the whole hub — and the
+  channel's own settings now offer sharing, which makes that gate visible to
+  every operator.
+
+  Two pieces, in this order:
+  - **`manage_alliances`**, a hub permission like the others: one constant, the
+    check swapped in ten handlers, `ALL_PERMISSIONS` and the roles UI. Carries
+    the hub-scoped acts — create an alliance, accept or decline an invite,
+    leave. Makes the common case possible on its own.
+  - **`alliance_managers(alliance_id, role_id)`**, a plain grant list for the
+    acts that belong to one relationship: inviting another hub, sharing and
+    unsharing a channel, the per-share policies. Not allow/deny/inherit —
+    alliances are a handful and flat, and there is nothing for a cascade to
+    cascade through. Needs its own capability string
+    (`alliance.permissions`) so a client does not offer a delegation an older
+    hub would refuse.
+
+  **The check that must not be forgotten**: share/unshare requires *both*
+  manage-this-alliance **and** `manage_channels` on the channel. Sharing is
+  also a channel act — it puts that channel in front of outsiders — and
+  without the second half, whoever handles one federation link could expose a
+  private channel they cannot read.
+
 - [ ] **Alliance voice on desktop.** The last of the eleven one-client
   controls, and the only one that was not a wiring gap — the other ten shipped
   2026-09-14 (shipped log). Web opens a **second, visitor** WebSocket to the
