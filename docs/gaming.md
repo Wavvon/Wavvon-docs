@@ -73,8 +73,10 @@ they *are* the gaming platform's building blocks:
 ## Federation angle
 
 For alliances/farms, "game launch/lobby federation across an alliance"
-is explicitly out of scope today (see [alliances.md](alliances.md) "What's
-not done"). A game session is single-hub first; cross-hub multiplayer is
+is explicitly out of scope today ([alliances.md](alliances.md), [bot-mini-apps.md](bot-mini-apps.md),
+[bot-capability-layer.md](bot-capability-layer.md) §9). It stopped being a
+backlog entry on 2026-09-14: nothing can federate a lobby that does not exist
+single-hub, and item 4 above is undesigned. A game session is single-hub first; cross-hub multiplayer is
 a later, harder problem tied to the [farm layer](farm-model.md).
 
 ## Sequencing

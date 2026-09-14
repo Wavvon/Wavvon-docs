@@ -424,7 +424,15 @@ network remains the only thing that proves a visitor is audible.
 
 - **Member discovery beyond invite tokens** — no way to browse an
   alliance's membership; joining is still invite-driven.
-- Game launch/lobby federation across alliance.
+
+**Game launch/lobby federation across an alliance** used to be listed here as
+not-done, which read as a plan. It is a **refusal**, not a backlog entry: a
+mini-app session is scoped to one hub and one channel
+([bot-mini-apps.md](bot-mini-apps.md)), alliance game sessions are out of scope
+([bot-capability-layer.md](bot-capability-layer.md) §9), and the multiplayer
+lobby it would federate is itself undesigned ([gaming.md](gaming.md) item 4).
+The surviving cross-hub idea is game-bot *recommendation* between allies,
+deferred-until-demand in [bot-capability-layer.md](bot-capability-layer.md) §11.
 
 (Forum post/reply/reaction federation over alliance-shared channels
 **shipped 2026-07-19** — [forum.md](forum.md) §9. This section used to

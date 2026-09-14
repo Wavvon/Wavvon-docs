@@ -14,10 +14,10 @@ from this file — see [shipped-log.md](shipped-log.md) for history.
 
 ---
 
-## Alliance extras — member discovery, game launch/lobby federation
+## Alliance extras — member discovery
 
-Two gaps left in the alliance area now that space-sharing (2026-07-05),
-forum federation (2026-07-19) and the voice design (2026-08-22, in
+One gap left in the alliance area now that space-sharing (2026-07-05), forum
+federation (2026-07-19) and the voice design (2026-08-22, in
 [alliances.md](alliances.md)) are accounted for:
 
 - **Member discovery beyond invite tokens** — *people*, not hubs. The member
@@ -27,8 +27,18 @@ forum federation (2026-07-19) and the voice design (2026-08-22, in
   an allied hub still means an invite token or already knowing they are there.
   Worth saying because the two read the same in a sentence and only one is
   missing.
-- **Game launch / lobby federation across an alliance** —
-  [gaming.md](gaming.md), [bot-capability-layer.md](bot-capability-layer.md).
+
+**Game launch / lobby federation across an alliance used to sit here and does
+not belong** (removed 2026-09-14). Games arrive as bots, and three docs
+already rule cross-hub sessions out: a mini-app session is scoped to one hub
+and one channel ([bot-mini-apps.md](bot-mini-apps.md)), alliance game sessions
+are out of scope ([bot-capability-layer.md](bot-capability-layer.md) §9), and
+a game session is single-hub first ([gaming.md](gaming.md)). Underneath that,
+the multiplayer lobby does not exist single-hub either — it is `gaming.md`
+item 4, undesigned — so federating it was a plan for the tail of something
+unbuilt. The one cross-hub idea with substance is **game-bot recommendation
+over an alliance**, and it is already filed deferred-until-demand in
+[bot-capability-layer.md](bot-capability-layer.md) §11.
 
 ## Multi-device — Android QR pairing
 
