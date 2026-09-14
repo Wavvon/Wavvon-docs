@@ -4,6 +4,31 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Bots were never actually kept out of DMs (2026-09-14)**: `bots.md` has
+  listed "cannot send DMs from a bot identity" among the hard-coded v1 limits
+  since bots shipped, and no code read that sentence. A bot authenticates
+  through the ordinary session flow — there is no bot-token path and no scope
+  confinement on a normal bot session — so its token reached
+  `POST /conversations` and `POST /conversations/{id}/messages` exactly like a
+  person's. It could open a DM, be opened one, be added to a group DM, and
+  send. The stated reason was wrong too: the doc blamed a DM outbox that
+  "assumes a human-curated friend graph", and `create_conversation` has never
+  checked a friendship — anyone can DM anyone, blocks aside.
+
+  What made it worth closing rather than documenting is what a bot in a DM
+  means. A bot publishes no DH key, and `is_encrypted` is simply whether the
+  *sender* attached an envelope — so every message in such a conversation is
+  cleartext in `dm_messages`, on the one surface whose promise is the
+  opposite, and it federates onward in the clear the same way the 2026-09-07
+  unencrypted-fallback bug did.
+
+  One helper (`first_bot_among`) at three doors — create, add member, send —
+  because a rule implemented once is the shape that does not drift, and the
+  send check has to hold for anyone seated before the rule existed. Three
+  tests: a person opening a DM with a bot, a bot opening one with a person,
+  and a bot added to an existing group, with a human group still opening
+  normally in the same test so the guard cannot pass by breaking the route.
+
 - **The Discord importer is gone (2026-09-14)**: `crates/discord-import`,
   its design doc and `e2e-topology`'s `discordimport` stage are deleted.
   `export` had needed a real bot token and a real guild since July and never
