@@ -2525,6 +2525,16 @@ paths:
       summary: Receive an alliance invite push from a peer hub
       tags: [Federation]
 
+  /federation/alliance-member:
+    post:
+      summary: A hub that just joined an alliance announces itself to the other members
+      description: >-
+        Carries the inviter's invite token (a signature over the alliance id),
+        which the receiver verifies against a hub already in its own member
+        list. Without this only the inviter learns of a new member, and an
+        alliance of three never converges.
+      tags: [Federation]
+
   /admin/directory-sign:
     post:
       summary: Sign a directory entry for the hub discovery service

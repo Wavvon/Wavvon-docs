@@ -4,6 +4,33 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **An alliance of three never converged (2026-09-14)**: joining told exactly
+  two hubs. The joiner pulled the member list from the inviter; the inviter
+  recorded the joiner; nobody told the members who were already there. Every
+  hub's shared-channel fan-out walks its **own** member rows and asks each peer
+  for its local shares only, so the hub that was there first kept asking the
+  one hub it knew and never saw a later member's channels at all — permanently,
+  with nothing failing anywhere.
+
+  The federation client's own comment asserted the opposite ("membership lists
+  are already replicated to every hub at join time"), which is what made it
+  invisible: the code that depended on replication said replication happened.
+
+  A joiner now announces itself to every member it learned about
+  (`POST /federation/alliance-member`), carrying the inviter's invite token —
+  the same signature over the alliance id that `create_invite` mints. The
+  receiver verifies it against a hub **already in its own member list**, so
+  there is no new trust root: a stranger cannot write itself into an alliance,
+  and a member of one alliance cannot use it to reach another. Best-effort per
+  member, and idempotent, so a hub that was down is repaired by the next join.
+
+  Found by asking whether a hub could join a second alliance and keep the
+  first one private — the answer was yes on the privacy half and no on the
+  working half. `e2e-topology`'s `alliancesplit` grew the scenario: hub 2 joins
+  the alliance hub 1 has with hub 3, shares a channel of its own, and hub 3
+  must see it while still seeing nothing of the alliance hub 1 and hub 2 keep
+  between them. Three hubs is the smallest shape that can ask.
+
 - **A hub with a token could read every alliance of every hub (2026-09-14)**:
   alliances are not supposed to merge — a hub allied with one community for
   raids and another for a hobby shares different channels into each, and the

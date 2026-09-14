@@ -37,6 +37,16 @@ Defined in `hub/src/db/migrations.rs` (Wavvon-server):
   the hub has chosen to share), plus `include_descendants BOOLEAN NOT
   NULL DEFAULT FALSE`. When true, the row shares not just that space but
   the whole tree beneath it (see "Recursive space sharing" below).
+**An alliance of three converges because the joiner says so.** A join tells
+two hubs — the joiner pulls the member list from the inviter, the inviter
+records the joiner — and every hub's fan-out walks its *own* member rows. So
+the joiner also announces itself to every other member it just learned about
+(`POST /federation/alliance-member`), carrying the inviter's invite token: a
+signature over the alliance id that each member verifies against a hub already
+in its own list. No new trust, and a stranger cannot write itself in. Before
+this (fixed 2026-09-14) a third hub's shared channels were invisible to the
+member who was there first, permanently.
+
 - `pending_alliance_invites` — alliance_id, from_hub_pubkey, from_hub_url,
   alliance_name (as labelled by the sender), optional message, invite
   token, created_at. Holds push-invite cards until the receiving admin
