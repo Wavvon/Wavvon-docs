@@ -4,6 +4,38 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Ten of the eleven one-client controls, closed (2026-09-14)**: each was a
+  shared component hiding a control because its optional prop was never
+  passed, so nothing failed and nothing looked missing.
+
+  Web gained two: **opening an image attachment** — it rendered every image
+  inside a button wired to an empty function, so the button was there and did
+  nothing while desktop opened its Lightbox — and **retargeting a banner
+  channel** from the channel context menu.
+
+  Desktop gained eight: DM from the member list, whisper by role, the "this
+  identity has no copy off this device" nudge (it had no equivalent flag at
+  all), the refresh after saving a hub-context profile, trusting a
+  certification issuer (every badge read "(unknown issuer)" with nowhere to
+  keep the answer), granting a bot's capabilities — the admin-grant model is
+  the point of the capability layer and a desktop operator could not use it —
+  recovery contacts in the admin page, and the remove-hub dialog in place of a
+  browser `confirm` that said "Leave", the one word it does not do. That last
+  one came with `DELETE /me` as a Tauri command: desktop could not leave a hub
+  even where the hub offers it.
+
+  `Lightbox`, `BannerEditModal` and `BotCapabilitiesPanel` moved to
+  `packages/ui`, the last with its transport injected the way every shared
+  admin section takes its actions, plus two Tauri commands behind it. The
+  desktop recovery actions were extracted to one builder, since two screens
+  render that section now.
+
+  One is left and it is not a wiring gap: **alliance voice on desktop** is a
+  Rust feature port (next-up). And one "gap" turned out not to be: desktop
+  opens a mini-app in a native window where web promotes it to `GameModal` —
+  same event, different presentation, recorded in the clients CLAUDE.md so
+  nobody "fixes" it.
+
 - **The bot-DM rule left the federated door open (2026-09-14)**: the guard
   below covered create, add-member and send, and `/federation/dm` walks none
   of them — it auto-creates the conversation and stores the message. A bot

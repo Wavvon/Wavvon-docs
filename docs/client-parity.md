@@ -238,6 +238,16 @@ only one app passes found:
 | `onHubProfileSaved`, `onSavedOffDevice` | desktop |
 | `onEditBanner` — edit a banner channel from its context menu | web |
 
+**Ten of these shipped on 2026-09-14** (shipped log), including the image
+attachment. The one left is `onJoinAllianceVoice`, and it is the only one that
+was never a wiring gap: web opens a visitor socket to the owning hub with a
+minted grant, and desktop's `voice_join` is bound to the active hub's own
+socket in Rust. It is tracked in next-up.md as a feature port.
+
+**One apparent gap was not one**: desktop opens a mini-app in a native window
+(`open_mini_app`) where web promotes it to `GameModal`. Same `bot_app_open`
+event, different presentation — do not "fix" it.
+
 Plus one that is a bug rather than a gap: web passes `onOpenImage={() => {}}`,
 so an image attachment is a button that does nothing, while desktop opens its
 `Lightbox`.

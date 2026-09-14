@@ -12,40 +12,18 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
 
 ## 🔨 In flight
 
-- [ ] **Client parity — eleven controls reach only one client.** Measured from
-  the code on 2026-09-14, not from this list: `packages/ui` components are
-  prop-only, so a platform-bound feature arrives as an optional prop an app may
-  omit — and a component whose prop is absent **hides its control**. That is
-  the sharing model working and also how a feature goes missing with nothing
-  failing. `pnpm run check-parity` in `clients/` reports them;
-  `scripts/parity-baseline.json` is the to-do list and CI fails on a new one.
+- [ ] **Alliance voice on desktop.** The last of the eleven one-client
+  controls, and the only one that was not a wiring gap — the other ten shipped
+  2026-09-14 (shipped log). Web opens a **second, visitor** WebSocket to the
+  *owning* hub with a minted grant and runs the voice session against it;
+  desktop's `voice_join` is bound to the active hub's own socket in Rust and
+  has no notion of a visitor session, so this is a feature port in
+  `src-tauri`, not a prop.
 
-  **Missing on desktop:**
-  - **alliance voice join** (`onJoinAllianceVoice`) — the 🔊 button beside an
-    allied hub's channel is web-only, so desktop cannot join alliance voice at
-    all. Worth naming loudly: the alliance-voice audio path was proved on
-    2026-09-10 by two *web* clients, so nothing has ever exercised this on
-    desktop.
-  - **bot capability grants** (`renderBotCapabilities`) — the admin surface for
-    the granted-not-self-declared model
-    ([bot-capability-layer.md](bot-capability-layer.md) §1). Absent on desktop,
-    so an operator on desktop cannot grant or revoke one.
-  - **recovery contacts admin** (`renderRecoveryContacts`).
-  - **leave hub from the remove dialog** (`onLeaveHub`) — desktop gets
-    remove-from-this-device without the server-side leave.
-  - **trust a certification issuer** (`onTrustIssuer`).
-  - **whisper role targeting** (`onListWhisperRoles`).
-  - **start a DM from the member list** (`onStartConversation`).
-  - **hub profile saved callback** (`onHubProfileSaved`) and **backup
-    acknowledgement** (`onSavedOffDevice`) — smaller, same shape.
-
-  **Missing on web:**
-  - **edit a banner channel from the channel context menu** (`onEditBanner`).
-  - **opening an image attachment** — not a missing prop but a stubbed one:
-    `apps/web/src/components/layout/ContentArea.tsx` passes
-    `onOpenImage={() => {}}`, and `MessageAttachments` renders the image inside
-    a button. So on web every image attachment is a clickable control that does
-    nothing; desktop opens its `Lightbox`. This one is a bug, not a gap.
+  Worth the loudest line in the parity story: alliance voice audio was proved
+  on 2026-09-10 by two *web* clients (`63-alliance-voice-audio`), so the
+  desktop half has never been exercised at all — and two real clients remain
+  the only thing that can prove it.
 
 - [ ] **The full encrypted data-export archive on desktop.** Web has it
   (`FullArchiveSection` — identity, home hubs, prefs, devices and decrypted DM
