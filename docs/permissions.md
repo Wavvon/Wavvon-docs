@@ -139,6 +139,42 @@ The server owns the catalog. Clients stop carrying their own copies:
   they are not debuggable by guessing, and every operator question about
   permissions is this question.
 
+### 1.6 The escalation ceiling, without which this is worse than `admin`
+
+Deleting the wildcard makes `roles.manage` the most dangerous permission on
+the hub, and today nothing bounds what it may hand out.
+
+The channel-overwrite path already has the guard (`channel_permissions.rs:245`):
+a caller may only *allow* permissions they themselves effectively hold on that
+channel; denies are unrestricted, because removing power is safe. **The
+hub-wide path has no equivalent.** `create_role` (`routes/roles.rs:89`) bounds
+the new role's *priority* and nothing else, and `assign_role` bounds the
+assigned role's priority — which stops nothing, since the escalation is a
+role beneath your own priority carrying permissions above your own.
+
+Masked today: `manage_roles` holders are usually admins anyway, and most of
+the 15 usable strings are things a moderator already has. With `admin` gone
+and ~40 named permissions, minting a role that carries
+`banlist.sources.manage` and `certs.issue` at priority *yours − 1* and
+assigning it to yourself is one call each. `roles.manage` becomes the wildcard
+this design exists to delete.
+
+So the same guard is required on `create_role`, `update_role` and role
+assignment: the permission set a caller writes must be a subset of the one
+they hold, with the owner exempt by `is_owner`. It is a precondition of the
+catalogue, not a hardening pass to schedule afterwards — shipping the
+catalogue without it moves the wildcard rather than removing it.
+
+Two consequences worth naming:
+
+- The overwrite path's other special case, "cannot grant `admin` via a channel
+  permission overwrite" (`channel_permissions.rs:238`), disappears with the
+  string.
+- A role can outlive the grantor's own permissions: revoking someone's
+  `certs.issue` does not touch a role they already minted carrying it. The
+  subset check is on write, not a standing invariant, and that is the intended
+  reading — but it means demoting a delegate is two steps, not one.
+
 ## 2. Granularity rule
 
 **One permission per resource. Split only where the acts differ in
@@ -447,6 +483,17 @@ ordinary user admitted by a pubkey-bound invite, this collapses into
   the second check at `ws/handlers/voice.rs:127` and the seeding on
   `builtin-everyone` are the work.
 - **The catalog endpoint and the derivation endpoint** (§1.5).
+- **A capability string.** Clients branch on capabilities, never on version
+  numbers, and a client is multi-hub: one served by a rebuilt hub will talk to
+  a hub still on the old catalogue. It needs to know which, or it renders a
+  roles screen of ids that hub has never heard of. Same shape as
+  `alliance.permissions` from the alliance design.
+- **`openapi.yaml`.** The catalogue and derivation endpoints are new paths and
+  the role payloads change ids; `scripts/check-openapi-coverage.mjs` fails the
+  build until the spec matches, and the spec is part of the change rather than
+  a follow-up.
+- **The hub-wide self-grant guard** (§1.6). A precondition, not a hardening
+  pass.
 - **Validation in `create_role` / `update_role`** (§0). This one is
   independently useful and can land before anything else here.
 
@@ -456,6 +503,9 @@ Alpha, no backward compatibility ([ROADMAP](../ROADMAP.md)). The catalog is
 rebuilt rather than mapped: drop the contents of `role_permissions` and
 `channel_permission_overwrites`, reseed `builtin-everyone` and
 `builtin-owner`, and reseed the bootstrap role templates with the new ids.
+`builtin-everyone` carries `voice.join` among them — the whole "nothing
+changes until someone denies it" property of an independent voice gate rests
+on that one seeded row.
 No old-to-new mapping table, and no dual-reading period.
 
 `builtin-owner` loses its `admin` row and gains nothing in its place — its

@@ -91,6 +91,14 @@ places today, and they separate — the channel list becomes read **or**
 voice-join, while WS auto-subscribe stays read **only**. Re-unifying them
 later delivers a talk-only channel's messages over the socket.
 
+**The precondition.** Deleting the wildcard makes `roles.manage` the most
+dangerous permission on the hub, and nothing bounds what it hands out: the
+channel-overwrite path refuses to grant a permission the caller does not hold,
+while `create_role` bounds the new role’s priority and nothing else. The
+escalation is a role *beneath* your priority carrying permissions above it,
+assigned to yourself. The same subset guard is therefore required hub-wide
+before the catalogue ships; without it the wildcard moves rather than goes.
+
 **Outcome.** Designed, not built. Alpha, so the catalogue is rebuilt rather
 than mapped: `role_permissions` and the overwrite table are dropped and
 reseeded from the new ids.

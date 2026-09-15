@@ -22,6 +22,11 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   - **Validate permission strings in `create_role` / `update_role`.**
     Independent of everything below and buildable today — nothing validates
     them, so any string lands in `role_permissions`.
+  - **Mirror the self-grant guard hub-wide** ([permissions.md](permissions.md)
+    §1.6) — a precondition, not hardening. The overwrite path already refuses
+    to grant what the caller does not hold; `create_role` bounds priority
+    only, so with `admin` gone `roles.manage` becomes the new wildcard: mint a
+    role at priority *yours − 1* carrying anything, assign it to yourself.
   - **`voice.join`**, the one catalogue entry with no predecessor, and
     independent of `messages.read`. Beyond the gate itself, it splits one
     call that has one meaning today: the channel list becomes read **or**
@@ -32,6 +37,9 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
     derivation endpoint ("why can this member do X here").
   - **`moderation.ban.temporary`** needs the feature under it: `bans` has no
     `expires_at`.
+  - **A capability string and `openapi.yaml`** — clients are multi-hub and
+    branch on capabilities, and the two new endpoints fail
+    `check-openapi-coverage` until the spec carries them.
 
   Sequencing: `bots.admit` in the catalogue is provisional on the `is_bot`
   review below, and the alliance item further down supplies two of the
