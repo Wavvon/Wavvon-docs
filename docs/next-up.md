@@ -275,6 +275,16 @@ to the [shipped log](shipped-log.md).
   jitter only exists on a real network, so **the audible confirmation is still
   outstanding** — it needs a session on the pilot. Reopen this if it persists.
 
+- **Talk power gates the wrong verb** — a channel `min_talk_power` blocks
+  *joining*, not transmitting: the check at `ws/handlers/voice.rs:277` returns
+  before the join with `context: "voice_join"`, so a member below the
+  threshold cannot enter and listen. `routes/chat_models.rs:91` documents the
+  other behaviour ("needed to transmit audio in this channel"), so doc and
+  code disagree about which verb it governs. Raising a hand clears the
+  threshold, which is the "talker granted" half and works. Same check:
+  `effective_power = user_talk_power.max(user_priority)` lets role priority
+  stand in as talk power — two numbers with two jobs read as one.
+
 - **Windows installer unsigned** — SmartScreen warning; "More info → Run
   anyway". See the code-signing blocker.
 

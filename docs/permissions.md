@@ -248,20 +248,53 @@ Individual gates move with the act, not with the channel:
 |---|---|
 | `ws/handlers/voice.rs:127` — voice join | `voice.join` |
 | `ws/handlers/screen.rs:205` — start a screen share | `voice.join` |
-| `ws/handlers/voice.rs:887` — may the target be moved here | `voice.join` |
-| `afk_worker.rs:92` — auto-move to the AFK channel | `voice.join` |
 | `ws/handlers/screen.rs:32` — subscribe to a channel's events | `messages.read` |
 | Message history, posts, pins, search | `messages.read` |
 
-The event organizer's voice-only presence grant ([events.md](events.md) §7.4,
-minted at `ws/voice.rs:305`) shrinks rather than disappears: it stops standing
-in for "no read" and is needed only when the target lacks `voice.join`.
+**A move does not consult the target's `voice.join`.** The mover holding
+`voice.move_members` on the destination *is* the authorization, so the target
+check at `ws/handlers/voice.rs:887` is deleted rather than converted. Asking
+the target's own admission defeats the feature: a raid organizer pulls in
+someone who does not hold the role yet, which is the case the move exists for.
 
-*Not split further.* Listening and speaking stay one permission. Silencing a
-specific person is moderation (`moderation.mute`), and per-channel talk
-gating is channel configuration (`set_talk_power`, folded into
-`channels.manage`). A `voice.speak` separate from `voice.join` would be a
-third way to say what those two already say.
+The voice-only presence grant therefore **widens** rather than shrinks. Today
+it is minted only on the event path (`ws/voice.rs:305`) while a generic
+mod-tool move refuses outright; it becomes the one mechanism for "I am here
+because someone with the authority put me here", minted on any move where the
+target lacks `voice.join`.
+
+`afk_worker.rs:92` is the exception that keeps a check, and keeps it on
+`voice.join`: the hub moves an idle member with no `voice.move_members` holder
+in the loop, so there is no authority to stand in for the target's own.
+
+#### Talk power is not this, and is not the rejected numeric duel
+
+Whether someone may *speak* once present is already a separate mechanism, and
+it stays separate: `roles.talk_power` against the channel's
+`min_talk_power` (`db/migrations.rs:389`, enforced at
+`ws/handlers/voice.rs:277`). TeamSpeak's "talker granted" exists too under
+another name — raising a hand clears the threshold (`has_raised_hand`), and a
+moderator holding `moderation.mute` lowers it again.
+
+This is **not** the power/needed-power duel rejected in §1.3. That rejection
+is about a pair of numbers *per action* standing in for a hierarchy; talk
+power is one threshold for one thing, it already exists, and it works. Nobody
+should delete it on the strength of that sentence.
+
+Two things about it are wrong today and are not this design's to fix, filed in
+[next-up.md](next-up.md) instead:
+
+- It gates **joining**, not transmitting — the check returns before the join
+  with `context: "voice_join"`, so a member below the threshold cannot enter
+  and listen. `routes/chat_models.rs:91` describes the other behavior
+  ("needed to transmit audio in this channel"), so the doc and the code
+  disagree about which verb it governs.
+- `effective_power = user_talk_power.max(user_priority)` — role priority
+  doubles as talk power. Two numbers with two jobs, read as one.
+
+*No `voice.speak`.* Talk power governs speaking, `moderation.mute` silences an
+individual, and `channels.manage` sets the threshold. A fourth way to say it
+would be a permission with nothing left to gate.
 
 ### Moderation
 

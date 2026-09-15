@@ -78,6 +78,13 @@ independence is that "private channel" becomes two denials instead of one, and
 that is the right price for two questions. Recorded because the question comes
 back every time someone reads the catalogue and sees two gates on one door.
 
+A move is the exception that consults nobody's `voice.join`: whoever holds
+`voice.move_members` on the destination is the authorization, and asking the
+target's own admission would defeat the feature — pulling in someone who does
+not hold the role yet is the case it exists for. Speaking once present stays
+with talk power, which already exists and is not the numeric duel rejected
+above: one threshold for one thing, not a pair per action.
+
 The consequence to build carefully is not the permission but the filter:
 `channels_with_permission(READ_MESSAGES)` is one call with one meaning in two
 places today, and they separate — the channel list becomes read **or**
