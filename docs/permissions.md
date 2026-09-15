@@ -209,32 +209,53 @@ here", and that is the gap `voice.join` closes.
 | `voice.soundboard.manage` | H | `manage_soundboard` | Uploading and deleting clips |
 | `voice.move_members` | H C | `move_members` | Moving a participant; resolved against the **destination** channel |
 
-**`voice.join` is required in addition to `messages.read`, not instead of it**
-(decided 2026-09-15). Both must hold at the target channel.
+**`voice.join` is independent of `messages.read`** (decided 2026-09-15).
+Neither implies the other, and both directions are meant to be used:
 
-The case that asks for it: a guild's `#raid` channel that everyone can see and
-post in, where only the *Raid Voice* role may join the call. Today that is
-inexpressible — voice admission is read admission (`ws/handlers/voice.rs:127`),
-so the only way to keep people out of the call is to hide the channel, which
-takes the text with it. With the second gate it is one deny on the channel for
-`builtin-everyone` and one allow for the role.
+- a guild's `#raid` channel everyone sees and posts in, where only the *Raid
+  Voice* role may join the call;
+- a lobby anyone may talk in that carries no readable text.
 
-*Why an additional gate rather than a replacement.* If `voice.join` stood on
-its own, a private channel — read denied to everyone but one role — would
-become voice-joinable by anyone, because the default seeding grants
-`voice.join` hub-wide. Every hub would silently open its private calls on
-upgrade. Requiring both is strictly additive: seed `voice.join` on
-`builtin-everyone` and behavior is exactly today's until someone denies it.
+Today neither is expressible. Voice admission *is* read admission
+(`ws/handlers/voice.rs:127`), so the only way to keep someone out of a call is
+to hide the channel, which takes the text with it.
 
-*What it costs.* A channel that is joinable but not readable stays
-inexpressible through permissions. That case already has its own mechanism and
-keeps it: the voice-only presence grant an event organizer mints
-([events.md](events.md) §7.4), enforced at the one point in
-`ws/handlers/voice.rs` that deliberately bypasses read-gating. The hub already
-reports such a participant as `voice_only` (`routes/events.rs:1109`), so the
-concept survives; only the standing, role-shaped version of it is out of
-scope. Cheap, because a channel nobody can read is absent from the channel
-list anyway.
+*Requiring both was considered and rejected.* The argument for it was that a
+hub-wide default grant of `voice.join` would open existing private calls on
+upgrade — which is not true here: §6 drops and reseeds the overwrite table, so
+there are no surviving deny rows to be opened. What independence actually
+costs is that "private channel" becomes two denials rather than one. That is
+the correct price, because it is two questions.
+
+#### The split that must not be got wrong
+
+`channels_with_permission(READ_MESSAGES)` is called in two places today with
+one meaning. Independence separates them, and conflating them afterwards is a
+data leak rather than a UI bug:
+
+| Call site | Becomes |
+|---|---|
+| Channel list (`routes/channels.rs:639`) | `messages.read` **OR** `voice.join` — otherwise a channel you may only talk in never reaches the client, and the permission is inert |
+| WS auto-subscribe (`routes/ws/connection.rs:142`) | `messages.read` **only** — a channel you may only talk in must never be subscribed, or its messages, edits, typing and reactions arrive over the socket |
+
+A channel that reaches the client on the second condition alone renders as
+voice-only, with no text pane. The hub already has that idea: it reports such
+a participant as `voice_only` (`routes/events.rs:1109`).
+
+Individual gates move with the act, not with the channel:
+
+| Site | Gate |
+|---|---|
+| `ws/handlers/voice.rs:127` — voice join | `voice.join` |
+| `ws/handlers/screen.rs:205` — start a screen share | `voice.join` |
+| `ws/handlers/voice.rs:887` — may the target be moved here | `voice.join` |
+| `afk_worker.rs:92` — auto-move to the AFK channel | `voice.join` |
+| `ws/handlers/screen.rs:32` — subscribe to a channel's events | `messages.read` |
+| Message history, posts, pins, search | `messages.read` |
+
+The event organizer's voice-only presence grant ([events.md](events.md) §7.4,
+minted at `ws/voice.rs:305`) shrinks rather than disappears: it stops standing
+in for "no read" and is needed only when the target lacks `voice.join`.
 
 *Not split further.* Listening and speaking stay one permission. Silencing a
 specific person is moderation (`moderation.mute`), and per-channel talk

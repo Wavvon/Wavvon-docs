@@ -22,10 +22,12 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   - **Validate permission strings in `create_role` / `update_role`.**
     Independent of everything below and buildable today — nothing validates
     them, so any string lands in `role_permissions`.
-  - **`voice.join`**, the one catalogue entry with no predecessor: a second
-    check alongside `messages.read` at `ws/handlers/voice.rs:127`, seeded on
-    `builtin-everyone` so nothing changes until someone denies it. Makes
-    "everyone reads #raid, only the raid role joins the call" expressible.
+  - **`voice.join`**, the one catalogue entry with no predecessor, and
+    independent of `messages.read`. Beyond the gate itself, it splits one
+    call that has one meaning today: the channel list becomes read **or**
+    voice-join, WS auto-subscribe stays read **only**
+    ([permissions.md](permissions.md) §3, Voice). Conflating those two leaks
+    a talk-only channel's messages over the socket.
   - **The catalogue itself**, plus the endpoint that serves it and the
     derivation endpoint ("why can this member do X here").
   - **`moderation.ban.temporary`** needs the feature under it: `bans` has no

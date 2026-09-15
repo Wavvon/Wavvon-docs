@@ -65,13 +65,24 @@ axes are debuggable by reading and not by guessing.
 
 **One entry has no predecessor**: `voice.join`. Voice is not a kind of
 channel — every ordinary channel can be talked in — so "who may speak here"
-has only ever been expressible as "who may read here". It is required *in
-addition to* `messages.read` rather than instead of it: standing alone it
-would open every hub’s private calls on upgrade, since the default seeding
-grants it hub-wide. The case it buys is a channel everyone reads and posts in
-where only one role joins the call. The case it declines is joinable-but-not-
-readable, which keeps the mechanism it already has — the event organizer’s
-voice-only presence grant.
+has only ever been expressible as "who may read here". It is **independent**
+of `messages.read`: neither implies the other, which is what makes both a
+channel everyone reads where one role joins the call, and a lobby anyone talks
+in with no readable text, sayable at all.
+
+Requiring both was argued for first, on the grounds that a hub-wide default
+grant of `voice.join` would open existing private calls on upgrade. That was
+wrong on this design's own terms: the migration drops and reseeds the
+overwrite table, so there are no surviving deny rows to open. The real cost of
+independence is that "private channel" becomes two denials instead of one, and
+that is the right price for two questions. Recorded because the question comes
+back every time someone reads the catalogue and sees two gates on one door.
+
+The consequence to build carefully is not the permission but the filter:
+`channels_with_permission(READ_MESSAGES)` is one call with one meaning in two
+places today, and they separate — the channel list becomes read **or**
+voice-join, while WS auto-subscribe stays read **only**. Re-unifying them
+later delivers a talk-only channel's messages over the socket.
 
 **Outcome.** Designed, not built. Alpha, so the catalogue is rebuilt rather
 than mapped: `role_permissions` and the overwrite table are dropped and
