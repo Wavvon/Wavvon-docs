@@ -275,6 +275,22 @@ to the [shipped log](shipped-log.md).
   jitter only exists on a real network, so **the audible confirmation is still
   outstanding** — it needs a session on the pilot. Reopen this if it persists.
 
+- **An event never moves anyone when it starts** — a queued move assignment
+  ([events.md](events.md) §7.3) is applied on the target's *next voice join*
+  (`routes/ws/voice.rs:243`), and nothing runs at `starts_at`: the reminder
+  worker touches that column only to send reminders, and prunes assignments at
+  event end (`reminder_worker.rs:63,95`). So a raid at 21:00 whose members
+  have been sitting in the lobby since 20:30 moves nobody — they have to leave
+  and rejoin. The same tick that sends the reminder could push the assignments
+  at start, with a marker column like `reminder_sent_at` so it fires once.
+
+  Two smaller holes on the same screen: the destination picker offers channels
+  the organizer has no `voice.move_members` on, so the refusal lands at
+  assignment time instead of while choosing (`channels_with_permission` is
+  already the query for it); and authority is checked when the assignment is
+  made, never when it fires, so a demoted organizer's queued moves still
+  apply.
+
 - **Talk power gates the wrong verb** — a channel `min_talk_power` blocks
   *joining*, not transmitting: the check at `ws/handlers/voice.rs:277` returns
   before the join with `context: "voice_join"`, so a member below the

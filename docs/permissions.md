@@ -263,6 +263,22 @@ mod-tool move refuses outright; it becomes the one mechanism for "I am here
 because someone with the authority put me here", minted on any move where the
 target lacks `voice.join`.
 
+The same ruling covers a move that is **queued** rather than immediate. An
+event assignment ([events.md](events.md) §7.3) is authorized once, when the
+organizer makes it, against the destination — `ws/handlers/voice.rs:797`
+already resolves `voice.move_members` there rather than against the event's
+anchor channel, so an organizer cannot assign into a room they have no
+authority over. Applying it later re-checks nothing about the target. Two
+things follow:
+
+- The destination picker offers only channels where the organizer holds
+  `voice.move_members`, so the refusal happens while choosing rather than at
+  the event. `channels_with_permission` is that query and already exists.
+- Authority is checked when the assignment is made, not when it fires, so a
+  demoted organizer's queued moves still apply. Re-resolving `assigned_by`'s
+  `voice.move_members` on the destination at apply time closes it — one query
+  on a bounded, event-sized list.
+
 `afk_worker.rs:92` is the exception that keeps a check, and keeps it on
 `voice.join`: the hub moves an idle member with no `voice.move_members` holder
 in the loop, so there is no authority to stand in for the target's own.
