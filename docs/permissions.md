@@ -289,16 +289,27 @@ Whether someone may *speak* once present is already a separate mechanism, and
 it stays separate: `roles.talk_power` against the channel's
 `min_talk_power` (`db/migrations.rs:389`, enforced at
 `ws/handlers/voice.rs:277`). TeamSpeak's "talker granted" exists too under
-another name — raising a hand clears the threshold (`has_raised_hand`), and a
-moderator holding `moderation.mute` lowers it again.
+another name — raising a hand clears the threshold (`has_raised_hand`) — but
+inverted: you grant yourself and a moderator revokes, rather than asking and
+being granted. See below.
+
+**A talk grant lasts one voice session.** Leave the channel, lose it, exactly
+as TeamSpeak does — a grant is permission to speak *now*, not a standing
+property of the member. The mechanism to copy is in the same file: the
+voice-only presence grant lives in memory, is keyed by `(pubkey, channel)`,
+and is dropped in the shared teardown both an explicit leave and a socket
+disconnect funnel through (`routes/ws/connection.rs:1129`). A talk grant takes
+the same shape in the same block. Nothing about it belongs in the catalogue:
+granting one is `moderation.mute`'s other direction, and holding one is
+session state.
 
 This is **not** the power/needed-power duel rejected in §1.3. That rejection
 is about a pair of numbers *per action* standing in for a hierarchy; talk
 power is one threshold for one thing, it already exists, and it works. Nobody
 should delete it on the strength of that sentence.
 
-Two things about it are wrong today and are not this design's to fix, filed in
-[next-up.md](next-up.md) instead:
+Three things about it are wrong today and are not this design's to fix, filed
+in [next-up.md](next-up.md) instead:
 
 - It gates **joining**, not transmitting — the check returns before the join
   with `context: "voice_join"`, so a member below the threshold cannot enter
@@ -307,6 +318,12 @@ Two things about it are wrong today and are not this design's to fix, filed in
   disagree about which verb it governs.
 - `effective_power = user_talk_power.max(user_priority)` — role priority
   doubles as talk power. Two numbers with two jobs, read as one.
+- The grant is **self-service and permanent**. `raise_hand`
+  (`routes/moderation/channel_mod.rs:318`) takes an `AuthUser` and writes the
+  row with no permission check, so any member clears `min_talk_power` with one
+  call — and the rejection message names the call. The row lives in Postgres
+  and is removed only by an explicit `lower_hand`, so it outlives leaving the
+  channel, disconnecting, and a hub restart.
 
 *No `voice.speak`.* Talk power governs speaking, `moderation.mute` silences an
 individual, and `channels.manage` sets the threshold. A fourth way to say it

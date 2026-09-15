@@ -301,6 +301,20 @@ to the [shipped log](shipped-log.md).
   `effective_power = user_talk_power.max(user_priority)` lets role priority
   stand in as talk power — two numbers with two jobs read as one.
 
+- **The talk grant is self-service, and permanent** — `POST
+  /channels/{id}/raise-hand` (`routes/moderation/channel_mod.rs:318`) takes an
+  `AuthUser` and writes the row with **no permission check**, and
+  `ws/handlers/voice.rs:303` treats a raised hand as clearing
+  `min_talk_power`. So any member bypasses the threshold with one call, and
+  the rejection message tells them which call. TeamSpeak's semantics are the
+  other way round: you request, a moderator grants — here you grant yourself
+  and a moderator revokes (`lower_hand`, the only half with a permission on
+  it). The row also lives in Postgres and is deleted only by that explicit
+  revoke, so it survives leaving the channel, disconnecting and a hub
+  restart; it should last one voice session, like the voice-only presence
+  grant it sits next to, which is in-memory and dropped in the shared
+  teardown at `routes/ws/connection.rs:1129`.
+
 - **Windows installer unsigned** — SmartScreen warning; "More info → Run
   anyway". See the code-signing blocker.
 
