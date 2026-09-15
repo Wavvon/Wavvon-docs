@@ -63,6 +63,16 @@ role templates become the normal way to configure a hub. A derivation endpoint
 — "why can this member do X here" — is part of the work, not a nicety: two
 axes are debuggable by reading and not by guessing.
 
+**One entry has no predecessor**: `voice.join`. Voice is not a kind of
+channel — every ordinary channel can be talked in — so "who may speak here"
+has only ever been expressible as "who may read here". It is required *in
+addition to* `messages.read` rather than instead of it: standing alone it
+would open every hub’s private calls on upgrade, since the default seeding
+grants it hub-wide. The case it buys is a channel everyone reads and posts in
+where only one role joins the call. The case it declines is joinable-but-not-
+readable, which keeps the mechanism it already has — the event organizer’s
+voice-only presence grant.
+
 **Outcome.** Designed, not built. Alpha, so the catalogue is rebuilt rather
 than mapped: `role_permissions` and the overwrite table are dropped and
 reseeded from the new ids.

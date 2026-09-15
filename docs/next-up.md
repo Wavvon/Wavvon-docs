@@ -22,9 +22,10 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   - **Validate permission strings in `create_role` / `update_role`.**
     Independent of everything below and buildable today — nothing validates
     them, so any string lands in `role_permissions`.
-  - **Decide `voice.join`**, the one catalogue entry that changes behaviour:
-    entering voice is gated by `messages.read` today. Split, or keep the
-    piggyback and document it.
+  - **`voice.join`**, the one catalogue entry with no predecessor: a second
+    check alongside `messages.read` at `ws/handlers/voice.rs:127`, seeded on
+    `builtin-everyone` so nothing changes until someone denies it. Makes
+    "everyone reads #raid, only the raid role joins the call" expressible.
   - **The catalogue itself**, plus the endpoint that serves it and the
     derivation endpoint ("why can this member do X here").
   - **`moderation.ban.temporary`** needs the feature under it: `bans` has no

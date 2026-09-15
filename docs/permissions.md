@@ -197,12 +197,50 @@ hub-admin by accident.
 
 ### Voice
 
+Voice is not a kind of channel. `channel_type` is `text`, `forum`, `banner` or
+`spawner` (`routes/channels.rs:218`) — every ordinary channel can be talked in.
+So "who may speak here" has never been expressible except through "who may read
+here", and that is the gap `voice.join` closes.
+
 | Permission | Scope | Replaces | Covers |
 |---|---|---|---|
-| `voice.join` | H C | — (**new gate**, see §5) | Entering a voice channel, screen share |
+| `voice.join` | H C | — (**new gate**, see below) | Entering voice on a channel, screen share |
 | `voice.soundboard.use` | H C | `use_soundboard` | Playing a clip |
 | `voice.soundboard.manage` | H | `manage_soundboard` | Uploading and deleting clips |
 | `voice.move_members` | H C | `move_members` | Moving a participant; resolved against the **destination** channel |
+
+**`voice.join` is required in addition to `messages.read`, not instead of it**
+(decided 2026-09-15). Both must hold at the target channel.
+
+The case that asks for it: a guild's `#raid` channel that everyone can see and
+post in, where only the *Raid Voice* role may join the call. Today that is
+inexpressible — voice admission is read admission (`ws/handlers/voice.rs:127`),
+so the only way to keep people out of the call is to hide the channel, which
+takes the text with it. With the second gate it is one deny on the channel for
+`builtin-everyone` and one allow for the role.
+
+*Why an additional gate rather than a replacement.* If `voice.join` stood on
+its own, a private channel — read denied to everyone but one role — would
+become voice-joinable by anyone, because the default seeding grants
+`voice.join` hub-wide. Every hub would silently open its private calls on
+upgrade. Requiring both is strictly additive: seed `voice.join` on
+`builtin-everyone` and behavior is exactly today's until someone denies it.
+
+*What it costs.* A channel that is joinable but not readable stays
+inexpressible through permissions. That case already has its own mechanism and
+keeps it: the voice-only presence grant an event organizer mints
+([events.md](events.md) §7.4), enforced at the one point in
+`ws/handlers/voice.rs` that deliberately bypasses read-gating. The hub already
+reports such a participant as `voice_only` (`routes/events.rs:1109`), so the
+concept survives; only the standing, role-shaped version of it is out of
+scope. Cheap, because a channel nobody can read is absent from the channel
+list anyway.
+
+*Not split further.* Listening and speaking stay one permission. Silencing a
+specific person is moderation (`moderation.mute`), and per-channel talk
+gating is channel configuration (`set_talk_power`, folded into
+`channels.manage`). A `voice.speak` separate from `voice.join` would be a
+third way to say what those two already say.
 
 ### Moderation
 
@@ -318,12 +356,9 @@ ordinary user admitted by a pubkey-bound invite, this collapses into
   distinguished from a permanent mute. `moderation.ban.temporary` is a gate
   for behavior that has to be built: the column, expiry enforcement in the
   admission path, and the existing ban-list worker's view of it.
-- **`voice.join` is a new gate.** Entering voice is gated by `messages.read`
-  today (`ws/handlers/voice.rs:127`): the right to speak hangs off the right
-  to read text. Splitting them is what "one permission per action" means, and
-  it changes behavior — a voice-only channel becomes expressible, and every
-  existing hub needs `voice.join` wherever `messages.read` was the intent.
-  Decide before building: split, or keep the piggyback and document it.
+- **The `voice.join` gate itself.** The permission is decided (§3, Voice);
+  the second check at `ws/handlers/voice.rs:127` and the seeding on
+  `builtin-everyone` are the work.
 - **The catalog endpoint and the derivation endpoint** (§1.5).
 - **Validation in `create_role` / `update_role`** (§0). This one is
   independently useful and can land before anything else here.
