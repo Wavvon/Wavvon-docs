@@ -12,47 +12,62 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
 
 ## 🔨 In flight
 
-- [ ] **Permission model review.** Not designed — the task is to look, then
-  decide. Two lists that should agree already do not, found in the first minute
-  of reading and not investigated further:
+- [ ] **Rebuild the permission model — delete `admin`, name every action.**
+  Designed 2026-09-15 ([permissions.md](permissions.md), decisions.md "No
+  wildcard permission"). `admin` is a wildcard answering **83 checks across 26
+  files**, so delegating one job means handing over the hub. It goes: "the
+  owner can do everything" becomes `is_owner` checked in `has()`, and each of
+  those 83 routes gets a named permission from a ~40-entry catalogue.
 
-  - `ALL_PERMISSIONS` in `hub/src/permissions.rs` holds **20** strings;
-    `ALL_PERMISSIONS` in `packages/ui/src/components/admin/RolesSection.tsx`
-    holds **15**, and they are not a subset of each other.
-  - Six the hub enforces are absent from the roles UI, so **no admin can grant
-    them from any client**: `manage_games`, `create_posts`, `manage_posts`,
-    `start_game`, `create_events`, `use_soundboard`.
-  - One the UI offers, `manage_bots`, appears **nowhere in the Rust
-    workspace** (checked 2026-09-15) and every bot admin route requires
-    `admin`. It is a checkbox that saves into `role_permissions` and grants
-    nothing. **Decided: delete it from the UI list rather than wire it** — what
-    it would gate is admitting a participant to the hub and deciding what it
-    may do, which is admission plus capability-granting, and the capability
-    layer's premise is "requested by the bot, granted by the admin". A second
-    key to that door is not a delegation, it is a duplicate.
+  Decided along the way: **two axes only**, role×hub and role×channel — no
+  per-user axis (an escalation that lands in a per-user row is invisible on
+  the roles screen); **no numeric power duel** — `max_priority` already does
+  the out-ranking job with one number per person; **one permission per
+  resource**, split only where reversibility or blast radius differ (kick /
+  temporary ban / permanent ban, `certs.issue` / `certs.revoke`, importing
+  another hub's ban list, reading survey responses); **recovery approval and
+  ownership transfer are owner-only**, not permissions at all.
 
-    Worth the sentence because it is the **opposite answer to the alliance
-    one above, from the same question**: an alliance is an ongoing relationship
-    with an outsider and whoever runs it decides nothing about who joins *this*
-    hub, so delegating it is sound. Bots are people arriving. Without this
-    written down, the inconsistency reads like an oversight and somebody puts
-    `manage_bots` back.
+  What the exploration turned up, all confirmed 2026-09-15:
 
-  What the review should cover, beyond reconciling the two lists:
+  - **Four catalogues, no two agreeing**: `ALL_PERMISSIONS` in
+    `hub/src/permissions.rs` (20), `ALL_PERMISSIONS` in
+    `packages/ui/src/components/admin/RolesSection.tsx` (15),
+    `CHANNEL_OVERWRITE_PERMISSIONS` in
+    `packages/ui/src/utils/channelPermissions.ts` (18), and the strings the
+    code actually consults.
+  - **`create_role` / `update_role` validate nothing** — any string lands in
+    `role_permissions`. Only channel overwrites validate
+    (`channel_permissions.rs:222`). This fix is independent of everything else
+    here and can land first.
+  - **`manage_voice` is a real gate nobody can grant**: enforced as a string
+    literal at `ws/handlers/voice.rs:990`, granted to `builtin-owner` at
+    `migrations.rs:444`, absent from every list — so no client shows it and
+    the overwrite validator rejects it. Folds into `channels.manage`.
+  - **Four strings gate nothing**: `manage_bots` (UI-only), `use_video`,
+    `manage_games`, `start_game` (granted at bootstrap, consulted nowhere).
+    All four deleted.
+  - **Correction to what this item said before**: the six permissions missing
+    from the roles UI *are* grantable — as channel overwrite allows, they are
+    all in the third list. The genuinely unreachable one is **hub-wide
+    `create_events`**, because `events.rs:552` requires the non-channel-scoped
+    baseline and only the roles UI grants that.
+  - **Listing invites requires `manage_channels`** (`invites.rs:47`). Nothing
+    about an invite is a channel. Becomes `invites.manage`.
+  - **The channel-overwrite UI ships hardcoded English labels**
+    (`ChannelPermissionsTab.tsx:159`) while the roles UI translates via i18n.
+  - **No hub-wide "my permissions" endpoint**: the client re-implements
+    `has()` in TypeScript eight times (`apps/web/src/App.tsx:1073-1158`).
+    Channel-scoped has one (`GET /channels/{id}/my-permissions`).
 
-  - **Which permissions are enforced anywhere.** One grep per constant, and a
-    check that the answer is not zero.
-  - **Where `admin` stands in for a permission that exists.** The alliance
-    routes are the known case (item above); the question is how many others
-    there are, and whether `admin`-only is the right answer for each.
-  - **Which permissions are meaningful per channel** versus hub-wide only. The
-    overwrite cascade applies to any of them today, including ones where a
-    channel-scoped answer is meaningless.
-  - **Whether the checks agree with the docs** — `permissions.md` and
-    `nested-channels-ux.md` both describe the model, and this session has
-    twice found a doc asserting something no code did.
-  - A check that keeps the two lists honest afterwards, in the shape of the
-    other repo checkers rather than a promise to remember.
+  Two things the catalogue needs that do not exist yet, both called out in
+  [permissions.md](permissions.md) §5: the **`bans` table has no
+  `expires_at`** (bans are permanent-only — `mutes` has the column, which is
+  how a timeout differs from a permanent mute), so `moderation.ban.temporary`
+  is a gate for behaviour still to be built; and **entering voice is gated by
+  `messages.read`** (`ws/handlers/voice.rs:127`), so `voice.join` is a new
+  gate that changes behaviour — split or keep the piggyback, but decide before
+  building.
 
 - [ ] **Bots are users, and `is_bot` should have to earn its existence.** Not
   designed — the task is to establish what the flag is still for, and replace
@@ -125,9 +140,11 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   - **Whether a live invite can be revoked**, which is the other half of the
     same screen and worth checking while in there.
 
-  Noticed on the way, for the permission review above: listing invites requires
-  **`manage_channels`**. That is the permission for making channels, and
-  nothing about an invite is a channel.
+  Noticed on the way, and now folded into the permission rebuild above:
+  listing invites requires **`manage_channels`**. That is the permission for
+  making channels, and nothing about an invite is a channel — the catalogue
+  gives it `invites.manage`. Revoking a live invite already exists
+  (`revoke_invite`, `invites.rs`), so that half of the screen is wiring.
 
 - [ ] **"Add this bot to my hub", without hand-rolling an invite.** An idea,
   not a design. Today an admin who wants one specific bot has to mint an invite
@@ -163,7 +180,7 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
 
   Two pieces, in this order:
   - **`manage_alliances`**, a hub permission like the others: one constant, the
-    check swapped in ten handlers, `ALL_PERMISSIONS` and the roles UI. Carries
+    check swapped in ten handlers, the catalogue and the roles UI. Carries
     the hub-scoped acts — create an alliance, accept or decline an invite,
     leave. Makes the common case possible on its own.
   - **`alliance_managers(alliance_id, role_id)`**, a plain grant list for the

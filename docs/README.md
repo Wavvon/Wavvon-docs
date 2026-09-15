@@ -74,6 +74,7 @@ had a "recently shipped" section, whatever this line used to claim):
 ### Future direction (designed, not built)
 
 - [screen-share-modal.md](screen-share-modal.md) — unified desktop screen-share picker: Tauri `list_capture_sources` command, thumbnail grid, single-modal UX replacing the current two-step OS overlay
+- [permissions.md](permissions.md) — the permission model rebuilt: `admin` deleted in favour of owner-as-property, two role-scoped axes (hub + channel) and no per-user axis, dotted permission ids, the ~40-entry catalog and what each replaces
 - [nested-channels-ux.md](nested-channels-ux.md) — nested-channel UX gaps: channel permalinks (breadcrumb resolution), deep-nesting sidebar strategy (capped indent + drill-in), and channel permission overwrites (net-new file-system-style cascade — data model, resolver, routes, UI)
 - [settings-ia.md](settings-ia.md) — **implemented 2026-07-20** — unified Settings information architecture + profile model: one tab structure both clients render from `packages/ui`, converging desktop off the deleted profile-pool and onto multi-account (decided 2026-07-20); unblocks the `ProfileTab` + `IdentityBackupSection` parity passes
 - [future-features.md](future-features.md) — intent settled, design pending: alliance member discovery, Android QR pairing, passkey-from-desktop, desktop parity, visibility push, language packs
@@ -110,6 +111,7 @@ Reading order is for learning the system end-to-end. This section is for
 - **Text channels & categories** — [data-model.md](data-model.md), [client.md](client.md)
 - **Drag-drop channel/category reorder, nested channels** — [client.md](client.md)
 - **Channel permalinks, deep-nesting sidebar, channel permission overwrites** — [nested-channels-ux.md](nested-channels-ux.md)
+- **Permission model and catalog** — [permissions.md](permissions.md)
 - **Markdown, code blocks, /me actions** — [client.md](client.md)
 - **Reactions (local + federated)** — [data-model.md](data-model.md), [federation.md](federation.md)
 - **Replies / threading** — [data-model.md](data-model.md)

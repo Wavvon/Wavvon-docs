@@ -6,6 +6,67 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## No wildcard permission: the owner is a property, and everything else is named
+
+**Decision** (2026-09-15, designed with the user; not yet built): the `admin`
+permission is deleted. Its job — "this person can do everything" — becomes a
+property of the caller (`is_owner`, from membership of `builtin-owner`)
+checked in `has()`, and the 83 routes that asked for `admin` each get a named
+permission. Full catalogue in [permissions.md](permissions.md).
+
+**The problem.** `admin` is a wildcard that answers 83 checks across 26 files.
+Delegating "look after the badges" means handing over bans, hub settings,
+identity recovery and federation. There is no smaller thing to give. The
+catalogue had also drifted into four disagreeing copies with no validation
+behind any of them, which is how four permission strings that gate nothing and
+one real gate that no client can see came to exist at the same time.
+
+**Alternatives considered.**
+
+*Keep `admin` and add permissions alongside it.* Rejected: the wildcard is
+what makes the named permissions optional. As long as one role carries
+everything, that is the role operators hand out.
+
+*Copy TeamSpeak wholesale.* Rejected in two specific places. The numeric duel
+(`i_client_kick_power` against `i_client_needed_kick_power`, a pair per
+action) expresses with two numbers per action what Wavvon's single
+`max_priority` per person already expresses — `require_can_moderate` stays as
+it is. And per-client permissions, TeamSpeak's third axis, were dropped: see
+below.
+
+*A per-user permission axis, so hub / channel / user resolve by specificity.*
+Considered and dropped. A role with one member already says "this one person,
+here", so the axis buys convenience, not capability. The deciding argument was
+not tidiness but visibility: an escalation that lands in a per-user row cannot
+be seen by anyone reading the roles screen, because the roles screen is not
+where it lives. Two axes, both role-scoped, means every grant on the hub is
+reachable from the list of roles. The channel cascade already built is kept
+unchanged.
+
+**Granularity.** One permission per resource, split only where the acts differ
+in reversibility or in blast radius — never because the verbs differ. Creating
+and deleting an emoji have the same audience; banning for an hour and banning
+forever do not. That rule licenses the kick / temporary-ban / permanent-ban
+split, separating "import another hub's ban list" from the rest of ban-list
+management, `certs.issue` from `certs.revoke`, and reading survey responses
+from running the survey. It does not license splitting webhook CRUD into four.
+
+**Not delegable at all**: approving an identity recovery, and ownership
+transfer. Approving a recovery hands one person control of another person's
+account; no delegation of that is worth the failure mode.
+
+**Tradeoff accepted.** The catalogue goes from 15 usable strings to ~40, and
+40 flat checkboxes is the TeamSpeak failure at smaller scale. Two things pay
+for it: permission ids are dotted (`moderation.ban.permanent`) so the roles UI
+groups by splitting the string rather than from a second hand-kept list, and
+role templates become the normal way to configure a hub. A derivation endpoint
+— "why can this member do X here" — is part of the work, not a nicety: two
+axes are debuggable by reading and not by guessing.
+
+**Outcome.** Designed, not built. Alpha, so the catalogue is rebuilt rather
+than mapped: `role_permissions` and the overwrite table are dropped and
+reseeded from the new ids.
+
 ## Alliance permissions: one hub permission plus a per-alliance grant list, not a third overwrite axis
 
 **Decision** (2026-09-14, designed with the user; not yet built): alliance
