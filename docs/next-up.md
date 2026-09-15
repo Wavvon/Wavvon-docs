@@ -13,61 +13,26 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
 ## 🔨 In flight
 
 - [ ] **Rebuild the permission model — delete `admin`, name every action.**
-  Designed 2026-09-15 ([permissions.md](permissions.md), decisions.md "No
-  wildcard permission"). `admin` is a wildcard answering **83 checks across 26
-  files**, so delegating one job means handing over the hub. It goes: "the
-  owner can do everything" becomes `is_owner` checked in `has()`, and each of
-  those 83 routes gets a named permission from a ~40-entry catalogue.
+  Designed 2026-09-15: [permissions.md](permissions.md) carries the model and
+  the ~40-entry catalogue, decisions.md ("No wildcard permission") the
+  rationale and the three shapes rejected. `admin` answers **83 checks across
+  26 files**, so the smallest thing an operator can delegate is the whole hub.
 
-  Decided along the way: **two axes only**, role×hub and role×channel — no
-  per-user axis (an escalation that lands in a per-user row is invisible on
-  the roles screen); **no numeric power duel** — `max_priority` already does
-  the out-ranking job with one number per person; **one permission per
-  resource**, split only where reversibility or blast radius differ (kick /
-  temporary ban / permanent ban, `certs.issue` / `certs.revoke`, importing
-  another hub's ban list, reading survey responses); **recovery approval and
-  ownership transfer are owner-only**, not permissions at all.
+  Order of work:
+  - **Validate permission strings in `create_role` / `update_role`.**
+    Independent of everything below and buildable today — nothing validates
+    them, so any string lands in `role_permissions`.
+  - **Decide `voice.join`**, the one catalogue entry that changes behaviour:
+    entering voice is gated by `messages.read` today. Split, or keep the
+    piggyback and document it.
+  - **The catalogue itself**, plus the endpoint that serves it and the
+    derivation endpoint ("why can this member do X here").
+  - **`moderation.ban.temporary`** needs the feature under it: `bans` has no
+    `expires_at`.
 
-  What the exploration turned up, all confirmed 2026-09-15:
-
-  - **Four catalogues, no two agreeing**: `ALL_PERMISSIONS` in
-    `hub/src/permissions.rs` (20), `ALL_PERMISSIONS` in
-    `packages/ui/src/components/admin/RolesSection.tsx` (15),
-    `CHANNEL_OVERWRITE_PERMISSIONS` in
-    `packages/ui/src/utils/channelPermissions.ts` (18), and the strings the
-    code actually consults.
-  - **`create_role` / `update_role` validate nothing** — any string lands in
-    `role_permissions`. Only channel overwrites validate
-    (`channel_permissions.rs:222`). This fix is independent of everything else
-    here and can land first.
-  - **`manage_voice` is a real gate nobody can grant**: enforced as a string
-    literal at `ws/handlers/voice.rs:990`, granted to `builtin-owner` at
-    `migrations.rs:444`, absent from every list — so no client shows it and
-    the overwrite validator rejects it. Folds into `channels.manage`.
-  - **Four strings gate nothing**: `manage_bots` (UI-only), `use_video`,
-    `manage_games`, `start_game` (granted at bootstrap, consulted nowhere).
-    All four deleted.
-  - **Correction to what this item said before**: the six permissions missing
-    from the roles UI *are* grantable — as channel overwrite allows, they are
-    all in the third list. The genuinely unreachable one is **hub-wide
-    `create_events`**, because `events.rs:552` requires the non-channel-scoped
-    baseline and only the roles UI grants that.
-  - **Listing invites requires `manage_channels`** (`invites.rs:47`). Nothing
-    about an invite is a channel. Becomes `invites.manage`.
-  - **The channel-overwrite UI ships hardcoded English labels**
-    (`ChannelPermissionsTab.tsx:159`) while the roles UI translates via i18n.
-  - **No hub-wide "my permissions" endpoint**: the client re-implements
-    `has()` in TypeScript eight times (`apps/web/src/App.tsx:1073-1158`).
-    Channel-scoped has one (`GET /channels/{id}/my-permissions`).
-
-  Two things the catalogue needs that do not exist yet, both called out in
-  [permissions.md](permissions.md) §5: the **`bans` table has no
-  `expires_at`** (bans are permanent-only — `mutes` has the column, which is
-  how a timeout differs from a permanent mute), so `moderation.ban.temporary`
-  is a gate for behaviour still to be built; and **entering voice is gated by
-  `messages.read`** (`ws/handlers/voice.rs:127`), so `voice.join` is a new
-  gate that changes behaviour — split or keep the piggyback, but decide before
-  building.
+  Sequencing: `bots.admit` in the catalogue is provisional on the `is_bot`
+  review below, and the alliance item further down supplies two of the
+  catalogue's entries — see both.
 
 - [ ] **Bots are users, and `is_bot` should have to earn its existence.** Not
   designed — the task is to establish what the flag is still for, and replace
@@ -94,7 +59,9 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
     `/admin/bots/*` routes require `admin`. So inviting a bot is already
     delegable and granting its capabilities is not, which may be right — but it
     is not what anyone would guess, and it undercuts "bots are admission,
-    therefore admin" as an argument (see the `manage_bots` note above).
+    therefore admin" as an argument. (`manage_bots` itself is deleted rather
+    than wired — [permissions.md](permissions.md) §4 says why, and it is the
+    opposite answer to the alliance one from the same question.)
 
   **The direction to evaluate**: keep bots as ordinary users and let each
   behaviour key off something real instead of a label.
@@ -115,8 +82,10 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   the reason the flag stays — and then it should say so in one place instead of
   being consulted in sixty-five.
 
-  Sequencing note: this overlaps the permission review above (both ask "what
-  should this check actually read"), and the DM guard shipped 2026-09-14 reads
+  Sequencing note: this overlaps the permission rebuild above (both ask "what
+  should this check actually read"), and its outcome decides whether the
+  catalogue keeps `bots.admit` or collapses it into `invites.manage`. The DM
+  guard shipped 2026-09-14 reads
   `is_bot` — whatever replaces it has to keep that door shut.
 
 - [ ] **The invite list never forgets anything.** `list_invites`
@@ -178,8 +147,13 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
   channel's own settings now offer sharing, which makes that gate visible to
   every operator.
 
+  Named `manage_alliances` when designed on 2026-09-14; the id is
+  `alliances.manage` under the catalogue above, substance unchanged. The two
+  permissions below are catalogue entries — build them with it, or rename
+  them after.
+
   Two pieces, in this order:
-  - **`manage_alliances`**, a hub permission like the others: one constant, the
+  - **`alliances.manage`**, a hub permission like the others: one constant, the
     check swapped in ten handlers, the catalogue and the roles UI. Carries
     the hub-scoped acts — create an alliance, accept or decline an invite,
     leave. Makes the common case possible on its own.
@@ -192,7 +166,7 @@ moves to [shipped-log.md](shipped-log.md); design rationale to
     hub would refuse.
 
   **The check that must not be forgotten**: share/unshare requires *both*
-  manage-this-alliance **and** `manage_channels` on the channel. Sharing is
+  manage-this-alliance **and** `channels.manage` on the channel. Sharing is
   also a channel act — it puts that channel in front of outsiders — and
   without the second half, whoever handles one federation link could expose a
   private channel they cannot read.

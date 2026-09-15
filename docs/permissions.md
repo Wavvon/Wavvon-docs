@@ -13,7 +13,7 @@ resolver, its tables and its rules.
 
 ## 0. Why this exists
 
-Three things went wrong at once, and they are the same thing:
+Four things went wrong at once, and they are the same thing:
 
 1. **`admin` is a wildcard that does 83 jobs.** `has()` returns true for any
    permission when the caller holds `admin`, and 83 check sites across 26
@@ -24,7 +24,13 @@ Three things went wrong at once, and they are the same thing:
    `packages/ui/src/components/admin/RolesSection.tsx` (15),
    `CHANNEL_OVERWRITE_PERMISSIONS` in `packages/ui/src/utils/channelPermissions.ts`
    (18), and the strings actually consulted by the code. No two agree.
-3. **Nothing keeps them honest.** `create_role` / `update_role` insert
+3. **The drift hides what is actually unreachable.** Six permissions the hub
+   enforces are missing from the roles UI, which reads as "nobody can grant
+   these" — but all six are in the overwrite list, so they are grantable per
+   channel. The one genuinely unreachable grant is **hub-wide
+   `create_events`**: `events.rs:552` requires the non-channel-scoped
+   baseline, and only the roles UI grants that.
+4. **Nothing keeps them honest.** `create_role` / `update_role` insert
    whatever string arrives into `role_permissions` with no validation, so
    `"banana"` is a storable permission. Only channel overwrites validate
    (`channel_permissions.rs:222`).
@@ -261,7 +267,7 @@ about an invite is a channel.
 
 | Permission | Scope | Replaces | Covers |
 |---|---|---|---|
-| `alliances.manage` | H | `admin` | Create, accept, decline, leave — see [decisions.md](decisions.md) |
+| `alliances.manage` | H | `admin` | Create, accept, decline, leave — designed as `manage_alliances`, see [decisions.md](decisions.md) |
 | `alliances.peers` | H | `admin` on `add_peer` | Direct peer registration |
 | `directory.publish` | H | `admin` | Signing for the directory, the public listing |
 
@@ -319,7 +325,7 @@ ordinary user admitted by a pubkey-bound invite, this collapses into
   existing hub needs `voice.join` wherever `messages.read` was the intent.
   Decide before building: split, or keep the piggyback and document it.
 - **The catalog endpoint and the derivation endpoint** (§1.5).
-- **Validation in `create_role` / `update_role`** (§0.3). This one is
+- **Validation in `create_role` / `update_role`** (§0). This one is
   independently useful and can land before anything else here.
 
 ## 6. Migration

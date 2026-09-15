@@ -69,6 +69,11 @@ reseeded from the new ids.
 
 ## Alliance permissions: one hub permission plus a per-alliance grant list, not a third overwrite axis
 
+**Status** (2026-09-15): the permission id is now `alliances.manage` under
+the catalogue in [permissions.md](permissions.md) — this entry says
+`manage_alliances` throughout. The substance below is unchanged, and the
+per-alliance grant list stays off the catalogue.
+
 **Decision** (2026-09-14, designed with the user; not yet built): alliance
 management stops being `admin`-only and gains two things — a hub-wide
 `manage_alliances` permission for the acts that belong to the hub, and a plain
