@@ -490,12 +490,20 @@ ordinary user admitted by a pubkey-bound invite, this collapses into
 
 ## 5. What this needs that does not exist
 
-- **A temporary ban.** The `bans` table (`migrations.rs:487`) has
-  `target_public_key, banned_by, reason, created_at` and **no `expires_at`** —
-  bans are permanent-only. `mutes` has the column, which is how a timeout is
-  distinguished from a permanent mute. `moderation.ban.temporary` is a gate
-  for behavior that has to be built: the column, expiry enforcement in the
-  admission path, and the existing ban-list worker's view of it.
+- ~~**A temporary ban**~~ — **done 2026-09-16**. `bans` gained `expires_at`,
+  the same nullable column `mutes` already used to tell a timeout from a
+  permanent mute, so no second table was needed. Which permission the route
+  needs is decided by the request rather than the path: a duration asks for
+  `moderation.ban.temporary`, its absence for `.permanent`.
+
+  The part worth naming, because it is where this kind of change goes wrong:
+  **an expired row is left in place** as the record of what was decided, so
+  every reader has to filter on the expiry rather than trust the row exists.
+  Six did — the session middleware, the cert worker, the alliance visitor
+  door, the federated export, the admission helper and the list. A reader that
+  forgets keeps enforcing a decision the hub has already dropped, and the
+  federated export would hand another hub a ban this one no longer applies,
+  with nothing to take it back.
 - ~~**The `voice.join` gate itself**~~ — **done 2026-09-16**, with the
   channel-list/auto-subscribe split, the move path, and a migration backfill
   §6 does not call for: the rebuild that makes the split safe is a later
