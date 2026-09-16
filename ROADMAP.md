@@ -14,11 +14,15 @@ becomes a future feature, and becomes an issue once it is designed.
 
 Since 2026-09-16 the two ends of that line are on GitHub rather than in
 Markdown — an item a stranger could act on belongs where a stranger can find
-it, and a fix can close an issue but not a bullet.
-[next-up.md](docs/next-up.md) says how the issues and milestones are used and
-keeps the two items that are not issue-shaped;
-[wishlist.md](docs/wishlist.md) says why a wish is a discussion and not an
-issue. Looking for something to pick up? **[`help
+it, and a fix can close an issue but not a bullet. Why, and what was weighed
+against it, is in [decisions.md](docs/decisions.md); how the issues and
+milestones are used day to day is in [CONTRIBUTING.md](CONTRIBUTING.md).
+
+**How an issue closes**: `Fixes #123` in the PR body, on merge to `develop`.
+**What a milestone means**: the version it ships in, closed when that tag
+leaves `main`. Merged and released are different answers, and both are public.
+
+Looking for something to pick up? **[`help
 wanted`](https://github.com/search?q=org%3AWavvon+label%3A%22help+wanted%22+state%3Aopen&type=issues)**.
 
 Everything else has its own home. Shipped work →

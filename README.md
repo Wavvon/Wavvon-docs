@@ -70,8 +70,10 @@ stacks up — including its honest limitations.
 - [`docs/README.md`](docs/README.md) — the wiki index: architecture,
   identity, federation, alliances, voice, data model, threat model,
   design decisions, glossary, and a find-by-feature map.
-- [`ROADMAP.md`](ROADMAP.md) — what's next, known issues, undesigned
-  wishlist, and explicit "won't do" decisions.
+- [`ROADMAP.md`](ROADMAP.md) — where each kind of work is tracked, and
+  explicit "won't do" decisions. Open work and bugs are
+  [issues](https://github.com/Wavvon/Wavvon-server/issues); ideas are
+  [discussions](https://github.com/Wavvon/Wavvon-docs/discussions/categories/ideas).
 - [`COMPARISON.md`](COMPARISON.md) — feature-by-feature comparison with
   Discord, Slack, Matrix, TeamSpeak, and Mumble.
 - [`openapi.yaml`](openapi.yaml) — full REST API spec (OpenAPI 3.0) for

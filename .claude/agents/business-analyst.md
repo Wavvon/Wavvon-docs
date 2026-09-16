@@ -20,7 +20,8 @@ This repo is the wiki. Orientation points:
 - `docs/README.md` — the index and reading order. Read it first for "how does X work".
 - `docs/decisions.md` — design rationale, newest at the top; older entries in `decisions-archive.md`.
 - `docs/shipped-log.md` — **this** is where "what did we build recently" lives, not the ROADMAP.
-- `ROADMAP.md` — forward-looking only: next up, blocked, wishlist, known issues, won't do.
+- `ROADMAP.md` — an index, plus explicit "won't do" decisions. Since 2026-09-16 the open work itself is **GitHub issues** on `Wavvon-server` and `Wavvon-clients`, and uncommitted ideas are **Ideas discussions** on `Wavvon-docs`; you cannot read either without Bash, so say so rather than guessing at the backlog from files.
+- `docs/future-features.md` — intent settled, design pending. The only work file left in the wiki.
 - `docs/client-parity.md` — web vs desktop feature gaps.
 - `openapi.yaml` — the hub HTTP API contract.
 

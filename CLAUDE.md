@@ -9,7 +9,7 @@ self-hosted, federated voice+text community platform. No code, no build step:
 Markdown plus `openapi.yaml`.
 
 ```
-docs/            the wiki — 89 documents. Start at docs/README.md.
+docs/            the wiki — 87 documents. Start at docs/README.md.
 ROADMAP.md       an index over the issue trackers, future-features.md, Ideas
 openapi.yaml     the hub HTTP API contract
 CONTRIBUTING.md  branching model and workflow for every Wavvon repo
@@ -86,10 +86,13 @@ Items move right to left: a wish we decide to pursue becomes a future feature,
 and becomes an issue once it is designed. `ROADMAP.md` itself carries only the
 index and 💤 Won't do, which is a decision list rather than a plan.
 
-**Open work moved to the trackers on 2026-09-16** (decisions.md). `gh issue
-list --repo Wavvon/Wavvon-server` is how you see it from here; `docs/next-up.md`
-is now a pointer plus the two items that are not issue-shaped, and
-`docs/wishlist.md` a pointer plus why a wish is a discussion.
+**Open work moved to the trackers on 2026-09-16** (decisions.md), and
+`docs/next-up.md` and `docs/wishlist.md` were **deleted** the same day — a
+pointer file is a second home, and two homes for one item drift. `gh issue
+list --repo Wavvon/Wavvon-server` (and `--repo Wavvon/Wavvon-clients`) is how
+you see open work from here. Don't recreate either file; if something needs
+saying about *how* the trackers are used, it goes in this file or in
+`CONTRIBUTING.md`.
 
 - **Open an issue when the work becomes available to someone else**, not as a
   second copy of a plan. The file says "we will"; the issue says "this can be

@@ -207,5 +207,5 @@ Reading order is for learning the system end-to-end. This section is for
 
 ## Related docs
 
-- [`../ROADMAP.md`](../ROADMAP.md) — index of the issue trackers / [future-features](future-features.md) / [Ideas](https://github.com/Wavvon/Wavvon-docs/discussions/categories/ideas), plus Won't do. [next-up.md](next-up.md) and [wishlist.md](wishlist.md) say how each is used
+- [`../ROADMAP.md`](../ROADMAP.md) — index of the issue trackers / [future-features](future-features.md) / [Ideas](https://github.com/Wavvon/Wavvon-docs/discussions/categories/ideas), plus Won't do
 - [`../README.md`](../README.md) — public-facing project intro

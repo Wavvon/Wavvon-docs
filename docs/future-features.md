@@ -1,13 +1,17 @@
 # Future features
 
 **On the list to build, not yet designed.** The intent is settled; the
-thinking is not. An entry graduates to [next-up.md](next-up.md) once it has a
-design someone could execute from.
+thinking is not. An entry graduates to an **issue** once it has a design
+someone could execute from.
 
-Designed work in flight lives in the issue trackers — see
-[next-up.md](next-up.md) for where each kind of work is tracked. Ideas we have
-not committed to live in [wishlist.md](wishlist.md). Anything shipped is
-removed from this file — see [shipped-log.md](shipped-log.md) for history.
+This is the one work file left. Designed work and open bugs are issues on
+[Wavvon-server](https://github.com/Wavvon/Wavvon-server/issues) and
+[Wavvon-clients](https://github.com/Wavvon/Wavvon-clients/issues); ideas we
+have not committed to are [Ideas
+discussions](https://github.com/Wavvon/Wavvon-docs/discussions/categories/ideas).
+It stays a file because most of what is below is not one piece of work — see
+[decisions.md](decisions.md). Anything shipped is removed from here — see
+[shipped-log.md](shipped-log.md) for history.
 
 Three entries that were single, nameable pieces of work became `help wanted`
 issues on 2026-09-16 and are no longer described here: alliance member

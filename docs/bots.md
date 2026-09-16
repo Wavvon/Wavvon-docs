@@ -294,6 +294,17 @@ They have no personal-axis state (no DMs, no friends, no prefs to
 sync) so the home hub list ([home-hub.md](home-hub.md)) does not
 apply.
 
+**Bot DMs are refused at the hub, not merely unbuilt** (since 2026-09-14).
+Four doors check it, so there is no path that opens a conversation with a
+bot. The reason underneath is a property rather than a policy: a bot
+publishes no DH key, so there is nothing to encrypt an envelope to — see
+`is_bot` under review in
+[Wavvon-server#29](https://github.com/Wavvon/Wavvon-server/issues/29), where
+"publishes no DH key" is the candidate replacement for the flag, and
+whatever replaces it has to keep this door shut. There is no timeline for
+opening it, and it is not tracked as an open issue: it is a scope decision,
+and an open issue would read as a promise to build it.
+
 Failure modes: a hub going down only affects that hub's WS connection.
 The bot reconnects with normal backoff. The bot's identity is the same
 pubkey everywhere, so a user mentioning `@name` on Hub A vs Hub B is

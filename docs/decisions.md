@@ -14,8 +14,9 @@ left `docs/next-up.md` and became issues on
 [Wavvon-clients](https://github.com/Wavvon/Wavvon-clients/issues). The
 wishlist became [Ideas
 discussions](https://github.com/Wavvon/Wavvon-docs/discussions/categories/ideas).
-`future-features.md` stays a file. Sixteen issues and four discussions opened
-the same day.
+Sixteen issues and four discussions opened the same day, and both emptied
+files were **deleted** — see the rejected alternatives. `future-features.md`
+stays a file, and is now the only work file.
 
 **The problem.** All four public repos had **zero issues**, while
 `Wavvon/.github` already shipped org-wide issue templates. An empty tracker on
@@ -49,12 +50,21 @@ that; issues cannot. The upside that nearly carried it — 👍 as the demand
 signal two entries are explicitly gated on — is available in discussions too.
 
 *Mirror issues back into the files.* Rejected outright: two homes for one item
-always drift. Whatever moved, moved wholly, and `next-up.md` became a pointer
-rather than a copy.
+always drift. Whatever moved, moved wholly.
+
+*Keep `next-up.md` and `wishlist.md` as pointer files.* This is what was built
+first, and it was wrong — caught the same day by the user asking why the files
+were still there. A pointer file restating what is in the tracker **is** the
+duplication the rule above forbids: `wishlist.md` had grown a four-bullet
+summary of the four discussions within the hour. Both files were deleted. The
+navigation they carried belongs in `ROADMAP.md`, which was already the index;
+the conventions belong in `CONTRIBUTING.md` and `CLAUDE.md`, which already had
+them.
 
 **Tradeoff, and it is real.** Three things got worse. `next-up.md` was free
 context every session and an issue list costs a `gh` call plus knowing to make
-it — mitigated by saying so in `CLAUDE.md`. Cross-document links in an issue
+it — mitigated only by saying so in `CLAUDE.md`, which is a weaker guarantee
+than a file that was simply *there*. Cross-document links in an issue
 body are not checked by `check-doc-links.mjs`, so issues use absolute
 `blob/main` URLs and keep rationale in the wiki rather than restating it. And
 the three-file split by level of commitment was information architecture that
@@ -67,10 +77,18 @@ all three code repos. A **milestone** is the version the work is *released*
 in and closes when the tag leaves `main`. "Fixed" and "you can have it" are
 different answers and both are now public.
 
-**Outcome.** Done 2026-09-16. Two items stayed in `next-up.md` because neither
-is issue-shaped: the external operator pilot (a sequence of our own steps, and
-host details stay out of public repos) and bot DMs (a settled scope decision,
-where an open issue would read as a promise to build it).
+**Outcome.** Done 2026-09-16. `docs/next-up.md` and `docs/wishlist.md` are
+gone; `docs/future-features.md` is the only work file left, and `ROADMAP.md`
+is the index.
+
+Two items were not issue-shaped and needed real homes rather than an exception
+file. **Bot DMs** — a settled scope decision an open issue would misread as a
+promise — moved into [bots.md](bots.md), beside the reason underneath it
+(a bot publishes no DH key). **The external operator pilot** — a sequence of
+our own steps on someone else's box — left the public repos entirely, to the
+workspace-root pilot runbook, which is where the project's own rule says
+pilot-specific material belongs. Neither was ever a bullet a stranger could
+act on, which is why neither became an issue.
 
 ## No wildcard permission: the owner is a property, and everything else is named
 
@@ -631,7 +649,7 @@ declined, because it buys a second state model ("where does this live?" on
 every new feature) against a cost that has produced no bugs. It is deferred,
 not refused: see the trigger below.
 
-*Convergence instead.* [next-up.md](next-up.md) already names the better lever
+*Convergence instead.* The tracker already names the better lever
 for the same file: web/desktop hook pairs (`useDms`, `useScreenShare`,
 `useWhisper`, …) differ mainly in platform access, so they can be hoisted into
 `packages/ui` with an injected actions object and **both app copies deleted**.
