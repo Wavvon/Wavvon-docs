@@ -43,7 +43,7 @@ The drift produced four ghosts and one invisible gate:
 | `use_video` | Granted to `builtin-owner` in `migrations.rs:445`, consulted nowhere. |
 | `manage_games` | Granted at bootstrap, offered as a channel overwrite, consulted nowhere. |
 | `start_game` | Granted to `builtin-everyone`, offered as a channel overwrite, consulted nowhere. |
-| `manage_voice` | A **real gate** (voice-zone creation, `ws/handlers/voice.rs:990`) written as a string literal, absent from every list — so no client can show it and the overwrite validator rejects it. |
+| `manage_voice` | A **real gate** (voice-zone creation, `ws/handlers/voice.rs:990`) written as a string literal, absent from every list — so no client can show it and the overwrite validator rejects it. **Server side since 2026-09-16**: catalogued, and both call sites use the constant, so validating `create_role` did not make an enforced permission ungrantable. Still absent from the clients' copies until §1.5 lands, and it folds into `channels.manage` here regardless. |
 
 ## 1. The model
 
@@ -165,7 +165,17 @@ they hold, with the owner exempt by `is_owner`. It is a precondition of the
 catalogue, not a hardening pass to schedule afterwards — shipping the
 catalogue without it moves the wildcard rather than removing it.
 
-Two consequences worth naming:
+**There is a fourth door, and it is the widest** (found 2026-09-16 while
+building the first three). `create_invite` with `grant_role_id`
+(`routes/invites.rs`) is deferred role assignment — and it needs
+`manage_channels`, **not** `manage_roles`, so it is reachable by everyone who
+can invite people. It bounded priority only, like the rest. `role_grants_admin`
+already clamped uses and expiry for an invite carrying `admin`, so the
+takeover shape had been seen there; but it looks for the one string this
+design deletes, so after the rebuild it catches nothing. All four doors take
+the guard.
+
+Three consequences worth naming:
 
 - The overwrite path's other special case, "cannot grant `admin` via a channel
   permission overwrite" (`channel_permissions.rs:238`), disappears with the
@@ -174,6 +184,13 @@ Two consequences worth naming:
   `certs.issue` does not touch a role they already minted carrying it. The
   subset check is on write, not a standing invariant, and that is the intended
   reading — but it means demoting a delegate is two steps, not one.
+- **The owner exemption is currently free, and stops being free.** `has()`
+  short-circuits on `admin`, so while the wildcard exists an owner clears
+  every subset check without anything being written for them. When `admin` is
+  deleted that silently inverts: the owner becomes a caller who holds only
+  what `builtin-owner` was separately given, and cannot grant the rest. The
+  guard has to start consulting `is_owner` in the same change that removes the
+  string, not after it.
 
 ## 2. Granularity rule
 
@@ -492,10 +509,16 @@ ordinary user admitted by a pubkey-bound invite, this collapses into
   the role payloads change ids; `scripts/check-openapi-coverage.mjs` fails the
   build until the spec matches, and the spec is part of the change rather than
   a follow-up.
-- **The hub-wide self-grant guard** (§1.6). A precondition, not a hardening
-  pass.
-- **Validation in `create_role` / `update_role`** (§0). This one is
-  independently useful and can land before anything else here.
+- ~~**The hub-wide self-grant guard** (§1.6)~~ — **done 2026-09-16**, on all
+  four doors including the invite one §1.6 had not listed. Its owner exemption
+  rides on `admin` short-circuiting in `has()`, which is the trap named at the
+  end of §1.6: the change that deletes the string has to replace the exemption
+  in the same breath.
+- ~~**Validation in `create_role` / `update_role`** (§0)~~ — **done
+  2026-09-16**. It landed first, as predicted, and the first thing it caught
+  was a dead permission string in the server's own test suite (`"kick"`, where
+  the permission is `kick_members`). The catalogue is now generated from one
+  declaration, so the constants and the validated list cannot disagree.
 
 ## 6. Migration
 
