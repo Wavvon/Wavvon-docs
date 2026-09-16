@@ -9,7 +9,7 @@ context, and no store until a ref mirror actually breaks something".
   `HubAdminContainer`, `AppModals`. Web App.tsx is 1,679 lines against the
   ~1,650 estimated; desktop 2,055 against ~1,900 (the voice-move overlay
   cluster and modals were kept out of the sidebar container's scope, and
-  desktop's parity pass is still open in [next-up.md](next-up.md)).
+  desktop's parity pass is still open — [Wavvon-clients#34](https://github.com/Wavvon/Wavvon-clients/issues/34)).
 - **Phase 2 (store) — not built, deferred with a trigger.** The stopping
   condition this document itself named under "What would change my mind" was
   met. The refs it exists to delete have grown from ~13 to 19, and that class

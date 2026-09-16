@@ -29,6 +29,21 @@ merge it back into `develop` when done, and delete it.
 
 ## Day-to-day workflow
 
+### Finding something to work on
+
+Open work lives in the issue trackers:
+[Wavvon-server](https://github.com/Wavvon/Wavvon-server/issues),
+[Wavvon-clients](https://github.com/Wavvon/Wavvon-clients/issues). Items
+labelled **[`help
+wanted`](https://github.com/search?q=org%3AWavvon+label%3A%22help+wanted%22+state%3Aopen&type=issues)**
+are the ones picked out for someone outside the project.
+
+Ideas we have not committed to are
+[discussions](https://github.com/Wavvon/Wavvon-docs/discussions/categories/ideas)
+rather than issues — a 👍 there is a real signal, since several are waiting on
+demand. Work that is intended but not yet designed is in
+[`docs/future-features.md`](docs/future-features.md).
+
 ### Starting a new feature or bug fix
 
 ```bash
@@ -56,6 +71,15 @@ satisfied, merge it. Delete the branch after merging.
 git push origin feat/my-feature
 # open PR on GitHub: feat/my-feature → develop
 ```
+
+**If the work has an issue, put `Fixes #123` in the PR body.** `develop` is
+the default branch on all three code repos, so merging the PR closes the issue
+and links it — there is no separate step, and no issue left open behind a
+shipped fix.
+
+The issue closing tells you the work is **merged**. What tells you it is
+*released* is the **milestone**: a version like `v0.6.0`, set on the issue when
+the work lands, and closed when that tag leaves `main`.
 
 ---
 

@@ -150,8 +150,8 @@ user complains about running multiple hub processes.
 
 **Status**: **parked, and built except the monitor** (2026-08-29/30).
 A farm hosting the hubs on its own machine is the supported shape; this section
-waits for an operator who needs a second box — [wishlist.md](wishlist.md)
-§Farm across more than one machine. The proxy reaches
+waits for an operator who needs a second box — see [wishlist.md](wishlist.md)
+and the Ideas discussion "Farm across more than one machine". The proxy reaches
 another machine, the agent advertises `host` / `tls_mode` / `cert_sha256` in
 its `hello` and the farm records them on every connect, and a node with
 `WAVVON_NODE_DB_TEMPLATE` creates each hub's database on its own PostgreSQL.

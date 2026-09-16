@@ -4,57 +4,22 @@
 thinking is not. An entry graduates to [next-up.md](next-up.md) once it has a
 design someone could execute from.
 
-Designed work in flight lives in [next-up.md](next-up.md). Ideas we have not
-committed to live in [wishlist.md](wishlist.md). Anything shipped is removed
-from this file — see [shipped-log.md](shipped-log.md) for history.
+Designed work in flight lives in the issue trackers — see
+[next-up.md](next-up.md) for where each kind of work is tracked. Ideas we have
+not committed to live in [wishlist.md](wishlist.md). Anything shipped is
+removed from this file — see [shipped-log.md](shipped-log.md) for history.
+
+Three entries that were single, nameable pieces of work became `help wanted`
+issues on 2026-09-16 and are no longer described here: alliance member
+discovery, Android QR pairing, and passkey registration from desktop. What
+stays below is what is not one piece of work — a set of small questions, a
+backlog, or project work rather than a feature.
 
 > See also: [farm-model.md](farm-model.md) (multi-hub server layer),
 > [gaming.md](gaming.md), [bots.md](bots.md),
 > [alliances.md](alliances.md).
 
 ---
-
-## Alliance extras — member discovery
-
-One gap left in the alliance area now that space-sharing (2026-07-05), forum
-federation (2026-07-19) and the voice design (2026-08-22, in
-[alliances.md](alliances.md)) are accounted for:
-
-- **Member discovery beyond invite tokens** — *people*, not hubs. The member
-  **hubs** are already browsable: `GET /alliances/{id}` returns each one's
-  pubkey, name and URL, and the client lists them. What has no surface at all
-  is the people on them — nothing federates a user list, so meeting someone on
-  an allied hub still means an invite token or already knowing they are there.
-  Worth saying because the two read the same in a sentence and only one is
-  missing.
-
-**Game launch / lobby federation across an alliance used to sit here and does
-not belong** (removed 2026-09-14). Games arrive as bots, and three docs
-already rule cross-hub sessions out: a mini-app session is scoped to one hub
-and one channel ([bot-mini-apps.md](bot-mini-apps.md)), alliance game sessions
-are out of scope ([bot-capability-layer.md](bot-capability-layer.md) §9), and
-a game session is single-hub first ([gaming.md](gaming.md)). Underneath that,
-the multiplayer lobby does not exist single-hub either — it is `gaming.md`
-item 4, undesigned — so federating it was a plan for the tail of something
-unbuilt. The one cross-hub idea with substance is **game-bot recommendation
-over an alliance**, and it is already filed deferred-until-demand in
-[bot-capability-layer.md](bot-capability-layer.md) §11.
-
-## Multi-device — Android QR pairing
-
-Multi-device pairing is shipped ([multi-device.md](multi-device.md)): master
-+ subkey model, QR pairing on desktop/web, revocation propagation, identity
-backup/restore. Remaining: **Android** only has the text/paste pairing flow;
-the QR scan-and-offer UX has not been ported. Gated on Android returning to
-scope at all ([android-rewrite-notes.md](android-rewrite-notes.md)).
-
-## Passkey registration from desktop
-
-Blocked by a Tauri webview RP ID mismatch. Undesigned because the way out is
-a choice not yet made: a native WebAuthn plugin, or a system-browser handoff.
-**Both options are native-shell work**, so this cannot be designed against the
-current web-only delivery target — there is no web-viable subset (passkey
-registration in a browser already works; the bug *is* the webview).
 
 ## Hub menu — entries the reference clients have and this one does not
 
@@ -95,13 +60,14 @@ rather than two that have to agree.
 ## Desktop parity backlog
 
 Named custom themes and LAN discovery UX (mDNS + QR). The measured list of
-controls that reach only one client lives in [next-up.md](next-up.md) and in
+controls that reach only one client lives in
 `clients/scripts/parity-baseline.json`, which is the one CI enforces. The whisper gaps, the `SoundboardPlayed` chip,
 `hub_updated`/`channels_updated`/`member_updated`, the duplicate
 channel-appearance modal and paired-device E2E (pairing Mechanism A) all
 closed 2026-08-08. Details in [client-parity.md](client-parity.md).
 **Desktop-only by definition** — deferred with desktop itself, and coupled to
-the Windows code-signing blocker in [next-up.md](next-up.md).
+the Windows code-signing blocker, which is an issue on
+[Wavvon-clients](https://github.com/Wavvon/Wavvon-clients/issues).
 
 ## Project visibility push
 
@@ -177,3 +143,15 @@ invite links and open in the *sender's* language.
 > ([bot-capability-layer.md](bot-capability-layer.md) §10–§11), LAN
 > federation ([lan-mode.md](lan-mode.md) §6), farm follow-ups
 > ([farm-model.md](farm-model.md)).
+
+**Game launch / lobby federation across an alliance used to sit here and does
+not belong** (removed 2026-09-14). Games arrive as bots, and three docs
+already rule cross-hub sessions out: a mini-app session is scoped to one hub
+and one channel ([bot-mini-apps.md](bot-mini-apps.md)), alliance game sessions
+are out of scope ([bot-capability-layer.md](bot-capability-layer.md) §9), and
+a game session is single-hub first ([gaming.md](gaming.md)). Underneath that,
+the multiplayer lobby does not exist single-hub either — it is `gaming.md`
+item 4, undesigned — so federating it was a plan for the tail of something
+unbuilt. The one cross-hub idea with substance is **game-bot recommendation
+over an alliance**, and it is already filed deferred-until-demand in
+[bot-capability-layer.md](bot-capability-layer.md) §11.

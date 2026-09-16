@@ -1,57 +1,50 @@
 # Wishlist
 
 **Things we might introduce, and have not decided to.** Not a queue — nothing
-here is committed, and an entry earning its place moves to
-[future-features.md](future-features.md) (intent settled, design pending) and
-from there to [next-up.md](next-up.md) (designed, being built).
+here is committed.
 
-The distinction that matters: future-features is *"we will, once we know
-how"*; this file is *"we're not sure we should"*. An entry that has been here
-a long time is not overdue — it is doing its job.
+Since 2026-09-16 the entries live as **[Ideas
+discussions](https://github.com/Wavvon/Wavvon-docs/discussions/categories/ideas)**
+rather than in this file, and the reason is the point of the file rather than a
+detail of tooling.
 
-Deliberate refusals are not wishes and are not here: see **Won't do** in the
-[roadmap index](../ROADMAP.md), with the reasoning in
-[decisions.md](decisions.md).
+An open issue reads as an accepted request: people expect it to ship, and its
+age reads as neglect. A wish is the opposite — *"we're not sure we should"* —
+and an entry that has been on the list a long time is not overdue, it is doing
+its job. A discussion can say that; an issue cannot. Several of these are also
+explicitly demand-gated (*"only if a community actually asks"*), and a 👍 on a
+discussion is exactly the measurement they are waiting for.
 
----
+## Where each kind of work lives
 
-## Hosted web client
+| | |
+|---|---|
+| Not committed to | [Ideas discussions](https://github.com/Wavvon/Wavvon-docs/discussions/categories/ideas) |
+| Intent settled, design pending | [future-features.md](future-features.md) |
+| Designed, in flight, and the open bugs | the issue trackers — see [next-up.md](next-up.md) |
 
-Undesigned, deliberately. Would decouple the client version from any single
-hub and be the canonical entry point for public hubs; alongside the discovery
-site is the obvious home, though they are different artifacts (Next.js vs a
-static Vite SPA). Already enabled by CORS defaulting to `*` on a bearer-token
-API, so it could talk to arbitrary hubs with no per-hub setup.
+An idea earning its place moves left to right: out of Ideas into
+[future-features.md](future-features.md) once the intent is settled, and from
+there into an issue once someone could execute from the design.
 
-**It can never be the only channel**, which is the reason this is a wish and
-not a plan: an HTTPS page cannot call an `http://` hub, ruling out LAN mode,
-self-signed hubs, and trying Wavvon before buying a domain — so the
-hub-served copy stays regardless. That constraint is settled in
-[decisions.md](decisions.md#hub-capabilities-are-advertised-not-inferred-from-a-version-number);
-the hosted client itself is not.
+Deliberate refusals are not wishes and are not there either: see **Won't do**
+in the [roadmap index](../ROADMAP.md), with the reasoning in
+[decisions.md](decisions.md). The idiom for one of those is a discussion or
+issue **closed as not planned**, linking the decision — so the same proposal
+does not come back every few months.
 
-## Live captions in voice
+## What is open right now
 
-Client-side speech-to-text (whisper.cpp-class local models) rendering live
-captions — an accessibility differentiator that keeps the no-telemetry stance,
-since audio never leaves the client. Too heavy for the web client, which is
-the current delivery target, so this is desktop-era at the earliest. See
-[accessibility.md](accessibility.md).
+Four, moved out of this file unchanged:
 
-## Birthday announcement message
-
-Demand-gated tail of the birthday badge: a hub-configured channel plus a daily
-worker posting at hub-midnight, which needs `chrono-tz`. Only if a community
-actually asks — the badge alone may well be enough.
-
-## Farm across more than one machine
-
-A farm hosts the hubs on its own machine, and that is the supported shape. The
-multi-node data plane — the farm proxying to hubs an `agent` runs on a second
-box — is **built except its monitor** and parked here rather than finished:
-nobody has asked for it, and no proxy has yet reached a real second machine
-(the routing was tested against loopback). Design and the two decisions behind
-it are in [farm-model.md](farm-model.md) §Multi-node data plane; what is left
-is the monitor reading agent heartbeats instead of inspecting local processes,
-plus one honest two-machine run. Revisit when an operator asks to scale past
-one box.
+- **Hosted web client** — would decouple the client version from any single
+  hub. Can never be the only channel: an HTTPS page cannot call an `http://`
+  hub, so the hub-served copy stays regardless ([decisions.md](decisions.md)).
+- **Live captions in voice** — client-side speech-to-text, an accessibility
+  differentiator that keeps the no-telemetry stance
+  ([accessibility.md](accessibility.md)). Desktop-era at the earliest.
+- **Birthday announcement message** — the demand-gated tail of the birthday
+  badge. Only if a community actually asks.
+- **Farm across more than one machine** — the multi-node data plane is built
+  except its monitor, and parked ([farm-model.md](farm-model.md)). Revisit
+  when an operator asks to scale past one box.

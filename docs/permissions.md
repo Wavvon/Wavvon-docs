@@ -345,7 +345,7 @@ power is one threshold for one thing, it already exists, and it works. Nobody
 should delete it on the strength of that sentence.
 
 Three things about it are wrong today and are not this design's to fix, filed
-in [next-up.md](next-up.md) instead:
+as [Wavvon-server#34](https://github.com/Wavvon/Wavvon-server/issues/34) and [#35](https://github.com/Wavvon/Wavvon-server/issues/35) instead:
 
 - It gates **joining**, not transmitting — the check returns before the join
   with `context: "voice_join"`, so a member below the threshold cannot enter
@@ -450,7 +450,7 @@ requires `channels.manage` on that channel.
 `bots.admit` is provisional: if the `is_bot` review concludes that a bot is an
 ordinary user admitted by a pubkey-bound invite, this collapses into
 `invites.manage` and only `bots.capabilities` survives. See
-[next-up.md](next-up.md).
+[Wavvon-server#29](https://github.com/Wavvon/Wavvon-server/issues/29).
 
 ### Surveys
 

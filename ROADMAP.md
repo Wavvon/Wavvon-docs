@@ -1,16 +1,25 @@
 # Wavvon Roadmap
 
-An index. The work itself lives in three files, split by **how committed we
-are** — one question, one answer, so an item has exactly one home.
+An index. The work itself is split by **how committed we are** — one question,
+one answer, so an item has exactly one home.
 
 | | | |
 |---|---|---|
-| **[Next up](docs/next-up.md)** | designed, plus the open bugs | what we're working on |
+| **Issues** ([server](https://github.com/Wavvon/Wavvon-server/issues), [clients](https://github.com/Wavvon/Wavvon-clients/issues)) | designed, plus the open bugs | what we're working on |
 | **[Future features](docs/future-features.md)** | intent settled, design pending | what we'll work on |
-| **[Wishlist](docs/wishlist.md)** | not committed to | what we might do |
+| **[Ideas](https://github.com/Wavvon/Wavvon-docs/discussions/categories/ideas)** | not committed to | what we might do |
 
 An item moves right to left as it earns it: an idea we decide to pursue
-becomes a future feature, and gets designed into next-up.
+becomes a future feature, and becomes an issue once it is designed.
+
+Since 2026-09-16 the two ends of that line are on GitHub rather than in
+Markdown — an item a stranger could act on belongs where a stranger can find
+it, and a fix can close an issue but not a bullet.
+[next-up.md](docs/next-up.md) says how the issues and milestones are used and
+keeps the two items that are not issue-shaped;
+[wishlist.md](docs/wishlist.md) says why a wish is a discussion and not an
+issue. Looking for something to pick up? **[`help
+wanted`](https://github.com/search?q=org%3AWavvon+label%3A%22help+wanted%22+state%3Aopen&type=issues)**.
 
 Everything else has its own home. Shipped work →
 [shipped-log.md](docs/shipped-log.md), and nothing shipped stays in the three

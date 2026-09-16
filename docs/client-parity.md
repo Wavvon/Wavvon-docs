@@ -242,7 +242,7 @@ only one app passes found:
 attachment. The one left is `onJoinAllianceVoice`, and it is the only one that
 was never a wiring gap: web opens a visitor socket to the owning hub with a
 minted grant, and desktop's `voice_join` is bound to the active hub's own
-socket in Rust. It is tracked in next-up.md as a feature port.
+socket in Rust. It is tracked as a feature port in [Wavvon-clients#34](https://github.com/Wavvon/Wavvon-clients/issues/34).
 
 **One apparent gap was not one**: desktop opens a mini-app in a native window
 (`open_mini_app`) where web promotes it to `GameModal`. Same `bot_app_open`
@@ -259,7 +259,8 @@ the answer to the warning three paragraphs up: not "check the code before
 believing a row", but a check that cannot be believed without the code.
 
 The full encrypted data-export archive stays a *feature port with a design
-question in it* rather than parity plumbing — see above, and next-up.md.
+question in it* rather than parity plumbing — see above, and
+[Wavvon-clients#35](https://github.com/Wavvon/Wavvon-clients/issues/35).
 
 ### Desktop's connection readout — CLOSED 2026-09-11
 

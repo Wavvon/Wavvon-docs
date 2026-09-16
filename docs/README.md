@@ -77,7 +77,7 @@ had a "recently shipped" section, whatever this line used to claim):
 - [permissions.md](permissions.md) — the permission model rebuilt: `admin` deleted in favour of owner-as-property, two role-scoped axes (hub + channel) and no per-user axis, dotted permission ids, the ~40-entry catalog and what each replaces
 - [nested-channels-ux.md](nested-channels-ux.md) — nested-channel UX gaps: channel permalinks (breadcrumb resolution), deep-nesting sidebar strategy (capped indent + drill-in), and channel permission overwrites (net-new file-system-style cascade — data model, resolver, routes, UI)
 - [settings-ia.md](settings-ia.md) — **implemented 2026-07-20** — unified Settings information architecture + profile model: one tab structure both clients render from `packages/ui`, converging desktop off the deleted profile-pool and onto multi-account (decided 2026-07-20); unblocks the `ProfileTab` + `IdentityBackupSection` parity passes
-- [future-features.md](future-features.md) — intent settled, design pending: alliance member discovery, Android QR pairing, passkey-from-desktop, desktop parity, visibility push, language packs
+- [future-features.md](future-features.md) — intent settled, design pending: hub-menu entries, desktop parity, visibility push, language packs (the three single-piece entries became `help wanted` issues on 2026-09-16)
 - [bot-capability-layer.md](bot-capability-layer.md) — **Phases 1–2 shipped 2026-07-19** — the consent spine for the "Telegram-class bot runtime → games" pillar: capability request/grant model, interactive-UI runtime choice (declarative components vs sandboxed webview game modal), voice/video injection gates, abuse controls, phased first playable
 
 ### Archived designs
@@ -207,5 +207,5 @@ Reading order is for learning the system end-to-end. This section is for
 
 ## Related docs
 
-- [`../ROADMAP.md`](../ROADMAP.md) — index of [next-up](next-up.md) / [future-features](future-features.md) / [wishlist](wishlist.md), plus Won't do
+- [`../ROADMAP.md`](../ROADMAP.md) — index of the issue trackers / [future-features](future-features.md) / [Ideas](https://github.com/Wavvon/Wavvon-docs/discussions/categories/ideas), plus Won't do. [next-up.md](next-up.md) and [wishlist.md](wishlist.md) say how each is used
 - [`../README.md`](../README.md) — public-facing project intro

@@ -10,7 +10,7 @@ Markdown plus `openapi.yaml`.
 
 ```
 docs/            the wiki — 89 documents. Start at docs/README.md.
-ROADMAP.md       an index over docs/next-up.md, future-features.md, wishlist.md
+ROADMAP.md       an index over the issue trackers, future-features.md, Ideas
 openapi.yaml     the hub HTTP API contract
 CONTRIBUTING.md  branching model and workflow for every Wavvon repo
 COMPARISON.md    feature comparison
@@ -69,34 +69,49 @@ The design rationale log. Newest entry at the **top**. Each entry:
 The full historical record of delivered work. **This** is where "what did we
 build recently" lives — not `ROADMAP.md`.
 
-### `ROADMAP.md` and the three files it indexes
+### `ROADMAP.md` and what it indexes
 
 `ROADMAP.md` is an **index**, kept at the repo root because
-`Wavvon-server/README.md` links it publicly. The work lives in three files
-under `docs/`, split by **how committed we are** — one question, so an item
-has exactly one home (decisions.md, 2026-08-21):
+`Wavvon-server/README.md` links it publicly. The work is split by **how
+committed we are** — one question, so an item has exactly one home
+(decisions.md, 2026-08-21):
 
-| File | Contains | Reads as |
+| Where | Contains | Reads as |
 |---|---|---|
-| `docs/next-up.md` | designed work in flight, 🚧 Blocked, ⚠️ Known issues | what we're working on |
+| **Issues** on [Wavvon-server](https://github.com/Wavvon/Wavvon-server/issues) / [Wavvon-clients](https://github.com/Wavvon/Wavvon-clients/issues) | designed work in flight, blocked work, open bugs | what we're working on |
 | `docs/future-features.md` | intent settled, design pending | what we'll work on |
-| `docs/wishlist.md` | not committed to | what we might do |
+| **[Ideas](https://github.com/Wavvon/Wavvon-docs/discussions/categories/ideas)** discussions | not committed to | what we might do |
 
-Items move right to left: a wish we decide to pursue becomes a future
-feature, and gets designed into next-up. `ROADMAP.md` itself carries only the
+Items move right to left: a wish we decide to pursue becomes a future feature,
+and becomes an issue once it is designed. `ROADMAP.md` itself carries only the
 index and 💤 Won't do, which is a decision list rather than a plan.
 
-- **Known issues are open, not necessarily scheduled** — listing a bug in
-  next-up.md says it is real and unfixed, not that anyone is on it. Say so;
-  the section header does.
-- Add items when designed work starts; update them when each finishes.
-- Anything shipped is **deleted** from all three, never annotated as
+**Open work moved to the trackers on 2026-09-16** (decisions.md). `gh issue
+list --repo Wavvon/Wavvon-server` is how you see it from here; `docs/next-up.md`
+is now a pointer plus the two items that are not issue-shaped, and
+`docs/wishlist.md` a pointer plus why a wish is a discussion.
+
+- **Open an issue when the work becomes available to someone else**, not as a
+  second copy of a plan. The file says "we will"; the issue says "this can be
+  picked up now". Two homes for one item always drift — so nothing is
+  mirrored.
+- **Close via the PR**, never by hand: `Fixes #N` in the PR body closes the
+  issue when it merges to `develop` (the default branch on all three code
+  repos).
+- **A milestone is the release, not the fix.** Set `v<version>` when the work
+  lands; the milestone closes when the tag leaves `main`.
+- **Bugs are open, not necessarily scheduled** — an open issue says it is real
+  and unfixed, not that anyone is on it.
+- **Rationale does not go in an issue.** A paragraph of *why* belongs in the
+  design doc or in `decisions.md`; the issue links to it. Issue bodies are not
+  link-checked by CI, so a relative wiki link there rots silently — use full
+  `https://github.com/Wavvon/Wavvon-docs/blob/main/docs/…` URLs.
+- Anything shipped is **deleted** from `future-features.md`, never annotated as
   "shipped" or "deferred tail". It moves to `shipped-log.md`.
 - Once a design doc lands under `docs/`, the item graduates out of
-  `future-features.md`.
-- Keep entries short. A paragraph of rationale belongs in the design doc or
-  in `decisions.md`, and the entry links to it.
-- Name the repo when it isn't obvious: `[server] flaky DM outbox retry`.
+  `future-features.md` and into an issue.
+- A deliberate refusal is closed **as not planned**, linking `decisions.md` —
+  that is what stops the same proposal coming back.
 
 ### `openapi.yaml`
 

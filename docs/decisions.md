@@ -6,6 +6,72 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Open work moves to GitHub issues; the wiki keeps the why
+
+**Decision** (2026-09-16): designed work in flight, blocked work and open bugs
+left `docs/next-up.md` and became issues on
+[Wavvon-server](https://github.com/Wavvon/Wavvon-server/issues) and
+[Wavvon-clients](https://github.com/Wavvon/Wavvon-clients/issues). The
+wishlist became [Ideas
+discussions](https://github.com/Wavvon/Wavvon-docs/discussions/categories/ideas).
+`future-features.md` stays a file. Sixteen issues and four discussions opened
+the same day.
+
+**The problem.** All four public repos had **zero issues**, while
+`Wavvon/.github` already shipped org-wide issue templates. An empty tracker on
+a public repo reads as abandoned, and visibility is a project goal
+([code-signing.md](code-signing.md) — the signing application was refused for
+lack of popularity). Underneath that, an operator who hit a bug had no door:
+the bug list lived in a Markdown file nobody outside the project reads, and
+nothing there could be closed by a fix.
+
+**The rule that decided what moved.** *What a stranger could act on goes to
+issues; what only we need in order to plan stays in files.* So a bug, a
+blocked item and a designed piece of work moved; rationale, the shipped log,
+the design docs and the undesigned bucket did not.
+
+**Alternatives considered.**
+
+*Move everything, files included.* Rejected in part. `future-features.md`
+entries are mostly not one piece of work — "hub menu entries" is five small
+questions, "desktop parity backlog" is a list, "project visibility push" is
+not a feature — and an issue per container is an issue nobody can close. Three
+entries that *were* single nameable pieces of work did move, as `help wanted`.
+
+*Keep everything in files, and open issues only for inbound reports.*
+Rejected: it leaves the tracker looking dead, which is the original problem,
+and it means a fix can never close anything.
+
+*Put the wishlist in issues too.* Rejected. An open issue reads as an accepted
+request and its age reads as neglect, while the file's own premise is that a
+long-standing wish "is not overdue — it is doing its job". Discussions say
+that; issues cannot. The upside that nearly carried it — 👍 as the demand
+signal two entries are explicitly gated on — is available in discussions too.
+
+*Mirror issues back into the files.* Rejected outright: two homes for one item
+always drift. Whatever moved, moved wholly, and `next-up.md` became a pointer
+rather than a copy.
+
+**Tradeoff, and it is real.** Three things got worse. `next-up.md` was free
+context every session and an issue list costs a `gh` call plus knowing to make
+it — mitigated by saying so in `CLAUDE.md`. Cross-document links in an issue
+body are not checked by `check-doc-links.mjs`, so issues use absolute
+`blob/main` URLs and keep rationale in the wiki rather than restating it. And
+the three-file split by level of commitment was information architecture that
+labels imitate badly — kept by leaving `future-features.md` alone and letting
+the two ends be GitHub-native.
+
+**The mechanism.** An issue closes when the work merges to `develop` — `Fixes
+#N` in the PR body, no manual step, since `develop` is the default branch on
+all three code repos. A **milestone** is the version the work is *released*
+in and closes when the tag leaves `main`. "Fixed" and "you can have it" are
+different answers and both are now public.
+
+**Outcome.** Done 2026-09-16. Two items stayed in `next-up.md` because neither
+is issue-shaped: the external operator pilot (a sequence of our own steps, and
+host details stay out of public repos) and bot DMs (a settled scope decision,
+where an open issue would read as a promise to build it).
+
 ## No wildcard permission: the owner is a property, and everything else is named
 
 **Decision** (2026-09-15, designed with the user; not yet built): the `admin`
@@ -1417,6 +1483,11 @@ end they cannot act on from the device in front of them.
 is the rule most voice platforms apply, and it is recoverable in one click.
 
 ## The roadmap splits by commitment level, into three files
+
+> **Partly superseded 2026-09-16** — the split by commitment level stands, but
+> two of the three homes are no longer files: designed work and open bugs are
+> issues, and the wishlist is Ideas discussions. See "Open work moves to GitHub
+> issues; the wiki keeps the why" at the top of this file.
 
 **Decision** (2026-08-21): `ROADMAP.md` becomes an index. The work moves into
 `docs/next-up.md` (designed, in flight, plus Blocked and Known issues),
