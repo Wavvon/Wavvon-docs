@@ -496,9 +496,13 @@ ordinary user admitted by a pubkey-bound invite, this collapses into
   distinguished from a permanent mute. `moderation.ban.temporary` is a gate
   for behavior that has to be built: the column, expiry enforcement in the
   admission path, and the existing ban-list worker's view of it.
-- **The `voice.join` gate itself.** The permission is decided (§3, Voice);
-  the second check at `ws/handlers/voice.rs:127` and the seeding on
-  `builtin-everyone` are the work.
+- ~~**The `voice.join` gate itself**~~ — **done 2026-09-16**, with the
+  channel-list/auto-subscribe split, the move path, and a migration backfill
+  §6 does not call for: the rebuild that makes the split safe is a later
+  change, so without it every already-hidden channel reopened on upgrade.
+  Shipped with a `voice.permissions` capability and the client row behind it —
+  the split is unusable until an operator can deny the voice half, and denying
+  read alone no longer hides anything.
 - **The catalog endpoint and the derivation endpoint** (§1.5).
 - **A capability string.** Clients branch on capabilities, never on version
   numbers, and a client is multi-hub: one served by a rebuilt hub will talk to
