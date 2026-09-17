@@ -4925,6 +4925,29 @@ paths:
           required: true
           schema: { type: string }
 
+  /channels/{channel_id}/talk-grants/{pubkey}:
+    post:
+      summary: Grant the floor for this voice session (moderation.mute)
+      description: >-
+        Answers a raised hand: the member may transmit in a channel whose
+        min_talk_power they do not meet. The grant lasts one voice session and
+        is never persisted, so leaving, disconnecting or a hub restart takes it
+        back. 409 when the member is not currently in this voice channel.
+      tags: [Moderation]
+      parameters:
+        - name: channel_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: pubkey
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204": { description: Granted }
+        "403": { description: Missing moderation.mute, or the target outranks the caller }
+        "409": { description: That member is not in this voice channel }
+
   # ── Badges (hub-to-hub attestations) ──────────────────────────────────────
 
   /badges:

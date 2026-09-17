@@ -133,8 +133,11 @@ forwarded to the owning bot's HTTP webhook (not over WS).
 
 #### `voice_join`
 Join a voice channel. May be rejected with an [`error`](#error) (context
-`voice_join`) when the user is voice-muted hub-wide, voice-muted in the
-channel, or below the channel's `min_talk_power` without a raised hand.
+`voice_join`) when the user is voice-muted hub-wide or voice-muted in the
+channel. A `min_talk_power` the member does not meet is **not** a rejection:
+they join and listen, and the relay drops what they send until a moderator
+grants them the floor ([permissions.md](permissions.md), "Talk power is not
+this").
 On success the hub sends [`voice_joined`](#voice_joined), broadcasts
 [`voice_participant_joined`](#voice_participant_joined) and
 [`voice_roster_update`](#voice_roster_update) to the channel, and sends the
@@ -580,6 +583,7 @@ Direct reply to a successful `voice_join`.
 | `voice_token` | string | 64 hex chars, single-use, 30 s TTL. Open the WebTransport session at `voice_wt_url?token=<voice_token>` — accepting the session consumes the token and binds it to (channel, you). **No audio is relayed to or from you until the session is accepted.** |
 | `voice_wt_url` | string | absolute `https://host:port/voice` of the hub's WebTransport voice endpoint |
 | `voice_cert_hash` | string \| null | SHA-256 (hex) of the endpoint's self-signed cert for `serverCertificateHashes` / desktop pinning; `null` when the hub serves a CA-signed cert |
+| `may_speak` | boolean | `false` when the channel's `min_talk_power` is above what the joiner carries and nobody has granted them the floor: they are in the room and hearing it, and the relay drops what they send. Behind the `voice.talk` capability — an older hub omits the field, and a missing field must not be read as muted |
 
 #### `voice_key_received`
 Relayed voice sender-key bundle (voice transport v2). Unwrap with your

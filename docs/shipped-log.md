@@ -4,6 +4,38 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Talk power gates speaking, and the floor is granted rather than taken
+  (2026-09-17)**: `min_talk_power` refused the *join*, so a member below the
+  threshold could not enter a moderated channel and listen — while
+  `chat_models.rs` had documented the other verb the whole time. The verdict
+  is now decided once on join and enforced in the WebTransport relay, beside
+  the check that already drops a datagram racing session teardown; it runs per
+  datagram, so the answer is parked in memory rather than asked of the
+  database.
+
+  Two things fell out of moving it. Role priority no longer doubles as talk
+  power: `talk_power.max(priority)` meant raising a rank silently handed out
+  the floor in every threshold channel on the hub. And the owner now passes as
+  the property they already are rather than as a large number that cleared
+  every threshold by accident — `builtin-owner` carries no `talk_power` row,
+  so reading the column alone would have silenced the owner in their own
+  channel. That one was caught before it shipped only because the question was
+  asked out loud.
+
+  Raising a hand used to *be* the grant: the route took an `AuthUser` and
+  wrote its row with no permission check anywhere, so every member cleared the
+  threshold with one call and the refusal named the call to make. It is a
+  request now. `POST /channels/{id}/talk-grants/{pubkey}` answers it and wants
+  `moderation.mute`, because granting is that permission's other direction —
+  no `voice.speak` was added, there would be nothing left for it to gate. The
+  grant is the removal of an in-memory entry and nothing else, so it lasts one
+  voice session and no restart carries it: the row that used to outlive
+  leaving, disconnecting and a reboot is gone.
+
+  Proved at the relay with three real WebTransport sessions, because that is
+  the only place the guarantee lives — a test that stops at `voice_joined`
+  passes whether the audio reached the room or not, the same shape that hid
+  two complete voice failures on 2026-09-10.
 - **The alliance stress sweep: 26 scenarios, four stages, five bugs
   (2026-09-14)**: alliances got the harness they never had. Four
   `e2e-topology` stages now drive them end to end with real binaries —

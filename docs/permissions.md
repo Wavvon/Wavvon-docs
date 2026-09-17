@@ -361,22 +361,34 @@ is about a pair of numbers *per action* standing in for a hierarchy; talk
 power is one threshold for one thing, it already exists, and it works. Nobody
 should delete it on the strength of that sentence.
 
-Three things about it are wrong today and are not this design's to fix, filed
-as [Wavvon-server#34](https://github.com/Wavvon/Wavvon-server/issues/34) and [#35](https://github.com/Wavvon/Wavvon-server/issues/35) instead:
+Three things about it were wrong, and are fixed
+([Wavvon-server#34](https://github.com/Wavvon/Wavvon-server/issues/34),
+[#35](https://github.com/Wavvon/Wavvon-server/issues/35)):
 
-- It gates **joining**, not transmitting — the check returns before the join
-  with `context: "voice_join"`, so a member below the threshold cannot enter
-  and listen. `routes/chat_models.rs:91` describes the other behavior
-  ("needed to transmit audio in this channel"), so the doc and the code
-  disagree about which verb it governs.
-- `effective_power = user_talk_power.max(user_priority)` — role priority
-  doubles as talk power. Two numbers with two jobs, read as one.
-- The grant is **self-service and permanent**. `raise_hand`
-  (`routes/moderation/channel_mod.rs:318`) takes an `AuthUser` and writes the
-  row with no permission check, so any member clears `min_talk_power` with one
-  call — and the rejection message names the call. The row lives in Postgres
-  and is removed only by an explicit `lower_hand`, so it outlives leaving the
-  channel, disconnecting, and a hub restart.
+- It gated **joining** rather than transmitting, so a member below the
+  threshold could not enter and listen — and `routes/chat_models.rs` had
+  documented the other verb all along. The verdict is now decided once on
+  join and enforced in `voice_wt.rs`'s `relay_datagram`, beside the check
+  that already drops a datagram racing ahead of session teardown. That is the
+  only place audio passes the hub, and it runs per datagram, which is why the
+  answer is computed in advance and parked in memory rather than asked of the
+  database.
+- `effective_power = user_talk_power.max(user_priority)` let role priority
+  double as talk power, so raising a rank silently handed out the floor in
+  every threshold channel. Only `talk_power` is read now. The owner still
+  passes, as the property they already are: `builtin-owner` carries no
+  `talk_power` row, so the column alone would have silenced them in their own
+  channel — the same shape as `UserPermissions::has`.
+- The grant was **self-service and permanent**: `raise_hand` wrote its row
+  with no permission check, so any member cleared the threshold with one call
+  and the refusal named the call to make. Raising a hand is now a request and
+  nothing else. Answering it is `POST /channels/{id}/talk-grants/{pubkey}`,
+  which wants `moderation.mute` — granting is that permission's other
+  direction. A grant is the removal of an in-memory entry and nothing more,
+  so it lasts one voice session: the shared teardown in `connection.rs` drops
+  it on leave and on disconnect, the block the voice-only presence grant
+  evaporates in, and no grant survives a restart because none was ever
+  written down.
 
 *No `voice.speak`.* Talk power governs speaking, `moderation.mute` silences an
 individual, and `channels.manage` sets the threshold. A fourth way to say it
