@@ -16,7 +16,8 @@ CONTRIBUTING.md  branching model and workflow for every Wavvon repo
 COMPARISON.md    feature comparison
 assets/          images used by the docs
 .github/         CI: the doc-link check
-scripts/         check-openapi-coverage.mjs, check-doc-links.mjs
+scripts/         check-openapi-coverage.mjs, check-doc-links.mjs,
+                 check-doc-paths.mjs, make-social-previews.mjs
 ```
 
 Sibling repos:
