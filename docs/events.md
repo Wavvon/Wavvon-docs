@@ -396,7 +396,7 @@ here?" from the hub-wide permission list it already has. `GET /channels`
 carries `can_move_members` per channel for exactly that — the destination
 picker offers the channels that will accept the move, instead of finding
 out when the move is issued (or, for a queued assignment, whenever it
-fires). Gated by the `channels.move_targets` capability; a hub that does
+fires). Gated by the `channels.move.targets` capability; a hub that does
 not advertise it omits the field, which a client must not read as "no
 destinations".
 
