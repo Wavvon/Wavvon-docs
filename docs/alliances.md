@@ -73,13 +73,13 @@ this alliance carry*; the **Alliances tab in a channel's settings** answers
 and for a category the choice between the space alone and everything beneath
 it. Both write the same `alliance_shared_channels` row.
 
-The tab is admin-only because `share_channel` and `unshare_channel` require
-`admin` on the hub — as does every other alliance route. That is designed to
-change: decisions.md, "Alliance permissions: one hub permission plus a
-per-alliance grant list". The tab will follow the permission rather than define
-it, and sharing will want `manage_channels` on the channel alongside the
-alliance grant, because putting a channel in front of outsiders is a channel
-act as much as an alliance one.
+The tab follows the permission rather than defining it. Sharing and unsharing
+want **two** things (decisions.md, "Alliance permissions: one hub permission
+plus a per-alliance grant list"): the right to act on this alliance —
+`alliances.manage`, or a role on that alliance's own grant list — **and**
+`channels.manage` on the channel, because putting a channel in front of
+outsiders is a channel act as much as an alliance one. Someone trusted with
+one federation link cannot expose a private channel they cannot read.
 
 ## Routes
 
@@ -87,18 +87,21 @@ All in `hub/src/routes/alliances/` (Wavvon-server):
 
 | Route                                                | Who      | Purpose                              |
 |------------------------------------------------------|----------|--------------------------------------|
-| `POST   /alliances`                                  | admin    | Create alliance                      |
+| `POST   /alliances`                                  | `alliances.manage` | Create alliance            |
 | `GET    /alliances`                                  | any auth | List alliances this hub is in        |
 | `GET    /alliances/:id`                              | any auth | Details + members                    |
-| `POST   /alliances/:id/invite`                       | admin    | Generate signed invite token (pull)  |
-| `POST   /alliances/:id/push-invite`                  | admin    | Push invite directly to a target hub |
-| `GET    /alliances/pending-invites`                  | admin    | List pending push invites received   |
-| `POST   /alliances/pending-invites/:id/accept`       | admin    | Accept a pending push invite         |
-| `POST   /alliances/pending-invites/:id/decline`      | admin    | Decline a pending push invite        |
-| `POST   /alliances/:id/join`                         | admin    | Use invite token to join (hub-to-hub)|
-| `DELETE /alliances/:id/leave`                        | admin    | Leave alliance                       |
-| `POST   /alliances/:id/channels`                     | admin    | Share a local space (see below)      |
-| `DELETE /alliances/:id/channels/:ch_id`              | admin    | Unshare a space                      |
+| `POST   /alliances/:id/invite`                       | manager of this alliance | Generate signed invite token (pull) |
+| `POST   /alliances/:id/push-invite`                  | manager of this alliance | Push invite directly to a target hub |
+| `GET    /alliances/pending-invites`                  | `alliances.manage` | List pending push invites received |
+| `POST   /alliances/pending-invites/:id/accept`       | `alliances.manage` | Accept a pending push invite |
+| `POST   /alliances/pending-invites/:id/decline`      | `alliances.manage` | Decline a pending push invite |
+| `POST   /alliances/:id/join`                         | `alliances.manage` | Use invite token to join (hub-to-hub) |
+| `DELETE /alliances/:id/leave`                        | `alliances.manage` | Leave alliance             |
+| `GET    /alliances/:id/managers`                     | manager of this alliance | Roles on this alliance's grant list |
+| `PUT    /alliances/:id/managers/:role_id`            | `roles.manage` | Add a role to the grant list     |
+| `DELETE /alliances/:id/managers/:role_id`            | `roles.manage` | Remove one                       |
+| `POST   /alliances/:id/channels`                     | manager **+** `channels.manage` | Share a local space (see below) |
+| `DELETE /alliances/:id/channels/:ch_id`              | manager **+** `channels.manage` | Unshare a space |
 | `GET    /alliances/:id/channels`                     | any auth | Effective shared set (local + remote)|
 | `GET    /alliances/:id/channels/:ch_id/messages`     | any auth | Read messages (local or via peer)    |
 | `POST   /alliances/:id/channels/:ch_id/messages`     | sender   | Post (federated to owning hub)       |

@@ -466,6 +466,17 @@ policy) stay on the `alliance_managers(alliance_id, role_id)` grant list from
 the 2026-09-14 design, not on this catalog. Sharing a channel additionally
 requires `channels.manage` on that channel.
 
+Built 2026-09-24, with one thing the design could not name: **editing the grant
+list is `roles.manage`**. The design said `admin`, written before the wildcard
+went away, and `roles.manage` is what carries "hands out authority" in the
+catalogue. Deliberately not `alliances.manage` and not the list itself — a
+delegate who can add roles to the list can widen their own delegation. The same
+escalation ceiling as direct role assignment applies: you cannot delegate an
+alliance to a role at or above your own priority. Served on
+`GET /alliances/{id}/managers`, edited with `PUT`/`DELETE
+/alliances/{id}/managers/{role_id}`, behind the `alliance.permissions`
+capability.
+
 ### Integrations
 
 | Permission | Scope | Replaces | Covers |

@@ -1859,7 +1859,7 @@ paths:
 
   /alliances/{alliance_id}/invite:
     post:
-      summary: Create an invite token for another hub to join (manage_hub)
+      summary: Create an invite token for another hub to join (alliance manager)
       tags: [Alliances]
       parameters:
         - name: alliance_id
@@ -1928,6 +1928,78 @@ paths:
         "409":
           description: channel_is_local — this hub owns the channel; join voice normally
 
+  /alliances/{alliance_id}/managers:
+    get:
+      summary: Roles that may act on this alliance
+      description: >-
+        The per-alliance grant list (decisions.md, "Alliance permissions"):
+        the local roles that may invite another hub into this alliance, share
+        and unshare a channel in it, and set the per-share policies.
+        `alliances.manage` answers for every alliance and is not listed here.
+        Readable by anyone who may act on this alliance. Present only on hubs
+        advertising `alliance.permissions`.
+      tags: [Alliances]
+      parameters:
+        - name: alliance_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    alliance_id: { type: string }
+                    role_id: { type: string }
+                    role_name: { type: string }
+                    granted_by: { type: string }
+                    granted_at: { type: integer }
+
+  /alliances/{alliance_id}/managers/{role_id}:
+    put:
+      summary: Let a role manage this alliance (roles.manage)
+      description: >-
+        Handing out authority, so it is `roles.manage` rather than
+        `alliances.manage` — a delegate must not be able to widen their own
+        delegation — and it is bounded by the same escalation ceiling as
+        direct role assignment. Idempotent.
+      tags: [Alliances]
+      parameters:
+        - name: alliance_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: role_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204":
+          description: Granted
+        "403":
+          description: Missing roles.manage, or the role sits at or above your own priority
+        "404":
+          description: Alliance or role not found
+    delete:
+      summary: Stop a role managing this alliance (roles.manage)
+      tags: [Alliances]
+      parameters:
+        - name: alliance_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: role_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204":
+          description: Revoked
+
   /alliances/{alliance_id}/channels:
     get:
       summary: List channels shared into this alliance
@@ -1938,8 +2010,12 @@ paths:
           required: true
           schema: { type: string }
     post:
-      summary: Share a channel into the alliance (manage_channels)
+      summary: Share a channel into the alliance (alliance manager + channels.manage)
       description: >-
+        Needs **both**: the right to act on this alliance (`alliances.manage`
+        or the alliance's own grant list) and `channels.manage` on the channel
+        being shared — sharing exposes a channel to people outside this hub, so
+        managing one federation link must not be enough to do it alone.
         Also the way the per-share policies are changed: re-sharing a channel
         with `forum_remote_write` or `voice_remote_join` set updates that
         policy. An omitted policy is left as it stands, so a re-share to flip
@@ -1985,7 +2061,7 @@ paths:
 
   /alliances/{alliance_id}/channels/{channel_id}:
     delete:
-      summary: Unshare a channel from the alliance
+      summary: Unshare a channel from the alliance (alliance manager + channels.manage)
       tags: [Alliances]
       parameters:
         - name: alliance_id
@@ -6245,7 +6321,7 @@ paths:
 
   /alliances/{alliance_id}/push-invite:
     post:
-      summary: Push a direct alliance invite to another hub (admin)
+      summary: Push a direct alliance invite to another hub (alliance manager)
       tags: [Alliances]
       parameters:
         - name: alliance_id

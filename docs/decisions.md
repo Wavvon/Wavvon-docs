@@ -269,7 +269,12 @@ with its own capability string (`alliance.permissions`) so a client does not
 offer a delegation an older hub would answer 403 to. Until a hub advertises it,
 clients keep asking for `admin`.
 
-**Outcome**: designed, not built (next-up.md).
+**Outcome**: **built** — `alliances.manage` with the catalogue, the grant list
+on 2026-09-24. Two things the design left unnamed, settled in the build:
+editing the list is **`roles.manage`** (what the catalogue uses for "hands out
+authority"; `admin` was written before the wildcard went away) and it carries
+the same escalation ceiling as direct role assignment, so a delegate can
+neither widen their own delegation nor hand an alliance to a role above them.
 
 ## The Discord importer is dropped; migration would come back as a bot
 
