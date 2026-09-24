@@ -391,6 +391,15 @@ migration. Resolved **channel-scoped against the destination** channel
 (`channel_permissions(mover, dest)`), so a role granted move rights only
 within a sub-tree can't fling members into unrelated channels.
 
+Because it is channel-scoped, a client cannot answer "may I move someone
+here?" from the hub-wide permission list it already has. `GET /channels`
+carries `can_move_members` per channel for exactly that — the destination
+picker offers the channels that will accept the move, instead of finding
+out when the move is issued (or, for a queued assignment, whenever it
+fires). Gated by the `channels.move_targets` capability; a hub that does
+not advertise it omits the field, which a client must not read as "no
+destinations".
+
 **Client → hub: request a move.** New `WsClientMessage` variant (mirrors
 the whisper control messages `voice_whisper_start`/`_stop` in
 `chat_models.rs`):
@@ -498,11 +507,30 @@ CREATE TABLE IF NOT EXISTS event_move_assignments (
   dedicated 60s tick if the reminder worker shouldn't grow). An event
   with no `ends_at` keeps assignments until the event is deleted.
 
-**Application trigger.** The target's voice-join handler (both
-`voice.rs::handle_voice_join` and `voice_ws.rs`) gains a check after a
-successful join: is there a pending `event_move_assignments` row for this
-user whose `target_channel_id != joined_channel`? If so, the hub pushes a
-`voice_move` (§7.1) for that assignment. Because the user claimed/RSVP'd
+**Application triggers.** There are two, and the event's start is the one
+that matters for people already sitting in a lobby.
+
+*At the event's start*, the reminder worker's 60s sweep pushes every
+assignment whose target is currently in some other voice channel.
+`hub_events.moves_applied_at` marks the event once the sweep has run, so a
+worker that ticks every minute does not re-push the same move for the whole
+raid. A start more than an hour in the past is marked applied without
+pushing: a hub that was down over the start comes back to a moment that has
+passed, and dragging somebody into a raid channel an hour late is worse than
+leaving them where they are. Without this trigger an event moved *nobody*
+who had not left and rejoined voice since the assignment was made.
+
+*On the target's next voice join*, the voice-join handler (both
+`voice.rs::handle_voice_join` and `voice_ws.rs`) checks after a successful
+join: is there a pending `event_move_assignments` row for this user whose
+`target_channel_id != joined_channel`? If so, the hub pushes a
+`voice_move` (§7.1) for that assignment. This is what catches everyone who
+arrives after the start.
+
+**Authority is re-checked when the assignment fires**, not only when it was
+written: `assigned_by` must still hold `voice.move_members` on the
+destination, channel-scoped. A queued move can outlive by hours the role
+that authorised it, and an organizer demoted in between moves nobody. Because the user claimed/RSVP'd
 (that's why an assignment exists), the push is `auto: true` and the
 client immediately re-joins the assigned channel. The row is **not**
 deleted on application — it stays until event end/delete, so a

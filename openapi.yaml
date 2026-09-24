@@ -117,6 +117,14 @@ components:
         color: { type: string, nullable: true }
         custom_icon_svg: { type: string, nullable: true }
         created_at: { type: integer, description: "Unix timestamp" }
+        can_move_members:
+          type: boolean
+          description: >-
+            The caller's own `voice.move_members` on this channel, resolved
+            channel-scoped, so a move-destination picker can offer only the
+            channels that will accept the move (events.md §7.1). Advertised
+            as the `channels.move_targets` capability; absent on hubs that
+            do not advertise it, which is not the same as `false`.
 
     Message:
       type: object
