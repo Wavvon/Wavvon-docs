@@ -202,6 +202,13 @@ components:
         uses: { type: integer }
         expires_at: { type: integer, nullable: true }
         created_at: { type: integer }
+        status:
+          type: string
+          enum: [live, expired, used_up]
+          description: >-
+            Whether this invite can still admit anyone, and if not, which of
+            the two ways it retired. Advertised as the `invites.status`
+            capability; absent on hubs that do not advertise it.
 
     HubInfo:
       type: object
@@ -1302,9 +1309,17 @@ paths:
   /invites:
     get:
       summary: List active invites (manage_invites)
-      description: Newest first. Paged only on hubs advertising `list.cursor.lists`.
+      description: >-
+        Newest first, and only the invites that can still admit someone — an
+        expired or used-up one is returned only with `include_inactive=true`,
+        on hubs advertising `invites.status`. Paged only on hubs advertising
+        `list.cursor.lists`.
       tags: [Invites]
       parameters:
+        - name: include_inactive
+          in: query
+          description: Include invites that are expired or have no uses left.
+          schema: { type: boolean, default: false }
         - name: limit
           in: query
           description: Page size, clamped to 1..500.
