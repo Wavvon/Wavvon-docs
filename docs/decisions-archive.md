@@ -220,7 +220,7 @@ explicit opt-in on both ends.
 - *Hub* (Wavvon-server): `GET /federation/banlist` publisher + 6-hour
   sync job + `/auth/verify` gate in `hub/src/routes/federation.rs`; the
   pre-store webhook dispatch (reusing the bot webhook HTTP/signing helper,
-  [`bots.md`](bots.md)) in the message-create path; `POST
+  [`apps.md`](apps.md)) in the message-create path; `POST
   /messages/:id/report` + `GET /admin/reports` + review route reusing the
   existing `hub/src/routes/moderation.rs` ban/delete handlers; migrations
   for `federated_bans`, `message_reports`, and the new `hub_settings`
@@ -859,7 +859,7 @@ anywhere and proves control of the private key by signing a single-
 use invite token. Slash commands are routed by the hub to a bot-
 declared webhook URL with a signed envelope; the bot's synchronous
 response posts as a normal (or ephemeral) message. The bot directory
-is per-hub, not federated. Full design in [`docs/bots.md`](bots.md).
+is per-hub, not federated. Full design in [`docs/apps.md`](apps.md).
 
 **Alternatives considered**:
 
@@ -961,7 +961,7 @@ incentive to keep the endpoint responsive is direct.
 
 **Decision**: ship three composable onboarding features, each with its
 own hub setting, sharing no control flow assumptions. Full design in
-[`docs/lobby-bot-survey.md`](lobby-bot-survey.md).
+[`docs/lobby-survey.md`](lobby-survey.md).
 
 1. **Security Level Lobby** — when a user's PoW level is below
    `min_security_level`, the hub still authenticates them but issues a

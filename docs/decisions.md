@@ -6,6 +6,87 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## A bot is a client like any other
+
+**Decision** (2026-09-26): the bot distinction is deleted across all four
+repos. There is no bot account, no bot admission path, no bot capability
+layer, no bot directory. A program holds a keypair, authenticates on the
+ordinary session flow, presents an invite like anybody else, and is bound by
+its roles. A member running one holds **`apps.register`**, a permission in the
+catalogue like every other. `bots.md`, `bot-capability-layer.md` and
+`bot-media.md` were replaced by [apps.md](apps.md).
+
+**The problem.** `is_bot` was consulted sixty-five times across twelve files
+and nothing ever checked it against anything true. It was *declared*: `POST
+/bots` wrote the flag for a pubkey, and every later read believed it. The
+review that started this
+([Wavvon-server#29](https://github.com/Wavvon/Wavvon-server/issues/29)) drove
+the hole end to end and found that a **stranger's** pubkey invited as a bot
+keeps `is_bot = TRUE` and `approval_status = 'bot_pending'` after its owner
+authenticates normally as a person — full read access, silently excluded from
+DMs, with no way for them or an admin to see why.
+
+Underneath that was a second admission path, a second grant system (requested
+∩ granted, per pubkey), a second session lifetime, a second event-scoping
+mechanism and a second video budget. Each of them answered a question the
+permission model already answered, for one category of caller.
+
+**What replaced each behaviour.** Every row of the table came out the same
+way — the flag was standing in front of something that was already true:
+
+| Gated by `is_bot` | Now |
+|---|---|
+| Skipping the invite gate | The invite gate. A program can hold a code |
+| No default role | Invites already carry `grant_role_id` |
+| Voice admission | The voice permissions that already gated it alongside the flag |
+| Game launch cards, embeds | `apps.register` |
+| The mini-app modal | `apps.register`, re-resolved per join |
+| Event fan-out scope | The subscriber's own `messages.read` on the channel |
+| Exclusion from DMs | Nothing — see the tradeoff |
+| 30-day session expiry | Nothing; `/auth/renew` went with it |
+| The BOT badge | Nothing |
+
+**Alternatives considered.**
+
+*Keep the flag, fix the hole.* Rejected. The hole was a symptom: a label that
+nobody verifies will drift again the next time something writes it. And the
+cost of the flag was never the bug, it was the sixty-five reads and the five
+parallel mechanisms hanging off it.
+
+*Keep the capability layer, rename it.* Rejected. A second grant system keyed
+on a pubkey is the bot distinction wearing a different name; authority is
+roles, for everyone, or it is two models that disagree.
+
+*Delete the features too* (mini-apps, slash commands, programmatic
+screenshare, the event transport). Rejected: they are ordinary API surface any
+client can use, and deleting them would have been deleting working product to
+make a refactor tidier.
+
+**Tradeoff.** Three things got worse or looser, deliberately:
+
+1. **DMs are open to any identity.** The four-door guard read `is_bot`, so it
+   went. A client with no published DH key now sits exactly where a person
+   with no DH key has always sat: the conversation can only carry cleartext
+   and federates onward in the clear. If the rule should survive, it belongs
+   in the catalogue as something like `dms.initiate` — a permission, not a
+   flag. Left open on purpose rather than smuggled back in.
+2. **A published capability string was removed.** `/info` drops
+   `bots.external` and gains `apps.register`. Removals normally wait for a
+   major; this one is taken in beta because the alternative is an admin panel
+   that looks alive and 404s.
+3. **Admission is one path, and a program cannot solve a puzzle.** With
+   `challenge_mode` on, an unattended client cannot get in at all. That is the
+   open design question, and it is being answered separately rather than by
+   leaving a hole named `is_bot`.
+
+**Outcome.** Two checks that were never about bots now apply to everyone,
+which is the clearest evidence the distinction was in the way: starting a
+screen share checks channel-scoped `voice.join` (the check existed, but only
+inside `if cs.is_bot`, so it applied to nobody else), and event delivery
+checks the subscriber's own read access to the channel. Net −7,600 lines on
+the hub, two crates deleted (`bot-kit`, `ttt-bot`), and one model of authority
+where there were two.
+
 ## Open work moves to GitHub issues; the wiki keeps the why
 
 **Decision** (2026-09-16): designed work in flight, blocked work and open bugs
@@ -83,7 +164,7 @@ is the index.
 
 Two items were not issue-shaped and needed real homes rather than an exception
 file. **Bot DMs** — a settled scope decision an open issue would misread as a
-promise — moved into [bots.md](bots.md), beside the reason underneath it
+promise — moved into [apps.md](apps.md), beside the reason underneath it
 (a bot publishes no DH key). **The external operator pilot** — a sequence of
 our own steps on someone else's box — left the public repos entirely, to the
 workspace-root pilot runbook, which is where the project's own rule says
@@ -276,7 +357,7 @@ authority"; `admin` was written before the wildcard went away) and it carries
 the same escalation ceiling as direct role assignment, so a delegate can
 neither widen their own delegation nor hand an alliance to a role above them.
 
-## The Discord importer is dropped; migration would come back as a bot
+## The Discord importer is dropped; migration would come back as a separate program
 
 **Decision** (2026-09-14, user call): `crates/discord-import` is deleted,
 along with its design doc and the `discordimport` stage in `e2e-topology`.
@@ -1559,6 +1640,9 @@ that had orphaned them.
 
 ## Every bot is an external bot — the self-service bot system is removed
 
+> **Superseded 2026-09-26** by "A bot is a client like any other" at the top
+> of this file: there is no bot model at all now, external or otherwise.
+
 **Decision** (2026-08-21): the hub has one bot model. A bot is an Ed25519
 keypair its operator owns, invited to a hub by pubkey by someone holding
 `MANAGE_ROLES` or `ADMIN`, accepted by signing the invite token, and
@@ -2403,18 +2487,18 @@ authoritative). Two soft spots to fix on pickup, noted in
 
 **Decision** (2026-07-19): game-bot distribution needs **almost no new
 machinery**. A game-bot is structurally just a bot, so *adding* one is the
-shipped invite-by-pubkey flow ([bots.md §2](bots.md)) plus the Phase 1
+shipped invite-by-pubkey flow ([apps.md §2](apps.md)) plus the Phase 1
 `can_use_interactive_ui` grant — no game-specific step. *Discovering* one
 reuses the two shipped opt-in surfaces unchanged: the per-hub bot directory
-([bots.md §4](bots.md)) within a hub, and Wavvon-discovery's signed,
+([apps.md §4](apps.md)) within a hub, and Wavvon-discovery's signed,
 pubkey-keyed *hub* listings across hubs ([hub-discovery.md](hub-discovery.md)).
 The directory indexes hubs, never bots, so no global bot index appears. Full
-design: [bot-capability-layer.md §11](bot-capability-layer.md).
+design: [apps.md §11](apps.md).
 
 **Alternatives considered**:
 - **A global/central game-bot directory** (a browseable index of bots you
   could invite). Rejected outright, not deferred — same ground the central
-  hub registry was rejected on ([bots.md Tradeoffs](bots.md)): it needs a
+  hub registry was rejected on ([apps.md Tradeoffs](apps.md)): it needs a
   coordinator Wavvon refuses to be, and is a ROADMAP won't-do.
 - **Cross-hub game-bot recommendation over alliances** (an ally surfacing
   its bot list as suggestions). Deferred, not rejected: it reuses federation
@@ -2438,10 +2522,10 @@ first. Everything else is deferred-until-demand.
 **message convention plus a reusable bot-side Rust module (`wavvon-bot-kit`)
 layered over the shipped `mini_app_message` relay** — not new hub surface.
 The hub gains no roster, lobby, matchmaking, game state, or game registry;
-it stays a content-opaque relay (bot-capability-layer.md decision 4). Join
+it stays a content-opaque relay (apps.md decision 4). Join
 discovery, roster, and turn/tick sync live in the bot; the mini-app renders
 `roster`/`state` and sends `hello`/`bye`/`ping`. Full design:
-[bot-capability-layer.md §10](bot-capability-layer.md).
+[apps.md §10](apps.md).
 
 **Alternatives considered**:
 - **A hub-side lobby/matchmaking service** (roster query, session registry,
@@ -2479,7 +2563,7 @@ field); emoji live in the text itself.
 **Alternatives considered**:
 - **Real per-game artwork** (icon picker backed by a game list). Rejected:
   requires a game catalog, which is either a central authority (won't-do)
-  or the undesigned gaming/bot distribution layer (bot-capability-layer.md
+  or the undesigned gaming/bot distribution layer (apps.md
   Phase 4). Revisit as part of that layer, with bot-declared games.
 - **Token syntax** (`[icon:controller]` swapped to bundled SVGs at render).
   Rejected: invents a private markup for marginal visual gain; breaks

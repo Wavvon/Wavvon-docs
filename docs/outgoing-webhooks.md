@@ -1,19 +1,19 @@
 # Outgoing Webhooks
 
 An admin registers one or more external HTTPS URLs. The hub POSTs hub
-events to those URLs as they occur — no bot identity, no persistent
+events to those URLs as they occur — no identity, no persistent
 WebSocket session required. Useful for pure "push events to an external
 system" integrations: monitoring dashboards, alerting, log archival,
 Zapier-style automation.
 
 > **Contrast with related primitives:**
-> - [Incoming webhooks](bots.md#9-incoming-webhooks) — external system
+> - [Incoming webhooks](apps.md#9-incoming-webhooks) — external system
 >   pushes a message *into* a channel. Opposite direction.
-> - [Bot event subscriptions](bots.md#8-event-subscriptions) — same event
+> - [Bot event subscriptions](apps.md#8-event-subscriptions) — same event
 >   shapes, but the receiver maintains a persistent WS session and has a
->   bot identity. Outgoing webhooks are stateless; the hub is the caller.
-> - [Slash-command dispatch](bots.md#3-slash-commands) — hub POSTs to a
->   bot's webhook *on demand*, expects a response. Outgoing webhooks are
+>   identity of its own. Outgoing webhooks are stateless; the hub is the caller.
+> - [Slash-command dispatch](apps.md#3-slash-commands) — hub POSTs to a
+>   app's webhook *on demand*, expects a response. Outgoing webhooks are
 >   fire-and-forget.
 
 ---
@@ -24,7 +24,7 @@ Hub Settings → Integrations → Outgoing Webhooks → Add.
 
 Fields the admin provides:
 - **URL** — the receiving endpoint. Must be `https://`, not a
-  private/loopback range (same rule as bot `webhook_url`).
+  private/loopback range (same rule as an app `webhook_url`).
 - **Display name** — optional label shown in the UI ("Grafana alerts",
   "Discord bridge").
 
@@ -42,7 +42,7 @@ rotates the secret (§4) — both in the same settings view.
 
 ## 2. Subscription model
 
-Identical to the bot subscription model ([bots.md §8](bots.md#8-event-subscriptions)).
+Identical to the app subscription model ([apps.md §8](apps.md#8-event-subscriptions)).
 
 The admin picks which event types to forward, with an optional channel
 filter per event:
@@ -56,21 +56,21 @@ filter per event:
 ]
 ```
 
-**Same privacy gate as bots**: `message.created`, `message.edited`, and
+**Same privacy gate as an app subscription**: `message.created`, `message.edited`, and
 `message.deleted` **require** an explicit `channels` list. A hub-wide
 message firehose is too high-volume and a privacy concern. The hub
 enforces this at subscription-save time and rejects the request if the
 channels list is absent for those events.
 
 All other events are hub-scope by default. The full available event set
-is the same table defined in [bots.md §8](bots.md#8-event-subscriptions).
+is the same table defined in [apps.md §8](apps.md#8-event-subscriptions).
 
 ---
 
 ## 3. Wire shape — POST body
 
 The hub POSTs a `hub_event` envelope to the registered URL on each
-matching event. Same structure as the bot WS event (§8):
+matching event. Same structure as the app WS event (§5):
 
 ```json
 {
@@ -157,7 +157,7 @@ endpoint, click "Re-enable" → `active = true`, `failure_count` reset.
 
 Events that arrive while a webhook is disabled are **dropped** — the
 hub does not queue for later replay. Receivers that need guaranteed
-delivery should run a full bot with event replay (§12 in [bots.md](bots.md)).
+delivery should run a client that holds a socket and replays (see [apps.md](apps.md)).
 
 ---
 
@@ -182,7 +182,7 @@ badge. Filterable by event type and success/failure.
 
 - **URL validation**: `https://` required; private/loopback ranges
   (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `127.0.0.0/8`,
-  `::1`, etc.) rejected in production mode. Same rule as bot webhook URLs.
+  `::1`, etc.) rejected in production mode. Same rule as an app webhook URL.
 - **Max payload size**: 64 KB per event. Events exceeding this (unlikely
   with current event shapes) are truncated at `payload` and a `truncated:
   true` flag is added to the envelope.
@@ -275,13 +275,13 @@ All under `/admin/outgoing-webhooks`. Auth: `manage_hub` permission
 - **`models.rs`** — `OutgoingWebhook`, `WebhookSubscription`,
   `DeliveryRecord`, `WebhookEventEnvelope` structs.
 
-### Integration with `hub/src/bots/events.rs`
+### Integration with `hub/src/apps/events.rs`
 
 There is no broadcast channel for hub events — `publish_hub_event`
-writes the audit log row and then directly pushes to subscribed bot WS
+writes the audit log row and then directly pushes to subscribed app WS
 sessions in a loop. The outgoing webhook worker hooks in the same way:
 `publish_hub_event` calls `outgoing_webhooks::worker::dispatch_event`
-right after the audit-log write, alongside the bot dispatch loop. No
+right after the audit-log write, alongside the app dispatch loop. No
 separate broadcast subscriber needed.
 
 ---
@@ -317,7 +317,7 @@ Web client's `hubAdmin.ts` adds the new route functions.
   hub-wide 50 events/s cap, not per-event-type.
 - **Webhook templates / payload transformation** — let admins remap
   fields (e.g. format for Slack's incoming webhook shape). Out of scope;
-  a bot or middleware layer owns that.
+  an app or middleware layer owns that.
 - **Federation webhooks** — outgoing webhooks on federated events (e.g.
   `federation.message_received` from an allied hub). Needs the federation
   event model to stabilise first.
@@ -337,8 +337,8 @@ Web client's `hubAdmin.ts` adds the new route functions.
   guaranteed delivery (durable queue, no drops) requires either persisting
   the event payload or re-reading from the audit log on retry. The 4-attempt
   retry window (6 minutes) covers transient receiver downtime. For stronger
-  guarantees, operators should run a bot with event replay (§12 in
-  [bots.md](bots.md)).
+  guarantees, operators should run a client that replays (see
+  [apps.md](apps.md)).
 
 - **Drop on disable** over queuing while disabled: a disabled webhook means
   the endpoint is broken. Queuing events indefinitely for a broken endpoint

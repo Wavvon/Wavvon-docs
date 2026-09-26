@@ -169,7 +169,7 @@ attachment scanning is deferred.
   path of `hub/src/routes/channels.rs` (or wherever message create lives),
   HMAC signing, the 500ms timeout, the circuit-breaker state, and the
   `PATCH /admin/settings` fields. The dispatch shape mirrors bot webhook
-  dispatch ([bots.md](bots.md)) — reuse that HTTP client and signing
+  dispatch ([apps.md](apps.md)) — reuse that HTTP client and signing
   helper rather than adding a second.
 - *Client* (Wavvon-desktop, mirrored web/Android): an admin settings panel
   to set/clear the URL and secret and to see circuit-breaker state. The

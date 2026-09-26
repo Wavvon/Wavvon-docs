@@ -379,7 +379,7 @@ remains in `auth/middleware.rs` is the new verification path:
 8. Resolve to AuthUser { public_key: token.sub }.
 ```
 
-Bot tokens — today a separate `bot_tokens` table on the hub — stay on
+Bot tokens — a hub table that no longer exists — stayed on
 the hub for Phase 1. Bots authenticate against their hub directly as
 they do now. (External bots may eventually want a farm-level token
 shape; that is a Phase 3+ design problem.)

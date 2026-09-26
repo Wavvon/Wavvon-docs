@@ -6,7 +6,7 @@ deliberately use *different* injection points, and this doc records
 why.
 
 **Status: server-side implemented** (hub routes, permissions, migration,
-bot voice-join gate). Client UI (soundboard popover, manage view, `played`
+voice-join gate). Client UI (soundboard popover, manage view, `played`
 chip rendering) is not yet built — see §Client UI below.
 
 ---
@@ -83,42 +83,38 @@ current channel. Manage view in hub admin. Local playback preview
 before/while uploading. Rate-limit client-side (one clip at a time; no
 overlap with your own previous clip).
 
-## 2. Bot audio injection
+## 2. Audio injection by a program
 
-**Status: implemented on the hub.** The gate lives in `voice_ws_task`
-(`hub/src/routes/ws/handlers/voice.rs`): an `is_bot=true` session (external bots —
-Ed25519 identity, normal challenge/verify session token, capabilities in
-`bot_profiles`) connecting to `/voice/ws` is checked for `can_speak_voice`
-in its capabilities plus effective channel-scoped `read_messages` before
-being registered as a relay participant; either check failing closes the
-connection without a `voice_ws_ready` frame. There used to be a second bot
-system alongside this one (`/admin/bots`, token-hash auth) that the
-capability model did not reach; it is gone, so the gate now covers every
-bot that can join voice at all ([decisions.md](decisions.md), "Every bot
-is an external bot"). No client SDK helper (`join_voice`/`send_opus`) exists yet —
-a bot that wants to speak still has to open the `/voice/ws` connection and
-frame Opus packets itself, matching the wire format `voice.md` documents
-for the browser client.
+**Status: nothing special to implement.** A program joins voice the way a
+person does, under the same channel-scoped voice permissions. The capability
+gate that once stood beside them was deleted with the bot subsystem
+([decisions.md](decisions.md), "A bot is a client like any other"), and the
+`/voice/ws` relay this section described is gone too — the transport is voice
+v2 (`voice-transport-v2.md`).
+
+No client SDK helper (`join_voice`/`send_opus`) exists yet: a program that
+wants to speak opens the transport and frames Opus packets itself, matching
+what `voice.md` documents for the browser client.
 
 **Injection point: the existing WS voice relay.** The browser client
 already proves the pattern: authenticate, `voice_join` over WS, send
 `[sender_id][packet_type][seq][ts][opus]` binary frames
-([voice.md](voice.md) §WS relay). A bot is just another such session:
+([voice.md](voice.md) §WS relay). A program is just another such session:
 
-- Gate: bot session with the `can_speak_voice` capability
-  ([bots.md](bots.md) — the flag already exists, deferred) AND
-  channel-scoped `read_messages` like any voice joiner.
-- The bot appears in the voice roster as a normal participant (its bot
-  identity), gets its own `sender_id`, and listeners control its
-  volume per-participant like anyone else — exactly why bots get a
-  *stream* while soundboard clips don't: bot audio is long-form
-  (music, TTS, recordings) where per-source volume and mute matter.
-- Bot SDK addition: a small `send_opus(channel_id, frames)` /
-  `join_voice(channel_id)` helper; encoding is the bot's problem
+- Gate: the channel-scoped voice permissions every joiner passes. There is
+  no second gate — the capability that used to sit beside them went with
+  the bot subsystem ([apps.md](apps.md)).
+- It appears in the voice roster as a normal participant, gets its own
+  `sender_id`, and listeners control its volume per-participant like
+  anyone else — exactly why it gets a *stream* while soundboard clips do
+  not: this audio is long-form (music, TTS, recordings) where per-source
+  volume and mute matter.
+- SDK addition: a small `send_opus(channel_id, frames)` /
+  `join_voice(channel_id)` helper; encoding is the caller's problem
   (document 48kHz/20ms mono Opus as the expected shape, same as
   clients produce).
 - No new relay machinery: fan-out, address learning, self-mute
-  semantics all apply as-is. **Deliberately not designed here**: bots
+  semantics all apply as-is. **Deliberately not designed here**: a program
   *receiving* voice (recording/STT) — that's a consent/privacy design
   (voice is currently relay-opaque and unrecorded), kept separate.
 

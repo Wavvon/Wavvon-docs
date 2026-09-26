@@ -483,14 +483,14 @@ capability.
 |---|---|---|---|
 | `webhooks.incoming.manage` | H | `admin` | Incoming webhook CRUD, secret regeneration |
 | `webhooks.outgoing.manage` | H | `admin` | Outgoing webhook CRUD, subscriptions, secret rotation, delivery log |
-| `bots.admit` | H | `admin`, `manage_roles` | Admitting and removing a bot |
-| `bots.capabilities` | H | `admin` | Granting a bot's capabilities and channel scope |
-| `bots.audit.read` | H | `admin` | The bot audit log |
+| `apps.register` | H | `admin`, `manage_roles` | Registering an app: profile, slash commands, event subscriptions, and authoring embeds and game launch cards |
+| `audit.read` | H | `admin` | The hub audit log |
 
-`bots.admit` is provisional: if the `is_bot` review concludes that a bot is an
-ordinary user admitted by a pubkey-bound invite, this collapses into
-`invites.manage` and only `bots.capabilities` survives. See
-[Wavvon-server#29](https://github.com/Wavvon/Wavvon-server/issues/29).
+The three `bots.*` strings that stood here were deleted on 2026-09-26 with the
+bot subsystem. Admission is the invite gate, for a program as for anyone;
+what is left to gate is *speaking for a program*, which is `apps.register`.
+See [apps.md](apps.md) and [decisions.md](decisions.md), "A bot is a client
+like any other".
 
 ### Surveys
 
@@ -506,7 +506,7 @@ ordinary user admitted by a pubkey-bound invite, this collapses into
 | String | Why |
 |---|---|
 | `admin` | Replaced by owner-as-property (§1.1) |
-| `manage_bots` | Gated nothing. What it would gate is admission plus capability-granting, which is `bots.admit` + `bots.capabilities` — a second key to that door is a duplicate, not a delegation |
+| `manage_bots` | Gated nothing even before the bot subsystem went; what it would have gated is now `apps.register` |
 | `use_video` | Turning your own camera on is not a privilege. Stopping someone else's is moderation, and lives with mute |
 | `manage_games` | Consulted nowhere. Starting an activity on a hub needs no gate |
 | `start_game` | Same |

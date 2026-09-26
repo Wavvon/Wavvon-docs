@@ -9,7 +9,7 @@ self-hosted, federated voice+text community platform. No code, no build step:
 Markdown plus `openapi.yaml`.
 
 ```
-docs/            the wiki — 87 documents. Start at docs/README.md.
+docs/            the wiki — 85 documents. Start at docs/README.md.
 ROADMAP.md       an index over the issue trackers, future-features.md, Ideas
 openapi.yaml     the hub HTTP API contract
 CONTRIBUTING.md  branching model and workflow for every Wavvon repo

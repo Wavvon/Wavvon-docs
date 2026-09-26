@@ -46,16 +46,18 @@ info:
     - `"lobby"` — hub has a security lobby and your PoW level is below the minimum.
       You can only call `/lobby/*` endpoints until promoted.
 
-    ## Bot authentication
+    ## Programs
 
-    Bot API endpoints (`/bot/*`) use `Authorization: Bearer <bot_token>` where the
-    token is the raw token returned at bot creation time (not a session token).
+    There is no separate authentication for a program. It holds a keypair,
+    answers the same challenge, carries the same session token, and is bound by
+    the same permissions. A member running one holds `apps.register`, which is
+    what `/me/app/*` and the message shapes an app authors are gated on.
 
     ## WebSocket protocol
 
     All realtime traffic (chat events, typing, DMs, voice presence, proximity
     voice zones, video and screen-share WebRTC signaling, screen-share chunk
-    relay, forum/poll/pin events, and bot event push) runs
+    relay, forum/poll/pin events, and hub-event push) runs
     over a single WebSocket at `GET /ws`.
 
     - **Connect:** `GET /ws?token=<token>` — the token goes in the **`token`
@@ -101,7 +103,6 @@ components:
         avatar: { type: string, nullable: true, description: "Base64-encoded image" }
         online: { type: boolean }
         group_role: { type: string, nullable: true }
-        is_bot: { type: boolean }
 
     Channel:
       type: object
@@ -777,7 +778,7 @@ paths:
 
   /hub/members:
     get:
-      summary: List all hub members including bots
+      summary: List all hub members
       tags: [Hub]
       responses:
         "200":
@@ -868,6 +869,149 @@ paths:
                 challenge_mode: { type: string, enum: [off, click, puzzle, both] }
 
   # ── Channels ──────────────────────────────────────────────────────────────
+
+  /apps:
+    get:
+      summary: List the apps registered on this hub (any member)
+      description: >
+        What a client needs for slash-command autocomplete. Registering an app
+        is gated on `apps.register`; reading what apps say about themselves is
+        not. See apps.md.
+      tags: [Apps]
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    pubkey: { type: string }
+                    name: { type: string }
+                    avatar_url: { type: string }
+                    description: { type: string }
+                    game:
+                      type: object
+                      properties:
+                        entry_url: { type: string }
+                        name: { type: string }
+                        description: { type: string }
+                        thumbnail_url: { type: string }
+                    commands:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          name: { type: string }
+                          description: { type: string }
+
+  /me/app:
+    get:
+      summary: The caller's own app registration (apps.register)
+      tags: [Apps]
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AppRegistration" }
+        "404": { description: No app registered for this identity }
+
+  /me/app/profile:
+    put:
+      summary: Register or replace the caller's app profile (apps.register)
+      tags: [Apps]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                avatar_url: { type: string }
+                description: { type: string }
+                webhook_url: { type: string, description: "https only; receives slash invocations" }
+                homepage_url: { type: string }
+                mini_app_url: { type: string }
+                requires_camera: { type: boolean }
+                game:
+                  type: object
+                  properties:
+                    entry_url: { type: string }
+                    name: { type: string }
+                    description: { type: string }
+                    thumbnail_url: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AppRegistration" }
+        "403": { description: Caller lacks apps.register }
+
+  /me/app/commands:
+    put:
+      summary: Replace the caller's slash command list (apps.register)
+      tags: [Apps]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [commands]
+              properties:
+                commands:
+                  type: array
+                  items:
+                    type: object
+                    required: [name, description]
+                    properties:
+                      name: { type: string }
+                      description: { type: string }
+                      args: { type: string }
+                      scope: { type: string, enum: [channel, hub] }
+                      privileged: { type: boolean }
+                      cooldown_seconds: { type: integer }
+      responses:
+        "200": { description: Replaced }
+        "403": { description: Caller lacks apps.register }
+
+  /me/app/subscriptions:
+    put:
+      summary: Replace the caller's hub-event subscriptions (apps.register)
+      description: >
+        A `message.*` subscription must name its channels; a hub-wide one
+        would be every conversation at once. Delivery is filtered by the
+        subscriber's own read access to the channel the event happened in.
+      tags: [Apps]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subscriptions]
+              properties:
+                subscriptions:
+                  type: array
+                  items:
+                    type: object
+                    required: [event]
+                    properties:
+                      event: { type: string }
+                      channels:
+                        type: array
+                        items: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count: { type: integer }
+        "400": { description: A message.* subscription named no channels }
+        "403": { description: Caller lacks apps.register }
+
 
   /channels:
     get:
@@ -2412,159 +2556,18 @@ paths:
 
   # ── Bots (admin) ──────────────────────────────────────────────────────────
 
-  /admin/bots/external:
-    get:
-      summary: List every external bot row (admin view)
-      description: >-
-        Unlike `GET /bots` — the member-facing directory of accepted,
-        non-removed bots — this includes pending invites, removed bots, and the
-        admin-only local note. See bots.md §4.
-      tags: [Bots]
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    public_key: { type: string }
-                    display_name: { type: string, nullable: true }
-                    local_note: { type: string, nullable: true }
-                    approval_status: { type: string }
-                    last_seen_at: { type: integer, nullable: true }
-
-  /admin/bots/{pubkey}/capabilities:
-    get:
-      summary: A bot's requested, granted and effective capabilities
-      description: >-
-        The three sets side by side. `requested` is the bot's own declaration,
-        `granted` is what an admin allowed, and `effective` is their
-        intersection — the only set any runtime gate trusts. Not derivable from
-        the PUT response, which echoes `granted` only.
-        See bot-capability-layer.md §1.
-      tags: [Bots]
-      parameters:
-        - name: pubkey
-          in: path
-          required: true
-          schema: { type: string }
-          description: >-
-            An external bot or a self-service bot — grants are keyed on the bare
-            pubkey and do not care which.
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  requested:
-                    type: array
-                    items: { type: string }
-                    description: Self-declared. Always empty for a self-service bot.
-                  granted: { type: array, items: { type: string } }
-                  effective: { type: array, items: { type: string } }
-    put:
-      summary: Replace a bot's granted capabilities
-      description: >-
-        Writes the granted side only. Granting a capability the bot never
-        requested is inert until the bot also declares it.
-      tags: [Bots]
-      parameters:
-        - name: pubkey
-          in: path
-          required: true
-          schema: { type: string }
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [capabilities]
-              properties:
-                capabilities: { type: array, items: { type: string } }
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  bot_pubkey: { type: string }
-                  capabilities: { type: array, items: { type: string } }
-
-  /admin/bots/{pubkey}/channels:
-    get:
-      summary: A bot's channel scope
-      description: An empty list means hub-wide access. See bots.md §14.
-      tags: [Bots]
-      parameters:
-        - name: pubkey
-          in: path
-          required: true
-          schema: { type: string }
-      responses:
-        "200":
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/BotChannelScope' }
-    put:
-      summary: Replace a bot's channel scope (atomic)
-      description: An empty or omitted `channel_ids` resets to hub-wide access.
-      tags: [Bots]
-      parameters:
-        - name: pubkey
-          in: path
-          required: true
-          schema: { type: string }
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                channel_ids: { type: array, items: { type: string } }
-      responses:
-        "200":
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/BotChannelScope' }
-
-  # ── Bots (bot API) ────────────────────────────────────────────────────────
-
-  /bot/send:
-    post:
-      summary: Send a message as this bot
-      description: Authenticated with bot token.
-      tags: [Bots]
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [channel_id, content]
-              properties:
-                channel_id: { type: string }
-                content: { type: string }
-
-  /bot/poll:
+  /me/events:
     get:
       summary: Poll for undelivered events (slash command invocations)
-      description: Authenticated with bot token.
-      tags: [Bots]
+      tags: [Apps]
       parameters:
         - name: since
           in: query
           schema: { type: integer }
           description: Unix timestamp — return events created after this time
-
-  /bot/events:
     delete:
       summary: Acknowledge delivered events
-      description: Authenticated with bot token.
-      tags: [Bots]
+      tags: [Apps]
       requestBody:
         content:
           application/json:
@@ -2994,39 +2997,6 @@ paths:
         "403": { description: forum_remote_write_disabled }
 
   # ── Auth (session renewal) ────────────────────────────────────────────────
-
-  /auth/renew:
-    post:
-      summary: Renew the current session token
-      description: |
-        Issues a fresh 30-day token while the current one is still live
-        (intended for bots renewing long-lived tokens proactively). Requires
-        both a valid Bearer token and a fresh challenge-response — same body
-        as `POST /auth/verify`; the pubkey must match the authenticated
-        identity. The old token is NOT invalidated.
-      tags: [Auth]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [public_key, challenge, signature]
-              properties:
-                public_key: { type: string }
-                challenge: { type: string }
-                signature: { type: string }
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  token: { type: string }
-                  expires_at: { type: integer, description: "Unix timestamp" }
-
-  # ── WebAuthn / passkeys (see webauthn-auth.md) ────────────────────────────
 
   /auth/webauthn/begin:
     post:
@@ -5901,197 +5871,13 @@ paths:
 
   # ── Bots (external bot system) ────────────────────────────────────────────
 
-  /bots:
-    get:
-      summary: List external bots on this hub (any member)
-      tags: [Bots]
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    pubkey: { type: string }
-                    name: { type: string }
-                    avatar_url: { type: string }
-                    description: { type: string }
-                    last_seen_at: { type: integer }
-                    webhook_url: { type: string }
-                    commands:
-                      type: array
-                      items:
-                        type: object
-                        properties:
-                          name: { type: string }
-                          description: { type: string }
-    post:
-      summary: Invite an external bot by pubkey (manage_roles or admin)
-      tags: [Bots]
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [pubkey]
-              properties:
-                pubkey: { type: string, description: "64-hex-char Ed25519 public key" }
-                note: { type: string }
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  invite_token: { type: string }
-
-  /bots/{pubkey}:
-    delete:
-      summary: Remove an external bot (admin)
-      tags: [Bots]
-      parameters:
-        - name: pubkey
-          in: path
-          required: true
-          schema: { type: string }
-
-  /bots/accept-invite:
-    post:
-      summary: Bot accepts an invite by signing the invite token
-      security: []
-      tags: [Bots]
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [pubkey, signature_over_token, bot_meta]
-              properties:
-                pubkey: { type: string }
-                signature_over_token: { type: string, description: "Hex Ed25519 signature over the invite token" }
-                bot_meta:
-                  type: object
-                  required: [name]
-                  properties:
-                    name: { type: string }
-                    avatar_url: { type: string }
-                    webhook_url: { type: string }
-                    description: { type: string }
-                    homepage_url: { type: string }
-                    commands: { type: array, items: { type: object } }
-                    capabilities: { type: array, items: { type: string } }
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status: { type: string, example: accepted }
-        "410":
-          description: Invite token has expired
-
-  /bots/me:
-    get:
-      summary: Bot fetches its own profile and commands (bot identity only)
-      tags: [Bots]
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  pubkey: { type: string }
-                  name: { type: string }
-                  avatar_url: { type: string }
-                  description: { type: string }
-                  webhook_url: { type: string }
-                  homepage_url: { type: string }
-                  capabilities: { type: array, items: { type: string } }
-                  commands: { type: array, items: { type: object } }
-        "403":
-          description: Caller is not a bot identity
-
-  /bots/me/profile:
-    put:
-      summary: Bot replaces its own profile (bot identity only)
-      tags: [Bots]
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [name]
-              properties:
-                name: { type: string }
-                avatar_url: { type: string }
-                webhook_url: { type: string }
-                description: { type: string }
-                homepage_url: { type: string }
-                capabilities: { type: array, items: { type: string } }
-
-  /bots/me/commands:
-    put:
-      summary: Bot replaces its slash-command list (bot identity only)
-      tags: [Bots]
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [commands]
-              properties:
-                commands:
-                  type: array
-                  items:
-                    type: object
-                    required: [name, description]
-                    properties:
-                      name: { type: string }
-                      description: { type: string }
-                      args: { type: string }
-                      scope: { type: string }
-                      privileged: { type: boolean }
-                      cooldown_seconds: { type: integer }
-
-  /bots/me/subscriptions:
-    put:
-      summary: Bot replaces its event subscriptions (bot identity only)
-      tags: [Bots]
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [subscriptions]
-              properties:
-                subscriptions:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      event: { type: string }
-                      channel_id: { type: string }
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  count: { type: integer }
-
-  /bots/{id}/voice/leave:
+  /voice/leave:
     delete:
       summary: Bot leaves a voice channel
       description: >
         Runs the same cleanup as a normal WebSocket voice disconnect.
         Idempotent — calling when not in the channel is a no-op.
-      tags: [Bots]
+      tags: [Apps]
       parameters:
         - in: path
           name: id
@@ -6110,7 +5896,7 @@ paths:
         "204": { description: No content }
         "403": { description: "Caller is not the bot identified by {id}" }
 
-  /bots/{id}/screenshare/start:
+  /screenshare/start:
     post:
       summary: Bot registers a video stream in a channel
       description: >
@@ -6118,7 +5904,7 @@ paths:
         `screen_share_started` to all channel subscribers. After this call
         the bot pushes `screen_share_chunk` binary envelopes over its WS
         connection using the returned `stream_id`.
-      tags: [Bots]
+      tags: [Apps]
       parameters:
         - in: path
           name: id
@@ -6148,7 +5934,7 @@ paths:
         "403": { description: "Caller is not the bot identified by {id}" }
         "404": { description: Channel not found }
 
-  /bots/{id}/screenshare/stop:
+  /screenshare/stop:
     delete:
       summary: Bot stops a previously started video stream
       description: >
@@ -6156,7 +5942,7 @@ paths:
         channel subscribers. Notifies any cross-channel subscribers that their
         subscription ended. Idempotent — safe to call if the stream is already
         gone.
-      tags: [Bots]
+      tags: [Apps]
       parameters:
         - in: path
           name: id
@@ -6487,10 +6273,10 @@ tags:
   - name: Lobby
     description: Security-level lobby. Only accessible with scope=lobby.
   - name: Challenge
-    description: Bot-challenge verification (pre-auth).
+    description: Admission-challenge verification (pre-auth).
   - name: Survey
     description: Onboarding role questionnaire.
-  - name: Bots
+  - name: Apps
     description: Self-service bot creation and bot API.
   - name: Identity
     description: Multi-device identity and E2E key exchange.
