@@ -33,6 +33,8 @@ promoted to columns (`Wavvon-discovery: src/lib/signed-listing.ts`,
   "tags": ["moderation", "italian-speaking"],
   "languages": ["it", "en"],
   "contact": { "home_hub": "https://hub.example" },
+  // …or, for something that runs a server of its own:
+  // "contact": { "endpoint": "https://tallyman.example/invites" },
   "app": {
     "commands": [{ "name": "tally", "description": "count the votes" }],
     "mini_app": true
@@ -50,6 +52,9 @@ promoted to columns (`Wavvon-discovery: src/lib/signed-listing.ts`,
   ([decisions.md](decisions.md)). It exists so a human browsing can filter,
   and lying about it costs nothing and gains nothing, which is exactly why it
   is safe.
+- **`contact`** carries exactly one of `home_hub` or `endpoint`, and one of
+  them is **required** — see §3. A listing nobody can reach is a listing that
+  wastes the time of whoever tries.
 - **`app`** is present only when there is something to say: an identity
   running a program can advertise its commands the way `GET /apps` does on a
   hub. Absent for most people.
@@ -69,36 +74,58 @@ listing themselves deserves to know before they click:
   description is new.
 - Removal removes it **here**. Mirrors, caches and screenshots are not ours
   to recall.
-- Naming a `contact.home_hub` tells the world where your DMs land. It is
-  optional for that reason.
+- Naming a `contact.home_hub` tells the world where your DMs land — **and
+  where the rest of them land too**: the designation at
+  `GET /identity/{master}/designation` is public on that hub, so one URL
+  discloses the whole signed list. There is no partial disclosure to offer;
+  the choice is the list or the other route.
 
-## 3. The open question: how the invite actually arrives
+## 3. How the invite arrives: one of two routes, and one is required
 
-A listing that says "invite me" is only half a mechanism. An invite code is a
-string, and the string has to reach the person.
+A listing that says "invite me" is only half a mechanism — an invite code is a
+string, and the string has to reach somebody. The directory cannot resolve a
+pubkey to a location: DM delivery today reads `home_hub_designations` from
+the *sending* hub's own database (`dms/messages.rs`), which works because the
+two already share a hub. A stranger from a listing shares nothing, and there
+is no global lookup by design.
 
-**(a) A DM to the home hub.** The listing carries `contact.home_hub`; the
-inviter's hub delivers through the federated DM outbox that already exists.
-Cheapest by far, and it lands where the person already reads. Costs: it
-publishes a home hub, and it opens a channel a stranger can write to — which
-is what the listing asked for, but block lists and DM rate limits have to
-cover the case where they change their mind.
+So the listing carries the route, and **a submission without one is
+rejected**. Two are allowed, and between them they cover who is listing:
 
-**(b) Nothing: the listing is a profile, and contact happens elsewhere.** Zero
-machinery. Honest, but then "invite me" is aspirational and the directory is
-a noticeboard.
+**A person has a home hub.** `contact.home_hub` is a pointer, not a list: the
+inviter's hub fetches `GET /identity/{master}/designation` from it — public,
+unauthenticated — and delivers to every URL in the signed list through the
+federated DM outbox that already exists. It lands where the person already
+reads.
 
-**(c) The directory holds pending invites for a pubkey and the client polls.**
-Rejected as designed: the directory holds signed public documents and nothing
-else, and an inbox is per-identity mutable state with a delivery guarantee
-attached. It would also make the directory a participant in admission rather
-than a place to look things up.
+**A program has a server.** `contact.endpoint` is an https URL that takes a
+POST. This is the webhook it already runs for slash commands, so the hub is
+reusing the dispatch client it already has, and the program **needs no hub at
+all to be reachable**: a keypair, an endpoint and a listing are enough to be
+found, invited and bootstrapped from zero. Nobody has to stand up a hub to
+host a program.
 
-**Recommendation: (a), with (b) as the floor** — ship the listing first, add
-the DM path once a pubkey-bound invite exists
-([Wavvon-server#31](https://github.com/Wavvon/Wavvon-server/issues/31)), so
-what arrives is an invite only that identity can redeem rather than a code
-anybody could forward.
+Three rules the POST path needs, none of them new machinery:
+
+- **The POST is a hint, not an authorization.** Anyone can knock on a public
+  URL claiming to be a hub. The program treats it as untrusted — *hub X says
+  you are invited with code Y* — and decides whether to try. The authority is
+  in the code, and a forged POST costs one wasted join attempt.
+- **Same URL rule as an app webhook**: https only, no private or loopback
+  range in production. A hub POSTing to a URL it read out of a public
+  document is an SSRF surface otherwise, and the validation already exists.
+- **The invite still has to be redeemed.** On a hub with `challenge_mode` on,
+  a program cannot pass the admission puzzle — the directory makes it
+  findable, admission is still the bottleneck
+  ([future-features.md](future-features.md),
+  [Wavvon-server#31](https://github.com/Wavvon/Wavvon-server/issues/31)).
+
+**Rejected: a mailbox on the directory.** Holding pending invites for a pubkey
+— even sealed to a key the directory cannot read — is per-identity mutable
+state, a write surface for anyone, and it makes the directory a participant in
+admission rather than a place to look things up. With both routes above
+covering a person and a program, what is left over is an identity that wants
+to be found but not reached, and that one does not get listed.
 
 ## 4. Filters
 
@@ -113,10 +140,11 @@ and a person looking for a community are the same query with a different
   What it must never carry is anything the identity did not publish here —
   no hub memberships, no activity, no last-seen. A listing says what its
   author wanted said and nothing the network observed.
-- **Spam, once (a) exists.** An invite DM is a DM: block lists apply, and the
-  hub's DM rate limits apply. If that turns out insufficient, the lever is a
-  per-listing "invites open / closed" flag the author controls, not a global
-  one the directory enforces.
+- **Spam.** An invite DM is a DM: block lists and the hub's DM rate limits
+  apply. An invite POST lands on a URL its owner published and can stop
+  serving. If either turns out insufficient, the lever is the author deleting
+  the listing or switching route, not a global control the directory
+  enforces.
 - **Impersonation.** The signature proves the pubkey signed it, and nothing
   else. A listing claiming to be someone famous is as true as its key —
   which is the same guarantee everywhere else in Wavvon.
