@@ -61,8 +61,9 @@ is the part that was always the hard part:
    turn/tick synchronization. Almost certainly app-owned state with the
    hub relaying, not hub-authored game logic. **Undesigned.**
 3. **Distribution** — how a hub operator finds a game and how a game
-   advertises itself. The per-hub directory that would have carried it went
-   with the bot subsystem, so this starts from nothing. **Undesigned.**
+   advertises itself. The public directory listing is designed
+   ([invite-directory.md](invite-directory.md)); what a *game* specifically
+   needs on top of an ordinary listing is not.
 
 ## Federation angle
 
