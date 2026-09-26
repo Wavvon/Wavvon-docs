@@ -72,13 +72,14 @@ These are known gaps. Each shapes a future feature decision.
   and the `/voice/ws` WebSocket relay (browser). The hub operator can
   passively wiretap voice on either path. **Mitigation: peer-to-peer
   voice when topology allows, or SRTP-style E2E.**
-- **Bot abuse.** Once bots ship (#148), a compromised bot token
-  posts anywhere the bot has permission. Per-bot rate limits +
+- **App abuse.** A compromised key posts anywhere its roles allow — the
+  same exposure as a compromised member, which is the point of having one
+  model. Rate limits +
   scoped tokens are the planned defense.
 
 ## Decisions this should drive
 
-- **Bots and integrations (#148):** bots get scoped tokens, not full
+- **Apps and integrations:** an app holds roles, not a scoped token — full
   user permissions. Token rotation is owner-pubkey-gated.
 - **Alliance peers:** any "private" channel marked alliance-shared
   is effectively public to alliance admins. UI should warn before

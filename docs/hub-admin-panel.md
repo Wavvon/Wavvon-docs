@@ -80,8 +80,8 @@ Each section is a thin caller of an existing route family:
   routes.
 - **Moderation** — pending content reports (the content-reporting
   wishlist item), active bans, federated ban-list subscriptions.
-- **Bots & webhooks** — installed bots, token create/revoke, moderation
-  webhook URL. See [`bots.md`](bots.md).
+- **Apps & webhooks** — registered apps, webhook create/revoke, moderation
+  webhook URL. See [`apps.md`](apps.md).
 - **Federation** — peers, alliance memberships, pending badge offers,
   issued certs. See [`federation.md`](federation.md),
   [`alliances.md`](alliances.md).
@@ -156,7 +156,7 @@ wavvon-hub admin users ban <master_pubkey> [--reason "..."]
 wavvon-hub admin users unban <master_pubkey>
 wavvon-hub admin channels list
 wavvon-hub admin channels create <name> [--category <parent_id>]
-wavvon-hub admin tokens list                   # active session + bot tokens
+wavvon-hub admin tokens list                   # active sessions
 wavvon-hub admin tokens revoke <token_prefix>  # revoke by first 8 chars
 wavvon-hub admin backup [--out <path>]
 wavvon-hub admin restore <path>
@@ -330,6 +330,6 @@ the hub's call.)
 - [`home-hub.md`](home-hub.md) — the two-axis rule (why bans stay on hubs)
 - [`multi-device.md`](multi-device.md) — master+subkey (why CLI bans key
   on master pubkey)
-- [`bots.md`](bots.md) — bot/webhook management surfaced in the panel
+- [`apps.md`](apps.md) — app and webhook management surfaced in the panel
 - [`decisions.md`](decisions.md) — new top entry for the
   separate-admin-credential decision

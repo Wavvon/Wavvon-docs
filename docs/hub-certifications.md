@@ -7,7 +7,7 @@ hubs of one farm — is designed, not built. Anti-spam **Layer 2** — the
 reputation layer that sits on top of the proof-of-work layer
 ([future-features.md](future-features.md) "Anti-spam"). Layer 1 (PoW)
 has primitives in `identity/src/pow.rs` (Wavvon-server) and is enforced
-through the lobby ([lobby-bot-survey.md](lobby-bot-survey.md)).
+through the lobby ([lobby-survey.md](lobby-survey.md)).
 
 A **certification** is a signed statement by a hub about a user:
 *"this user has been a member in good standing since date Y."* Anyone
@@ -285,7 +285,7 @@ is a demonstrated need — identical to the badge decision.
 ## 8 — Cross-hub portable PoW credit
 
 This is the concrete payoff that
-[lobby-bot-survey.md](lobby-bot-survey.md) and
+[lobby-survey.md](lobby-survey.md) and
 [decisions.md](decisions.md) ("Hub-issued partial-PoW credit
 transferable across hubs" — rejected for the lobby, folded into here)
 deferred to this design.

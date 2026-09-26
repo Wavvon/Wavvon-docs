@@ -694,7 +694,7 @@ the spawned rooms live under the event's anchor channel.
 - **`voice_ws.rs` auth** rejects any join lacking `READ_MESSAGES`
   (line 113) and rejects `mini_app`-scoped tokens (line 38). The staging
   bypass touches the `READ_MESSAGES` branch **only** — mini-app tokens
-  still never join voice; the `is_bot` branch is unaffected.
+  still never join voice.
 - **Invisible presence** (decisions.md, 2026-07-12) already notes an
   invisible user still shows in a voice channel's participant list. A
   voice-only-presence participant is likewise visible in the roster — the

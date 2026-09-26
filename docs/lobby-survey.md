@@ -1,4 +1,4 @@
-# Lobby, Bot Challenge, and Role Questionnaire
+# Lobby, admission challenge, and role questionnaire
 
 Three interlocking onboarding features.
 
@@ -14,7 +14,7 @@ Three interlocking onboarding features.
 - **Feature 1 — Security Level Lobby**: a confined entry state for users
   below the hub's `min_security_level`. They connect, run PoW in the
   background, and get auto-promoted when they reach the threshold.
-- **Feature 2 — "Not a bot" challenge**: a server-generated lightweight
+- **Feature 2 — admission challenge**: a server-generated lightweight
   human-check (math/pattern) gating PoW start. Independent of PoW level.
 - **Feature 3 — Role questionnaire**: an admin-defined survey that runs
   during onboarding. Multiple-choice answers auto-map to roles;
@@ -29,8 +29,8 @@ in Wavvon-server; paths under `desktop/` live in Wavvon-desktop.
 - `hub/src/routes/lobby.rs` (Wavvon-server)
 - `hub/src/routes/challenge.rs` (Wavvon-server)
 - `hub/src/routes/survey.rs` (Wavvon-server)
-- `desktop/src/components/Lobby.tsx` (Wavvon-desktop)
-- `desktop/src/components/BotChallenge.tsx` (Wavvon-desktop)
+- `packages/ui/src/components/layout/Lobby.tsx` (Wavvon-clients)
+- `apps/desktop/src/components/AdmissionChallenge.tsx` (Wavvon-desktop)
 - `desktop/src/components/Survey.tsx` (Wavvon-desktop)
 
 Cross-references: anti-spam design space in
@@ -177,7 +177,7 @@ PoW progress events are emitted via the existing Tauri event channel
 
 ---
 
-## Feature 2 — "Not a bot" Challenge
+## Feature 2 — admission challenge
 
 ### What it does
 
@@ -191,7 +191,7 @@ hitting `/auth/verify` at lobby entry).
 
 The challenge is **additive to PoW**, not a replacement. It exists to
 make automated mass-onboarding annoying — humans solve it in seconds,
-bots have to either OCR/parse a server-rendered SVG or run a real
+an automated sign-up has to either OCR/parse a server-rendered SVG or run a real
 browser per identity.
 
 ### DB additions
@@ -201,14 +201,14 @@ browser per identity.
     `'off'`) — replaces the old boolean `challenge_enabled`.
     - `'off'`: no challenge, straight to auth.
     - `'click'`: one button press issues the token; stops HTTP-only
-      bots with no user friction.
+      scripted sign-ups with no user friction.
     - `'puzzle'`: server-generated SVG challenge (math or pattern);
       answer verified before token is issued.
-    - `'both'`: click first, then puzzle. Maximum friction for bots,
+    - `'both'`: click first, then puzzle. Maximum friction for a script,
       still fast for humans (~5 seconds total).
   - `challenge_difficulty` (`'easy' | 'medium'`, default `'easy'`) —
     applies only when `challenge_mode` includes `'puzzle'`.
-- New table `bot_challenges` — used only for `puzzle` / `both` modes:
+- New table `admission_challenges` — used only for `puzzle` / `both` modes:
   - `id TEXT PRIMARY KEY` — challenge id (UUID).
   - `pubkey TEXT NOT NULL` — who requested it (Ed25519 pubkey hex).
   - `kind TEXT NOT NULL` — `'click' | 'puzzle'`.
@@ -265,7 +265,7 @@ independent. A hub at level 0 can still use `click` or `puzzle`.
 ### UI sketch
 
 - **Add Hub modal** — new "Quick check" step inserted before PoW:
-  - `'click'` mode: large centred "I'm not a bot" button with the
+  - `'click'` mode: large centred "I'm human" button with the
     hub name above it. One tap → passed → moves on.
   - `'puzzle'` mode: prompt SVG inline, text input below, "Submit"
     button, "New puzzle" link. States: `loading`, `awaiting-answer`,

@@ -21,7 +21,7 @@ Upgrade: websocket
 - Authentication is a **`token` query parameter** (not a header). Two token
   kinds are accepted:
   - a session token from `POST /auth/verify` (regular clients), or
-  - a bot token issued at bot creation time (bot connections).
+  - the same session token; there is no separate token for a program.
 - The token is checked with the same rules as HTTP requests: session expiry,
   revocation, approval status, and bans all apply. Failure rejects the upgrade
   with an HTTP error status before the WebSocket is established.
@@ -107,15 +107,15 @@ Typing indicator in a DM conversation (delivered to other members only).
 | `typing` | boolean | |
 
 #### `component_interaction`
-User clicked a bot message component (button, select). Rate limited to one
+User clicked a component (button, select) on an app-authored message. Rate limited to one
 interaction per `(user, custom_id)` per 3 seconds; exceeding it returns an
 [`error`](#error) with context `component_interaction`. The interaction is
-forwarded to the owning bot's HTTP webhook (not over WS).
+forwarded to the authoring app's HTTP webhook (not over WS).
 
 | field | type | notes |
 |---|---|---|
-| `message_id` | string | id of the bot message containing the component |
-| `custom_id` | string | component identifier set by the bot |
+| `message_id` | string | id of the message containing the component |
+| `custom_id` | string | component identifier set by the app |
 | `values` | array of string | optional, defaults to `[]`; selected values for selects |
 
 ### Voice
@@ -392,13 +392,13 @@ flushed afterwards in order.
 
 | field | type | notes |
 |---|---|---|
-| `since_seq` | integer (i64) | last sequence number the bot has processed |
+| `since_seq` | integer (i64) | last sequence number the app has processed |
 
 ### Mini-apps
 
-#### `bot_app_announce`
+#### `app_announce`
 *Bot identity only.* Bot announces a mini-app session in a channel. The hub
-fans this to all channel subscribers as [`bot_app_launch`](#bot_app_launch).
+fans this to all channel subscribers as [`app_launch`](#app_launch).
 
 | field | type | notes |
 |---|---|---|
@@ -406,20 +406,20 @@ fans this to all channel subscribers as [`bot_app_launch`](#bot_app_launch).
 | `description` | string | one-line description shown below the title |
 | `channel_id` | string | channel to announce in |
 
-#### `bot_app_join`
+#### `app_join`
 Any connection. Sent when a user clicks "Join" on a launch card. The hub
-mints a 4-hour scoped session token bound to this user, channel, and bot,
-then replies with [`bot_app_open`](#bot_app_open) targeted only at this
+mints a 4-hour scoped session token bound to this user, channel and app,
+then replies with [`app_open`](#app_open) targeted only at this
 connection.
 
 | field | type | notes |
 |---|---|---|
-| `bot_id` | string | public key of the bot that announced the session |
+| `app_id` | string | public key of the app that announced the session |
 | `channel_id` | string | channel the session was announced in |
 
-#### `bot_app_dismiss`
+#### `app_dismiss`
 *Bot identity only.* Bot closes the mini-app session. The hub fans
-[`bot_app_close`](#bot_app_close) to all channel subscribers.
+[`app_close`](#app_close) to all channel subscribers.
 
 | field | type | notes |
 |---|---|---|
@@ -445,7 +445,7 @@ First message after connect.
 
 | field | type | notes |
 |---|---|---|
-| `live_seq` | integer (i64) | current hub-event sequence number (bots use this with `resume`) |
+| `live_seq` | integer (i64) | current hub-event sequence number (an app uses this with `resume`) |
 
 #### `error`
 Generic error for a failed client message. `context` is a machine-readable
@@ -462,7 +462,7 @@ hint matching the originating message type (e.g. `voice_join`,
 #### `message`
 New chat message in a subscribed channel. Also used for system messages such
 as poll announcements. If the embedded message has `visible_to_pubkey` set,
-it is delivered **only** to that user (ephemeral bot replies).
+it is delivered **only** to that user (ephemeral app replies).
 
 | field | type | notes |
 |---|---|---|
@@ -850,46 +850,46 @@ Reply to `stream_list`.
 
 ### Mini-apps
 
-#### `bot_app_launch`
-Broadcast to all subscribers of the channel when a bot calls
-[`bot_app_announce`](#bot_app_announce). Clients render a launch card with a
+#### `app_launch`
+Broadcast to all subscribers of the channel when an app calls
+[`app_announce`](#app_announce). Clients render a launch card with a
 "Join" button.
 
 | field | type | notes |
 |---|---|---|
-| `bot_id` | string | public key of the announcing bot |
+| `app_id` | string | public key of the announcing app |
 | `title` | string | |
 | `description` | string | |
 | `channel_id` | string | |
 
-#### `bot_app_open`
-*Targeted* — delivered only to the connection that sent `bot_app_join`.
+#### `app_open`
+*Targeted* — delivered only to the connection that sent `app_join`.
 Contains the URL and a scoped session token the client passes to the webview.
 
 | field | type | notes |
 |---|---|---|
-| `bot_id` | string | |
+| `app_id` | string | |
 | `channel_id` | string | |
 | `mini_app_url` | string | URL the client should load in a sandboxed webview |
-| `session_token` | string | 4-hour token scoped to this user + channel + bot; injected as `window.__WAVVON_TOKEN__` |
-| `requires_camera` | boolean | `true` only when the bot declared `requires_camera` **and** the hub operator has enabled `bots_allow_camera`; clients gate the webview camera permission on this flag |
+| `session_token` | string | 4-hour token scoped to this user + channel + app; injected as `window.__WAVVON_TOKEN__` |
+| `requires_camera` | boolean | `true` only when the app declared `requires_camera` **and** the hub operator has enabled `apps_allow_camera`; clients gate the webview camera permission on this flag |
 
-#### `bot_app_close`
-Broadcast to all subscribers of the channel when a bot calls
-[`bot_app_dismiss`](#bot_app_dismiss). Clients close any open webview for
+#### `app_close`
+Broadcast to all subscribers of the channel when an app calls
+[`app_dismiss`](#app_dismiss). Clients close any open webview for
 this session.
 
 | field | type | notes |
 |---|---|---|
-| `bot_id` | string | |
+| `app_id` | string | |
 | `channel_id` | string | |
 
 ### Bot-only messages
 
-These are pushed only to connections authenticated with a bot token.
+These are pushed only to a connection whose identity has a registered app.
 
 #### `hub_event`
-Audit-log event matching one of the bot's subscriptions. Live events carry the
+Audit-log event matching one of the app's subscriptions. Live events carry the
 first shape; events re-sent during a `resume` replay additionally carry
 `actor_pubkey`, `target_pubkey`, `channel_id`, and `replayed: true`.
 
@@ -899,7 +899,7 @@ first shape; events re-sent during a `resume` replay additionally carry
 | `event` | string | event type, e.g. `member.joined`, `message.created` |
 | `hub_url` | string | public URL of this hub |
 | `at` | integer | Unix timestamp |
-| `payload` | object | event-specific payload (message content may be redacted per bot permissions) |
+| `payload` | object | event-specific payload (delivered only where the subscriber can read the channel) |
 | `actor_pubkey` | string | nullable; **replay only** |
 | `target_pubkey` | string | nullable; **replay only** |
 | `channel_id` | string | nullable; **replay only** |
@@ -921,19 +921,10 @@ Sent after a successful `resume` replay; live events resume after this.
 | `earliest_seq` | integer (i64) | oldest sequence still available |
 | `earliest_at` | integer | timestamp of that event |
 
-#### `token_expiring_soon`
-The bot's session token expires within 72 hours; rotate it via the bot API.
-
-| field | type | notes |
-|---|---|---|
-| `expires_at` | integer | Unix timestamp |
-
-#### `bot_removed`
-The bot's session was terminated; the hub closes the socket right after.
-
-| field | type | notes |
-|---|---|---|
-| `reason` | string | currently always `"token_expired"` |
+> `token_expiring_soon` and `bot_removed` stood here. Both went on 2026-09-26
+> with the 30-day bot session and `/auth/renew` that produced it — an ordinary
+> session does not expire, so there is nothing to warn about
+> ([decisions.md](decisions.md), "A bot is a client like any other").
 
 ---
 

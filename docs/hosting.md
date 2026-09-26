@@ -737,4 +737,4 @@ To apply migrations explicitly without starting the server (rare):
   here; see [farm-model.md](farm-model.md).
 - Auto-scaling / clustering. The hub is single-process by design.
 - E2E DM setup ([e2e-encryption.md](e2e-encryption.md)) and bot
-  management ([bots.md](bots.md)) — separate docs.
+  management ([apps.md](apps.md)) — separate docs.

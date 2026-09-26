@@ -294,7 +294,7 @@ gates the game catalog, not content moderation.
   by role.
 - **Moderate** (edit/delete others' posts and replies, pin, unpin, lock,
   unlock): a **new `manage_posts` permission**. Parallels
-  `manage_messages` ([bots.md](bots.md)) but scoped to the forum surface
+  `manage_messages` ([apps.md](apps.md)) but scoped to the forum surface
   so a hub can hand someone forum moderation without message-stream
   moderation. `admin`/`manage_hub` implies it.
 
@@ -722,8 +722,8 @@ deferred.
 
 ### 10.6 Bot access (tracker use case)
 
-A bot is a `users` row with `is_bot=1` that authenticates and holds a
-session like any principal ([bot-capability-layer.md](bot-capability-layer.md)).
+An app is a `users` row holding `apps.register` that authenticates and holds a
+session like any principal ([apps.md](apps.md)).
 So it already reaches the forum REST routes its channel access and roles
 permit — the §10.2 surface needs **no bot-specific addition**:
 
@@ -738,18 +738,17 @@ permit — the §10.2 surface needs **no bot-specific addition**:
   exactly like a human moderator. This is the triage motion: bot reads a
   new `bug` report, sets `planned` → `done`. No new permission; reuse Q6.
 
-**v1 stance — bots ride the same HTTP routes; no forum push events.** The
-bot event layer (`bots/events.rs` `emit_bot_event` + `bot_subscriptions`,
+**v1 stance — an app rides the same HTTP routes; no forum push events.** The
+hub event layer (`apps/events.rs` `publish_hub_event` + `app_subscriptions`,
 Wavvon-server) dispatches audit-backed `message.*` events to subscribed
-bots, but `posts.rs` emits **only client WS** post/reply events (§3, §6) —
-it never calls the bot dispatch path, and there is no forum event type in
-the subscription registry. So a triage bot **polls** `GET
+apps, but `posts.rs` emits **only client WS** post/reply events (§3, §6) —
+it never calls the event dispatch path, and there is no forum event type in
+the subscription registry. So a triage app **polls** `GET
 /channels/:cid/posts` (sorted by `last_activity_at`, §2) in v1; it does not
-get pushed a new bug report. Adding push later is additive and cheap —
-emit `post.created` / `post.reply_created` through the existing
-`emit_bot_event` path and extend the `can_read_message_content` redaction
-to `post.*` — but it is a §10.7 non-goal until a bot actually needs
-sub-poll latency.
+get pushed a new bug report. Adding push later is additive and cheap — emit
+`post.created` / `post.reply_created` through the existing
+`publish_hub_event` path — but it is a §10.7 non-goal until something
+actually needs sub-poll latency.
 
 ### 10.7 Non-goals (v1)
 

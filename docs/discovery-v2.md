@@ -19,7 +19,7 @@ No new infrastructure, no new service.
 
 The constraint that shapes every decision here is **sovereignty**:
 discovery is a catalog, not a surveillance layer. It knows what operators
-choose to publish about their hubs, farms, bots, games, and templates —
+choose to publish about their hubs, farms, games and templates —
 nothing about who uses them, what they say, or who looks them up.
 Discovery probes hubs; hubs do not report to discovery, and users are
 never an entity discovery tracks.
@@ -168,12 +168,13 @@ or ratings, and capacity reservations/holds during the join flow.
 
 ## Feature 3 — Global search
 
-> **Shipped, with a changed shape.** It searches hubs, bots and clients.
+> **Shipped, with a changed shape.** It searches hubs and clients (the bot
+> listing went on 2026-09-26 with the subsystem).
 > Templates went with the hub-creation wizard; clients did not exist when this
 > was written.
 
 **Decision.** One search box across all discovery catalogs.
-`GET /api/search?q=<query>&types=hubs,bots,games,farms,templates` — the
+`GET /api/search?q=<query>&types=hubs,clients,games,farms,templates` — the
 `types` param selects which catalogs to query (defaults to all). The
 response is a unified shape:
 

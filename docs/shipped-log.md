@@ -4,6 +4,50 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **A bot is a client like any other (2026-09-26)**: the bot distinction is
+  gone from all four repos. `is_bot` was consulted sixty-five times across
+  twelve files and nothing ever checked it against anything true — it was
+  declared by whoever wrote the row, and believed forever after. The review
+  that started it drove the hole end to end: a stranger's pubkey invited as a
+  bot kept the flag after its owner joined normally as a person, with full
+  read access, silently excluded from DMs, and no way for them or an admin to
+  see why.
+
+  A program now holds a keypair, answers the same challenge, presents the same
+  invite and is bound by its roles. A member running one holds
+  **`apps.register`** — one permission in the catalogue, replacing a second
+  admission path, a second grant system (requested ∩ granted, per pubkey), a
+  second session lifetime, a per-pubkey event-scoping table and a
+  category-specific video budget.
+
+  Two checks that were never about bots now apply to everyone, which is the
+  clearest evidence the flag was in the way. Starting a screen share checks
+  channel-scoped `voice.join` — the check existed, but only inside
+  `if cs.is_bot`, so the one permission check on that path was reachable by
+  nobody else. And event delivery checks the subscriber's own `messages.read`
+  on the channel the event happened in, replacing a channel-scope table plus a
+  capability that delivered message events with the content stripped.
+
+  Deleted: `crates/bot-kit`, `crates/ttt-bot`, the `/bots*` and
+  `/admin/bots/*` families, `/bot/send` (a weaker duplicate of posting a
+  message), `/auth/renew` (it renewed the 30-day bot token and nothing else),
+  the store's unused `BotStore`, the directory site's `/bots` section, and the
+  clients' BOT badge, hover card, roster group and two admin panels.
+  `bot_challenges` survives as `admission_challenges`: it was the anti-spam
+  puzzle, never a bot thing. Net −7,600 lines on the hub.
+
+  `/info` drops `bots.external` and gains `apps.register`. Removing a
+  published capability string is breaking and was taken deliberately, in beta:
+  a client still testing the old one offers an admin panel whose endpoints
+  answer 404.
+
+  Left open on purpose, rather than smuggled back in: DMs no longer refuse a
+  program, so a client with no DH key sits where a person with no DH key has
+  always sat — cleartext, federating onward in the clear. And with
+  `challenge_mode` on, an unattended client cannot pass the admission puzzle
+  at all; that is being designed separately.
+  ([decisions.md](decisions.md), [apps.md](apps.md))
+
 - **Talk power gates speaking, and the floor is granted rather than taken
   (2026-09-17)**: `min_talk_power` refused the *join*, so a member below the
   threshold could not enter a moderated channel and listen — while
@@ -200,7 +244,7 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   `is_bot` is local and unsigned across the wire, so a hub can only recognise
   a bot it knows.
 
-- **Bots were never actually kept out of DMs (2026-09-14)**: `bots.md` has
+- **Bots were never actually kept out of DMs (2026-09-14)**: `apps.md` has
   listed "cannot send DMs from a bot identity" among the hard-coded v1 limits
   since bots shipped, and no code read that sentence. A bot authenticates
   through the ordinary session flow — there is no bot-token path and no scope
@@ -3166,7 +3210,7 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   panel called routes that never existed (found by the live ttt run).
   Hub gained `GET /admin/bots/external` (management list incl.
   pending/removed + local note) and `PUT /admin/bots/:pubkey/channels`
-  (first writer of the pre-existing `bot_channel_scope` table, bots.md
+  (first writer of the pre-existing `bot_channel_scope` table, apps.md
   §14); invite/remove repointed at the working `/bots` routes; the
   invite `note` field now actually persists. 33/33 bots tests, web
   291/291. Server `d7939e5`, clients `300aa0d`.
@@ -3278,7 +3322,7 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   deferred (agent WS protocol lacks a restart command). Server `d583e3e`.
 
 - **Gaming + rich bots Phase 1 (2026-07-19)**: the full
-  bot-capability-layer.md Phase 1 slice — `bot_capability_grants` +
+  apps.md Phase 1 slice — `bot_capability_grants` +
   `effective_capabilities()` resolver, admin grant/readback routes with
   `capabilities_changed` push, `can_use_interactive_ui`-gated game modal,
   hardened scoped tokens, `game` launch cards on messages, and the §7
@@ -3286,7 +3330,7 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   result PATCH, embedded mini-app page). Building the demo exposed and
   fixed three hub gaps: bot-authored `embeds` on PATCH, external-bot
   `mini_app_url` registration, and the `mini_app_message` opaque relay
-  envelope (now documented in bot-mini-apps.md). Full server workspace
+  envelope (now documented in mini-apps.md). Full server workspace
   suite green (95 suites). Server `1df3971`+`7db2da8`+`86e62a6`,
   clients `22aa2b7`. Live two-browser game still pending (known issue).
 
@@ -3782,7 +3826,7 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   `bot_app_join` sessions are now `scope='mini_app'` bound to one
   channel+bot — REST fully confined, WS confined to the bound channel,
   voice rejected; closes the full-session gap found in the
-  [bot-capability-layer.md](bot-capability-layer.md) design pass
+  [apps.md](apps.md) design pass
   (hub `59e28ec`, 6 confinement tests).
 
 - **Web: ctx-menu create event/poll + invisible + popover fix
@@ -3814,7 +3858,7 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   tests. Core flow had shipped in `c1f95d0` (clients `1474561`).
 
 - **Designs: bot capability layer, forum federation, paired-DM fix
-  (2026-07-11)**: [bot-capability-layer.md](bot-capability-layer.md)
+  (2026-07-11)**: [apps.md](apps.md)
   (admin-granted capability spine, game modal, video via screen-share
   relay, Phase-1 tic-tac-toe slice); [forum.md](forum.md) §9 federation
   via read-through proxy; paired-device DM attribution fix designed
@@ -4056,7 +4100,7 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   tag, git remotes.
 
 - **Lobby soft-landing, server half (2026-07-06)** (hub `bded78c`;
-  [`lobby-bot-survey.md`](lobby-bot-survey.md) Feature 1). `min_security_level`
+  [`lobby-survey.md`](lobby-survey.md) Feature 1). `min_security_level`
   used to hard-403 every sub-level join (even the owner's own first join) —
   now, when the lobby is enabled, a sub-level join is admitted with
   `scope="lobby"` and confined to `/me` + `/lobby/*` + survey (deny-by-default
@@ -4088,7 +4132,7 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
     post-join banner.
   - **Survey → roles** (`a503ede` + `fa23c1f`): per-choice role mappings
     with admin-permission guard and strict free-text review rule
-    ([`lobby-bot-survey.md`](lobby-bot-survey.md) clarified); admin UI role
+    ([`lobby-survey.md`](lobby-survey.md) clarified); admin UI role
     picker per option.
 
 - **Manual-test feedback wave 2 (2026-07-05 night)** (server `8867105`

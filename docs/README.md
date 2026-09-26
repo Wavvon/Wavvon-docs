@@ -32,7 +32,7 @@ self-hosted, for a reader who has not run one. Then read in this order:
 
 ### Onboarding & anti-abuse
 
-- [lobby-bot-survey.md](lobby-bot-survey.md) — security-level lobby, "not a bot" challenge, role questionnaire (built)
+- [lobby-survey.md](lobby-survey.md) — security-level lobby, admission challenge, role questionnaire (built)
 
 ### Built features (design docs)
 
@@ -59,7 +59,7 @@ had a "recently shipped" section, whatever this line used to claim):
     - [client-monorepo.md](client-monorepo.md) — **shipped (2026-06-13)**: the three client repos were consolidated into the one pnpm-workspace Wavvon-client monorepo (`packages/core|ui|platform|i18n` + `apps/*`); staged migration, git-subtree history preservation, CI/release/updater cutover. Hub server stays separate. See [decisions.md](decisions.md).
     - [client-parity.md](client-parity.md) — **living tracker** of feature gaps across web / desktop (web leads; the Android client was removed 2026-07-12). Current: desktop does not read hub `capabilities`.
     - [state-access-design.md](state-access-design.md) — how App.tsx and the shared components get their state: **decided 2026-09-05**, containers only — `packages/ui` stays prop-only, React Context rejected, the store deferred behind a named trigger. Read it before proposing a state library
-18. [bots.md](bots.md) — external bot ecosystem: invite-by-pubkey, slash commands, webhook dispatch, per-hub directory
+18. [apps.md](apps.md) — a program is a client: `apps.register`, slash commands, webhook dispatch, mini-apps, hub events. Replaced the three bot documents on 2026-09-26
 19. [accessibility.md](accessibility.md) — keyboard navigation, ARIA / screen-reader support, i18n strategy across desktop / web / Android
 20. [forum.md](forum.md) — forum channel type: post-list variant, posts + reply threads, `create_posts`/`manage_posts` permissions, FTS search; §9 designs alliance federation (read-through proxy, owning hub authoritative — designed, not built)
 21. [banner-channels.md](banner-channels.md) — banner channel type: full-width image rows in the hub sidebar (decorative chrome, hub-uploaded or external URL), drag-drop ordered like regular channels
@@ -78,7 +78,7 @@ had a "recently shipped" section, whatever this line used to claim):
 - [nested-channels-ux.md](nested-channels-ux.md) — nested-channel UX gaps: channel permalinks (breadcrumb resolution), deep-nesting sidebar strategy (capped indent + drill-in), and channel permission overwrites (net-new file-system-style cascade — data model, resolver, routes, UI)
 - [settings-ia.md](settings-ia.md) — **implemented 2026-07-20** — unified Settings information architecture + profile model: one tab structure both clients render from `packages/ui`, converging desktop off the deleted profile-pool and onto multi-account (decided 2026-07-20); unblocks the `ProfileTab` + `IdentityBackupSection` parity passes
 - [future-features.md](future-features.md) — intent settled, design pending: hub-menu entries, desktop parity, visibility push, language packs (the three single-piece entries became `help wanted` issues on 2026-09-16)
-- [bot-capability-layer.md](bot-capability-layer.md) — **Phases 1–2 shipped 2026-07-19** — the consent spine for the "Telegram-class bot runtime → games" pillar: capability request/grant model, interactive-UI runtime choice (declarative components vs sandboxed webview game modal), voice/video injection gates, abuse controls, phased first playable
+- [mini-apps.md](mini-apps.md) — the sandboxed webview an app opens in a channel: scoped session token, opaque relay, hub stays dumb about games
 
 ### Archived designs
 
@@ -101,7 +101,7 @@ Reading order is for learning the system end-to-end. This section is for
 - **Roles & permissions** — [data-model.md](data-model.md), [decisions.md](decisions.md)
 - **Moderation (ban / mute / timeout / kick, approval queue)** — [data-model.md](data-model.md)
 - **Federated ban lists, auto-mod webhook, report queue** — [moderation-enhancements.md](moderation-enhancements.md)
-- **Lobby, "not a bot" challenge, onboarding survey** — [lobby-bot-survey.md](lobby-bot-survey.md)
+- **Lobby, admission challenge, onboarding survey** — [lobby-survey.md](lobby-survey.md)
 - **Hub certifications (reputation certs)** — [hub-certifications.md](hub-certifications.md)
 - **Block / ignore / quiet-hours (DND)** — [block-mute-ignore.md](block-mute-ignore.md); legacy per-device store in [client.md](client.md)
 - **Web admin panel login (removed)** — [admin-panel-auth.md](admin-panel-auth.md) (archived; see [decisions.md](decisions.md))
@@ -161,9 +161,8 @@ Reading order is for learning the system end-to-end. This section is for
 - **Hub discovery (search, provider listings)** — [hub-discovery.md](hub-discovery.md), [discovery-v2.md](discovery-v2.md). Uptime probing was built and removed; see [decisions.md](decisions.md)
 - **Server tags & portable badges** — [server-tags.md](server-tags.md); **user-configurable trust roots (designed, not built)** — same doc, Part 4
 - **Database abstraction layer (trait-based store)** — [store-trait-design.md](store-trait-design.md)
-- **Bots & integrations** — [bots.md](bots.md)
-- **Bot capability layer (grants, game modal, media injection)** — [bot-capability-layer.md](bot-capability-layer.md)
-- **Gaming platform** — [gaming.md](gaming.md), [bot-capability-layer.md](bot-capability-layer.md)
+- **Apps & integrations (`apps.register`, slash commands, mini-apps, hub events)** — [apps.md](apps.md), [mini-apps.md](mini-apps.md)
+- **Gaming platform** — [gaming.md](gaming.md), [apps.md](apps.md)
 - **Protocol contract (REST + WebSocket)** — [`../openapi.yaml`](../openapi.yaml) (REST), [ws-protocol.md](ws-protocol.md) (full WS message reference)
 
 ### Notifications & UI
@@ -182,7 +181,7 @@ Reading order is for learning the system end-to-end. This section is for
 - **Anti-spam proof-of-work** — [future-features.md](future-features.md), [hub-certifications.md](hub-certifications.md)
 - **Home hub list (personal-axis state, DM canonicalization)** — [home-hub.md](home-hub.md)
 - **Screen share unified modal (desktop)** — [screen-share-modal.md](screen-share-modal.md)
-- **Gaming tails** — [bot-capability-layer.md](bot-capability-layer.md) §10–§11. (This line used to name a "Gaming Tier 3 (persistent shared world)" wishlist item; `gaming.md` no longer has a tier model and the roadmap had no such entry.)
+- **Gaming tails** — [apps.md](apps.md) §10–§11. (This line used to name a "Gaming Tier 3 (persistent shared world)" wishlist item; `gaming.md` no longer has a tier model and the roadmap had no such entry.)
 
 ## How to use this wiki
 

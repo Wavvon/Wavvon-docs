@@ -238,7 +238,7 @@ time, optional location, and an RSVP list — that also posts an event card
 into a channel when created. Community-axis state, hub-enforced.
 
 **Alternative considered**: bot-generated event cards (bots can already
-post rich embeds, [bots.md](bots.md)). Rejected — a card from a bot is
+post rich embeds, [apps.md](apps.md)). Rejected — a card from a bot is
 just rendered text; it carries no structured time the hub can fire a
 notification on, and no RSVP state the hub can enforce against
 double-booking or count reliably. A native type is what lets the hub own

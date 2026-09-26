@@ -156,7 +156,7 @@ created, *only if the `channels` table is empty*:
    etc.), and post `welcome_message` to `#general` as a system message.
    `suggested_bots` are recorded as pending suggestions surfaced in the
    admin panel, not auto-installed (bot install is an explicit admin act
-   per [bots.md](bots.md)).
+   per [apps.md](apps.md)).
 4. Log: `Hub bootstrapped from template: <template_id>`.
 
 **Idempotency**: after a successful bootstrap, a `bootstrapped_at` row is
@@ -443,7 +443,7 @@ and stays gated until farm lifecycle lands.
   launch by design; live re-templating is out of scope.
 - **Auto-installing suggested bots** — `suggested_bots` are surfaced to the
   admin, not installed. Auto-install would need the bot's permission grant
-  to be reviewed, which is an explicit admin act ([bots.md](bots.md)).
+  to be reviewed, which is an explicit admin act ([apps.md](apps.md)).
 - **Template ratings / popularity** — no usage signal flows back to
   discovery (the catalog never learns which templates were picked), so any
   "most used" ranking is deferred. `featured` is a manual display hint
@@ -462,7 +462,7 @@ and stays gated until farm lifecycle lands.
   primitive templates reuse; `POST /api/hubs` registration
 - [farm-impl.md](farm-impl.md) — `POST /farm/hubs` provisioning, farm
   catalog, in-client create-a-hub flow
-- [bots.md](bots.md) — bot install is an explicit admin act;
+- [apps.md](apps.md) — bot install is an explicit admin act;
   `suggested_bots` are suggestions only
 - [decisions.md](decisions.md) — top entry logs the sovereignty rationale
   for self-submitted templates

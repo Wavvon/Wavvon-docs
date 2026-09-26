@@ -56,8 +56,8 @@ Desktop is multi-account.
 hoist into `packages/ui` — the two copies were a near-identical layout/dispatch
 shell over already-shared children (`ChannelHeader`, `ChannelMessageList`,
 `ChannelComposer`, `ForumView`, `DmView`, `AllianceView`, `EventsPanel`,
-`UserListGrouped`, `BotCard`, `UserProfileCard`, `PollComposer`); the
-per-platform pieces (forum/message-row/profile-card actions, event/poll/bot
+`UserListGrouped`, `UserProfileCard`, `PollComposer`); the
+per-platform pieces (forum/message-row/profile-card actions, event/poll/app
 loaders, thread and hub-emoji fetchers, component-interaction sender) now
 travel in through a widened actions-prop surface, same pattern as
 `ForumActions`/`MessageRowActions`. `WelcomeInviteBanner` (was web-only) also
@@ -158,7 +158,7 @@ Everything here is **portable** (no native API) unless marked native-only.
 | Onboarding survey builder + member survey | ✅ (2026-07-04) | ✅ |
 | Hub audit log | ✅ (2026-07-04) | ✅ |
 | Hub icon library | ✅ (2026-07-04) | ✅ |
-| Native bot admin / create | ✅ (2026-07-04) | ✅ |
+| Native bot admin / create | removed 2026-09-26 | removed 2026-09-26 |
 | Channel bans | ✅ (2026-07-04) | ✅ |
 | Channel appearance (color/icon) | ✅ (2026-07-04) | ✅ |
 | Kick / Ban / Mute — right-click menu | ✅ | ✅ |
@@ -229,7 +229,6 @@ only one app passes found:
 | Control | Missing on |
 |---|---|
 | `onJoinAllianceVoice` — join an allied hub's voice channel | desktop |
-| `renderBotCapabilities` — grant/revoke a bot's capabilities | desktop |
 | `renderRecoveryContacts` — recovery contacts admin | desktop |
 | `onLeaveHub` — server-side leave from the remove dialog | desktop |
 | `onTrustIssuer` — trust a certification issuer | desktop |
@@ -245,7 +244,7 @@ minted grant, and desktop's `voice_join` is bound to the active hub's own
 socket in Rust. It is tracked as a feature port in [Wavvon-clients#34](https://github.com/Wavvon/Wavvon-clients/issues/34).
 
 **One apparent gap was not one**: desktop opens a mini-app in a native window
-(`open_mini_app`) where web promotes it to `GameModal`. Same `bot_app_open`
+(`open_mini_app`) where web promotes it to `GameModal`. Same `app_open`
 event, different presentation — do not "fix" it.
 
 Plus one that is a bug rather than a gap: web passes `onOpenImage={() => {}}`,
@@ -427,10 +426,10 @@ exist on web.
 ### 9. Admin cluster (web) — DONE (2026-07-04)
 
 - **Hub audit log** (`AuditLogSection`, `GET /admin/audit-log`),
-  **native bots** (`NativeBotsSection`, `/admin/bots` create/list/delete +
-  one-time token) — *removed 2026-08-21 with the self-service bot system
-  ([decisions.md](decisions.md), "Every bot is an external bot"); the one
-  remaining bot tab is `ExternalBotSection`* —, **hub SVG icon library**
+  **native bots** — *the self-service system went on 2026-08-21, and the rest
+  of the bot surface on 2026-09-26 ([decisions.md](decisions.md), "A bot is a
+  client like any other"); no bot tab survives on either client* —,
+  **hub SVG icon library**
   (`HubIconsSection`,
   `/hub/icons` CRUD), **alliances** (`AlliancesSection`, list/create/leave +
   invite inbox), **onboarding** (`OnboardingAdminSection`: approval queue

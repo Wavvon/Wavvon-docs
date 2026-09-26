@@ -20,10 +20,55 @@ stays below is what is not one piece of work — a set of small questions, a
 backlog, or project work rather than a feature.
 
 > See also: [farm-model.md](farm-model.md) (multi-hub server layer),
-> [gaming.md](gaming.md), [bots.md](bots.md),
+> [gaming.md](gaming.md), [apps.md](apps.md),
 > [alliances.md](alliances.md).
 
 ---
+
+## Admission for a program that cannot solve a puzzle
+
+With `challenge_mode` set to anything but `off`, `/auth/verify` wants a
+`challenge_token`, and that token is minted by clicking a button or reading an
+SVG. A program can do neither — the puzzle asks "are you a person" and the
+honest answer is no. The bot fork used to walk past the gate by declaring
+itself; that is exactly what was deleted ([decisions.md](decisions.md), "A bot
+is a client like any other"), and bringing back any version of *the caller
+declares itself exempt* recreates the hole.
+
+So the question is not how a program skips the check. It is **who grants the
+exemption, what it is bound to, and how it is taken away.**
+
+Two things shape the answer and are worth settling first:
+
+- **The gate is not at admission.** It runs on every `/auth/verify`, after
+  roles are assigned, with no "is this a stranger" condition — unlike the
+  invite gate a few lines above it. So a member who joined last year solves a
+  puzzle at every login, a second device solves one at pairing, and a one-shot
+  exemption would not survive to the next session.
+- **Membership and permissions are the same number.** `builtin-everyone` is a
+  role row rather than a floor, and zero roles is how the hub spells "not a
+  member" — in `DELETE /me`, in a ban, in recovery and in the farm-token
+  check. Until membership has its own field
+  ([Wavvon-server#58](https://github.com/Wavvon/Wavvon-server/issues/58)),
+  "admit it with nothing" means "admit it as a permanent stranger".
+
+The direction being weighed is a **pubkey-bound invite**
+([Wavvon-server#31](https://github.com/Wavvon/Wavvon-server/issues/31)): an
+invite only one identity can redeem, where the binding *is* the exemption. A
+leaked code is worthless without the private key, and the admin minting it has
+already said "this exact key gets in", which is a stronger statement than any
+puzzle result. A config allowlist of exempt pubkeys is the fallback for
+bootstrap, when no owner exists yet to mint anything — a public key in a
+config file grants nothing to whoever reads it.
+
+Explicitly not the answer: a global "programs skip challenges" switch, a
+`skip_challenge` field on the verify request, or a second admission endpoint
+for machines. Proof of work is already a machine-answerable wall
+(`min_pow_level`), so a PoW challenge adds nothing the hub cannot already do.
+
+Whatever is built, drive a real unattended client through it end to end: the
+per-IP auth limiter costs two requests per login, and a retrying program hits
+429 long before anyone suspects the rate limit.
 
 ## Hub menu — entries the reference clients have and this one does not
 
@@ -144,18 +189,18 @@ invite links and open in the *sender's* language.
 
 > Demand-gated tails of shipped features live in their own docs, not here:
 > forum federation ([forum.md](forum.md) §9 deferred list), gaming/bots
-> ([bot-capability-layer.md](bot-capability-layer.md) §10–§11), LAN
+> ([apps.md](apps.md) §10–§11), LAN
 > federation ([lan-mode.md](lan-mode.md) §6), farm follow-ups
 > ([farm-model.md](farm-model.md)).
 
 **Game launch / lobby federation across an alliance used to sit here and does
 not belong** (removed 2026-09-14). Games arrive as bots, and three docs
 already rule cross-hub sessions out: a mini-app session is scoped to one hub
-and one channel ([bot-mini-apps.md](bot-mini-apps.md)), alliance game sessions
-are out of scope ([bot-capability-layer.md](bot-capability-layer.md) §9), and
+and one channel ([mini-apps.md](mini-apps.md)), alliance game sessions
+are out of scope ([apps.md](apps.md) §9), and
 a game session is single-hub first ([gaming.md](gaming.md)). Underneath that,
 the multiplayer lobby does not exist single-hub either — it is `gaming.md`
 item 4, undesigned — so federating it was a plan for the tail of something
 unbuilt. The one cross-hub idea with substance is **game-bot recommendation
 over an alliance**, and it is already filed deferred-until-demand in
-[bot-capability-layer.md](bot-capability-layer.md) §11.
+[apps.md](apps.md) §11.
