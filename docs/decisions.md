@@ -6,6 +6,71 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Static analysis: small checkers we wrote, not a platform we host
+
+**Decision** (2026-10-02): no SonarQube for now. Instead, in this order:
+**ESLint** on the clients repo starting with `react/no-danger`
+([Wavvon-clients#69](https://github.com/Wavvon/Wavvon-clients/issues/69)),
+more **small custom checkers** in the style of the eight that already exist,
+**`knip`** for unused TypeScript exports, and **re-enabling rustc's own
+`dead_code`** by dropping the unnecessary `pub` and the blanket allows
+([Wavvon-server#70](https://github.com/Wavvon/Wavvon-server/issues/70),
+[Wavvon-clients#65](https://github.com/Wavvon/Wavvon-clients/issues/65)).
+
+**How the question was settled, which is the part worth copying.** A review
+sweep the previous day had just produced 19 filed issues, so the proposal was
+tested against those rather than against a feature list: *which of these 19
+would it have caught?*
+
+One category out of five. Duplication detection would have found the
+duplicated client types and the twice-copied `backgroundProcessor.ts`, and
+that is a real problem here. Everything else it misses: the two protocol flaws
+([server#75](https://github.com/Wavvon/Wavvon-server/issues/75),
+[server#76](https://github.com/Wavvon/Wavvon-server/issues/76)) are domain
+logic no analyzer infers; the dead `pub` items are invisible because the hub
+is a `[lib]`; dead CSS classes and dead i18n keys need cross-language
+correlation it does not do; and the one XSS worth automating — hub JSON into
+string interpolation into `innerHTML` — needs **taint analysis, which is a
+commercial edition rather than Community**.
+
+**Alternatives considered.**
+
+*SonarQube Community.* Rejected on the arithmetic above. Its Rust analysis is
+recent and leans on clippy output, and `cargo clippy --workspace --all-targets
+-- -D warnings` already gates every server PR — so roughly half the codebase
+gains nothing. Against that sits a first-run backlog on ~120,000 lines, which
+is weeks of triage for one category.
+
+*SonarQube Developer Edition, for the taint analysis.* Not rejected on merit —
+it is the only option that finds the emoji-URL XSS by itself. Deferred because
+a targeted lint answers the same question here for free, and because the
+finding it would have caught is already filed and about to be fixed.
+
+*`jscpd` for duplication alone.* Available if duplication detection is wanted
+without hosting anything. Not scheduled; the duplications already found are
+[clients#61](https://github.com/Wavvon/Wavvon-clients/issues/61).
+
+**The fact that decided it.** The clients repo has **no ESLint at all** — CI
+runs typecheck, tests, builds and the custom checkers, and no linter. The gap
+is a missing linter on the TypeScript half, not a missing platform. Three of
+the five security issues filed on 2026-10-02 are a hub-controlled string
+reaching `dangerouslySetInnerHTML`, and two of them sit in files that already
+import `sanitizeSvgMarkup` and call it a few lines away. A lint that forces
+every such call to justify itself is the smallest thing that would have asked.
+
+**Tradeoff.** Custom checkers give no governance: no quality gate trend, no
+debt dashboard, no number that moves over time. That is a real loss and it is
+accepted while this is one person's project. The eight checkers that exist
+(`check-i18n`, `check-hardcoded`, `check-untranslated`, `check-parity-props`,
+`check-hub-build`, `check-doc-links`, `check-doc-paths`,
+`check-openapi-coverage`) each catch something that actually went wrong here
+once, which is a different and narrower bargain than a rule catalogue.
+
+**What would reopen this.** More than one person working on the code and
+wanting governance rather than detection — PR quality gates, debt over time,
+a dashboard somebody reads. Or taking Developer Edition specifically for taint
+analysis on the web client, once there is a reason to pay for it.
+
 ## The clients look like one product: the receiver, and one setting row
 
 **Decision** (2026-10-01): the web and desktop clients get one visual
