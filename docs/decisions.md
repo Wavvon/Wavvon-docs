@@ -17,6 +17,26 @@ more **small custom checkers** in the style of the eight that already exist,
 ([Wavvon-server#70](https://github.com/Wavvon/Wavvon-server/issues/70),
 [Wavvon-clients#65](https://github.com/Wavvon/Wavvon-clients/issues/65)).
 
+**The list above was clients-heavy and that was a gap, caught the same day.**
+ESLint is a JavaScript linter, so the server needs no equivalent — it already
+gates `fmt`, `clippy -D warnings`, `check` and `test` on every PR, and that
+job earns its keep. Two things it still does not ask, now filed as
+[Wavvon-server#77](https://github.com/Wavvon/Wavvon-server/issues/77): nothing
+runs `cargo audit` or `cargo-deny`, so a RustSec advisory against a version
+already in `Cargo.lock` goes unnoticed between Dependabot bumps, and nothing
+checks for unused dependencies — `uuid` sits in the farm's `[dependencies]`
+while only tests use it, and `dirs` is kept alive by a function with no
+callers.
+
+**The larger asymmetry is inside the clients repo, not between the two.** It
+holds **18,526 lines of Rust** — `apps/desktop/src-tauri` and `crates/voice` —
+and its CI contains no `cargo` step at all. That code, which owns the invoke
+allowlist and the command returning the BIP39 master phrase, compiles for the
+first time on release day. Filed as
+[Wavvon-clients#70](https://github.com/Wavvon/Wavvon-clients/issues/70); it is
+also why the eleven blanket `#![allow(dead_code)]` have been invisible, since
+nothing compiles the crate to report what they hide.
+
 **How the question was settled, which is the part worth copying.** A review
 sweep the previous day had just produced 19 filed issues, so the proposal was
 tested against those rather than against a feature list: *which of these 19
