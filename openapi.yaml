@@ -203,6 +203,12 @@ components:
         uses: { type: integer }
         expires_at: { type: integer, nullable: true }
         created_at: { type: integer }
+        bound_pubkey:
+          type: string
+          nullable: true
+          description: >-
+            The one identity this invite admits, or null for a bearer code.
+            Advertised as the `invites.bound` capability.
         status:
           type: string
           enum: [live, expired, used_up]
@@ -1481,6 +1487,19 @@ paths:
                 items: { $ref: '#/components/schemas/Invite' }
     post:
       summary: Create an invite (manage_invites)
+      description: >-
+        With `bound_pubkey` set the invite admits that identity and nobody
+        else, and `max_uses` is forced to 1 — a code that names its recipient
+        and admits several people is a contradiction. On hubs advertising
+        `invites.bound`; an older hub ignores the field and mints an
+        ordinary bearer code, which is why a client must test for the string
+        before offering it.
+
+
+        Redeeming a bound invite also **satisfies the admission challenge**:
+        an admin naming one key is the human act the challenge asks about, so
+        a client with nobody watching its screen can join a hub that has
+        `challenge_mode` on. A bearer invite buys no such exemption.
       tags: [Invites]
       requestBody:
         content:
@@ -1490,6 +1509,10 @@ paths:
               properties:
                 max_uses: { type: integer, nullable: true }
                 expires_at: { type: integer, nullable: true }
+                bound_pubkey:
+                  type: string
+                  nullable: true
+                  description: 64 hex characters. The only identity this invite admits.
 
   /invites/{code}:
     delete:

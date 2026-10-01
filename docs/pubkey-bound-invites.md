@@ -123,10 +123,12 @@ spend.
   reading.
 - `GET /invites` returns it, so the admin screen can say who an invite is for
   rather than showing a code with no owner.
-- Capability string **`invites.pubkey_bound`**, in the same commit as the
-  feature. A client decides whether to offer the field by testing membership;
-  a hub too old to understand `bound_pubkey` would otherwise mint a bearer
-  code while the admin believed they had named someone.
+- Capability string **`invites.bound`**, in the same commit as the feature.
+  A client decides whether to offer the field by testing membership; a hub too
+  old to understand `bound_pubkey` would otherwise mint a bearer code while
+  the admin believed they had named someone. Dotted segments only, no
+  underscore — `capabilities.rs` has a test that says so, and it caught the
+  first spelling of this one.
 - The admin UI is the existing *Create invite* row with one optional field.
   One flow for admitting anybody — the program case is just the one where the
   recipient happens to be a process.
