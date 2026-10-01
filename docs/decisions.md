@@ -6,6 +6,104 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## The clients look like one product: the receiver, and one setting row
+
+**Decision** (2026-10-01): the web and desktop clients get one visual
+identity and one settings pattern. The direction is **the receiver** — the
+information design of radio equipment, not its materials, so no textures and
+no dials. **One accent**, amber `#e8b33c`, meaning exactly one thing
+everywhere: live, active, you. IBM Plex Sans, with its mono sibling reserved
+for data that is actually data — latency, key fragments, hub addresses, the
+recovery phrase — and never for labels. Hairline rules carry the groupings
+that tracked-out capitals used to carry badly. **Two themes**, `dark` and
+`light`, replacing four. And every settings tab, in both clients, is a list
+of **setting rows**: one line stating what the setting is set to right now,
+opening to the form that changes it.
+
+**The problem, and it was structural rather than aesthetic.** The clients
+read as Discord rendered in grey because underneath they partly were. **218
+declarations in `styles.css` referenced CSS variables that were never defined
+anywhere** — `--bg-primary`, `--border-color`, `--text-normal`,
+`--accent-color` and 24 more. Each fell through to its hardcoded fallback,
+and those fallbacks were Discord's palette. Whole panels — whisper, the app
+card popover, screen share, the game modal — rendered identical colours in
+all four themes, because no theme could reach them. A token system can be
+present and bypassed, and from the outside that is indistinguishable from not
+having one.
+
+The settings had the matching problem in interaction rather than colour: 25
+tabs that each behaved differently — some a column of forms, some a table,
+some a stack of cards — so a tab was a list of controls you had to read to
+learn what the hub or the account was actually *set to*, and anything below
+the fold did not exist until you went looking.
+
+**Alternatives considered.**
+
+*Keep the four themes and fix the tokens.* Rejected. `classic` was Discord's
+violet and `linear` was Linear's; shipping two other products' identities as
+options is the opposite of having one. Four themes also meant every new
+surface had four chances to be wrong, which is how the phantom tokens stayed
+invisible for so long.
+
+*An accent per feature — voice one colour, alerts another.* Rejected. A
+single amber pixel can only carry meaning across a screen if nothing
+decorative is coloured. The moment a second colour means something, the first
+one means less.
+
+*Leave each settings tab the shape that suits it.* Rejected as the thing that
+produced 25 dialects. Two structures did earn an exception and kept their own
+shape: the **profile editor**, which is a live WYSIWYG of the card other
+people see, and the **audit log**, which is a record and is now grouped by
+day. A row whose whole form is one checkbox or one select carries that
+control inline instead — opening a row to reveal a single checkbox is a
+disclosure that discloses nothing.
+
+*A fallback value on each token read, so a missing token degrades.* Rejected,
+and this is the rule the whole entry exists to state: **every token the
+stylesheet reads must be defined** — by the stylesheet, or by a component
+that sets it per element, which is how an avatar gets its hue and a role its
+colour — and **no read may carry a colour fallback**, because the fallback is
+exactly what makes a missing token look like a working one. The rule gets a
+guard rather than a promise, because writing this change we added a 219th
+phantom (`--border-subtle`, in three separators): an invalid custom property
+invalidates the whole declaration, so all three rendered no border and the
+rows they separated ran together.
+
+**Tradeoff.** Four, taken knowingly:
+
+1. **A disclosure costs a click.** Everything used to be on screen at once,
+   badly; now the thing you are changing is one click away and the thing you
+   wanted to *know* is on screen without one. That is the trade, and it is
+   why a row that cannot state its own value is a heading with extra steps.
+2. **Removing a glyph changes a button's accessible name.** The category
+   header carried its glyphs as text, `"Voice▾+⚙"`, so an exact-name match
+   for `"Voice"` happened to miss it; with icons its name is just `"Voice"`,
+   which collides with the settings tab of the same name. Both names are
+   right. Anything matching by name has to say which one it means.
+3. **Two themes is fewer choices**, and someone preferred one of the two that
+   went. Custom themes remain personal-axis state; the shipped set is the
+   identity.
+4. **A test that reaches for a control now has to open its row first.** The
+   form is not in the DOM until it does. That caught twenty-four live specs,
+   which is the cost showing up where it should — in the suite, not in a
+   user's hands.
+
+**Outcome.** The defects this surfaced are the argument for it. `.btn-icon-header`
+never set `color` and inherited near-black on a dark surface — invisible for
+as long as those buttons were emoji, because emoji ignore `color`. A hub with
+a 32 ms ping was reported **offline**, because one failed probe set the ping
+to `null` and `null` was also how "never measured" was spelled. Two rows
+answered before they knew, saying "no sources" and "no one is waiting" from
+first paint until their fetch returned. Four native dialogs took their button
+labels from the operating system, so an Italian machine answered an English
+hub with "OK / Annulla". And `check-i18n` reported complete coverage for
+**104 strings that shipped as English**, because a key that exists in every
+locale and parses as ICU passes every question it asks.
+
+Three guards ship with the changes they came from — modal Escape coverage,
+token definition and fallbacks, and untranslated strings — each written
+because a promise had already been broken once by the person making it.
+
 ## A bot is a client like any other
 
 **Decision** (2026-09-26): the bot distinction is deleted across all four

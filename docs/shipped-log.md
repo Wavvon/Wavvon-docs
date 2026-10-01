@@ -4,6 +4,76 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **The clients look like one product (2026-10-01)**: a visual and interaction
+  redesign of the web and desktop clients — look, feel, layout, hierarchy, not
+  a state-model refactor. The direction is *the receiver*: the information
+  design of radio equipment, not its materials. One accent, amber `#e8b33c`,
+  meaning live / active / you and nothing else; IBM Plex Sans with its mono
+  sibling kept for data that is actually data; hairline rules in place of
+  tracked-out capitals; two themes where there were four, since `classic` was
+  Discord's violet and `linear` was Linear's.
+
+  It started as a structural bug rather than a taste question. **218
+  declarations referenced CSS variables that were never defined anywhere** —
+  `--bg-primary`, `--border-color`, `--text-normal`, `--accent-color` and 24
+  more — so each fell through to its hardcoded fallback, and the fallbacks
+  were Discord's palette. Whole panels rendered the same colours in all four
+  themes because no theme could reach them. Every phantom is mapped onto a
+  real token now, the colour fallbacks are gone, and **2,229 lines of dead CSS**
+  went with them: 263 classes no source file mentions, including an entire
+  missions/cosmetics feature's styling.
+
+  **Settings became one pattern across 25 tabs** — sixteen hub, nine user,
+  both clients. Each is a **setting row**: one line stating what it is set to
+  right now, opening to the form that changes it. A row whose whole form is a
+  single checkbox or select carries it inline. Two structures kept their own
+  shape on purpose: the profile editor, a live WYSIWYG of the card others
+  see, and the audit log, a record, now grouped by day.
+
+  Message rows were regrouped — avatar in the gutter, who-and-when on a quiet
+  first line, the body at 15px and capped at 68ch, so the body is finally the
+  largest type in the stream. Voice occupancy was promoted out of 11px muted
+  text under the channel into one block showing the room and the people in it.
+  Onboarding was rebuilt off inline styles, and the recovery phrase is
+  numbered, because people transcribe it by hand. **Thirty-one files that drew
+  a platform emoji where a control belonged** now draw icons, twenty-one of
+  them new; verified by walking the rendered DOM for anything in the emoji
+  ranges.
+
+  The defects it surfaced are the case for having done it. A hub with a 32 ms
+  ping was reported **offline**, because one failed probe set the ping to
+  `null` and `null` also spelled "never measured" — three states now, and a
+  hub goes offline after three consecutive failures. `.btn-icon-header` never
+  set `color` and inherited near-black on a dark surface, invisible for as
+  long as those buttons were emoji, since emoji ignore `color`. Ten of
+  twenty-three overlays had no keyboard way out and five more only looked like
+  they did, their handler sitting on an input rather than on `window`. Four
+  native dialogs took their button labels from the operating system, so an
+  Italian machine answered an English hub with "OK / Annulla". Two rows
+  answered before they knew, reporting "no sources" and "no one is waiting"
+  from first paint until their fetch returned. And `check-i18n` passed on
+  **104 strings that shipped as English**, because a key present in every
+  locale and parsing as ICU satisfies every question it asked; all 104 are
+  translated, and `find-untranslated` now asks the question neither existing
+  check did.
+
+  Three guards ship with the changes they came from: modal Escape coverage,
+  token definition and fallbacks, and untranslated strings. The desktop was
+  built with `tauri dev`, attached over CDP, joined to a real hub and walked
+  through all nine of its settings tabs — it had only ever been typechecked
+  before.
+
+  The live browser suite then found the cost in the right place: **twenty-four
+  specs reached for controls that are no longer in the DOM until their row is
+  opened**, one cause with one shape, fixed with `openSettingRow` /
+  `settingRow` helpers rather than twenty-four separate patches. Not covered,
+  and filed rather than quietly skipped: events and polls
+  ([Wavvon-clients#58](https://github.com/Wavvon/Wavvon-clients/issues/58))
+  and the desktop-local components
+  ([Wavvon-clients#57](https://github.com/Wavvon/Wavvon-clients/issues/57))
+  inherit the tokens and the icon set but were never reviewed screen by
+  screen. ([decisions.md](decisions.md))
+
 - **A bot is a client like any other (2026-09-26)**: the bot distinction is
   gone from all four repos. `is_bot` was consulted sixty-five times across
   twelve files and nothing ever checked it against anything true — it was
