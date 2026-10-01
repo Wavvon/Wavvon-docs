@@ -2580,7 +2580,7 @@ paths:
 
   /identity/{master}/designation:
     get:
-      summary: Get the canonical display-name designation for a master key
+      summary: Get the home-hub list a master key has published here
       tags: [Identity]
       parameters:
         - name: master
@@ -2588,7 +2588,19 @@ paths:
           required: true
           schema: { type: string }
     post:
-      summary: Set designation
+      summary: Publish a master-signed home-hub list
+      description: >-
+        Unauthenticated on purpose: a client publishes the same designation to
+        every hub in the list it just signed, and holds a session with at most
+        one of them. The signature is what makes it safe — you can only write
+        your own designation, one row per master, and only forward (`sequence`
+        must exceed the stored one).
+
+
+        **403** when this hub has never met the identity behind `master`: no
+        member carries it, and no device cert for it names a subkey that is a
+        member here. Such a row could never be read — the lookup starts from a
+        member — so it was only ever a way for a stranger to leave rows behind.
       tags: [Identity]
       parameters:
         - name: master
