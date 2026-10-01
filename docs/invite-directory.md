@@ -114,11 +114,14 @@ Three rules the POST path needs, none of them new machinery:
 - **Same URL rule as an app webhook**: https only, no private or loopback
   range in production. A hub POSTing to a URL it read out of a public
   document is an SSRF surface otherwise, and the validation already exists.
-- **The invite still has to be redeemed.** On a hub with `challenge_mode` on,
-  a program cannot pass the admission puzzle — the directory makes it
-  findable, admission is still the bottleneck
-  ([future-features.md](future-features.md),
-  [Wavvon-server#31](https://github.com/Wavvon/Wavvon-server/issues/31)).
+- **The invite still has to be redeemed**, and on a hub with `challenge_mode`
+  on a program cannot pass the admission puzzle. That bottleneck is designed
+  out in [pubkey-bound-invites.md](pubkey-bound-invites.md): an invite that
+  names the key it admits, where the admin minting it is the human act the
+  challenge was asking about
+  ([Wavvon-server#31](https://github.com/Wavvon/Wavvon-server/issues/31)).
+  Sending a bound invite down either route above is also the safer thing to
+  send, since both are public.
 
 **Rejected: a mailbox on the directory.** Holding pending invites for a pubkey
 — even sealed to a key the directory cannot read — is per-identity mutable

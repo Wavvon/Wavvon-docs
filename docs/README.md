@@ -67,6 +67,7 @@ had a "recently shipped" section, whatever this line used to claim):
 23. [block-mute-ignore.md](block-mute-ignore.md) — user-level block / ignore / quiet-hours (DND): personal-axis prefs-blob state, client-side filtering, server-enforced DM block
 24. [discovery-v2.md](discovery-v2.md) — Wavvon-discovery enhancements: hub uptime tracking, farm browsing, global search, anonymous aggregate analytics
 25. [invite-directory.md](invite-directory.md) — **designed, not built** — listing an identity that wants to be found and invited: one signed document for a person or a program, consent by publishing, and the open question of how the invite reaches them
+25. [pubkey-bound-invites.md](pubkey-bound-invites.md) — **designed, not built** — an invite that names the key it admits, and why redeeming one is the admission challenge already answered. The companion to the directory above: it makes an identity findable, this makes the invite it receives exact
 25. [client-qol.md](client-qol.md) — client quality-of-life: global search, drafts, custom emojis, events, polls, thread collapse, notification grouping
 26. [store-trait-design.md](store-trait-design.md) — database abstraction: the `HubStore` trait split and its PostgreSQL implementation (the SQLite backend it was written around is gone — PostgreSQL is the only one)
 27. [custom-themes.md](custom-themes.md) — user-created skins: CSS token system, .wavvonskin file format, export/import, persistence
