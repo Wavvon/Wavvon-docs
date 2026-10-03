@@ -3231,30 +3231,6 @@ paths:
               properties:
                 min_pow_level: { type: integer }
 
-  /admin/settings/channel-depth:
-    get:
-      summary: Get the maximum channel nesting depth (admin)
-      tags: [Hub]
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  max_channel_depth: { type: integer }
-    patch:
-      summary: Update the maximum channel nesting depth (admin)
-      tags: [Hub]
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [max_channel_depth]
-              properties:
-                max_channel_depth: { type: integer }
-
   /admin/settings/moderation:
     patch:
       summary: Set the auto-moderation webhook URL and HMAC secret (admin)
