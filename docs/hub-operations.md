@@ -153,6 +153,24 @@ separate blob store to garbage-collect.
 `ON DELETE CASCADE` foreign key — using `posts.created_at`. The same
 per-channel setting governs both message channels and forum channels.
 
+**Personal-axis rows (Wavvon-server#87)**: the same nightly sweep also
+forgets the rows a hub keeps *by master pubkey* — `home_hub_designations`,
+`subkey_certs`, `prefs_blobs` — for a master with no
+remaining relationship to the hub. Fixed 90-day age, no setting (unlike
+`retention_days`, nobody chooses it per channel). `DELETE /me` is deliberately
+untouched: it cannot tell whether this hub is also the member's home hub, the
+sweep can, because it looks at what the hub still holds rather than at one
+request. A master is kept if ANY holds: it, or a device it certified, is a
+current member (`users.is_member`); its designation names *this* hub (we are
+its home hub); undelivered DM work (a non-bounced `dm_outbox` row) involves it
+— through a local conversation member that resolves to it, or addressed to one
+of its designated home hubs (the mirror path); or its newest row is younger
+than the age (so one fresh prefs write keeps the whole set). A hub that does
+not know its own canonical URL prunes nothing. `subkey_revocations` are never
+pruned: auth carries a device cert inline and checks revocation by device key
+alone, so a revoked device whose cert row is gone could otherwise present its
+master-signed cert and sign in as that master.
+
 **Alternative considered — archive messages before deleting** (export to
 a side table or file, then purge). Rejected: it violates the
 user-facing expectation that a deleted message is *gone*, and it
