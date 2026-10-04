@@ -3642,7 +3642,8 @@ paths:
     post:
       summary: Upload a file to a channel
       description: >-
-        Multipart upload with the file in a `file` field. Max 25 MB
+        Multipart upload with the file in a `file` field. Max is the hub's
+        `max_upload_bytes` setting (1–25 MB, default 25 MB; `PATCH /hub`)
         (512 KB for banner channels, which also only accept PNG/JPEG/GIF/WebP).
         SVG is rejected. Allowed types otherwise: image/*, video/mp4,
         application/pdf, text/plain.
