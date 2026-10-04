@@ -88,7 +88,7 @@ A public-facing web application. Key pages:
   Wavvon" button (the `wavvon://` deep link), and a web-visible preview
   for users without the client.
 - ~~**`/submit`**~~ — removed 2026-08-28. A hub publishes its own listing
-  through its `discovery_url` setting, so a web form for an operator to do it
+  (the owner's client pushes a payload the hub signs), so a web form for an operator to do it
   by hand was a second path to the same row.
 - **`/about`** — what Wavvon is, download links.
 

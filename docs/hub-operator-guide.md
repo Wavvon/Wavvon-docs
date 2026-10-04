@@ -30,7 +30,6 @@ voice_udp_port  = 3001           # Voice UDP relay port
 owner_pubkey    = "<64-hex>"     # hub owner identity (set before first boot)
 # farm_url      = "https://farm.example.com"
 
-discovery_url   = "https://discovery.wavvon.io"
 # template_url  = "https://example.com/template.json"
 # bootstrap_token = ""
 
