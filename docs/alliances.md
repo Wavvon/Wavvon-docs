@@ -478,7 +478,8 @@ network remains the only thing that proves a visitor is audible.
 ## What's not done
 
 - **Member discovery beyond invite tokens** — no way to browse an
-  alliance's membership; joining is still invite-driven.
+  alliance's membership; joining is still invite-driven. Proposal (undecided):
+  [alliance-member-discovery.md](alliance-member-discovery.md).
 
 **Game launch/lobby federation across an alliance** used to be listed here as
 not-done, which read as a plan. It is a **refusal**, not a backlog entry: a

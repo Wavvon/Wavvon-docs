@@ -81,6 +81,7 @@ had a "recently shipped" section, whatever this line used to claim):
 - [settings-ia.md](settings-ia.md) — **implemented 2026-07-20** — unified Settings information architecture + profile model: one tab structure both clients render from `packages/ui`, converging desktop off the deleted profile-pool and onto multi-account (decided 2026-07-20); unblocks the `ProfileTab` + `IdentityBackupSection` parity passes
 - [future-features.md](future-features.md) — intent settled, design pending: hub-menu entries, desktop parity, visibility push, language packs (the three single-piece entries became `help wanted` issues on 2026-09-16)
 - [mini-apps.md](mini-apps.md) — the sandboxed webview an app opens in a channel: scoped session token, opaque relay, hub stays dumb about games
+- [alliance-member-discovery.md](alliance-member-discovery.md) — **proposal, not yet decided** ([Wavvon-server#36](https://github.com/Wavvon/Wavvon-server/issues/36)): finding *people* on allied hubs — an opted-in listing served read-through by each member's own hub, two consent switches, DM via the member's designation; also flags that `GET /users` is open to any peer hub today
 
 ### Archived designs
 
