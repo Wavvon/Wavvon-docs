@@ -399,7 +399,7 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
 
     add_header Strict-Transport-Security "max-age=63072000" always;
-    client_max_body_size 10M;   # must exceed the hub's attachment cap (max 8 MB)
+    client_max_body_size 27M;   # file uploads go up to 25 MB, message bodies to 10 MB
 
     location / {
         proxy_pass http://127.0.0.1:3000;
