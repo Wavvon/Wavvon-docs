@@ -977,7 +977,7 @@ paths:
                       args: { type: string }
                       scope: { type: string, enum: [channel, hub] }
                       privileged: { type: boolean }
-                      cooldown_seconds: { type: integer }
+                      cooldown_seconds: { type: integer, description: "Per-user, per-command cooldown in seconds (default 3, 0 = none)" }
       responses:
         "200": { description: Replaced }
         "403": { description: Caller lacks apps.register }

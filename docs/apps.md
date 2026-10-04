@@ -59,6 +59,12 @@ An app registers commands with `PUT /me/app/commands`; each carries a name, a
 description, optional args, a scope (`channel` or `hub`), a `privileged`
 flag and a cooldown.
 
+The cooldown (`cooldown_seconds`, default 3, `0` = none) is enforced per user
+per command: a repeat by the same member inside the window is refused with an
+ephemeral-style message naming the seconds left, and is not delivered to the
+app. Other members are unaffected. It is held in memory, so a hub restart
+clears it.
+
 When a message starts with `/`, the hub looks for a registered command with
 that name and POSTs an invocation to the app's `webhook_url` (https only, 5s
 timeout). The reply is inserted as a message and broadcast like any other. A
@@ -107,6 +113,11 @@ Two transports, same events:
 
 - **WebSocket** — an app with a registered profile gets a `hub_event` push on
   its socket, and `Resume` replays the last 72 hours from the audit log.
+  One envelope serves live push, replay and outgoing webhooks: `type`, `seq`,
+  `event`, `hub_url`, `at`, `payload`. A replayed event also carries
+  `replayed: true` and, when the audit row has them, `actor_pubkey`,
+  `target_pubkey` and `channel_id` (absent, not null, when empty). Outgoing
+  webhooks add `webhook_id` and, when cut to the size cap, `truncated: true`.
 - **HTTP polling** — `GET /me/events` and `DELETE /me/events` for a client
   that holds no persistent socket.
 
