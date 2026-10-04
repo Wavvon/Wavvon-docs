@@ -6,6 +6,33 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## A peer hub has its own session scope, and is never a member
+
+**Decision** (2026-10-04, [Wavvon-server#107](https://github.com/Wavvon/Wavvon-server/pull/107)):
+a non-member that authenticates with `is_hub=true` is a **peer**: recorded in
+`peers`, no membership, no roles, a session scoped `peer`. Peer sessions are
+default-deny in the middleware and refused on the WebSocket; the alliance and
+federation routes they need are allowlisted, and each still checks the alliance
+relationship itself. A peer's alliance post is capped by the shared channel's
+everyone floor. A key that is already a member is a person, whatever it claims.
+
+**Why.** The invite-gate exemption for `is_hub` (needed so two default hubs can
+federate) was followed by the full human admission, so any key claiming to be a
+hub became a member of an invite-only hub — roster, profiles, reads and posts.
+Any key can claim `is_hub`; the claim cannot be what grants access.
+
+**Alternatives.** Refusing peers on `/users*` only: closes the roster and
+leaves every other member route open to the same free key. Requiring an alliance
+before any peer session: breaks the handshake that forms the alliance.
+
+**Tradeoff.** The federation client had to move to the alliance routes, and the
+legacy peer-mirror routes, which only worked by reading a hub as a member, were
+deleted. An older hub reading or posting into an upgraded hub's shared channels
+is refused until it upgrades.
+
+**Outcome.** Peer keys previously admitted as members (no role, no profile, no
+linked device) are demoted once by migration.
+
 ## Membership is a field, and `everyone` is the floor under it
 
 **Decision** (2026-10-04, [Wavvon-server#58](https://github.com/Wavvon/Wavvon-server/issues/58)):

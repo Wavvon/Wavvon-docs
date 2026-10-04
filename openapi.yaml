@@ -2759,39 +2759,6 @@ paths:
       summary: Add a federation peer
       tags: [Federation]
 
-  /federation/peers/{peer_key}/channels:
-    get:
-      summary: List channels shared by a peer hub
-      tags: [Federation]
-      parameters:
-        - name: peer_key
-          in: path
-          required: true
-          schema: { type: string }
-
-  /federation/channels:
-    get:
-      summary: List all federated channels across all peers
-      tags: [Federation]
-
-  /federation/channels/{fed_channel_id}/messages:
-    get:
-      summary: Fetch messages from a federated channel
-      tags: [Federation]
-      parameters:
-        - name: fed_channel_id
-          in: path
-          required: true
-          schema: { type: string }
-    post:
-      summary: Post a message to a federated channel
-      tags: [Federation]
-      parameters:
-        - name: fed_channel_id
-          in: path
-          required: true
-          schema: { type: string }
-
   /federation/dm:
     post:
       summary: Receive a federated DM from a peer hub

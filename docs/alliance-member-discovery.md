@@ -11,24 +11,19 @@ no surface: nothing federates a user list, so meeting someone on an allied hub
 means an invite token or already knowing they are there. This is the design for
 that gap — **people, not hubs**.
 
-## 0. Prerequisite: the roster is already open to any hub
+## 0. Prerequisite: the roster was open to any hub — fixed
 
-Found while reading for this design, **not yet proved on real binaries**:
-`GET /users` and `GET /users/{pk}/profile` (`hub/src/routes/users.rs`,
-Wavvon-server) take any `AuthUser` and never look at who the caller is. A
-federating peer gets an ordinary `scope = "member"` session — `/auth/verify`
-exempts `is_hub=true` from the invite gate (`auth/handlers.rs`) — and **any key
-may self-assert `is_hub`**. So a stranger hub, in no alliance at all, can page
-through every member's name, avatar, presence and birthday today. Same shape as
-the `alliancesplit` finding (root `CLAUDE.md`), one route family over.
-
-That decides the order of work: an opt-in discovery surface is no privacy
-boundary while the full roster sits behind a free key. **Step zero is refusing
-peer sessions on `/users*`** (the federation client never calls them —
-`federation/client.rs` uses `/channels`, `/alliances/*`, `/federation/*`),
-proved by an `e2e-topology` stage run against the unfixed build first. The wider
-question — whether a peer session should be its own allowlisted scope, as
-`alliance_voice` is — is worth its own issue.
+Found while reading for this design, and confirmed: a key asserting
+`is_hub=true` at `/auth/verify` was admitted as a full member, so a stranger
+"hub" could page through every member's name, avatar, presence and birthday,
+and read and post in every channel open to everyone. An opt-in discovery
+surface is no privacy boundary while the full roster sits behind a free key, so
+this had to go first. It did, in
+[Wavvon-server#107](https://github.com/Wavvon/Wavvon-server/pull/107): a peer
+is now its own default-deny `peer` session scope, never a member (see the
+decision entry of 2026-10-04 in [decisions.md](decisions.md)). The routes this
+design adds are therefore allowlisted for peers explicitly, not reached by
+accident.
 
 ## 1. What "discover people" means
 
