@@ -4010,6 +4010,10 @@ paths:
                         going: { type: integer }
                         maybe: { type: integer }
                         not_going: { type: integer }
+                    my_rsvp:
+                      type: string
+                      enum: [going, maybe, not_going]
+                      description: The caller's own RSVP; absent when they have none.
     post:
       summary: Create an event (create_events)
       description: Also posts a system card message into the target channel.
