@@ -28,7 +28,7 @@ self-hosted, for a reader who has not run one. Then read in this order:
 - [hub-operator-guide.md](hub-operator-guide.md) — **operating** a running hub: config reference, ownership, bootstrap, backup/restore, upgrade path, hardening
 - [packaging.md](packaging.md) — cross-platform packaging, code signing, auto-update, CI/CD, hub Docker image
 - [performance.md](performance.md) — load test plan for WS broadcast, search, voice relay; suspected ceilings and "good enough" thresholds (designed, not started)
-- [hub-scaling.md](hub-scaling.md) — how one hub scales from a handful of users toward a million, and what changes at each threshold (tiers 1–3 shipped: Tantivy search, PostgreSQL, optional read replicas)
+- [hub-scaling.md](hub-scaling.md) — how one hub scales from a handful of users toward a million, and what changes at each threshold (Tantivy search and PostgreSQL shipped; read replicas removed unbuilt)
 
 ### Onboarding & anti-abuse
 

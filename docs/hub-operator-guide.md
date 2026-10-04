@@ -44,8 +44,7 @@ The hub binds to `0.0.0.0` on both ports. `hub_identity.json` is written to the 
 ### Database connection pool
 
 `WAVVON_DB_MAX_CONNECTIONS` (default `5`, also `db_max_connections` in
-`hub.toml`) sizes the PostgreSQL connection pool, for the primary and the
-read replica alike.
+`hub.toml`) sizes the PostgreSQL connection pool.
 
 It caps **concurrent database work, not concurrent users**. A connection is
 borrowed for the length of a single query and returned immediately —

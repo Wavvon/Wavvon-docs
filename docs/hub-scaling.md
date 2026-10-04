@@ -3,10 +3,10 @@
 How Wavvon scales a single hub from a handful of users to one million,
 and what changes at each threshold.
 
-> **Tiers 1–3 have shipped.** This document was written when the hub ran
-> on SQLite with FTS5 search, and its tier ladder was the plan for getting
-> off both. Tantivy search, PostgreSQL and optional read replicas are all
-> in the hub today, and SQLite is gone — PostgreSQL is the only backend.
+> **Tiers 1–3 have shipped, minus read replicas.** This document was written
+> when the hub ran on SQLite with FTS5 search, and its tier ladder was the
+> plan for getting off both. Tantivy search and PostgreSQL are in the hub
+> today (read replicas were plumbed but never used, and were removed), and SQLite is gone — PostgreSQL is the only backend.
 > The sections below are kept because the *reasoning* still explains why
 > the hub is shaped this way; **Tier 4 and the SFU are the only parts
 > still forward-looking.**
@@ -21,7 +21,7 @@ the one process, not in the storage layer:
 
 | Layer | Current | Hard limit |
 |---|---|---|
-| Database | PostgreSQL, optional read replica | Not the first ceiling — vertical scaling plus replicas go a long way |
+| Database | PostgreSQL | Not the first ceiling — vertical scaling goes a long way, and replicas are the next step |
 | Search | Tantivy, index on disk beside the hub | Hundreds of millions of documents per node |
 | WebSocket connections | Single process, tokio | ~50k–100k concurrent connections (memory) |
 | Message fanout | Direct push in handler | Becomes a bottleneck with large channels |
@@ -37,7 +37,7 @@ simplicity for operators who don't need the scale.
 Each tier extends the previous one. Operators only adopt what they need.
 
 ```
-Tiers 1-3 — shipped                   PostgreSQL + Tantivy + optional read replica
+Tiers 1-3 — shipped                   PostgreSQL + Tantivy
 Tier 4 — XL           2M+ users       multi-process + message queue + SFU
 ```
 
@@ -129,20 +129,18 @@ The hub declares a **minimum server version** and checks it *before*
 running migrations, so an old server gets one sentence instead of a
 half-applied schema.
 
-### Read replicas — SHIPPED
+### Read replicas — removed, not built
 
-Heavy read workloads (channel history, user lists, audit logs) can be routed
-to read replicas. Set `database_read_url` / `WAVVON_DATABASE_READ_URL`; omit
-it and every query goes to the write pool:
+The plan was to route heavy reads (channel history, user lists, audit logs)
+to a replica through an optional `database_read_url`. The setting and a
+second pool shipped; no handler ever read from it, so an operator who
+configured a replica paid `max_connections` on both servers for no offload.
+It was removed on 2026-10-04 (Wavvon-server#68).
 
-```rust
-pub struct DbPool {
-    pub write: PgPool,          // all writes + transactions
-    pub read: Option<PgPool>,   // replicas, optional
-}
-```
-
-Queries that don't need the latest write use `pool.read.as_ref().unwrap_or(&pool.write)`.
+If it comes back, it should come back with a measured read hotspot and the
+handlers that move to the replica named — routing per query, since a
+replica lags and a read that must see the caller's own write cannot go
+there.
 
 ---
 
@@ -265,7 +263,7 @@ Done in sequence. Each delivered standalone value.
 ```
 1. ✓ Tantivy search   — replaced FTS5, unblocked DB portability
 2. ✓ PostgreSQL       — became the only backend; SQLite removed
-3. ✓ Read replicas    — optional database_read_url; reads routed to it
+3.   Read replicas    — plumbed, never used, removed; redo with a measured hotspot
 4.   Multi-process    — PostgreSQL LISTEN/NOTIFY for fan-out; sticky LB
 5.   NATS fan-out     — replace LISTEN/NOTIFY when message rates demand it
 6.   SFU (LiveKit)    — voice scalability; parallel track, not dependent on above
