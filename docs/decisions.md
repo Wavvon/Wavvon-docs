@@ -6,6 +6,36 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Membership is a field, and `everyone` is the floor under it
+
+**Decision** (2026-10-04, [Wavvon-server#58](https://github.com/Wavvon/Wavvon-server/issues/58)):
+"is this identity a member" is `users.is_member`, nothing else. `user_permissions`
+and every role read go through the `member_roles` view (explicit `user_roles`
+rows, plus `builtin-everyone` for each member), so the everyone role is a floor
+an admin tunes once for all members, not a row we happened to hand out.
+`user_roles` carries only grants on top of it. The invite gate, first-contact
+admission, `DELETE /me`, bans/kicks, recovery and the farm-token path all read
+or write the field; leaving, banning and recovery clear it in the same
+transaction that drops the roles.
+
+**Alternatives.** Reusing `approval_status`: rejected, it is a different
+axis (`approved`/`pending`/`left`/`bot_pending`) — a *pending* member already
+holds roles and is a member, and conflating the two would make approving a
+survey answer change who counts as in the community. Keeping "zero roles = not a
+member": the status quo, which made "what may you do" and "are you here" one
+number.
+
+**Tradeoff.** One more column and a view to keep in step with writes; in return
+a banned or departed key cannot keep the floor by accident, and the admission
+gate has one place to ask "is this a stranger".
+
+**Outcome.** Existing databases are backfilled once (column absent -> `is_member`
+= holds any role; explicit `builtin-everyone` rows deleted). Bootstrap owner
+seeding sets the field too — without it the seeded owner is a stranger to an
+invite-only hub. `GET /roles/builtin-everyone/members` and `/users/{pk}/roles`
+still list everyone for members (synthesised by the view); the API shape is
+unchanged.
+
 ## Static analysis: small checkers we wrote, not a platform we host
 
 **Decision** (2026-10-02): no SonarQube for now. Instead, in this order:
