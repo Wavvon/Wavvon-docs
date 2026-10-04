@@ -283,7 +283,7 @@ Launch and verify:
 ```bash
 echo "WAVVON_DB_PASSWORD=$(openssl rand -hex 16)" > .env   # once, before the first up
 docker compose up -d
-docker compose exec hub /wavvon-hub --doctor   # expect PASS lines
+docker compose exec hub wavvon-hub --doctor   # expect PASS lines
 curl https://your-hub.example/health           # {"status":"ok",...}
 curl https://your-hub.example/info             # hub identity JSON
 ```
@@ -291,10 +291,16 @@ curl https://your-hub.example/info             # hub identity JSON
 Then open `https://your-hub.example/` in a browser — the served web
 client loads and defaults its first connection to this hub.
 
+The image runs as an unprivileged user, `wavvon` (uid 10001), which owns
+`/data`. A fresh named volume like `hub-data` inherits that ownership; a
+host directory bind-mounted at `/data` does not, so chown it first
+(`sudo chown -R 10001:10001 ./hub-data`) or the hub stops at startup with
+`Permission denied` writing its identity file.
+
 Get your owner pubkey from the desktop client's **Settings → Identity**
 (64 hex chars). Set `WAVVON_OWNER_PUBKEY` before first boot, or assign it
 later without a restart:
-`docker compose exec hub /wavvon-hub admin users set-owner <pubkey>`.
+`docker compose exec hub wavvon-hub admin users set-owner <pubkey>`.
 Ownership detail lives in the [operator guide](hub-operator-guide.md#hub-ownership).
 
 > **Note (known issue, 2026-06):** on a fresh hub the *first* user to
@@ -415,7 +421,7 @@ sudo nginx -t && sudo systemctl reload nginx   # ALWAYS test before reload
 cd ~/wavvon
 echo "WAVVON_DB_PASSWORD=$(openssl rand -hex 16)" > .env   # once, before the first up
 docker compose up -d
-docker compose exec hub /wavvon-hub --doctor
+docker compose exec hub wavvon-hub --doctor
 curl -s https://your-hub.example/health
 ```
 
@@ -628,7 +634,7 @@ optionally self-serve the web client"); client details:
 working. It checks port bindability, TLS file readability and PEM
 validity, working-directory write access, and the web-client directory
 (when `WAVVON_WEB_CLIENT_DIR` is set), then exits 0 on success or 1 on any
-failure. Under Docker: `docker compose exec hub /wavvon-hub --doctor`.
+failure. Under Docker: `docker compose exec hub wavvon-hub --doctor`.
 
 The startup banner logs effective config before serving and warns when
 TLS is disabled and that voice UDP must be open in cloud firewalls:
@@ -722,6 +728,11 @@ supported way back:
 | Docker Compose (1, 2) | `docker compose pull && docker compose up -d` |
 | Bare binary (3) | `wavvon-hub update` (self-update), then restart the service; or download the new binary and `install` it over the old one |
 | Source (4) | `git pull && cargo build --release -p wavvon-hub`, `install` over the old binary, restart |
+
+**Docker images up to 0.6.0 ran as root**, so a `hub-data` volume they
+created is owned by root and the current image cannot write to it. Once,
+before the first `up` on the new image:
+`docker compose run --rm --user root --entrypoint chown hub -R 10001:10001 /data`.
 
 To apply migrations explicitly without starting the server (rare):
 `wavvon-hub migrate`. Upgrade-path detail:
