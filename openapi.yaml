@@ -2782,10 +2782,13 @@ paths:
     post:
       summary: A hub that just joined an alliance announces itself to the other members
       description: >-
-        Carries the inviter's invite token (a signature over the alliance id),
-        which the receiver verifies against a hub already in its own member
-        list. Without this only the inviter learns of a new member, and an
-        alliance of three never converges.
+        Sent with the announcing hub's own peer session. Carries the voucher
+        the inviter returned from the join: its signature over
+        "wavvon/alliance-member/v1 " + alliance id + " " + the new member's
+        key. The receiver verifies it against a hub already in its own member
+        list and against the key that authenticated, and checks that hub_url
+        answers for that key. Without this only the inviter learns of a new
+        member, and an alliance of three never converges.
       tags: [Federation]
 
   /admin/directory-sign:
@@ -6078,8 +6081,12 @@ paths:
   /alliances/{alliance_id}/join:
     post:
       summary: Remote hub joins an alliance with an invite token
-      description: Hub-to-hub. The invite token (this hub's signature over the alliance id) is the credential; no Bearer token.
-      security: []
+      description: >-
+        Hub-to-hub, with the joining hub's peer session (`is_hub`
+        authentication). The invite token is single-use and expires after
+        seven days; hub_url must answer for the authenticated key. Answers
+        with a voucher the new member presents to the other members
+        (`POST /federation/alliance-member`).
       tags: [Alliances]
       parameters:
         - name: alliance_id
@@ -6095,6 +6102,14 @@ paths:
               properties:
                 invite_token: { type: string }
                 hub_url: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  voucher: { type: string }
 
   /alliances/{alliance_id}/push-invite:
     post:

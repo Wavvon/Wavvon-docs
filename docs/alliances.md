@@ -54,9 +54,12 @@ from asking each other about each other forever.
 two hubs — the joiner pulls the member list from the inviter, the inviter
 records the joiner — and every hub's fan-out walks its *own* member rows. So
 the joiner also announces itself to every other member it just learned about
-(`POST /federation/alliance-member`), carrying the inviter's invite token: a
-signature over the alliance id that each member verifies against a hub already
-in its own list. No new trust, and a stranger cannot write itself in. Before
+(`POST /federation/alliance-member`), authenticated as itself and carrying the
+voucher the inviter returned from the join: a signature over the alliance id
+and the new member's key, domain-tagged, that each member verifies against a
+hub already in its own list *and* against the key that authenticated. A
+stranger cannot write itself in, and one member's voucher vouches for nobody
+else. Before
 this (fixed 2026-09-14) a third hub's shared channels were invisible to the
 member who was there first, permanently.
 
@@ -90,7 +93,7 @@ All in `hub/src/routes/alliances/` (Wavvon-server):
 | `POST   /alliances`                                  | `alliances.manage` | Create alliance            |
 | `GET    /alliances`                                  | any auth | List alliances this hub is in        |
 | `GET    /alliances/:id`                              | any auth | Details + members                    |
-| `POST   /alliances/:id/invite`                       | manager of this alliance | Generate signed invite token (pull) |
+| `POST   /alliances/:id/invite`                       | manager of this alliance | Mint a single-use invite token, 7 days (pull) |
 | `POST   /alliances/:id/push-invite`                  | manager of this alliance | Push invite directly to a target hub |
 | `GET    /alliances/pending-invites`                  | `alliances.manage` | List pending push invites received |
 | `POST   /alliances/pending-invites/:id/accept`       | `alliances.manage` | Accept a pending push invite |
@@ -110,7 +113,7 @@ All in `hub/src/routes/alliances/` (Wavvon-server):
 
 ```
 Hub A creates alliance        →  alliance_id (local)
-Hub A: POST .../invite        →  signed invite token
+Hub A: POST .../invite        →  single-use invite token
 Hub A → Hub B (out of band: paste link, etc.)
 Hub B: POST .../join          →  authenticates to Hub A,
                                   Hub A verifies invite,
@@ -146,12 +149,19 @@ the Alliance invites tab — no WebSocket push for this. The volume
 ### Federation endpoint is unauthenticated
 
 `POST /federation/alliance-invite` accepts unauthenticated POSTs. The
-trust comes from the **invite token** inside the payload, which is a
-Hub-A-identity signature over the alliance id (same primitive as the
-pull-flow token). Anyone can drop a card in Hub B's pending list, but
-accepting it triggers the normal join path — the join only succeeds
-if the token verifies against Hub A's pubkey. A fake push invite at
-worst clutters the pending list; it cannot create membership.
+trust comes from the **invite token** inside the payload, an invite Hub A
+minted and stored (the same single-use, seven-day row as the pull flow).
+Anyone can drop a card in Hub B's pending list, but accepting it triggers the
+normal join path — the join only succeeds if Hub A finds the token unspent.
+A fake push invite at worst clutters the pending list; it cannot create
+membership.
+
+Invite tokens were a bare signature over the alliance id until 2026-10-16:
+deterministic, so one token per alliance, valid forever, impossible to revoke,
+and forwarded to every member in the join announcements. The join endpoint
+took no session and recorded whatever key the joiner's `/info` reported.
+Now the token is a stored row and the join needs the joiner's peer session
+(Wavvon-server#131).
 
 ### Local labelling
 
