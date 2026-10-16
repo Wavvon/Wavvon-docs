@@ -3953,6 +3953,14 @@ paths:
         - name: limit
           in: query
           schema: { type: integer, default: 20, maximum: 100 }
+        - name: channel_id
+          in: query
+          schema: { type: string }
+          description: >-
+            One channel's Events tab: events anchored there, hub_wide events,
+            and events anchored on an ancestor with propagate_to_children.
+            Requires messages.read on that channel (403 otherwise). Hubs
+            that predate it ignore the parameter.
       responses:
         "200":
           content:
@@ -6213,10 +6221,15 @@ paths:
   /federation/banlist:
     get:
       summary: Signed export of this hub's ban list (public)
-      description: Subscribing hubs poll this feed; the Ed25519 signature is the authority.
+      description: >-
+        Subscribing hubs poll this feed; the Ed25519 signature is the authority.
+        Served only while the owner has `publish_banlist` on (off by default,
+        `PATCH /admin/settings/banlist`); 404 otherwise.
       security: []
       tags: [Federation]
       responses:
+        "404":
+          description: This hub does not publish its ban list
         "200":
           content:
             application/json:
