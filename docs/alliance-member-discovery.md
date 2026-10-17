@@ -1,9 +1,10 @@
 # Alliance member discovery: finding people on allied hubs
 
-> **Proposal — not yet decided.** Drafted 2026-10-04 for
-> [Wavvon-server#36](https://github.com/Wavvon/Wavvon-server/issues/36). Nothing
-> here is settled until the user decides; no `decisions.md` entry exists yet.
-> The open questions are at the end.
+> **Decided 2026-10-17** — every open question at the end took its
+> recommended answer: browse and search, a per-hub switch, no viewer passed,
+> reachable members only, step zero first (already shipped). See
+> [decisions.md](decisions.md), "Alliance member discovery". Drafted
+> 2026-10-04 for [Wavvon-server#36](https://github.com/Wavvon/Wavvon-server/issues/36).
 
 [alliances.md](alliances.md) makes an allied hub's *channels* reachable and its
 *member hubs* browsable (`GET /alliances/{id}`). The people on those hubs have

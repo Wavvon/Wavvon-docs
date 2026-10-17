@@ -6,6 +6,54 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Desktop restores a full archive by merge-or-create, in the web's format
+
+**Decision** (2026-10-17, [Wavvon-clients#35](https://github.com/Wavvon/Wavvon-clients/issues/35)):
+the full data-export archive comes to desktop with the same semantics web has
+and the same file. Restoring an archive whose identity is already on the device
+merges into that account — union, never overwrite, as web's `planRestore`
+does; an identity the device does not have becomes a new account, and the app
+switches to it. Desktop reads and writes the web's `wavvon-archive` envelope,
+pinned by one shared test vector, so an archive made on either client opens on
+the other.
+
+**Why.** The archive's reason to exist is surviving the loss of a device; a
+restore that only accepted the active account would be useless to exactly that
+person. Merge-or-create is also the rule the phrase restore follows since
+Wavvon-clients#110, so one rule covers every "bring an identity onto this
+device" path. And a portable export that only one client can read is not
+portable: data sovereignty is the feature ([data-export.md](data-export.md)).
+
+**Alternatives.** Restore into the active account only (simpler, fails the
+lost-device case). Separate per-client formats, declared not interchangeable
+(less work now, a reconciliation owed later, and two envelope specs to review).
+
+**Tradeoff.** The envelope needs a written spec and a cross-client test vector
+before desktop ships it — the same discipline as `.wavvon-backup`.
+
+## Alliance member discovery: browse opted-in members, anonymous, reachable only
+
+**Decision** (2026-10-17, [Wavvon-server#36](https://github.com/Wavvon/Wavvon-server/issues/36)):
+the proposal in [alliance-member-discovery.md](alliance-member-discovery.md) is
+adopted with its recommended answers. A member of an allied hub can **browse
+and search** the members of one hub who opted in; the consent switch is **per
+hub**, in that hub's profile beside `show_hubs`; the asking hub does **not**
+tell the answering hub who is browsing; and only members **reachable by DM**
+(master pubkey with a home-hub designation) are listed.
+
+**Why.** "Who is over there?" is the question, and search-only stops no
+scraper. A per-hub switch is one control with one home. Not passing the viewer
+keeps the answering hub from learning who looks at its people. Listing only the
+reachable means every entry's "Message" works.
+
+**Alternatives.** Search-only with a minimum length; a switch per alliance;
+passing the viewer so the answering hub can subtract its bans and rate-limit
+per person; listing unreachable members too. See the proposal, §8.
+
+**Tradeoff.** Without the viewer, the answering hub cannot hide its members
+from someone it banned when that person browses from an ally. The opt-in is
+the guard: a member who would mind is not listed.
+
 ## A peer hub has its own session scope, and is never a member
 
 **Decision** (2026-10-04, [Wavvon-server#107](https://github.com/Wavvon/Wavvon-server/pull/107)):
