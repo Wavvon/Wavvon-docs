@@ -273,6 +273,7 @@ components:
         public_key: { type: string }
         display_name: { type: string, nullable: true }
         avatar: { type: string, nullable: true }
+        findable_by_allies: { type: boolean }
         approval_status: { type: string, enum: [approved, pending] }
         roles:
           type: array
@@ -658,6 +659,14 @@ paths:
               properties:
                 display_name: { type: string }
                 avatar: { type: string, nullable: true }
+                findable_by_allies:
+                  type: boolean
+                  description: >-
+                    List me to members of allied hubs (see
+                    `GET /alliances/{alliance_id}/people`). Per hub, off by
+                    default; only takes effect while the alliance's own
+                    `people_visible` switch is on. Hubs advertising
+                    `alliance.people`.
     delete:
       summary: Leave this hub
       description: |
@@ -2023,6 +2032,104 @@ paths:
           in: path
           required: true
           schema: { type: string }
+
+  /alliances/{alliance_id}/people:
+    get:
+      summary: Browse the opted-in members of one allied hub
+      description: |
+        Alliance member discovery. Read-through: the owning hub answers from its
+        own members and nothing is copied. `hub` names the hub to ask (absent
+        or this hub's own key = answer locally).
+
+        - **Caller is a member of this hub** and `hub` is an allied hub: this
+          hub proxies the request to it. The viewer is deliberately not
+          forwarded.
+        - **Caller is a peer hub** (or a member asking about this hub): answers
+          from `users`. A peer must belong to this alliance and may only ask
+          about this hub — never a third.
+
+        A person is listed only when the alliance's `people_visible` switch is
+        on, the member set `findable_by_allies`, they are not banned, and the
+        hub holds their home-hub designation (so a DM to them can be routed).
+        Entries carry only the four fields below; non-opted members are not
+        counted or hinted at.
+
+        Paging is the server dialect: a bare array, `limit` (default 100, max
+        500) and a keyset `cursor` (the `public_key` of the last entry) over
+        `(display_name, public_key)`. `q` matches display name, capped at 64
+        characters. Rate limited per caller (60 per minute).
+
+        Advertised as the `alliance.people` capability.
+      tags: [Alliances]
+      parameters:
+        - name: alliance_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: hub
+          in: query
+          schema: { type: string }
+          description: Public key of the hub to ask
+        - name: q
+          in: query
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer }
+        - name: cursor
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: The people, possibly empty
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [public_key, master_pubkey]
+                  properties:
+                    public_key: { type: string, description: Roster pubkey on the owning hub }
+                    master_pubkey: { type: string, description: Master key, for DM routing }
+                    display_name: { type: string, nullable: true }
+                    avatar: { type: string, nullable: true }
+        "404":
+          description: Unknown alliance, a hub outside it, a peer asking about a third hub, or an alliance that does not share its people
+        "409":
+          description: peer_unsupported — the owning hub does not share its member list (never an empty list)
+        "429":
+          description: rate_limited
+        "502":
+          description: peer_unreachable
+
+  /alliances/{alliance_id}/people-visibility:
+    put:
+      summary: Allow or withhold this hub's people for one alliance (alliance manager)
+      description: >-
+        The alliance-level consent switch, off by default. Mirrored as
+        `people_visible` on `GET /alliances/{alliance_id}`. Hubs advertising
+        `alliance.people`.
+      tags: [Alliances]
+      parameters:
+        - name: alliance_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [visible]
+              properties:
+                visible: { type: boolean }
+      responses:
+        "204":
+          description: Updated
+        "403":
+          description: You do not manage this alliance
 
   /alliances/{alliance_id}/invite:
     post:
