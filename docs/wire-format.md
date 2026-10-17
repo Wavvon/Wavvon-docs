@@ -455,6 +455,54 @@ Signed by the user's Ed25519 identity key.
 
 ---
 
+### Auth challenge answer (`tagged-v1`)
+
+```
+prefix      : "wavvon/auth-challenge/v1\0"   (25 bytes incl. NUL)
+challenge   : the 32 challenge bytes, raw (no length prefix)
+```
+
+Signed by the key named in `POST /auth/verify`. A hub or farm that accepts this
+answers `POST /auth/challenge` with `"scheme": "tagged-v1"`; a client signs the
+tagged bytes when the scheme is named and the raw challenge otherwise. Servers
+accept both until a major removes the raw form. The raw answer is only ever
+produced for exactly 32 bytes, the length a Wavvon server issues: every other
+object an identity or hub key signs is longer, so a raw answer cannot double as
+one of them (Wavvon-server#111).
+
+Vector (challenge `0x00 … 0x1f`, master seed `0x01 … 0x20`):
+
+```
+signing bytes:
+  776176766f6e2f617574682d6368616c6c656e67652f763100000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
+signature:
+  8a9cb870c40c8f1a4b88e7c8eb4a67bfae8115c98516e62d7bc383f421259cd452915257d6f7030af1e50249b3a08e820f482d1831f3a12a53524bffcd925f04
+```
+
+---
+
+### Federated plaintext DM
+
+```
+prefix          : "wavvon/federated-dm/v1\0"   (23 bytes incl. NUL)
+conversation_id : write_str(conversation_id)
+conv_type       : write_str(conv_type)
+content         : write_str(content)
+```
+
+Signed by the sender's identity key and sent as `plaintext_signature` with a
+DM in the clear; a receiving hub refuses a plaintext federated DM without it.
+Vector (`"conv-1"`, `"dm"`, `"héllo"`, master seed `0x01 … 0x20`):
+
+```
+signing bytes:
+  776176766f6e2f6665646572617465642d646d2f76310006000000636f6e762d3102000000646d0600000068c3a96c6c6f
+signature:
+  19cb16f7d84ee382ee5d2b01ac60e340b6011fe912a733f10b53785ce555e5844e4a49eab1f44fd5543c4a0d5b3a5efdc227bb02ced6c72705c9de15f5e49a0a
+```
+
+---
+
 ## Version bump policy
 
 The version tag is part of the signing bytes. Any change to the field layout

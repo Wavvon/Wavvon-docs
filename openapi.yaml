@@ -539,6 +539,13 @@ paths:
                 type: object
                 properties:
                   challenge: { type: string, description: "Random nonce string to sign" }
+                  scheme:
+                    type: string
+                    enum: [tagged-v1]
+                    description: >-
+                      Present when the answer may be signed over
+                      "wavvon/auth-challenge/v1\0" || challenge (wire-format.md).
+                      The raw challenge is still accepted.
 
   /auth/verify:
     post:
