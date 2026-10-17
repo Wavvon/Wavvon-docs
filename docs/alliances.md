@@ -313,6 +313,13 @@ AllianceVoiceGrant {
 
 Five minutes. A ticket to open one session, not a membership.
 
+The origin signs `"wavvon/alliance-voice-grant/v1\0" || payload_json`, so the
+grant can neither pass for anything else the hub key signs nor be forged from
+one (Wavvon-server#111; layout and vector in
+[wire-format.md](wire-format.md), "Alliance voice grant"). The owner still
+accepts an untagged grant from a hub that predates the tag; that goes at a
+major.
+
 ### Routes
 
 **Origin hub — mint.** `POST /alliances/:id/voice-grant` body

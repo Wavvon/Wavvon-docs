@@ -535,6 +535,26 @@ signature:
   1a141f3f3d17e7aac9ecfb851df6d4cc4ea7d0dd46aa87658a21c4d53e2efd9290578d11f1dafcc51131325fe4e85de005e73e524bda4d2751d68b9e21b35b00
 ```
 
+### Alliance voice grant
+
+```
+prefix  : "wavvon/alliance-voice-grant/v1\0"   (31 bytes incl. NUL)
+payload : serde_json::to_string(&AllianceVoiceGrantPayload), raw bytes
+```
+
+Signed by the origin hub's key, verified by the owning hub; no client
+computes it, which is why the payload is JSON rather than an identity-crate
+encoding (see [alliances.md](alliances.md)). Untagged grants from older hubs
+are still accepted until a major. Vector (payload `{"alliance_id":"a-1"}`,
+master seed `0x01 … 0x20`):
+
+```
+signing bytes:
+  776176766f6e2f616c6c69616e63652d766f6963652d6772616e742f7631007b22616c6c69616e63655f6964223a22612d31227d
+signature:
+  b609cb64511dcf807542e6b05c959053d97852757753c486bbcaee73a0acbfe82a063e1f84851802b8200b4b2920e7c39cfe49533f002245aad0a68df5e1e904
+```
+
 ### Webhook delivery (`X-Wavvon-Signature-V1`)
 
 ```
