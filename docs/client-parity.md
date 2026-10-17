@@ -254,10 +254,14 @@ only one app passes found:
 | `onEditBanner` — edit a banner channel from its context menu | web |
 
 **Ten of these shipped on 2026-09-14** (shipped log), including the image
-attachment. The one left is `onJoinAllianceVoice`, and it is the only one that
-was never a wiring gap: web opens a visitor socket to the owning hub with a
-minted grant, and desktop's `voice_join` is bound to the active hub's own
-socket in Rust. It is tracked as a feature port in [Wavvon-clients#34](https://github.com/Wavvon/Wavvon-clients/issues/34).
+attachment. The last, `onJoinAllianceVoice`, shipped on 2026-10-17
+([Wavvon-clients#34](https://github.com/Wavvon/Wavvon-clients/issues/34)): it was
+never a wiring gap but a Rust feature port, since desktop's `voice_join` was
+bound to the active hub's own socket. Proving it with a desktop visitor that is
+a true stranger to the owning hub found two hub bugs that had silenced *every*
+real visitor, web included — the DH key could not be stored without a `users`
+row, and the join gate asked a visitor for roles it cannot hold. The browser
+stage had never seen either, because its visitor owned both hubs.
 
 **One apparent gap was not one**: desktop opens a mini-app in a native window
 (`open_mini_app`) where web promotes it to `GameModal`. Same `app_open`
