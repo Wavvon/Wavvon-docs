@@ -202,7 +202,8 @@ PUT  /api/hubs/:pubkey
 → 200 HubListing | 400 | 403 (signature mismatch)
 
 DELETE /api/hubs/:pubkey
-     body: { canonical_payload, hub_pubkey, signature }
+     body: { hub_pubkey, signature }
+     signature over "wavvon-directory/delete/v1:hub:<pubkey>:<listed_at>"
 → 204 | 403
 ```
 
