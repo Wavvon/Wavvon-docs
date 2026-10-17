@@ -120,7 +120,7 @@ anyone.
 DM dropped on A is invisible unless A is one of their home hubs.
 
 So: **turning the member switch on also makes the client publish its
-`HomeHubList` to A** (`PUT /identity/{master}/designation`, which A accepts —
+`HomeHubList` to A** (`POST /identity/{master}/designation`, which A accepts —
 the master is known there), and **A lists only members whose designation it
 holds**. B's send path then fetches `{A}/identity/{master}/designation`
 (public, master-signed, verified before use) when it has no local copy. That
