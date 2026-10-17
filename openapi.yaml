@@ -95,6 +95,20 @@ components:
       scheme: bearer
 
   schemas:
+    SignedMemberChange:
+      type: object
+      description: >-
+        The actor's signature over a group add or leave (wire-format.md,
+        "Group DM member change"). Without it the change holds on this hub
+        only; with it the hub carries the change to the other members' hubs.
+        Only on a hub advertising `dms.group.signedmembers`.
+      required: [issued_at, signature]
+      properties:
+        issued_at: { type: integer, description: unix seconds }
+        signature: { type: string }
+        signer_cert:
+          type: object
+          description: When the signing key is not the actor's own, the master-signed cert tying the two.
     User:
       type: object
       properties:
@@ -1455,6 +1469,8 @@ paths:
               required: [public_key]
               properties:
                 public_key: { type: string }
+                signed:
+                  $ref: "#/components/schemas/SignedMemberChange"
                 hub_url: { type: string, description: "Required for federated (cross-hub) friends" }
 
   /friends/pending:
@@ -1865,7 +1881,7 @@ paths:
                     description: Unix seconds; null for a permanent ban.
                   created_at: { type: integer }
         "400":
-          description: `duration_seconds` was zero.
+          description: "`duration_seconds` was zero."
         "403":
           description: >-
             The caller lacks the permission this request shape needs, or does
@@ -2888,8 +2904,47 @@ paths:
   /federation/dm:
     post:
       summary: Receive a federated DM from a peer hub
-      description: Called hub-to-hub, authenticated with the sending hub's Ed25519 key.
+      description: >-
+        Called hub-to-hub, authenticated with the sending hub's Ed25519 key.
+        For a conversation this hub already holds, the sender must be on the
+        stored roster (403 otherwise) and the block check reads that roster,
+        never the `members` the request carries; `members` only seeds a
+        conversation seen for the first time, and must then include the
+        sender.
       tags: [Federation]
+
+  /federation/dm-member-change:
+    post:
+      summary: Receive a signed group membership change from a peer hub
+      description: >-
+        The actor's signature over `wavvon/dm-member-change/v1` (see
+        wire-format.md). Applied only for a group this hub holds, from an
+        actor already on its roster, removing nobody but the actor, and only
+        when newer than the last change applied for that member; an older
+        one answers 200 and changes nothing. A conversation this hub has
+        never seen also answers 200: its first DM brings the current roster.
+      tags: [Federation]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [conversation_id, actor, issued_at, signature]
+              properties:
+                conversation_id: { type: string }
+                actor: { type: string }
+                added: { type: array, items: { type: string } }
+                removed: { type: array, items: { type: string } }
+                issued_at: { type: integer, description: unix seconds }
+                signature: { type: string }
+                signer_cert:
+                  type: object
+                  description: When the signing key is not the actor's own, the master-signed cert tying the two.
+      responses:
+        "200": { description: Applied, or nothing to apply }
+        "400": { description: Not a group, empty change, or issued_at in the future }
+        "401": { description: Signature or signer_cert does not hold for the actor }
+        "403": { description: Actor not on the roster, or removing someone else }
 
   /federation/alliance-invite:
     post:
@@ -2910,7 +2965,7 @@ paths:
       description: >-
         Sent with the announcing hub's own peer session. Carries the voucher
         the inviter returned from the join: its signature over
-        "wavvon/alliance-member/v1 " + alliance id + " " + the new member's
+        "wavvon/alliance-member/v1\0" + alliance id + "\0" + the new member's
         key. The receiver verifies it against a hub already in its own member
         list and against the key that authenticated, and checks that hub_url
         answers for that key. Without this only the inviter learns of a new
@@ -6115,6 +6170,12 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignedMemberChange"
 
   /conversations/{conversation_id}/sender-keys:
     get:

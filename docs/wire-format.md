@@ -507,6 +507,34 @@ signature:
   19cb16f7d84ee382ee5d2b01ac60e340b6011fe912a733f10b53785ce555e5844e4a49eab1f44fd5543c4a0d5b3a5efdc227bb02ced6c72705c9de15f5e49a0a
 ```
 
+### Group DM member change
+
+```
+prefix          : "wavvon/dm-member-change/v1\0"   (27 bytes incl. NUL)
+conversation_id : write_str(conversation_id)
+actor           : write_str(actor)          canonical pubkey of who made the change
+added           : write_str_vec(added)
+removed         : write_str_vec(removed)
+issued_at       : write_u64_le(issued_at)   unix seconds
+```
+
+Signed by the actor and sent as `signed` with `POST /conversations/{id}/members`
+(an add) or as the body of `DELETE /conversations/{id}/members/{pubkey}` (a
+leave), with `signer_cert` when the signing key is not the actor's own. The
+hub carries it to every other member's hub at `POST /federation/dm-member-change`,
+which applies it only from an actor already on its roster, removes nobody but
+the actor, and ignores a change no newer than the last it applied for that
+member. Advertised as `dms.group.signedmembers`. Vector (`"conv-1"`,
+`"actor"`, added `["new-a", "new-b"]`, removed `[]`, `1_700_000_000`, master
+seed `0x01 … 0x20`):
+
+```
+signing bytes:
+  776176766f6e2f646d2d6d656d6265722d6368616e67652f76310006000000636f6e762d31050000006163746f7202000000050000006e65772d61050000006e65772d620000000000f1536500000000
+signature:
+  1a141f3f3d17e7aac9ecfb851df6d4cc4ea7d0dd46aa87658a21c4d53e2efd9290578d11f1dafcc51131325fe4e85de005e73e524bda4d2751d68b9e21b35b00
+```
+
 ---
 
 ## Version bump policy

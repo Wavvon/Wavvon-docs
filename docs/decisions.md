@@ -6,6 +6,42 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## A group DM's roster changes on its members' signatures, not a peer's word
+
+**Decision** (2026-10-17, [Wavvon-server#119](https://github.com/Wavvon/Wavvon-server/issues/119)):
+a hub that holds a group conversation's roster treats it as the roster. A
+federated DM from someone not on it is refused, and the block check reads it
+rather than the member list the sending hub attached. Adds and leaves reach
+the other members' hubs as a change the **actor signs**
+(`wavvon/dm-member-change/v1`, [wire-format.md](wire-format.md)), carried by
+the actor's hub through an outbox. A receiving hub applies it only from
+someone already on its roster, only removes the actor themself, and keeps the
+newest change applied per member, so a replayed add cannot undo a later leave.
+
+**Why.** Each DM carried `members`, written by whichever hub sent it, and a
+hub used it to decide who was in the conversation; anyone who knew a
+conversation id could post into it through a hub of their own. Checking the
+stored roster alone would have closed that and broken groups instead, because
+adds and leaves never left the hub they happened on: a member added on one
+hub would have been refused everywhere else.
+
+**Alternatives.** Keep trusting `members` (the hole). A change the *hub*
+attests, authenticated by the peer session (no client change, but the peer
+session is exactly what a self-asserted `is_hub` key passes, so the trust is
+the same one that failed). A single owning hub per conversation that every
+other hub defers to (a coordination point federated DMs have never had, and a
+group that stops changing when that hub is down).
+
+**Tradeoff.** A client has to sign membership changes, and an unsigned change
+from an older client stays on its own hub. A DM that outruns its change is
+refused once and delivered on the sender's outbox retry. A remote hub cannot
+verify a paired device's change unless it already knows that device's master,
+the same limit plaintext DMs have.
+
+**Outcome.** Shipped hub-side with `dms.group.signedmembers`. Neither client
+has a control that adds to or leaves a group yet; the signing call sites come
+with that control.
+
 ## Desktop restores a full archive by merge-or-create, in the web's format
 
 **Decision** (2026-10-17, [Wavvon-clients#35](https://github.com/Wavvon/Wavvon-clients/issues/35)):
