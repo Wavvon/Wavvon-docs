@@ -492,6 +492,12 @@ content         : write_str(content)
 
 Signed by the sender's identity key and sent as `plaintext_signature` with a
 DM in the clear; a receiving hub refuses a plaintext federated DM without it.
+A device signing with a key other than the canonical one (a paired subkey, or
+a self-certified device the hub seated as its master) also sends
+`plaintext_signer_cert`, the master-signed cert tying that key to the sender —
+verified the same way as `signer_cert` on an encrypted envelope. Clients send
+it only to a hub advertising `dms.plaintext.signercert`; an older hub checks
+the signature against the canonical key alone and refuses the send.
 Vector (`"conv-1"`, `"dm"`, `"héllo"`, master seed `0x01 … 0x20`):
 
 ```

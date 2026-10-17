@@ -1406,6 +1406,18 @@ paths:
                   type: array
                   items: { $ref: '#/components/schemas/Attachment' }
                 is_encrypted: { type: boolean }
+                plaintext_signature:
+                  type: string
+                  description: >-
+                    Hex Ed25519 signature over the federated plaintext DM bytes
+                    (wire-format.md). A recipient on another hub refuses an
+                    unsigned plaintext DM.
+                plaintext_signer_cert:
+                  type: object
+                  description: >-
+                    When the signing key is not the sender's canonical key: the
+                    master-signed cert tying the two. Only on a hub advertising
+                    `dms.plaintext.signercert`.
 
   /conversations/{conversation_id}:
     get:
