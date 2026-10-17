@@ -203,6 +203,13 @@ component would leave the half that matters behind; giving desktop the feature
 means writing the archive assembly against its own storage, which is a
 feature port and should be filed as one — not as parity plumbing.
 
+**CLOSED 2026-10-17** ([Wavvon-clients#35](https://github.com/Wavvon/Wavvon-clients/issues/35)).
+Both halves turned out to split cleanly: the component *was* hoisted, with an
+actions prop, and what stayed behind is each client's storage — web's
+IndexedDB/localStorage, desktop's `archive.rs`. The envelope, the document and
+the merge rule are shared, so an archive opens on either client
+([data-export.md](data-export.md) §0).
+
 ### "Events with role slots + reminders" was never a gap (checked 2026-09-11)
 
 It sat on this list as web-only and is on both clients, and has been for as
@@ -257,9 +264,8 @@ rather than on the backlog. Porting a feature means deleting its line. That is
 the answer to the warning three paragraphs up: not "check the code before
 believing a row", but a check that cannot be believed without the code.
 
-The full encrypted data-export archive stays a *feature port with a design
-question in it* rather than parity plumbing — see above, and
-[Wavvon-clients#35](https://github.com/Wavvon/Wavvon-clients/issues/35).
+The full encrypted data-export archive was the *feature port with a design
+question in it* — closed 2026-10-17, see above.
 
 ### Desktop's connection readout — CLOSED 2026-09-11
 

@@ -5,29 +5,74 @@ passphrase-encrypted archive of everything on the user's **personal
 axis**: identity, home-hub designations, prefs, devices, and decrypted
 DM history. Data sovereignty as a checkable feature, not a promise.
 
-**Status: export and import both implemented on web (v1).** Import landed
-after this doc's notes were written: `apps/web/src/utils/archiveRestore.ts`
-(`parseArchiveDocument` → `planRestore` against a
-`readExistingAccountSnapshot` → `applyRestorePlan`, with a skipped/restored
-summary), driven from `FullArchiveSection`'s restore mode and covered by
-`archiveRestore.test.ts`. **Cross-client import is still deferred** — the web
-`wavvon-archive` envelope and the desktop identity-backup envelope remain
-structurally similar but distinct formats, and reconciling them needs a shared
-envelope spec first. See "Implementation notes" below.
+**Status: export and import on web and desktop, one format (v1).** An archive
+made on either client opens on the other ([Wavvon-clients#35](https://github.com/Wavvon/Wavvon-clients/issues/35),
+decision in [decisions.md](decisions.md), "Desktop restores a full archive by
+merge-or-create, in the web's format"). The shared pieces live in Wavvon-clients:
+the envelope in `packages/core/src/identity/archive.ts`, the document type, its
+validation and the merge rule (`parseArchiveDocument`, `planRestore`) in
+`packages/ui/src/utils/fullArchive.ts`, the UI in `packages/ui`'s
+`FullArchiveSection`. Desktop's Rust half is `apps/desktop/src-tauri/src/archive.rs`.
 
 ---
 
-## 0. Implementation notes (web, v1)
+## 0. Implementation notes (v1)
 
-- **Envelope**: the web client ships its own self-contained
-  `wavvon-archive` envelope (`apps/web/src/utils/archiveCrypto.ts`) —
-  Argon2id (64 MiB / t=3 / p=1 / 32-byte key, same parameters as
-  desktop's `identity_cmd.rs`) → AES-256-GCM via WebCrypto, with a
-  `format`/`version` header. It does **not** byte-match the desktop
-  identity-backup envelope; the two are structurally similar but
-  distinct formats. **Cross-client compatibility (desktop reading a
-  web archive, or vice versa) is deferred** — needs a shared envelope
-  spec first if ever wanted.
+- **Envelope** — `wavvon-archive`, version 1. Plain JSON, every binary
+  field standard base64 with padding:
+
+  ```jsonc
+  {
+    "format": "wavvon-archive",
+    "version": 1,
+    "kdf": { "alg": "argon2id", "m": 65536, "t": 3, "p": 1, "salt": "<16 bytes>" },
+    "cipher": { "alg": "aes-256-gcm", "nonce": "<12 bytes>" },
+    "ciphertext": "<AES-256-GCM output, 16-byte tag appended>"
+  }
+  ```
+
+  Key = Argon2id v0x13 over the UTF-8 passphrase, `m` KiB / `t` passes /
+  `p` lanes, 32-byte output — the same parameters as `.wavvon-backup`.
+  The plaintext is the UTF-8 archive document; no associated data. A reader
+  refuses anything whose `format` is not `wavvon-archive` (an identity backup
+  has no `format` field, which is how the two are told apart), treats any
+  other `version` as "made by a newer Wavvon", and reads `m`/`t`/`p` from the
+  file rather than assuming them. The file is the envelope pretty-printed,
+  named `wavvon-archive-<YYYY-MM-DD>.json.enc`.
+
+  **Shared test vector**, asserted by `archive.test.ts` (core) and
+  `archive.rs`'s `shared_test_vector_matches_typescript`:
+
+  | Input | Value |
+  |---|---|
+  | passphrase | `correct horse battery staple` |
+  | salt (hex) | `000102030405060708090a0b0c0d0e0f` → `AAECAwQFBgcICQoLDA0ODw==` |
+  | nonce (hex) | `101112131415161718191a1b` → `EBESExQVFhcYGRob` |
+  | plaintext | `{"kind":"full-archive","version":1,"drafts":{"hub/chan":"héllo"}}` (UTF-8; the `é` pins the encoding) |
+  | ciphertext | `Z09mUE8r16LXBD5sK5AIBC9ibH1qYOmuCEGeyBKECZtAjAqdiQ2whqQvi9rfblE958JzUnfEfX914HqmzOzkkVgqoN0g34v3b+vz7Z/m70IWjA==` |
+
+  The vector pins the envelope, not the document: JSON serialisers differ
+  in key order and spacing, so the two clients agree on the document's
+  *shape* (§2), checked by `parseArchiveDocument` and its Rust mirror
+  `validate_document`, which refuse the same files with the same error codes.
+- **Desktop keeps the seed in Rust.** Export: the renderer gathers what only
+  it holds (DM plaintext through the existing `get_dm_messages`, drafts, the
+  mention-ping switch) and `export_full_archive` adds the identity, the
+  hub-synced prefs, the hub list / ignored users / voice gains / custom theme
+  and the hub records, then encrypts and writes. Restore: `open_full_archive`
+  decrypts, resolves the identity to an account — **merge** into the one
+  already on the device, or **create** it — and hands back the document
+  *without* its identity; the renderer runs the shared `planRestore` and
+  `apply_full_archive_restore` writes the result. A paired device's archive
+  (its seed is a subkey, its master is someone else's) is refused when the
+  device does not already hold that account: restored as an owned account it
+  would be a different identity.
+- **Desktop's local differences**, which the archive carries as-is: drafts
+  and the mention-ping switch are device-wide on desktop rather than per
+  account; desktop keeps one custom theme per account, so a restore fills an
+  empty slot with the archive's first theme and counts the rest as skipped;
+  voice gains are percent in the archive and a 0–2 multiplier in desktop's
+  file.
 - **Prefs**: closed. `packages/core/src/identity/master.ts` now ports
   `derive_blob_key`/`decrypt_prefs` (HKDF-SHA256 + AES-256-GCM, byte-
   identical to `apps/desktop/src-tauri/src/prefs_blob.rs` — pinned by a
@@ -59,7 +104,16 @@ envelope spec first. See "Implementation notes" below.
 - **DM attachments**: dropped from the exported message bodies (v1
   ships identity/direction/body only) rather than embedding or
   inventing a URL-reference scheme — see §6.
-- **Import/restore (§5) is not built.** Export only in this pass.
+- **DM history is one page per conversation** on both clients today: each
+  conversation's messages come from a single fetch (web asks for 50,
+  desktop takes the hub's default), not the paginated-to-completion walk
+  §4 asks for.
+- **Import/restore** follows §5 except for the prefs blob: the hub list,
+  drafts, themes, ignored users, voice gains and mention-ping switch are
+  merged locally (union — what the account already has wins); the
+  hub-synced prefs are not re-uploaded but left to the home hub that
+  already holds them, and DM history, the paired-device gap and the hub
+  records are listed to the user as not restored.
 
 ## 1. The architectural constraint that shapes everything
 
