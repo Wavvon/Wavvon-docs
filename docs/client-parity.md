@@ -181,6 +181,15 @@ The moderation suite was desktop's remaining admin gap and is **closed as of
 transport half. All four live in `packages/ui` prop-only; desktop's commands
 are on the active session like the rest of its moderation surface.
 
+**A hub that refuses the session — CLOSED 2026-10-17**
+([Wavvon-clients#100](https://github.com/Wavvon/Wavvon-clients/issues/100)).
+Both clients render the shared `HubRefusedPanel` from `classifyHubRefusal`,
+and both redeem an invite from it (desktop re-authenticates with the code
+through `add_hub`). Desktop's `get_me` returns the hub's `{status, message}`
+so a refusal is distinguishable from a failure to ask; and a saved hub that
+cannot be reached at startup is named in a toast instead of vanishing — the
+same "could not ask read as no" shape web fixed in `restorePersistedHubs`.
+
 The outgoing-webhook port is worth two notes for the next one of these. It
 took `EventSubscriptionEditor` and the four webhook shapes into
 `packages/ui` with it — a section's *pure* dependencies travel, they do not
