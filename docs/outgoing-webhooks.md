@@ -100,6 +100,7 @@ Every outgoing POST carries three headers:
 ```
 X-Wavvon-Hub-Pubkey:  <hex ed25519 pubkey of the hub>
 X-Wavvon-Signature:   <HMAC-SHA256(body, signing_key), hex-encoded>
+X-Wavvon-Signature-V1: <HMAC-SHA256(tag || timestamp || body, signing_key), hex>
 X-Wavvon-Timestamp:   <unix seconds>
 X-Wavvon-Webhook-Id:  <id>
 ```
@@ -113,9 +114,13 @@ supported without a cryptography library.
 `X-Wavvon-Hub-Pubkey` is included for informational traceability — which
 hub sent this — but the authenticity guarantee is the HMAC.
 
-**Replay protection**: the receiver should reject requests where
-`|now − X-Wavvon-Timestamp| > 300 s`. The hub documents this requirement
-for integrators.
+**Replay protection**: verify `X-Wavvon-Signature-V1`, which covers the
+timestamp (layout and vectors in [wire-format.md](wire-format.md), "Webhook
+delivery"), then reject requests where `|now − X-Wavvon-Timestamp| > 300 s`.
+The body-only `X-Wavvon-Signature` cannot support that check: the timestamp
+beside it is unsigned, so a captured request replays with a fresh one. It
+stays only for receivers written before `webhooks.signedtimestamp`, and goes
+at a major.
 
 **Rotate secret**: admin clicks "Rotate secret" in the UI → hub generates
 a new secret, stores the new key, returns the new raw secret (shown

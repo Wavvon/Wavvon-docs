@@ -76,6 +76,13 @@ the interaction to the webhook of the app that authored the message, and
 applies the response. The app must be able to read the channel its own
 component was clicked in — the same `messages.read` check a person passes.
 
+Both are signed by the hub key. Verify `X-Wavvon-Signature-V1` against
+`X-Wavvon-Hub-Pubkey` — it covers `X-Wavvon-Timestamp` and the body
+([wire-format.md](wire-format.md), "Webhook delivery") — and refuse a request
+more than 300 s old. The older `X-Wavvon-Signature` covers the body alone, and
+an invocation carries no time of its own, so on that signature alone a
+captured invocation replays forever.
+
 ## 4. Mini-apps and the game modal
 
 An app that declares a `mini_app_url` can be opened as an embedded view: the

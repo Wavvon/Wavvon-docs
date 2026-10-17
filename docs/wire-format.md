@@ -535,6 +535,36 @@ signature:
   1a141f3f3d17e7aac9ecfb851df6d4cc4ea7d0dd46aa87658a21c4d53e2efd9290578d11f1dafcc51131325fe4e85de005e73e524bda4d2751d68b9e21b35b00
 ```
 
+### Webhook delivery (`X-Wavvon-Signature-V1`)
+
+```
+prefix    : "wavvon/webhook-delivery/v1\0"   (27 bytes incl. NUL)
+timestamp : u64 LE   (the X-Wavvon-Timestamp value)
+body      : the request body, raw bytes, unprefixed
+```
+
+What a hub signs over a POST to a program: Ed25519 by the hub key for a slash
+or component dispatch, HMAC-SHA256 by the webhook's signing key for an outgoing
+webhook. Sent as `X-Wavvon-Signature-V1` beside the body-only
+`X-Wavvon-Signature`, which stays until a major. Advertised as
+`webhooks.signedtimestamp`. Vectors (`1_700_000_000`):
+
+```
+signing bytes (body {"type":"slash_command"}):
+  776176766f6e2f776562686f6f6b2d64656c69766572792f76310000f15365000000007b2274797065223a22736c6173685f636f6d6d616e64227d
+Ed25519 signature, master seed 0x01 … 0x20:
+  86328471c43aa165ef1ed671d51e46eaeb8de46d6921c51f7bfe9541825b0e246c90acd6b4aa1b977e4cde24271abcd762ff1c7871436de6ab7e1bea627f3c01
+
+HMAC, secret = 32 × 0x07:
+  signing key = HKDF-SHA256(secret, salt "wavvon-webhook-signing", info ""):
+    351763f9898ddacf3bb67a23c046e219c03c85e5097a965a35f940bc8ae93c87
+  HMAC over the signing bytes for body {"type":"hub_event"}:
+    42abcf09c2fbd629a8ba1bff16e7f315b27ad167fb36a2f68e648716ee3079d3
+```
+
+Wavvon-server: `crates/identity/tests/wire_vectors.rs` (`webhook_delivery_vector`)
+and `crates/hub/src/outgoing_webhooks/delivery.rs` (`signature_v1_vector`).
+
 ---
 
 ## Version bump policy
