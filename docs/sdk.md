@@ -71,13 +71,12 @@ six languages has these in its standard library or one ubiquitous package
 needs a library such as NSec, since the BCL has no Ed25519). That is why all
 six can ship tier 1 before any of the heavy crypto exists.
 
-**Two webhook signatures, both over the body only.** Slash and component
-dispatch is Ed25519 by the hub key (Wavvon-server: `crates/hub/src/apps/dispatch.rs`);
-outgoing webhooks are HMAC. In both, `X-Wavvon-Timestamp` is **not** covered
-by the signature, so the 300-second replay check outgoing-webhooks.md asks of
-receivers cannot be enforced from the header. A `hub_event` body carries a
-signed `at`, so the SDK checks freshness there; a slash invocation body
-carries no timestamp at all and is replayable today. See open question 6.
+**Two webhook signatures.** Slash and component dispatch is Ed25519 by the
+hub key (Wavvon-server: `crates/hub/src/apps/dispatch.rs`); outgoing webhooks
+are HMAC. Both now also send `X-Wavvon-Signature-V1` over
+`tag || timestamp || body`, which is what an SDK verifier checks, with the
+300-second window (§10, question 6). The older body-only signature is for
+receivers written before it.
 
 ## 3. REST clients generated from the spec
 

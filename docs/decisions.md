@@ -45,6 +45,11 @@ slash invocation carries no signed timestamp (sdk.md §2, open question 6).
 starts on Wavvon-server (vector export), then TypeScript and Rust, then Python
 and Go, then C# and Java. Open questions are listed in sdk.md §10.
 
+*Status (2026-10-18):* the open questions are settled in sdk.md §10 —
+Apache-2.0, `packages/core` wrapped, `wavvon-identity` on crates.io, C# moved
+up beside Python, Java and Go community / experimental. Replay protection
+landed as `X-Wavvon-Signature-V1` (Wavvon-server#160).
+
 ## A group DM's roster changes on its members' signatures, not a peer's word
 
 **Decision** (2026-10-17, [Wavvon-server#119](https://github.com/Wavvon/Wavvon-server/issues/119)):
