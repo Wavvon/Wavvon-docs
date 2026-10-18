@@ -74,6 +74,37 @@ if (missingFromSpec.length) {
   process.exit(1);
 }
 
+// SDK generators name methods after operationId; without one they derive a
+// name from the path, so renaming a path would rename a public SDK method.
+const lines = spec.split(/\r?\n/);
+const noOpId = [];
+const opIds = new Map();
+let currentPath = null;
+lines.forEach((line, i) => {
+  const p = line.match(/^ {2}(\/[^\s:]*):\s*$/);
+  if (p) {
+    currentPath = p[1];
+    return;
+  }
+  const m = line.match(/^ {4}(get|post|put|patch|delete|head|options):\s*$/);
+  if (!m || !currentPath) return;
+  const op = `${m[1].toUpperCase()} ${currentPath}`;
+  let id = null;
+  for (let j = i + 1; j < lines.length && /^( {6}|\s*$)/.test(lines[j]); j++) {
+    const idLine = lines[j].match(/^ {6}operationId:\s*(\S+)\s*$/);
+    if (idLine) id = idLine[1];
+  }
+  if (!id) noOpId.push(op);
+  else opIds.set(id, [...(opIds.get(id) ?? []), op]);
+});
+const duplicateIds = [...opIds].filter(([, ops]) => ops.length > 1);
+if (noOpId.length || duplicateIds.length) {
+  for (const op of noOpId) console.error(`FAIL — no operationId: ${op}`);
+  for (const [id, ops] of duplicateIds)
+    console.error(`FAIL — operationId ${id} used by: ${ops.join(", ")}`);
+  process.exit(1);
+}
+
 console.log(
-  `openapi coverage OK: ${codePaths.size} registered routes all documented (spec has ${specPaths.size} paths).`,
+  `openapi coverage OK: ${codePaths.size} registered routes all documented (spec has ${specPaths.size} paths, ${opIds.size} operationIds).`,
 );

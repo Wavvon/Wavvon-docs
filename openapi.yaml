@@ -468,6 +468,7 @@ paths:
 
   /ws:
     get:
+      operationId: connectWebSocket
       summary: Realtime WebSocket endpoint
       description: |
         Upgrades to a WebSocket carrying all realtime traffic. Authenticate
@@ -497,6 +498,7 @@ paths:
 
   /health:
     get:
+      operationId: getHealth
       summary: Liveness check
       security: []
       tags: [Health]
@@ -512,6 +514,7 @@ paths:
 
   /info:
     get:
+      operationId: getInfo
       summary: Hub metadata
       description: Returns public hub information. No auth required — used by clients before joining.
       security: []
@@ -527,6 +530,7 @@ paths:
 
   /auth/challenge:
     post:
+      operationId: createAuthChallenge
       summary: Request an auth challenge
       description: |
         Returns a random nonce string. The client must sign this with its
@@ -563,6 +567,7 @@ paths:
 
   /auth/verify:
     post:
+      operationId: verifyAuth
       summary: Verify signature and obtain session token
       description: |
         Submit the signed challenge to receive a Bearer token.
@@ -662,6 +667,7 @@ paths:
 
   /me:
     get:
+      operationId: getMe
       summary: Get own profile and roles
       tags: [Me]
       responses:
@@ -670,6 +676,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/MeInfo' }
     patch:
+      operationId: updateMe
       summary: Update display name and avatar
       tags: [Me]
       requestBody:
@@ -689,6 +696,7 @@ paths:
                     `people_visible` switch is on. Hubs advertising
                     `alliance.people`.
     delete:
+      operationId: deleteMe
       summary: Leave this hub
       description: |
         Removes the caller from the hub: profile fields cleared, every role
@@ -717,6 +725,7 @@ paths:
 
   /me/credentials:
     get:
+      operationId: listMeCredentials
       summary: List the caller's registered passkeys
       tags: [Me]
       responses:
@@ -736,6 +745,7 @@ paths:
 
   /me/credentials/{id}:
     patch:
+      operationId: updateMeCredential
       summary: Rename a passkey
       tags: [Me]
       parameters:
@@ -752,6 +762,7 @@ paths:
               properties:
                 friendly_name: { type: string }
     delete:
+      operationId: deleteMeCredential
       summary: Remove a passkey
       tags: [Me]
       parameters:
@@ -762,6 +773,7 @@ paths:
 
   /me/devices:
     get:
+      operationId: listMeDevices
       summary: List the caller's trusted devices (active device tokens)
       tags: [Me]
       responses:
@@ -781,6 +793,7 @@ paths:
 
   /me/devices/{id}:
     delete:
+      operationId: deleteMeDevice
       summary: Revoke a trusted device token
       tags: [Me]
       parameters:
@@ -793,6 +806,7 @@ paths:
 
   /hub:
     patch:
+      operationId: updateHub
       summary: Update hub name / icon (admin)
       tags: [Hub]
       requestBody:
@@ -806,6 +820,7 @@ paths:
 
   /hub/settings:
     get:
+      operationId: getHubSettings
       summary: Get hub settings (admin)
       tags: [Hub]
       responses:
@@ -814,6 +829,7 @@ paths:
 
   /hub/members:
     get:
+      operationId: listHubMembers
       summary: List all hub members
       tags: [Hub]
       responses:
@@ -826,6 +842,7 @@ paths:
 
   /hub/pending:
     get:
+      operationId: listHubPending
       summary: List users awaiting approval (admin)
       description: |
         Oldest first — the queue is worked from the front, so the cursor moves
@@ -844,6 +861,7 @@ paths:
 
   /hub/pending/{target_key}/approve:
     post:
+      operationId: approveHubPending
       summary: Approve a pending user (admin)
       tags: [Hub]
       parameters:
@@ -854,14 +872,17 @@ paths:
 
   /hub/icons:
     get:
+      operationId: listHubIcons
       summary: List custom hub icons
       tags: [Hub]
     post:
+      operationId: createHubIcon
       summary: Upload a custom SVG icon (admin)
       tags: [Hub]
 
   /hub/icons/{icon_id}:
     patch:
+      operationId: updateHubIcon
       summary: Rename a hub icon (admin)
       tags: [Hub]
       parameters:
@@ -870,6 +891,7 @@ paths:
           required: true
           schema: { type: string }
     delete:
+      operationId: deleteHubIcon
       summary: Delete a hub icon (admin)
       tags: [Hub]
       parameters:
@@ -880,6 +902,7 @@ paths:
 
   /hub/settings/lobby:
     put:
+      operationId: setHubSettingsLobby
       summary: Update lobby / security level settings (admin)
       tags: [Hub]
       requestBody:
@@ -894,6 +917,7 @@ paths:
 
   /hub/settings/challenge:
     put:
+      operationId: setHubSettingsChallenge
       summary: Update bot-challenge mode (admin)
       tags: [Hub]
       requestBody:
@@ -908,6 +932,7 @@ paths:
 
   /apps:
     get:
+      operationId: listApps
       summary: List the apps registered on this hub (any member)
       description: >
         What a client needs for slash-command autocomplete. Registering an app
@@ -944,6 +969,7 @@ paths:
 
   /me/app:
     get:
+      operationId: getMeApp
       summary: The caller's own app registration (apps.register)
       tags: [Apps]
       responses:
@@ -955,6 +981,7 @@ paths:
 
   /me/app/profile:
     put:
+      operationId: setMeAppProfile
       summary: Register or replace the caller's app profile (apps.register)
       tags: [Apps]
       requestBody:
@@ -987,6 +1014,7 @@ paths:
 
   /me/app/commands:
     put:
+      operationId: setMeAppCommands
       summary: Replace the caller's slash command list (apps.register)
       tags: [Apps]
       requestBody:
@@ -1014,6 +1042,7 @@ paths:
 
   /me/app/subscriptions:
     put:
+      operationId: setMeAppSubscriptions
       summary: Replace the caller's hub-event subscriptions (apps.register)
       description: >
         A `message.*` subscription must name its channels; a hub-wide one
@@ -1051,6 +1080,7 @@ paths:
 
   /channels:
     get:
+      operationId: listChannels
       summary: List all channels and categories
       tags: [Channels]
       responses:
@@ -1061,6 +1091,7 @@ paths:
                 type: array
                 items: { $ref: '#/components/schemas/Channel' }
     post:
+      operationId: createChannel
       summary: Create a channel or category (manage_channels)
       tags: [Channels]
       requestBody:
@@ -1077,11 +1108,13 @@ paths:
 
   /channels/reorder:
     post:
+      operationId: reorderChannels
       summary: Reorder channels (manage_channels)
       tags: [Channels]
 
   /channels/{channel_id}:
     patch:
+      operationId: updateChannel
       summary: Update channel (manage_channels)
       tags: [Channels]
       parameters:
@@ -1090,6 +1123,7 @@ paths:
           required: true
           schema: { type: string }
     delete:
+      operationId: deleteChannel
       summary: Delete channel (manage_channels)
       tags: [Channels]
       parameters:
@@ -1102,6 +1136,7 @@ paths:
 
   /channels/{channel_id}/my-permissions:
     get:
+      operationId: getChannelMyPermissions
       summary: Caller's resolved effective permissions on a channel
       description: >-
         Not gated on manage_roles — any member may see their own effective
@@ -1126,6 +1161,7 @@ paths:
 
   /channels/{channel_id}/permissions:
     get:
+      operationId: listChannelPermissions
       summary: Get resolved permission overwrites for every role on a channel (manage_roles)
       tags: [Channels]
       parameters:
@@ -1158,6 +1194,7 @@ paths:
 
   /channels/{channel_id}/permissions/{role_id}:
     put:
+      operationId: setChannelPermission
       summary: Replace a role's permission overwrites on a channel (manage_roles)
       description: >-
         Cannot grant `admin` via an overwrite, cannot edit a role at or
@@ -1185,6 +1222,7 @@ paths:
         "403":
           description: Role at or above caller's priority, or grant exceeds caller's own permissions
     delete:
+      operationId: deleteChannelPermission
       summary: Clear a role's permission overwrites on a channel (manage_roles)
       tags: [Channels]
       parameters:
@@ -1202,16 +1240,19 @@ paths:
 
   /voice/populations:
     get:
+      operationId: listVoicePopulations
       summary: Voice user count per channel
       tags: [Voice]
 
   /voice/active-users:
     get:
+      operationId: listVoiceActiveUsers
       summary: List all users in any voice channel
       tags: [Voice]
 
   /voice/participants:
     get:
+      operationId: listVoiceParticipants
       summary: Participants in the caller's current voice channel
       tags: [Voice]
 
@@ -1219,6 +1260,7 @@ paths:
 
   /channels/{channel_id}/messages:
     get:
+      operationId: listChannelMessages
       summary: Fetch message history
       tags: [Messages]
       parameters:
@@ -1241,6 +1283,7 @@ paths:
                 type: array
                 items: { $ref: '#/components/schemas/Message' }
     post:
+      operationId: createChannelMessage
       summary: Send a message
       tags: [Messages]
       parameters:
@@ -1263,6 +1306,7 @@ paths:
 
   /channels/{channel_id}/messages/{message_id}:
     patch:
+      operationId: updateChannelMessage
       summary: Edit own message
       tags: [Messages]
       parameters:
@@ -1282,6 +1326,7 @@ paths:
               properties:
                 content: { type: string }
     delete:
+      operationId: deleteChannelMessage
       summary: Delete message (own or manage_messages)
       tags: [Messages]
       parameters:
@@ -1296,6 +1341,7 @@ paths:
 
   /channels/{channel_id}/messages/{message_id}/reactions:
     post:
+      operationId: createChannelMessageReaction
       summary: Add reaction to a message
       tags: [Messages]
       parameters:
@@ -1318,6 +1364,7 @@ paths:
 
   /channels/{channel_id}/messages/{message_id}/reactions/{emoji}:
     delete:
+      operationId: deleteChannelMessageReaction
       summary: Remove own reaction
       tags: [Messages]
       parameters:
@@ -1338,6 +1385,7 @@ paths:
 
   /conversations:
     get:
+      operationId: listConversations
       summary: List DM conversations
       description: Newest first. Paged only on hubs advertising `list.cursor.lists`.
       tags: [DMs]
@@ -1358,6 +1406,7 @@ paths:
                 type: array
                 items: { $ref: '#/components/schemas/Conversation' }
     post:
+      operationId: createConversation
       summary: Create a DM conversation
       tags: [DMs]
       requestBody:
@@ -1373,6 +1422,7 @@ paths:
 
   /conversations/{conversation_id}/messages:
     get:
+      operationId: listConversationMessages
       summary: List messages in a DM conversation (paginated)
       description: >
         Newest `limit` messages, returned oldest-first. Page backwards with
@@ -1401,6 +1451,7 @@ paths:
                 type: array
                 items: { $ref: '#/components/schemas/DmMessage' }
     post:
+      operationId: createConversationMessage
       summary: Send a DM
       tags: [DMs]
       parameters:
@@ -1435,6 +1486,7 @@ paths:
 
   /conversations/{conversation_id}:
     get:
+      operationId: getConversation
       summary: One conversation the caller is a member of
       description: >-
         Membership is enforced by the query, so a non-member gets the same 404
@@ -1456,9 +1508,11 @@ paths:
 
   /friends:
     get:
+      operationId: listFriends
       summary: List accepted friends
       tags: [Friends]
     post:
+      operationId: createFriend
       summary: Send a friend request
       tags: [Friends]
       requestBody:
@@ -1475,11 +1529,13 @@ paths:
 
   /friends/pending:
     get:
+      operationId: listPendingFriends
       summary: List incoming pending friend requests
       tags: [Friends]
 
   /friends/{public_key}/accept:
     post:
+      operationId: acceptFriend
       summary: Accept a friend request
       tags: [Friends]
       parameters:
@@ -1490,6 +1546,7 @@ paths:
 
   /friends/{public_key}:
     delete:
+      operationId: deleteFriend
       summary: Remove a friend
       tags: [Friends]
       parameters:
@@ -1502,6 +1559,7 @@ paths:
 
   /invites:
     get:
+      operationId: listInvites
       summary: List active invites (manage_invites)
       description: >-
         Newest first, and only the invites that can still admit someone — an
@@ -1530,6 +1588,7 @@ paths:
                 type: array
                 items: { $ref: '#/components/schemas/Invite' }
     post:
+      operationId: createInvite
       summary: Create an invite (manage_invites)
       description: >-
         With `bound_pubkey` set the invite admits that identity and nobody
@@ -1560,6 +1619,7 @@ paths:
 
   /invites/{code}:
     delete:
+      operationId: deleteInvite
       summary: Revoke an invite (manage_invites)
       tags: [Invites]
       parameters:
@@ -1572,6 +1632,7 @@ paths:
 
   /permissions:
     get:
+      operationId: listPermissions
       summary: The permission catalogue this hub can express
       description: >-
         Every permission id with its scope, so clients render the roles and
@@ -1609,6 +1670,7 @@ paths:
 
   /users/{public_key}/permissions/why:
     get:
+      operationId: explainUserPermissions
       summary: Why this member can (or cannot) do X here
       description: >-
         Answers *role Moderators, allowed on #general*. Two axes are debuggable
@@ -1664,9 +1726,11 @@ paths:
 
   /roles:
     get:
+      operationId: listRoles
       summary: List roles
       tags: [Roles]
     post:
+      operationId: createRole
       summary: Create a role (manage_roles)
       tags: [Roles]
       requestBody:
@@ -1683,6 +1747,7 @@ paths:
 
   /roles/{role_id}:
     patch:
+      operationId: updateRole
       summary: Update a role (manage_roles)
       tags: [Roles]
       parameters:
@@ -1691,6 +1756,7 @@ paths:
           required: true
           schema: { type: string }
     delete:
+      operationId: deleteRole
       summary: Delete a role (manage_roles)
       tags: [Roles]
       parameters:
@@ -1701,6 +1767,7 @@ paths:
 
   /roles/{role_id}/members:
     get:
+      operationId: listRoleMembers
       summary: List members with this role
       tags: [Roles]
       parameters:
@@ -1713,6 +1780,7 @@ paths:
 
   /role-categories:
     get:
+      operationId: listRoleCategories
       summary: List role categories
       tags: [Roles]
       responses:
@@ -1723,6 +1791,7 @@ paths:
                 type: array
                 items: { $ref: '#/components/schemas/RoleCategory' }
     post:
+      operationId: createRoleCategory
       summary: Create a role category (manage_roles)
       tags: [Roles]
       requestBody:
@@ -1744,6 +1813,7 @@ paths:
 
   /role-categories/{category_id}:
     patch:
+      operationId: updateRoleCategory
       summary: Update a role category (manage_roles)
       tags: [Roles]
       parameters:
@@ -1767,6 +1837,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/RoleCategory' }
     delete:
+      operationId: deleteRoleCategory
       summary: Delete a role category (manage_roles)
       description: Roles referencing this category fall back to uncategorized.
       tags: [Roles]
@@ -1778,6 +1849,7 @@ paths:
 
   /users/{public_key}/roles:
     get:
+      operationId: listUserRoles
       summary: Get roles assigned to a user
       tags: [Roles]
       parameters:
@@ -1788,6 +1860,7 @@ paths:
 
   /users/{public_key}/roles/{role_id}:
     put:
+      operationId: setUserRole
       summary: Assign role to user (manage_roles)
       tags: [Roles]
       parameters:
@@ -1800,6 +1873,7 @@ paths:
           required: true
           schema: { type: string }
     delete:
+      operationId: deleteUserRole
       summary: Remove role from user (manage_roles)
       tags: [Roles]
       parameters:
@@ -1816,6 +1890,7 @@ paths:
 
   /moderation/bans:
     get:
+      operationId: listModerationBans
       summary: List bans (moderation.ban.permanent)
       description: >-
         Newest first, paged only on hubs advertising `list.cursor.lists`.
@@ -1836,6 +1911,7 @@ paths:
           description: Keyset cursor — the `target_public_key` of the previous page's last row.
           schema: { type: string }
     post:
+      operationId: createModerationBan
       summary: Ban a user (moderation.ban.temporary or .permanent)
       description: >-
         Which permission this needs is decided by the request, not the route.
@@ -1889,6 +1965,7 @@ paths:
 
   /moderation/bans/{target_key}:
     delete:
+      operationId: deleteModerationBan
       summary: Unban (moderation.ban.permanent)
       description: >-
         Lifts either kind. It stays on the permanent permission because
@@ -1902,6 +1979,7 @@ paths:
 
   /moderation/mutes:
     get:
+      operationId: listModerationMutes
       summary: List mutes (manage_users)
       description: Newest first. Paged only on hubs advertising `list.cursor.lists`.
       tags: [Moderation]
@@ -1915,11 +1993,13 @@ paths:
           description: Keyset cursor — the `target_public_key` of the previous page's last row.
           schema: { type: string }
     post:
+      operationId: createModerationMute
       summary: Mute a user (manage_users)
       tags: [Moderation]
 
   /moderation/mutes/{target_key}:
     delete:
+      operationId: deleteModerationMute
       summary: Unmute (manage_users)
       tags: [Moderation]
       parameters:
@@ -1930,11 +2010,13 @@ paths:
 
   /moderation/timeout:
     post:
+      operationId: timeoutUser
       summary: Timeout a user (manage_users)
       tags: [Moderation]
 
   /moderation/kick:
     post:
+      operationId: kickUser
       summary: Kick a user (manage_users)
       tags: [Moderation]
 
@@ -1944,14 +2026,17 @@ paths:
 
   /moderation/voice-mutes:
     get:
+      operationId: listModerationVoiceMutes
       summary: List voice mutes
       tags: [Moderation]
     post:
+      operationId: createModerationVoiceMute
       summary: Voice-mute a user (manage_users)
       tags: [Moderation]
 
   /moderation/voice-mutes/{target_key}:
     delete:
+      operationId: deleteModerationVoiceMute
       summary: Remove voice mute
       tags: [Moderation]
       parameters:
@@ -1962,6 +2047,7 @@ paths:
 
   /channels/{channel_id}/talk-power:
     get:
+      operationId: getChannelTalkPower
       summary: Get talk-power setting for channel
       tags: [Moderation]
       parameters:
@@ -1970,6 +2056,7 @@ paths:
           required: true
           schema: { type: string }
     post:
+      operationId: setChannelTalkPower
       summary: Set talk-power (manage_channels)
       tags: [Moderation]
       parameters:
@@ -1982,6 +2069,7 @@ paths:
 
   /users:
     get:
+      operationId: listUsers
       summary: List hub members (paginated)
       description: >
         Members the hub knows, ordered by display name then public key.
@@ -2014,9 +2102,11 @@ paths:
 
   /alliances:
     get:
+      operationId: listAlliances
       summary: List alliances this hub belongs to
       tags: [Alliances]
     post:
+      operationId: createAlliance
       summary: Create an alliance (manage_hub)
       tags: [Alliances]
       requestBody:
@@ -2030,16 +2120,19 @@ paths:
 
   /alliances/join:
     post:
+      operationId: joinAllianceWithInvite
       summary: Join an alliance via invite token (manage_hub)
       tags: [Alliances]
 
   /alliances/pending-invites:
     get:
+      operationId: listPendingAllianceInvites
       summary: List pending alliance invites received by this hub
       tags: [Alliances]
 
   /alliances/pending-invites/{invite_id}/accept:
     post:
+      operationId: acceptPendingAllianceInvite
       summary: Accept a pending alliance invite (manage_hub)
       tags: [Alliances]
       parameters:
@@ -2050,6 +2143,7 @@ paths:
 
   /alliances/pending-invites/{invite_id}:
     delete:
+      operationId: declinePendingAllianceInvite
       summary: Decline a pending alliance invite
       tags: [Alliances]
       parameters:
@@ -2060,6 +2154,7 @@ paths:
 
   /alliances/{alliance_id}:
     get:
+      operationId: getAlliance
       summary: Get alliance details and member hubs
       tags: [Alliances]
       parameters:
@@ -2070,6 +2165,7 @@ paths:
 
   /alliances/{alliance_id}/people:
     get:
+      operationId: listAlliancePeople
       summary: Browse the opted-in members of one allied hub
       description: |
         Alliance member discovery. Read-through: the owning hub answers from its
@@ -2140,6 +2236,7 @@ paths:
 
   /alliances/{alliance_id}/people-visibility:
     put:
+      operationId: setAlliancePeopleVisibility
       summary: Allow or withhold this hub's people for one alliance (alliance manager)
       description: >-
         The alliance-level consent switch, off by default. Mirrored as
@@ -2168,6 +2265,7 @@ paths:
 
   /alliances/{alliance_id}/invite:
     post:
+      operationId: inviteToAlliance
       summary: Create an invite token for another hub to join (alliance manager)
       tags: [Alliances]
       parameters:
@@ -2178,6 +2276,7 @@ paths:
 
   /alliances/{alliance_id}/leave:
     delete:
+      operationId: leaveAlliance
       summary: Leave an alliance (manage_hub)
       tags: [Alliances]
       parameters:
@@ -2188,6 +2287,7 @@ paths:
 
   /alliances/{alliance_id}/voice-grant:
     post:
+      operationId: createAllianceVoiceGrant
       summary: Mint a voice grant for an allied hub's shared channel
       description: |
         Called by one of **this** hub's members, for a voice channel owned by
@@ -2239,6 +2339,7 @@ paths:
 
   /alliances/{alliance_id}/managers:
     get:
+      operationId: listAllianceManagers
       summary: Roles that may act on this alliance
       description: >-
         The per-alliance grant list (decisions.md, "Alliance permissions"):
@@ -2270,6 +2371,7 @@ paths:
 
   /alliances/{alliance_id}/managers/{role_id}:
     put:
+      operationId: setAllianceManager
       summary: Let a role manage this alliance (roles.manage)
       description: >-
         Handing out authority, so it is `roles.manage` rather than
@@ -2294,6 +2396,7 @@ paths:
         "404":
           description: Alliance or role not found
     delete:
+      operationId: deleteAllianceManager
       summary: Stop a role managing this alliance (roles.manage)
       tags: [Alliances]
       parameters:
@@ -2311,6 +2414,7 @@ paths:
 
   /alliances/{alliance_id}/channels:
     get:
+      operationId: listAllianceChannels
       summary: List channels shared into this alliance
       tags: [Alliances]
       parameters:
@@ -2319,6 +2423,7 @@ paths:
           required: true
           schema: { type: string }
     post:
+      operationId: createAllianceChannel
       summary: Share a channel into the alliance (alliance manager + channels.manage)
       description: >-
         Needs **both**: the right to act on this alliance (`alliances.manage`
@@ -2370,6 +2475,7 @@ paths:
 
   /alliances/{alliance_id}/channels/{channel_id}:
     delete:
+      operationId: deleteAllianceChannel
       summary: Unshare a channel from the alliance (alliance manager + channels.manage)
       tags: [Alliances]
       parameters:
@@ -2384,6 +2490,7 @@ paths:
 
   /alliances/{alliance_id}/channels/{channel_id}/messages:
     get:
+      operationId: listAllianceChannelMessages
       summary: Fetch federated channel messages
       tags: [Alliances]
       parameters:
@@ -2396,6 +2503,7 @@ paths:
           required: true
           schema: { type: string }
     post:
+      operationId: createAllianceChannelMessage
       summary: Post to a federated alliance channel
       tags: [Alliances]
       parameters:
@@ -2417,6 +2525,7 @@ paths:
 
   /alliances/{alliance_id}/channels/{channel_id}/posts:
     get:
+      operationId: listAllianceChannelPosts
       summary: List posts in an alliance-shared forum channel
       tags: [Alliances, Forum]
       parameters:
@@ -2448,6 +2557,7 @@ paths:
         "403": { description: Channel is not shared with the caller, or remote writes are off }
         "409": { description: Channel is not a forum }
     post:
+      operationId: createAllianceChannelPost
       summary: Create a post in an alliance-shared forum channel
       description: >-
         Subject to the owning channel's `forum_remote_write` policy —
@@ -2480,6 +2590,7 @@ paths:
 
   /alliances/{alliance_id}/channels/{channel_id}/posts/{post_id}:
     get:
+      operationId: getAllianceChannelPost
       summary: One post with its replies, from an alliance-shared forum channel
       tags: [Alliances, Forum]
       parameters:
@@ -2501,6 +2612,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/PostDetail' }
     delete:
+      operationId: deleteAllianceChannelPost
       summary: Retract a post the caller's hub authored
       description: >-
         The owning hub honours this only when the post's `author_hub` is the
@@ -2526,6 +2638,7 @@ paths:
 
   /alliances/{alliance_id}/channels/{channel_id}/posts/{post_id}/replies:
     post:
+      operationId: createAllianceChannelPostReply
       summary: Reply to a post in an alliance-shared forum channel
       tags: [Alliances, Forum]
       parameters:
@@ -2559,6 +2672,7 @@ paths:
 
   /alliances/{alliance_id}/channels/{channel_id}/posts/{post_id}/replies/{reply_id}:
     delete:
+      operationId: deleteAllianceChannelPostReply
       summary: Retract a reply the caller's hub authored
       tags: [Alliances, Forum]
       parameters:
@@ -2584,6 +2698,7 @@ paths:
 
   /alliances/{alliance_id}/channels/{channel_id}/posts/{post_id}/reactions:
     post:
+      operationId: createAllianceChannelPostReaction
       summary: React to a post in an alliance-shared forum channel
       tags: [Alliances, Forum]
       parameters:
@@ -2614,6 +2729,7 @@ paths:
 
   /lobby/status:
     get:
+      operationId: getLobbyStatus
       summary: Get lobby status for the current user
       description: Available when session scope is "lobby". Returns PoW progress.
       tags: [Lobby]
@@ -2625,6 +2741,7 @@ paths:
 
   /lobby/submit-pow:
     post:
+      operationId: submitLobbyPow
       summary: Submit a PoW nonce to increase security level
       description: |
         Compute `SHA256(utf8(public_key_hex) || little_endian_u64(nonce))` and
@@ -2643,6 +2760,7 @@ paths:
 
   /lobby/welcome:
     get:
+      operationId: getLobbyWelcome
       summary: Get the hub's welcome message (Markdown)
       tags: [Lobby]
 
@@ -2650,6 +2768,7 @@ paths:
 
   /challenge/new:
     get:
+      operationId: getNewChallenge
       summary: Fetch a bot-challenge prompt
       description: |
         Returns a challenge the user must solve before auth. Mode is set by the hub admin.
@@ -2666,6 +2785,7 @@ paths:
 
   /challenge/verify:
     post:
+      operationId: verifyChallenge
       summary: Submit challenge answer and receive a one-time token
       description: |
         On success returns a `challenge_token` to include in `POST /auth/verify`.
@@ -2685,11 +2805,13 @@ paths:
 
   /survey/current:
     get:
+      operationId: getSurveyCurrent
       summary: Get the active onboarding survey
       tags: [Survey]
 
   /survey/submit:
     post:
+      operationId: submitSurvey
       summary: Submit survey answers
       description: |
         Choice answers auto-apply configured roles. Free-text answers route the
@@ -2698,19 +2820,23 @@ paths:
 
   /admin/survey:
     get:
+      operationId: getAdminSurvey
       summary: Get full survey config including role mappings (manage_hub)
       tags: [Survey]
     put:
+      operationId: setAdminSurvey
       summary: Create or replace the survey (manage_hub)
       tags: [Survey]
 
   /admin/survey/responses:
     get:
+      operationId: listAdminSurveyResponses
       summary: List all survey responses (manage_hub)
       tags: [Survey]
 
   /admin/survey/responses/{pubkey}:
     get:
+      operationId: getAdminSurveyResponse
       summary: Get a specific user's survey response (manage_hub)
       tags: [Survey]
       parameters:
@@ -2723,6 +2849,7 @@ paths:
 
   /me/events:
     get:
+      operationId: listMeEvents
       summary: Poll for undelivered events (slash command invocations)
       tags: [Apps]
       parameters:
@@ -2731,6 +2858,7 @@ paths:
           schema: { type: integer }
           description: Unix timestamp — return events created after this time
     delete:
+      operationId: ackMeEvents
       summary: Acknowledge delivered events
       tags: [Apps]
       requestBody:
@@ -2745,6 +2873,7 @@ paths:
 
   /identity/{master}/designation:
     get:
+      operationId: getIdentityDesignation
       summary: Get the home-hub list a master key has published here
       tags: [Identity]
       parameters:
@@ -2753,6 +2882,7 @@ paths:
           required: true
           schema: { type: string }
     post:
+      operationId: createIdentityDesignation
       summary: Publish a master-signed home-hub list
       description: >-
         Unauthenticated on purpose: a client publishes the same designation to
@@ -2775,6 +2905,7 @@ paths:
 
   /identity/{master}/devices:
     get:
+      operationId: listIdentityDevices
       summary: List devices linked to a master key
       tags: [Identity]
       parameters:
@@ -2783,6 +2914,7 @@ paths:
           required: true
           schema: { type: string }
     post:
+      operationId: createIdentityDevice
       summary: Register a new device subkey
       tags: [Identity]
       parameters:
@@ -2793,6 +2925,7 @@ paths:
 
   /identity/{master}/revocations:
     get:
+      operationId: listIdentityRevocations
       summary: List revoked device keys
       tags: [Identity]
       parameters:
@@ -2801,6 +2934,7 @@ paths:
           required: true
           schema: { type: string }
     post:
+      operationId: createIdentityRevocation
       summary: Revoke a device key
       tags: [Identity]
       parameters:
@@ -2811,6 +2945,7 @@ paths:
 
   /identity/{master}/prefs:
     get:
+      operationId: getIdentityPrefs
       summary: Get cross-device preferences blob
       tags: [Identity]
       parameters:
@@ -2819,6 +2954,7 @@ paths:
           required: true
           schema: { type: string }
     put:
+      operationId: setIdentityPrefs
       summary: Store cross-device preferences blob
       tags: [Identity]
       parameters:
@@ -2829,6 +2965,7 @@ paths:
 
   /identity/{pubkey}/dh-key:
     get:
+      operationId: getIdentityDhKey
       summary: Get DH public key for E2E encryption key exchange
       tags: [Identity]
       parameters:
@@ -2837,6 +2974,7 @@ paths:
           required: true
           schema: { type: string }
     put:
+      operationId: setIdentityDhKey
       summary: Publish own DH public key
       tags: [Identity]
       parameters:
@@ -2847,21 +2985,25 @@ paths:
 
   /identity/pairing/offer:
     post:
+      operationId: createIdentityPairingOffer
       summary: Create a device-pairing offer
       tags: [Identity]
 
   /identity/pairing/claim:
     post:
+      operationId: claimIdentityPairing
       summary: Claim a pairing offer from a new device
       tags: [Identity]
 
   /identity/pairing/complete:
     post:
+      operationId: completeIdentityPairing
       summary: Complete the pairing handshake
       tags: [Identity]
 
   /identity/pairing/status/{token}:
     get:
+      operationId: getIdentityPairingStatus
       summary: Poll pairing status
       tags: [Identity]
       parameters:
@@ -2874,6 +3016,7 @@ paths:
 
   /profile/{pubkey}:
     get:
+      operationId: getProfile
       summary: Get public hub-list profile for a user
       security: []
       tags: [Profile]
@@ -2883,6 +3026,7 @@ paths:
           required: true
           schema: { type: string }
     put:
+      operationId: setProfile
       summary: Publish own public hub-list profile
       tags: [Profile]
       parameters:
@@ -2895,14 +3039,17 @@ paths:
 
   /federation/peers:
     get:
+      operationId: listFederationPeers
       summary: List federated peer hubs
       tags: [Federation]
     post:
+      operationId: createFederationPeer
       summary: Add a federation peer
       tags: [Federation]
 
   /federation/dm:
     post:
+      operationId: createFederationDm
       summary: Receive a federated DM from a peer hub
       description: >-
         Called hub-to-hub, authenticated with the sending hub's Ed25519 key.
@@ -2915,6 +3062,7 @@ paths:
 
   /federation/dm-member-change:
     post:
+      operationId: createFederationDmMemberChange
       summary: Receive a signed group membership change from a peer hub
       description: >-
         The actor's signature over `wavvon/dm-member-change/v1` (see
@@ -2948,11 +3096,13 @@ paths:
 
   /federation/alliance-invite:
     post:
+      operationId: createFederationAllianceInvite
       summary: Receive an alliance invite push from a peer hub
       tags: [Federation]
 
   /federation/alliance-member:
     delete:
+      operationId: deleteFederationAllianceMember
       summary: A hub tells the other members that it is leaving the alliance
       description: >-
         Removes the **calling** hub's own membership row and nothing else, so
@@ -2961,6 +3111,7 @@ paths:
         and kept letting it read what the alliance shares.
       tags: [Federation]
     post:
+      operationId: createFederationAllianceMember
       summary: A hub that just joined an alliance announces itself to the other members
       description: >-
         Sent with the announcing hub's own peer session. Carries the voucher
@@ -2974,11 +3125,13 @@ paths:
 
   /admin/directory-sign:
     post:
+      operationId: signAdminDirectoryListing
       summary: Sign a directory entry for the hub discovery service
       tags: [Federation]
 
   /preview:
     get:
+      operationId: getPreview
       summary: Fetch a link preview (title/description/image) for a URL
       description: >-
         Server-side fetch with SSRF protection (private/loopback/link-local
@@ -3007,6 +3160,7 @@ paths:
 
   /admin/search/reindex:
     post:
+      operationId: reindexAdminSearch
       summary: Rebuild the full-text search index from the messages table (admin)
       description: >-
         Starts an asynchronous reindex and returns immediately. A second call
@@ -3033,6 +3187,7 @@ paths:
 
   /federation/forum/channels/{channel_id}/posts:
     post:
+      operationId: createFederationForumChannelPost
       summary: A peer hub creates a post in a shared forum channel
       description: Requires `forum_remote_write = posts_and_replies`.
       security: []
@@ -3064,6 +3219,7 @@ paths:
 
   /federation/forum/channels/{channel_id}/posts/{post_id}:
     delete:
+      operationId: deleteFederationForumChannelPost
       summary: A peer hub retracts one of its own users' posts
       description: >-
         Honoured only when the post's `author_hub` matches the calling peer
@@ -3094,6 +3250,7 @@ paths:
 
   /federation/forum/channels/{channel_id}/posts/{post_id}/replies:
     post:
+      operationId: createFederationForumChannelPostReply
       summary: A peer hub replies to a post in a shared forum channel
       description: Allowed under `replies_only` as well as `posts_and_replies`.
       security: []
@@ -3127,6 +3284,7 @@ paths:
 
   /federation/forum/channels/{channel_id}/posts/{post_id}/replies/{reply_id}:
     delete:
+      operationId: deleteFederationForumChannelPostReply
       summary: A peer hub retracts one of its own users' replies
       security: []
       tags: [Federation, Forum]
@@ -3157,6 +3315,7 @@ paths:
 
   /federation/forum/channels/{channel_id}/posts/{post_id}/reactions:
     post:
+      operationId: createFederationForumChannelPostReaction
       summary: A peer hub adds one of its users' reactions to a post
       security: []
       tags: [Federation, Forum]
@@ -3186,6 +3345,7 @@ paths:
 
   /auth/webauthn/begin:
     post:
+      operationId: beginWebauthnRegistration
       summary: Start WebAuthn passkey registration
       description: Excludes credentials the user already has so re-registering the same authenticator is blocked.
       security: []
@@ -3211,6 +3371,7 @@ paths:
 
   /auth/webauthn/finish:
     post:
+      operationId: finishWebauthnRegistration
       summary: Complete WebAuthn passkey registration and issue a session token
       security: []
       tags: [Auth]
@@ -3237,6 +3398,7 @@ paths:
 
   /auth/webauthn/assert/begin:
     post:
+      operationId: beginWebauthnAssertion
       summary: Start WebAuthn passkey authentication (login)
       security: []
       tags: [Auth]
@@ -3262,6 +3424,7 @@ paths:
 
   /auth/webauthn/assert/finish:
     post:
+      operationId: finishWebauthnAssertion
       summary: Complete WebAuthn assertion and issue a session token
       security: []
       tags: [Auth]
@@ -3287,6 +3450,7 @@ paths:
 
   /auth/device-token/create:
     post:
+      operationId: createAuthDeviceToken
       summary: Mint a long-lived "trust this device" token
       description: Requires an existing session (e.g. right after a WebAuthn assertion).
       tags: [Auth]
@@ -3310,6 +3474,7 @@ paths:
 
   /auth/device-token/redeem:
     post:
+      operationId: redeemAuthDeviceToken
       summary: Exchange a device token for a fresh session token
       description: Rotates the device token on each use (issues a new one, invalidates the old).
       security: []
@@ -3337,6 +3502,7 @@ paths:
 
   /metrics:
     get:
+      operationId: getMetrics
       summary: Prometheus metrics (text exposition format)
       security: []
       tags: [Health]
@@ -3346,6 +3512,7 @@ paths:
 
   /key-rotation:
     get:
+      operationId: getKeyRotation
       summary: Get the signed hub key-rotation payload
       description: Serves `hub_rotation.json` if the hub has rotated its keypair, so federation peers can follow the rotation. 204 when no rotation exists.
       security: []
@@ -3360,6 +3527,7 @@ paths:
 
   /admin/settings/pow:
     get:
+      operationId: getAdminSettingsPow
       summary: Get the minimum PoW level setting (admin)
       tags: [Hub]
       responses:
@@ -3371,6 +3539,7 @@ paths:
                 properties:
                   min_pow_level: { type: integer }
     patch:
+      operationId: updateAdminSettingsPow
       summary: Update the minimum PoW level (admin)
       tags: [Hub]
       requestBody:
@@ -3384,6 +3553,7 @@ paths:
 
   /admin/settings/moderation:
     patch:
+      operationId: updateAdminSettingsModeration
       summary: Set the auto-moderation webhook URL and HMAC secret (admin)
       tags: [Hub]
       requestBody:
@@ -3397,6 +3567,7 @@ paths:
 
   /admin/settings/listing:
     patch:
+      operationId: updateAdminSettingsListing
       summary: Toggle whether the hub is listed for discovery (admin)
       tags: [Hub]
       requestBody:
@@ -3410,6 +3581,7 @@ paths:
 
   /admin/settings/tags:
     get:
+      operationId: getAdminSettingsTags
       summary: Get hub self-tags and NSFW flag (admin)
       tags: [Hub]
       responses:
@@ -3422,6 +3594,7 @@ paths:
                   tags: { type: array, items: { type: string } }
                   nsfw: { type: boolean }
     patch:
+      operationId: updateAdminSettingsTags
       summary: Replace hub self-tags (admin)
       description: >-
         Max 12 tags, each 1–32 chars of `a-z0-9-` after normalisation.
@@ -3442,6 +3615,7 @@ paths:
 
   /admin/banlist/sources:
     get:
+      operationId: listAdminBanlistSources
       summary: List federated ban list sources (admin)
       tags: [Federation]
       responses:
@@ -3458,6 +3632,7 @@ paths:
                     added_at: { type: integer }
                     issuer_pubkey: { type: string, nullable: true }
     post:
+      operationId: createAdminBanlistSource
       summary: Add a ban list source and trigger an immediate sync (admin)
       tags: [Federation]
       requestBody:
@@ -3481,6 +3656,7 @@ paths:
                   added_at: { type: integer }
                   issuer_pubkey: { type: string, nullable: true }
     patch:
+      operationId: updateAdminBanlistSources
       summary: Update the policy on an existing ban list source (admin)
       tags: [Federation]
       requestBody:
@@ -3496,6 +3672,7 @@ paths:
         "404":
           description: Source not found
     delete:
+      operationId: deleteAdminBanlistSources
       summary: Remove a ban list source and its synced entries (admin)
       tags: [Federation]
       requestBody:
@@ -3509,6 +3686,7 @@ paths:
 
   /admin/banlist/entries:
     get:
+      operationId: listAdminBanlistEntries
       summary: List synced federated ban entries (admin)
       tags: [Federation]
       parameters:
@@ -3533,6 +3711,7 @@ paths:
 
   /moderation/history/{pubkey}:
     get:
+      operationId: getModerationHistory
       summary: What other hubs have said about this member
       description: >-
         Entries from subscribed federated ban lists that name this member,
@@ -3565,6 +3744,7 @@ paths:
 
   /admin/banlist/overrides:
     get:
+      operationId: listAdminBanlistOverrides
       summary: List local ban list overrides (admin)
       tags: [Federation]
       responses:
@@ -3581,6 +3761,7 @@ paths:
                     reason: { type: string, nullable: true }
                     created_at: { type: integer }
     post:
+      operationId: createAdminBanlistOverride
       summary: Add a local whitelist/blacklist override (admin)
       tags: [Federation]
       requestBody:
@@ -3607,6 +3788,7 @@ paths:
 
   /admin/banlist/overrides/{pubkey}:
     delete:
+      operationId: deleteAdminBanlistOverride
       summary: Remove a ban list override (admin)
       tags: [Federation]
       parameters:
@@ -3617,6 +3799,7 @@ paths:
 
   /admin/settings/banlist:
     get:
+      operationId: getAdminSettingsBanlist
       summary: Get ban list publishing settings and configured sources (admin)
       tags: [Federation]
       responses:
@@ -3637,6 +3820,7 @@ paths:
                         added_at: { type: integer }
                         issuer_pubkey: { type: string, nullable: true }
     patch:
+      operationId: updateAdminSettingsBanlist
       summary: Toggle whether this hub publishes its ban list (admin)
       tags: [Federation]
       requestBody:
@@ -3650,6 +3834,7 @@ paths:
 
   /admin/audit-log:
     get:
+      operationId: listAdminAuditLog
       summary: Cursor-paginated hub audit log (admin)
       tags: [Moderation]
       parameters:
@@ -3696,6 +3881,7 @@ paths:
 
   /channels/unread:
     get:
+      operationId: listUnreadChannels
       summary: Unread message counts for every visible channel
       tags: [Channels]
       responses:
@@ -3712,6 +3898,7 @@ paths:
 
   /channels/{channel_id}/read:
     post:
+      operationId: markChannelRead
       summary: Mark a channel as read up to now
       tags: [Channels]
       parameters:
@@ -3724,6 +3911,7 @@ paths:
 
   /channels/{channel_id}/pins:
     get:
+      operationId: listChannelPins
       summary: List pinned messages in a channel
       description: Newest pin first. Paged only on hubs advertising `list.cursor.lists`.
       tags: [Messages]
@@ -3763,6 +3951,7 @@ paths:
 
   /channels/{channel_id}/pins/{message_id}:
     post:
+      operationId: pinChannelMessage
       summary: Pin a message (manage_messages)
       tags: [Messages]
       parameters:
@@ -3775,6 +3964,7 @@ paths:
           required: true
           schema: { type: string }
     delete:
+      operationId: unpinChannelMessage
       summary: Unpin a message (manage_messages)
       tags: [Messages]
       parameters:
@@ -3791,6 +3981,7 @@ paths:
 
   /channels/{channel_id}/upload:
     post:
+      operationId: uploadChannelFile
       summary: Upload a file to a channel
       description: >-
         Multipart upload with the file in a `file` field. Max is the hub's
@@ -3830,6 +4021,7 @@ paths:
 
   /uploads/{filename}:
     get:
+      operationId: getUpload
       summary: Download an uploaded file
       description: >-
         Public — filenames are unguessable UUIDs. Always served with
@@ -3851,6 +4043,7 @@ paths:
 
   /soundboard:
     get:
+      operationId: listSoundboardSounds
       summary: List every clip in the hub's soundboard library
       description: Any authenticated member may list; playing one is gated separately by use_soundboard.
       tags: [Soundboard]
@@ -3871,6 +4064,7 @@ paths:
                     duration_ms: { type: integer }
                     created_at: { type: integer }
     post:
+      operationId: createSoundboardSound
       summary: Upload a soundboard clip (manage_soundboard)
       description: >-
         Multipart upload: `name` (text), optional `emoji` (text), `audio`
@@ -3905,6 +4099,7 @@ paths:
 
   /soundboard/{id}:
     delete:
+      operationId: deleteSoundboardSound
       summary: Delete a soundboard clip (manage_soundboard)
       tags: [Soundboard]
       parameters:
@@ -3915,6 +4110,7 @@ paths:
 
   /soundboard/{id}/audio:
     get:
+      operationId: getSoundboardSoundAudio
       summary: Fetch a clip's raw Opus-in-Ogg audio bytes
       description: Clips are immutable once uploaded, so responses are cacheable indefinitely.
       tags: [Soundboard]
@@ -3929,6 +4125,7 @@ paths:
 
   /soundboard/{id}/played:
     post:
+      operationId: markSoundboardSoundPlayed
       summary: Broadcast a "clip played" attribution event (use_soundboard)
       description: >-
         Attribution UX only — the hub does not verify the clip was actually
@@ -3953,6 +4150,7 @@ paths:
 
   /messages/{id}/report:
     post:
+      operationId: reportMessage
       summary: Report a message for moderator review
       tags: [Moderation]
       parameters:
@@ -3975,6 +4173,7 @@ paths:
 
   /admin/reports:
     get:
+      operationId: listAdminReports
       summary: List message reports (admin)
       tags: [Moderation]
       parameters:
@@ -4009,6 +4208,7 @@ paths:
 
   /admin/reports/{id}/review:
     post:
+      operationId: reviewAdminReport
       summary: Review a report — dismiss, delete the message, or ban the sender (admin)
       tags: [Moderation]
       parameters:
@@ -4030,6 +4230,7 @@ paths:
 
   /search:
     get:
+      operationId: search
       summary: Full-text search across messages
       description: >-
         Searches the hub message index across all text channels the caller is
@@ -4065,6 +4266,7 @@ paths:
 
   /emojis:
     get:
+      operationId: listEmojis
       summary: List custom emojis
       security: []
       tags: [Emojis]
@@ -4083,6 +4285,7 @@ paths:
 
   /emojis/{id}/image:
     get:
+      operationId: getEmojiImage
       summary: Get the emoji image bytes
       security: []
       tags: [Emojis]
@@ -4097,6 +4300,7 @@ paths:
 
   /admin/emojis:
     post:
+      operationId: createAdminEmoji
       summary: Upload a custom emoji (admin)
       tags: [Emojis]
       requestBody:
@@ -4115,6 +4319,7 @@ paths:
 
   /admin/emojis/{id}:
     delete:
+      operationId: deleteAdminEmoji
       summary: Delete a custom emoji (admin)
       tags: [Emojis]
       parameters:
@@ -4127,6 +4332,7 @@ paths:
 
   /events:
     get:
+      operationId: listEvents
       summary: List hub events with RSVP counts
       tags: [Events]
       parameters:
@@ -4174,6 +4380,7 @@ paths:
                       enum: [going, maybe, not_going]
                       description: The caller's own RSVP; absent when they have none.
     post:
+      operationId: createEvent
       summary: Create an event (create_events)
       description: Also posts a system card message into the target channel.
       tags: [Events]
@@ -4193,6 +4400,7 @@ paths:
 
   /events/{event_id}:
     get:
+      operationId: getEvent
       summary: Get an event with RSVP counts
       tags: [Events]
       parameters:
@@ -4201,6 +4409,7 @@ paths:
           required: true
           schema: { type: string }
     put:
+      operationId: setEvent
       summary: Update an event (creator or admin)
       tags: [Events]
       parameters:
@@ -4220,6 +4429,7 @@ paths:
                 ends_at: { type: integer }
                 location: { type: string }
     delete:
+      operationId: deleteEvent
       summary: Delete an event (creator or admin)
       tags: [Events]
       parameters:
@@ -4230,6 +4440,7 @@ paths:
 
   /events/{event_id}/rsvp:
     post:
+      operationId: rsvpEvent
       summary: RSVP to an event (upserts the caller's status)
       tags: [Events]
       parameters:
@@ -4248,6 +4459,7 @@ paths:
 
   /events/{event_id}/rsvps:
     get:
+      operationId: listEventRsvps
       summary: List individual RSVPs for an event
       tags: [Events]
       parameters:
@@ -4269,6 +4481,7 @@ paths:
 
   /events/{event_id}/slots:
     post:
+      operationId: createEventSlot
       summary: Create a sign-up slot for an event (creator or admin)
       tags: [Events]
       parameters:
@@ -4301,6 +4514,7 @@ paths:
 
   /events/{event_id}/slots/{slot_id}:
     patch:
+      operationId: updateEventSlot
       summary: Rename or resize a slot (creator or admin)
       description: Rejects shrinking capacity below the current claim count; demote claimants off the slot first.
       tags: [Events]
@@ -4337,6 +4551,7 @@ paths:
         "400":
           description: New capacity is below the current claim count
     delete:
+      operationId: deleteEventSlot
       summary: Delete a slot (creator or admin)
       description: Rejects deletion while the slot still has claimants — move them off the slot first.
       tags: [Events]
@@ -4355,6 +4570,7 @@ paths:
 
   /events/{event_id}/assignments:
     get:
+      operationId: listEventAssignments
       summary: Every move assignment for an event
       description: >-
         Requires `read_messages` on the event's anchor channel plus organizer
@@ -4391,6 +4607,7 @@ paths:
 
   /events/{event_id}/squad-rooms:
     post:
+      operationId: createEventSquadRoom
       summary: Auto-spawn temp squad voice channels
       description: >-
         Creates `count` temp voice-capable channels named "<prefix> 1"…"<prefix>
@@ -4425,6 +4642,7 @@ paths:
 
   /channels/{channel_id}/polls:
     get:
+      operationId: listChannelPolls
       summary: List polls in a channel
       description: Newest first. Paged only on hubs advertising `list.cursor.lists`.
       tags: [Polls]
@@ -4463,6 +4681,7 @@ paths:
                       additionalProperties: { type: integer }
                       description: option_id → vote count
     post:
+      operationId: createChannelPoll
       summary: Create a poll in a channel (send_messages)
       description: Also posts a system card message into the channel. At least 2 options required.
       tags: [Polls]
@@ -4492,6 +4711,7 @@ paths:
 
   /polls/{poll_id}:
     get:
+      operationId: getPoll
       summary: Get a poll with vote totals and the caller's vote
       tags: [Polls]
       parameters:
@@ -4523,6 +4743,7 @@ paths:
                     items: { type: string }
                     nullable: true
     delete:
+      operationId: deletePoll
       summary: Delete a poll (creator or admin)
       tags: [Polls]
       parameters:
@@ -4533,6 +4754,7 @@ paths:
 
   /polls/{poll_id}/vote:
     post:
+      operationId: votePoll
       summary: Cast or replace the caller's vote
       tags: [Polls]
       parameters:
@@ -4561,6 +4783,7 @@ paths:
 
   /channels/{channel_id}/posts:
     get:
+      operationId: listChannelPosts
       summary: List posts in a forum channel (pinned first, then by activity)
       tags: [Forum]
       parameters:
@@ -4587,6 +4810,7 @@ paths:
                     items: { $ref: '#/components/schemas/PostSummary' }
                   cursor: { type: string, description: "Omitted on the last page" }
     post:
+      operationId: createChannelPost
       summary: Create a post (create_posts)
       tags: [Forum]
       parameters:
@@ -4611,6 +4835,7 @@ paths:
 
   /channels/{channel_id}/posts/search:
     get:
+      operationId: searchChannelPosts
       summary: Full-text search within a forum channel
       tags: [Forum]
       parameters:
@@ -4643,6 +4868,7 @@ paths:
 
   /channels/{channel_id}/posts/{post_id}:
     get:
+      operationId: getChannelPost
       summary: Get a post with a page of replies
       tags: [Forum]
       parameters:
@@ -4667,6 +4893,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/PostDetail' }
     patch:
+      operationId: updateChannelPost
       summary: Edit a post's title and/or body (author or manage_posts)
       tags: [Forum]
       parameters:
@@ -4687,6 +4914,7 @@ paths:
                 title: { type: string }
                 body: { type: string }
     delete:
+      operationId: deleteChannelPost
       summary: Delete a post — soft delete / tombstone (author or manage_posts)
       tags: [Forum]
       parameters:
@@ -4701,6 +4929,7 @@ paths:
 
   /channels/{channel_id}/posts/{post_id}/replies:
     post:
+      operationId: createChannelPostReply
       summary: Reply to a post (send_messages; locked posts require manage_posts)
       tags: [Forum]
       parameters:
@@ -4729,6 +4958,7 @@ paths:
 
   /channels/{channel_id}/posts/{post_id}/replies/{reply_id}:
     patch:
+      operationId: updateChannelPostReply
       summary: Edit a reply (author or manage_posts)
       tags: [Forum]
       parameters:
@@ -4753,6 +4983,7 @@ paths:
               properties:
                 body: { type: string }
     delete:
+      operationId: deleteChannelPostReply
       summary: Delete a reply — soft delete (author or manage_posts)
       tags: [Forum]
       parameters:
@@ -4771,6 +5002,7 @@ paths:
 
   /channels/{channel_id}/posts/{post_id}/pin:
     post:
+      operationId: pinChannelPost
       summary: Pin a post (manage_posts)
       tags: [Forum]
       parameters:
@@ -4783,6 +5015,7 @@ paths:
           required: true
           schema: { type: string }
     delete:
+      operationId: unpinChannelPost
       summary: Unpin a post (manage_posts)
       tags: [Forum]
       parameters:
@@ -4797,6 +5030,7 @@ paths:
 
   /channels/{channel_id}/posts/{post_id}/lock:
     post:
+      operationId: lockChannelPost
       summary: Lock a post against new replies (manage_posts)
       tags: [Forum]
       parameters:
@@ -4809,6 +5043,7 @@ paths:
           required: true
           schema: { type: string }
     delete:
+      operationId: unlockChannelPost
       summary: Unlock a post (manage_posts)
       tags: [Forum]
       parameters:
@@ -4823,6 +5058,7 @@ paths:
 
   /channels/{channel_id}/posts/{post_id}/read:
     post:
+      operationId: markChannelPostRead
       summary: Mark a post's replies as read up to now
       tags: [Forum]
       parameters:
@@ -4837,6 +5073,7 @@ paths:
 
   /channels/{channel_id}/posts/{post_id}/reactions:
     post:
+      operationId: createChannelPostReaction
       summary: React to a post
       tags: [Forum]
       parameters:
@@ -4859,6 +5096,7 @@ paths:
 
   /channels/{channel_id}/posts/{post_id}/reactions/{emoji}:
     delete:
+      operationId: deleteChannelPostReaction
       summary: Remove own reaction from a post
       tags: [Forum]
       parameters:
@@ -4877,6 +5115,7 @@ paths:
 
   /channels/{channel_id}/posts/{post_id}/replies/{reply_id}/reactions:
     post:
+      operationId: createChannelPostReplyReaction
       summary: React to a reply
       tags: [Forum]
       parameters:
@@ -4903,6 +5142,7 @@ paths:
 
   /channels/{channel_id}/posts/{post_id}/replies/{reply_id}/reactions/{emoji}:
     delete:
+      operationId: deleteChannelPostReplyReaction
       summary: Remove own reaction from a reply
       tags: [Forum]
       parameters:
@@ -4925,6 +5165,7 @@ paths:
 
   /channels/{channel_id}/tags:
     get:
+      operationId: listChannelTags
       summary: List a forum channel's tag definitions
       description: >-
         Tag definitions live on the channel; assigning and filtering by them
@@ -4944,6 +5185,7 @@ paths:
                 items: { $ref: '#/components/schemas/ForumTag' }
         "409": { description: Channel is not a forum }
     post:
+      operationId: createChannelTag
       summary: Create a tag definition (manage_posts)
       tags: [Forum]
       parameters:
@@ -4970,6 +5212,7 @@ paths:
 
   /tags/{tag_id}:
     patch:
+      operationId: updateTag
       summary: Edit a tag definition (manage_posts)
       description: >-
         No channel in the path — it is resolved from the tag row. `label` and
@@ -4998,6 +5241,7 @@ paths:
               schema: { $ref: '#/components/schemas/ForumTag' }
         "404": { description: tag_not_found }
     delete:
+      operationId: deleteTag
       summary: Delete a tag definition (manage_posts)
       description: Idempotent — deleting an already-deleted tag is 204.
       tags: [Forum]
@@ -5013,6 +5257,7 @@ paths:
 
   /channels/{channel_id}/bans:
     get:
+      operationId: listChannelBans
       summary: List channel bans (ban_members)
       tags: [Moderation]
       parameters:
@@ -5035,6 +5280,7 @@ paths:
                     reason: { type: string, nullable: true }
                     banned_at: { type: integer }
     post:
+      operationId: createChannelBan
       summary: Ban a user from a channel (ban_members)
       description: >
         The only channel-ban write path. A duplicate family under
@@ -5059,6 +5305,7 @@ paths:
 
   /channels/{channel_id}/bans/{pubkey}:
     delete:
+      operationId: deleteChannelBan
       summary: Remove a channel ban (ban_members)
       tags: [Moderation]
       parameters:
@@ -5073,6 +5320,7 @@ paths:
 
   /channels/{channel_id}/voice-mutes:
     get:
+      operationId: listChannelVoiceMutes
       summary: List per-channel voice mutes (mute_members)
       tags: [Moderation]
       parameters:
@@ -5094,6 +5342,7 @@ paths:
                     muted_by: { type: string }
                     muted_at: { type: string }
     post:
+      operationId: createChannelVoiceMute
       summary: Voice-mute a user in a channel (mute_members)
       tags: [Moderation]
       parameters:
@@ -5112,6 +5361,7 @@ paths:
 
   /channels/{channel_id}/voice-mutes/{pubkey}:
     delete:
+      operationId: deleteChannelVoiceMute
       summary: Remove a per-channel voice mute (mute_members)
       tags: [Moderation]
       parameters:
@@ -5126,6 +5376,7 @@ paths:
 
   /channels/{channel_id}/raise-hand:
     post:
+      operationId: raiseChannelHand
       summary: Raise hand to request talk permission
       tags: [Moderation]
       parameters:
@@ -5147,6 +5398,7 @@ paths:
 
   /channels/{channel_id}/raise-hand/{pubkey}:
     delete:
+      operationId: lowerChannelHand
       summary: Lower a hand (own hand, or anyone's with mute_members)
       tags: [Moderation]
       parameters:
@@ -5161,6 +5413,7 @@ paths:
 
   /channels/{channel_id}/raise-hands:
     get:
+      operationId: listChannelRaiseHands
       summary: List raised hands in a channel (oldest first)
       tags: [Moderation]
       parameters:
@@ -5171,6 +5424,7 @@ paths:
 
   /channels/{channel_id}/talk-grants/{pubkey}:
     post:
+      operationId: grantChannelTalk
       summary: Grant the floor for this voice session (moderation.mute)
       description: >-
         Answers a raised hand: the member may transmit in a channel whose
@@ -5196,6 +5450,7 @@ paths:
 
   /badges:
     get:
+      operationId: listBadges
       summary: List badges this hub holds (admin)
       tags: [Badges]
       responses:
@@ -5216,6 +5471,7 @@ paths:
 
   /badges/{id}:
     delete:
+      operationId: deleteBadge
       summary: Delete a held badge (admin)
       tags: [Badges]
       parameters:
@@ -5226,6 +5482,7 @@ paths:
 
   /badges/pending:
     get:
+      operationId: listPendingBadges
       summary: List pending badge offers from other hubs (admin)
       tags: [Badges]
       responses:
@@ -5247,6 +5504,7 @@ paths:
 
   /badges/pending/{id}/accept:
     post:
+      operationId: acceptPendingBadge
       summary: Accept a pending badge offer after signature re-verification (admin)
       tags: [Badges]
       parameters:
@@ -5257,6 +5515,7 @@ paths:
 
   /badges/pending/{id}/decline:
     post:
+      operationId: declinePendingBadge
       summary: Decline and delete a pending badge offer (admin)
       tags: [Badges]
       parameters:
@@ -5267,6 +5526,7 @@ paths:
 
   /admin/badges/issue:
     post:
+      operationId: issueAdminBadge
       summary: Issue a badge to another hub (admin)
       description: >-
         Fetches the recipient hub's /info, signs the badge payload with this
@@ -5303,11 +5563,13 @@ paths:
 
   /admin/badges/issued:
     get:
+      operationId: listAdminIssuedBadges
       summary: List badges this hub has issued (admin)
       tags: [Badges]
 
   /admin/badges/issued/{id}/revoke:
     delete:
+      operationId: revokeAdminIssuedBadge
       summary: Revoke an issued badge (admin)
       description: Sets `revoked_at`; the revocation appears in /federation/badge-revocations.
       tags: [Badges]
@@ -5319,6 +5581,7 @@ paths:
 
   /federation/badge-offer:
     post:
+      operationId: createFederationBadgeOffer
       summary: Receive a badge offer from another hub
       description: Hub-to-hub. The Ed25519 signature over the payload is the credential; no Bearer token.
       security: []
@@ -5339,6 +5602,7 @@ paths:
 
   /federation/badge-revocations:
     get:
+      operationId: listFederationBadgeRevocations
       summary: List badges this hub has revoked (public, polled by other hubs)
       security: []
       tags: [Badges]
@@ -5365,6 +5629,7 @@ paths:
 
   /admin/certs:
     get:
+      operationId: listAdminCerts
       summary: List all cert issuances (admin)
       tags: [Certifications]
       responses:
@@ -5388,6 +5653,7 @@ paths:
 
   /admin/certs/{pubkey}:
     post:
+      operationId: issueAdminCert
       summary: Manually issue a cert for a user (admin)
       tags: [Certifications]
       parameters:
@@ -5405,6 +5671,7 @@ paths:
 
   /admin/certs/{pubkey}/badge:
     post:
+      operationId: createAdminCertBadge
       summary: Grant a named achievement badge to a user (admin)
       description: >-
         A badge is a certification carrying a label (+ optional
@@ -5436,6 +5703,7 @@ paths:
 
   /admin/certs/{pubkey}/revoke:
     post:
+      operationId: revokeAdminCert
       summary: Revoke a user's certs (admin)
       description: Marks existing certs revoked and re-issues a short-lived standing=revoked cert so pull-path verifiers see it.
       tags: [Certifications]
@@ -5447,6 +5715,7 @@ paths:
 
   /admin/settings/certs:
     get:
+      operationId: listAdminSettingsCerts
       summary: Get certification settings (admin)
       tags: [Certifications]
       responses:
@@ -5470,6 +5739,7 @@ paths:
                       not require an address, and an issuer without one still
                       has its pushed certs honoured.
     patch:
+      operationId: updateAdminSettingsCerts
       summary: Update certification settings (admin)
       description: >-
         All fields optional. Scalars are accepted as strings, booleans or
@@ -5506,6 +5776,7 @@ paths:
 
   /identity/{pubkey}/certs:
     get:
+      operationId: listIdentityCerts
       summary: List valid certs for a user (public)
       description: >-
         Returns non-revoked, non-expired certs this hub issued for the user
@@ -5528,6 +5799,7 @@ paths:
 
   /certs/revocations:
     get:
+      operationId: listCertsRevocations
       summary: List cert revocations (public, polled by other hubs)
       security: []
       tags: [Certifications]
@@ -5553,6 +5825,7 @@ paths:
 
   /recovery/contacts:
     get:
+      operationId: listRecoveryContacts
       summary: Get the caller's recovery contacts and threshold
       tags: [Recovery]
       responses:
@@ -5572,6 +5845,7 @@ paths:
                         added_at: { type: integer }
                   threshold: { type: integer }
     put:
+      operationId: setRecoveryContacts
       summary: Replace the caller's recovery contact list
       description: Max 5 contacts; threshold must be between 1 and the contact count; the caller cannot be their own contact.
       tags: [Recovery]
@@ -5587,6 +5861,7 @@ paths:
 
   /recovery/contacts/{pubkey}:
     delete:
+      operationId: deleteRecoveryContact
       summary: Remove one recovery contact
       tags: [Recovery]
       parameters:
@@ -5597,6 +5872,7 @@ paths:
 
   /recovery/rotate-key:
     post:
+      operationId: rotateRecoveryKey
       summary: Open a key-rotation request with inline attestations
       description: >-
         Called by the NEW key — no Bearer token required. Attestations from
@@ -5639,6 +5915,7 @@ paths:
 
   /recovery/requests:
     get:
+      operationId: listRecoveryRequests
       summary: List the caller's own rotation requests
       tags: [Recovery]
       responses:
@@ -5659,6 +5936,7 @@ paths:
 
   /admin/recovery/pending:
     get:
+      operationId: listAdminRecoveryPending
       summary: List rotation requests awaiting admin review (admin)
       tags: [Recovery]
       responses:
@@ -5680,6 +5958,7 @@ paths:
 
   /admin/recovery/{id}/approve:
     post:
+      operationId: approveAdminRecovery
       summary: Approve a rotation request (admin)
       description: Transfers roles to the new key and revokes all sessions for the old key; the user re-authenticates with the new key.
       tags: [Recovery]
@@ -5691,6 +5970,7 @@ paths:
 
   /admin/recovery/{id}/deny:
     post:
+      operationId: denyAdminRecovery
       summary: Deny a rotation request (admin)
       tags: [Recovery]
       parameters:
@@ -5701,6 +5981,7 @@ paths:
 
   /recovery/rotation-request/{id}:
     get:
+      operationId: getRecoveryRotationRequest
       summary: The bundle a recovery contact signs, plus progress
       description: >-
         No session required: a contact learns the request id out of band and may
@@ -5730,6 +6011,7 @@ paths:
 
   /recovery/rotation-request/{id}/attest:
     post:
+      operationId: attestRecoveryRotationRequest
       summary: A recovery contact vouches for an open rotation request
       description: >-
         The signature is over the canonical `wavvon/recovery-attestation/v1`
@@ -5763,6 +6045,7 @@ paths:
 
   /admin/webhooks:
     post:
+      operationId: createAdminWebhook
       summary: Create an incoming webhook for a channel (admin)
       description: The returned `webhook_url` embeds the secret token and is shown **once** — only its hash is stored.
       tags: [Webhooks]
@@ -5790,6 +6073,7 @@ paths:
 
   /admin/webhooks/{id}:
     delete:
+      operationId: deleteAdminWebhook
       summary: Deactivate a webhook (admin)
       tags: [Webhooks]
       parameters:
@@ -5800,6 +6084,7 @@ paths:
 
   /webhooks/{id}/{token}:
     post:
+      operationId: executeWebhook
       summary: Post a message via an incoming webhook
       description: No Authorization header — the token in the URL is the credential (compared in constant time against the stored hash).
       security: []
@@ -5839,6 +6124,7 @@ paths:
 
   /admin/outgoing-webhooks:
     get:
+      operationId: listAdminOutgoingWebhooks
       summary: List outgoing webhooks (admin)
       tags: [OutgoingWebhooks]
       responses:
@@ -5861,6 +6147,7 @@ paths:
                     created_by_pubkey: { type: string }
                     subscription_count: { type: integer }
     post:
+      operationId: createAdminOutgoingWebhook
       summary: Create an outgoing webhook (admin)
       description: >-
         `url` must be https and must not resolve to a private/loopback
@@ -5890,6 +6177,7 @@ paths:
 
   /admin/outgoing-webhooks/{id}:
     patch:
+      operationId: updateAdminOutgoingWebhook
       summary: Update an outgoing webhook's URL, name, or active state (admin)
       tags: [OutgoingWebhooks]
       parameters:
@@ -5907,6 +6195,7 @@ paths:
                 display_name: { type: string }
                 active: { type: boolean }
     delete:
+      operationId: deleteAdminOutgoingWebhook
       summary: Delete an outgoing webhook (admin)
       tags: [OutgoingWebhooks]
       parameters:
@@ -5917,6 +6206,7 @@ paths:
 
   /admin/outgoing-webhooks/{id}/subscriptions:
     get:
+      operationId: listAdminOutgoingWebhookSubscriptions
       summary: List an outgoing webhook's event subscriptions (admin)
       tags: [OutgoingWebhooks]
       parameters:
@@ -5942,6 +6232,7 @@ paths:
                           items: { type: string }
                           nullable: true
     put:
+      operationId: setAdminOutgoingWebhookSubscriptions
       summary: Replace an outgoing webhook's event subscriptions (admin)
       description: "`message.*` events (other than `message.mention_bot`) require an explicit `channels` list."
       tags: [OutgoingWebhooks]
@@ -5978,6 +6269,7 @@ paths:
 
   /admin/outgoing-webhooks/{id}/rotate-secret:
     post:
+      operationId: rotateAdminOutgoingWebhookSecret
       summary: Rotate an outgoing webhook's signing secret (admin)
       tags: [OutgoingWebhooks]
       parameters:
@@ -5996,6 +6288,7 @@ paths:
 
   /admin/outgoing-webhooks/{id}/enable:
     post:
+      operationId: enableAdminOutgoingWebhook
       summary: Re-enable a disabled outgoing webhook and reset its failure count (admin)
       tags: [OutgoingWebhooks]
       parameters:
@@ -6006,6 +6299,7 @@ paths:
 
   /admin/outgoing-webhooks/{id}/deliveries:
     get:
+      operationId: listAdminOutgoingWebhookDeliveries
       summary: List recent delivery attempts for an outgoing webhook (admin)
       tags: [OutgoingWebhooks]
       parameters:
@@ -6048,6 +6342,7 @@ paths:
 
   /voice/leave:
     delete:
+      operationId: leaveVoice
       summary: Bot leaves a voice channel
       description: >
         Runs the same cleanup as a normal WebSocket voice disconnect.
@@ -6073,6 +6368,7 @@ paths:
 
   /screenshare/start:
     post:
+      operationId: startScreenshare
       summary: Bot registers a video stream in a channel
       description: >
         Registers a new screen-share stream for the bot and broadcasts
@@ -6111,6 +6407,7 @@ paths:
 
   /screenshare/stop:
     delete:
+      operationId: stopScreenshare
       summary: Bot stops a previously started video stream
       description: >
         Deregisters the stream and broadcasts `screen_share_stopped` to all
@@ -6141,6 +6438,7 @@ paths:
 
   /conversations/{conversation_id}/members:
     post:
+      operationId: createConversationMember
       summary: Add a member to a group conversation (members only; not 1-on-1 DMs)
       tags: [DMs]
       parameters:
@@ -6159,6 +6457,7 @@ paths:
 
   /conversations/{conversation_id}/members/{pubkey}:
     delete:
+      operationId: deleteConversationMember
       summary: Leave a group conversation (callers may only remove themselves)
       tags: [DMs]
       parameters:
@@ -6179,6 +6478,7 @@ paths:
 
   /conversations/{conversation_id}/sender-keys:
     get:
+      operationId: listConversationSenderKeys
       summary: Fetch wrapped group sender keys addressed to the caller
       tags: [DMs]
       parameters:
@@ -6202,6 +6502,7 @@ paths:
                     wrap_nonce_hex: { type: string }
                     created_at: { type: integer }
     put:
+      operationId: setConversationSenderKeys
       summary: Distribute the caller's group sender key (group conversations only)
       tags: [DMs]
       parameters:
@@ -6241,6 +6542,7 @@ paths:
 
   /identity/dm-blocks:
     get:
+      operationId: listIdentityDmBlocks
       summary: Get the caller's DM-block set
       tags: [Identity]
       responses:
@@ -6252,6 +6554,7 @@ paths:
                 properties:
                   pubkeys: { type: array, items: { type: string } }
     put:
+      operationId: setIdentityDmBlocks
       summary: Replace the caller's DM-block set
       tags: [Identity]
       requestBody:
@@ -6267,6 +6570,7 @@ paths:
 
   /alliances/{alliance_id}/join:
     post:
+      operationId: federationJoinAlliance
       summary: Remote hub joins an alliance with an invite token
       description: >-
         Hub-to-hub, with the joining hub's peer session (`is_hub`
@@ -6300,6 +6604,7 @@ paths:
 
   /alliances/{alliance_id}/push-invite:
     post:
+      operationId: createAlliancePushInvite
       summary: Push a direct alliance invite to another hub (alliance manager)
       tags: [Alliances]
       parameters:
@@ -6322,6 +6627,7 @@ paths:
 
   /join/{code}:
     get:
+      operationId: getJoinInvite
       summary: Preview an invite (public)
       security: []
       tags: [Invites]
@@ -6345,6 +6651,7 @@ paths:
         "410":
           description: Invite expired or fully used
     post:
+      operationId: redeemJoinInvite
       summary: Redeem an invite (requires session token)
       description: Increments the invite's use count and auto-approves the caller, bypassing the approval queue.
       tags: [Invites]
@@ -6363,6 +6670,7 @@ paths:
 
   /users/{pubkey}/profile:
     get:
+      operationId: getUserProfile
       summary: Get a user's hub profile (roles + badges)
       tags: [Users]
       parameters:
@@ -6401,6 +6709,7 @@ paths:
 
   /federation/listing:
     get:
+      operationId: getFederationListing
       summary: Hub discovery metadata (public)
       description: Always returns 200 with all fields, even when `listed` is false, so clients can probe any hub URL.
       security: []
@@ -6422,6 +6731,7 @@ paths:
 
   /federation/banlist:
     get:
+      operationId: getFederationBanlist
       summary: Signed export of this hub's ban list (public)
       description: >-
         Subscribing hubs poll this feed; the Ed25519 signature is the authority.
