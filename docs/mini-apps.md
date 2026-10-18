@@ -20,10 +20,13 @@ none of which belong in the hub.
 ## Model
 
 An app declares a `mini_app_url` in its registration. When the app (or
-a user command) starts a session, the app sends an
-`app_launch` WS message to the channel. The client renders a
-**launch card** with a button. Clicking it opens the mini-app URL in a
-sandboxed webview inside the Wavvon client window.
+a user command) starts a session, the app sends `app_announce` over its
+WS connection and the hub broadcasts it to the channel as `app_launch`.
+The client renders a **launch card** with a button. Clicking it sends
+`app_join`, which the **hub answers itself** — the app never sees the
+join — with an `app_open` carrying the URL and a scoped token; the client
+opens the mini-app URL in a sandboxed webview inside the Wavvon client
+window.
 
 The hub injects auth context into the webview at load time — the same
 pattern used when the hub self-serves the web client:
@@ -82,7 +85,19 @@ Optional. An app that declares none behaves exactly as before.
 
 ### New WS message types
 
-**App → hub → clients** (`app_launch`):
+**App → hub** (`app_announce`), only from a socket whose identity had an
+app profile when it connected:
+```json
+{
+  "type": "app_announce",
+  "title": "Gartic Phone",
+  "description": "A drawing + guessing game. Up to 8 players.",
+  "channel_id": "<id>"
+}
+```
+
+**Hub → clients** (`app_launch`), the hub's broadcast of it, with the
+announcing identity as `app_id`:
 ```json
 {
   "type": "app_launch",
@@ -96,7 +111,8 @@ Optional. An app that declares none behaves exactly as before.
 Client renders this as a launch card in the channel. Users who click
 "Join" trigger:
 
-**Client → hub → app** (`app_join`):
+**Client → hub** (`app_join`), answered by the hub, not forwarded to the
+app:
 ```json
 {
   "type": "app_join",
@@ -112,13 +128,15 @@ Client renders this as a launch card in the channel. Users who click
   "mini_app_url": "https://gartic.example.com/wavvon",
   "session_token": "<scoped-token>",
   "channel_id": "<id>",
-  "app_id": "<pubkey>"
+  "app_id": "<pubkey>",
+  "requires_camera": false
 }
 ```
 
 The client opens the webview and injects the context variables.
 
-**App → hub → clients** (`app_close`):
+**App → hub** (`app_dismiss`, `{ "type": "app_dismiss", "channel_id": "<id>" }`),
+broadcast by the hub as **hub → clients** (`app_close`):
 ```json
 { "type": "app_close", "app_id": "<pubkey>", "channel_id": "<id>" }
 ```
@@ -156,8 +174,10 @@ Same as desktop: a secondary `WebviewWindow` via Tauri Android.
 An app author ships two things:
 
 1. **A process** — connects to the hub WS as any client does,
-   manages game state, sends `app_launch` / `app_close`, and
-   relays or transforms canvas messages between players.
+   manages game state, sends `app_announce` / `app_dismiss` (which the
+   hub turns into `app_launch` / `app_close`), and relays or transforms
+   canvas messages between players with `mini_app_message`. It must
+   register its app profile *before* opening the socket.
 
 2. **A mini-app** — a self-contained web app (HTML + JS + CSS) that
    renders the game UI. It connects to the hub WS using the injected
@@ -171,8 +191,8 @@ in `ws-protocol.md`.
 ## Example: Gartic Phone
 
 ```
-1. The app detects !gartic in chat → sends app_launch
-2. Players click Join → hub mints tokens → clients open webview
+1. The app detects !gartic in chat → sends app_announce → hub broadcasts app_launch
+2. Players click Join (app_join) → hub mints tokens → clients open webview
 3. The app picks a prompt, sends { type: "round_start", drawer: "<id>", prompt: "..." }
    (prompt delivered privately to the drawer's mini-app via a DM or
     a mini-app message the app relays only to that client)

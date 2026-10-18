@@ -15,8 +15,11 @@ info:
     ### Auth flow
 
     1. `POST /auth/challenge` with your hex-encoded Ed25519 public key.
-    2. Sign the returned `challenge` string with your Ed25519 private key.
-       - Sign the raw UTF-8 bytes of the challenge string (no prefix, no digest).
+    2. Sign the returned `challenge` with your Ed25519 private key.
+       - The challenge is hex: hex-decode it to its 32 bytes first.
+       - If the response carries `scheme: "tagged-v1"`, sign
+         `b"wavvon/auth-challenge/v1\0" || challenge_bytes` (wire-format.md).
+         With no `scheme`, sign the raw 32 bytes. Refuse an unknown scheme.
        - Encode the 64-byte signature as lowercase hex.
     3. `POST /auth/verify` with your public key, the challenge, and the hex signature.
        - Optionally include a `security_nonce` + `security_level` for PoW (see below).
@@ -61,9 +64,9 @@ info:
     over a single WebSocket at `GET /ws`.
 
     - **Connect:** `GET /ws?token=<token>` — the token goes in the **`token`
-      query parameter**, not a header. Both session tokens (from
-      `POST /auth/verify`) and bot tokens are accepted, with the same expiry /
-      revocation / approval / ban checks as REST.
+      query parameter**, not a header. It is the session token from
+      `POST /auth/verify` (a program uses the same kind), with the same
+      expiry / revocation / approval / ban checks as REST.
     - **Framing:** every protocol message is a JSON text frame with a `type`
       discriminator and the payload fields at the same level
       (e.g. `{"type":"subscribe","channel_id":"..."}`). Binary frames are used
@@ -76,9 +79,9 @@ info:
       command failures come back as `{"type":"error","context":...,"message":...}`.
 
     OpenAPI 3.0 cannot model WebSocket messages natively, so the **complete
-    message-by-message wire reference** (34 client→server messages, 49
-    server→client messages plus 6 raw/bot push messages, with exact field names
-    and types) lives in [`docs/ws-protocol.md`](docs/ws-protocol.md). That file
+    message-by-message wire reference** (client→server and server→client
+    messages, including the app-only pushes, with exact field names and
+    types) lives in [`docs/ws-protocol.md`](docs/ws-protocol.md). That file
     is part of this protocol contract: implement the WS side against it.
 
 servers:
@@ -317,27 +320,31 @@ components:
         created_at: { type: integer }
         last_activity_at: { type: integer }
 
-    BotAdminInfo:
+    AppRegistration:
       type: object
+      description: >-
+        The caller's own app profile and slash commands (GET /me/app,
+        PUT /me/app/profile). Optional fields are omitted when unset, never null.
+      required: [pubkey, name, commands]
       properties:
-        public_key: { type: string }
-        display_name: { type: string }
-        created_by: { type: string }
-        created_at: { type: integer }
-        webhook_url: { type: string, nullable: true }
-
-    BotDetail:
-      allOf:
-        - $ref: '#/components/schemas/BotAdminInfo'
-        - type: object
-          properties:
-            commands:
-              type: array
-              items:
-                type: object
-                properties:
-                  command: { type: string }
-                  description: { type: string }
+        pubkey: { type: string }
+        name: { type: string }
+        avatar_url: { type: string }
+        description: { type: string }
+        webhook_url: { type: string }
+        homepage_url: { type: string }
+        commands:
+          type: array
+          items:
+            type: object
+            required: [name, description]
+            properties:
+              name: { type: string }
+              description: { type: string }
+              args: { type: string }
+              scope: { type: string }
+              privileged: { type: boolean }
+              cooldown_seconds: { type: integer, format: int64 }
 
     LobbyStatus:
       type: object
@@ -472,7 +479,7 @@ paths:
       summary: Realtime WebSocket endpoint
       description: |
         Upgrades to a WebSocket carrying all realtime traffic. Authenticate
-        with the `token` query parameter (session token or bot token); the
+        with the `token` query parameter (the session token); the
         upgrade is rejected with `401`/`403` on invalid, expired, or banned
         credentials.
 
@@ -487,7 +494,7 @@ paths:
           in: query
           required: true
           schema: { type: string }
-          description: Session token from `POST /auth/verify`, or a bot token.
+          description: Session token from `POST /auth/verify`.
       responses:
         "101":
           description: Switching Protocols — WebSocket established.
@@ -533,8 +540,9 @@ paths:
       operationId: createAuthChallenge
       summary: Request an auth challenge
       description: |
-        Returns a random nonce string. The client must sign this with its
-        Ed25519 private key and submit it to `POST /auth/verify`.
+        Returns a random 32-byte nonce, hex-encoded, valid for 60 seconds.
+        The client signs it with its Ed25519 private key (see `scheme`) and
+        submits it to `POST /auth/verify`.
       security: []
       tags: [Auth]
       requestBody:
@@ -555,15 +563,18 @@ paths:
             application/json:
               schema:
                 type: object
+                required: [challenge]
                 properties:
-                  challenge: { type: string, description: "Random nonce string to sign" }
+                  challenge: { type: string, description: "32 random bytes, lowercase hex (64 chars)" }
                   scheme:
                     type: string
                     enum: [tagged-v1]
                     description: >-
                       Present when the answer may be signed over
-                      "wavvon/auth-challenge/v1\0" || challenge (wire-format.md).
-                      The raw challenge is still accepted.
+                      "wavvon/auth-challenge/v1\0" || hex-decoded challenge
+                      (wire-format.md). Omitted by older hubs, which take a
+                      signature over the raw decoded bytes only. A hub that
+                      sends it still accepts the raw form.
 
   /auth/verify:
     post:
@@ -572,8 +583,11 @@ paths:
       description: |
         Submit the signed challenge to receive a Bearer token.
 
-        **Signing:** sign the raw UTF-8 bytes of the `challenge` string with your
-        Ed25519 private key. Encode the 64-byte signature as lowercase hex.
+        **Signing:** hex-decode `challenge` to its 32 bytes. If
+        `POST /auth/challenge` returned `scheme: "tagged-v1"`, sign
+        `b"wavvon/auth-challenge/v1\0" || challenge_bytes`; with no `scheme`,
+        sign the raw 32 bytes (wire-format.md). Encode the 64-byte signature
+        as lowercase hex. Send `challenge` back as the hex string you received.
 
         **PoW:** if the hub requires a security level > 0, compute:
         `SHA256(utf8(public_key_hex) || little_endian_u64(nonce))` and find a
@@ -601,6 +615,9 @@ paths:
                 challenge_token:
                   type: string
                   description: "Token from POST /challenge/verify (required when challenge_mode != off)"
+                is_hub:
+                  type: boolean
+                  description: "Set by a hub authenticating to federate; yields a `peer` session unless the key is already a member"
                 alliance_voice_grant:
                   type: object
                   description: |
@@ -651,15 +668,28 @@ paths:
             application/json:
               schema:
                 type: object
+                required: [token, scope, canonical_pubkey]
                 properties:
-                  token: { type: string }
+                  token:
+                    type: string
+                    description: "Session token, 32 random bytes hex. Send as `Authorization: Bearer <token>` and as `/ws?token=`."
                   scope:
                     type: string
-                    enum: [member, lobby, alliance_voice]
+                    enum: [member, lobby, alliance_voice, peer]
                     description: |
                       'lobby' means the user must complete PoW in /lobby before full access.
                       'alliance_voice' is a visitor from an allied hub, admitted to one shared
                       voice channel and confined to /info, the DH-key routes and /ws.
+                      'peer' is a federating hub (sent `is_hub: true` and is not a member),
+                      confined to the federation routes and refused at /ws.
+                  canonical_pubkey:
+                    type: string
+                    description: |
+                      The identity this session acts as. Equals `public_key` for a
+                      single-key sign-in; for a device authenticating with a
+                      `subkey_cert` it is the master (or the pre-existing legacy key)
+                      the hub attributes that device's actions to. Use it to recognise
+                      yourself in rosters and message authors.
         "401":
           description: Invalid signature or banned
 
@@ -2845,18 +2875,42 @@ paths:
           required: true
           schema: { type: string }
 
-  # ── Bots (admin) ──────────────────────────────────────────────────────────
+  # ── App event queue ───────────────────────────────────────────────────────
 
   /me/events:
     get:
       operationId: listMeEvents
-      summary: Poll for undelivered events (slash command invocations)
+      summary: Poll the caller's undelivered queued events
+      description: >-
+        The polling transport for a client holding no WebSocket: rows queued
+        for the caller's own identity and not yet acknowledged, oldest first,
+        at most 100 per call. After a full page, acknowledge with DELETE and
+        poll again: `since` is strict on a whole-second timestamp, so paging
+        by the last row's `created_at` skips rows that share its second.
       tags: [Apps]
       parameters:
         - name: since
           in: query
-          schema: { type: integer }
-          description: Unix timestamp — return events created after this time
+          schema: { type: integer, format: int64 }
+          description: A `created_at` value (Unix seconds); only rows created strictly after it are returned.
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [events]
+                properties:
+                  events:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, event_type, payload, created_at]
+                      properties:
+                        id: { type: string }
+                        event_type: { type: string }
+                        payload: { type: string, description: "The event payload as a JSON-encoded string; parse it" }
+                        created_at: { type: integer, format: int64, description: "Unix seconds" }
     delete:
       operationId: ackMeEvents
       summary: Acknowledge delivered events

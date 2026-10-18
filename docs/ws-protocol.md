@@ -18,10 +18,9 @@ Upgrade: websocket
 ```
 
 - The endpoint is `GET /ws` on the same host/port as the REST API.
-- Authentication is a **`token` query parameter** (not a header). Two token
-  kinds are accepted:
-  - a session token from `POST /auth/verify` (regular clients), or
-  - the same session token; there is no separate token for a program.
+- Authentication is a **`token` query parameter** (not a header): a session
+  token from `POST /auth/verify`. A program uses the same session token;
+  there is no separate token kind.
 - The token is checked with the same rules as HTTP requests: session expiry,
   revocation, approval status, and bans all apply. Failure rejects the upgrade
   with an HTTP error status before the WebSocket is established.
@@ -39,6 +38,14 @@ On successful connect the hub immediately:
 
 DM conversation membership is also loaded **once at connect time**: a client
 added to a new DM conversation must reconnect to start receiving its events.
+
+The same goes for being an **app socket**. At upgrade the hub checks whether
+the socket's identity has an app profile (`PUT /me/app/profile`), and that
+answer holds for the life of the connection. Only an app socket may send
+`resume`, `app_announce` and `app_dismiss`, receives `hub_event` pushes, and
+receives players' `mini_app_message`s; from any other socket the first three
+are silently ignored. A program registers its profile first, then connects —
+or reconnects after registering.
 
 ## Message framing
 
@@ -380,10 +387,11 @@ chunk (if any), then live chunks. Failure: [`error`](#error) with context
 | `source_channel_id` | string | |
 | `stream_id` | string | |
 
-### Bots
+### Apps
 
 #### `resume`
-Bot connections only (silently ignored for users). Requests replay of
+App sockets only (see [Connecting](#connecting-and-authenticating);
+silently ignored otherwise). Requests replay of
 `hub_event` envelopes after `since_seq`. The hub replays matching events, then
 sends [`replay_complete`](#replay_complete) — or
 [`replay_unavailable`](#replay_unavailable) if `since_seq` has aged out of the
@@ -397,8 +405,9 @@ flushed afterwards in order.
 ### Mini-apps
 
 #### `app_announce`
-*Bot identity only.* Bot announces a mini-app session in a channel. The hub
-fans this to all channel subscribers as [`app_launch`](#app_launch).
+*App sockets only.* The app announces a mini-app session in a channel. The
+hub fans this to all channel subscribers as [`app_launch`](#app_launch), with
+the sender's identity as `app_id`.
 
 | field | type | notes |
 |---|---|---|
@@ -408,9 +417,11 @@ fans this to all channel subscribers as [`app_launch`](#app_launch).
 
 #### `app_join`
 Any connection. Sent when a user clicks "Join" on a launch card. The hub
-mints a 4-hour scoped session token bound to this user, channel and app,
-then replies with [`app_open`](#app_open) targeted only at this
-connection.
+answers it itself — nothing reaches the app. If `app_id` has a profile with a
+`mini_app_url` and still holds `apps.register`, the hub mints a 4-hour scoped
+session token bound to this user, channel and app, then replies with
+[`app_open`](#app_open) targeted only at this connection; otherwise nothing
+is sent.
 
 | field | type | notes |
 |---|---|---|
@@ -418,12 +429,40 @@ connection.
 | `channel_id` | string | channel the session was announced in |
 
 #### `app_dismiss`
-*Bot identity only.* Bot closes the mini-app session. The hub fans
+*App sockets only.* The app closes the mini-app session. The hub fans
 [`app_close`](#app_close) to all channel subscribers.
 
 | field | type | notes |
 |---|---|---|
 | `channel_id` | string | channel the session is running in |
+
+#### `mini_app_message`
+Opaque relay between an app and the players' mini-app webviews
+([mini-apps.md](mini-apps.md)). The hub never inspects `payload`. From an
+app socket, it goes to every session `to_pubkey` has open, and is dropped
+when `to_pubkey` is absent (there is no channel-wide broadcast). From any
+other socket, it goes to every app socket of `app_id`, tagged with the
+sender. Received as [`mini_app_message`](#mini_app_message-1).
+
+| field | type | notes |
+|---|---|---|
+| `app_id` | string | the app's public key (ignored from an app socket, which is always the sender) |
+| `channel_id` | string | |
+| `payload` | string | opaque, conventionally JSON-encoded |
+| `to_pubkey` | string | optional; **app → player only**, the recipient |
+
+### Presence
+
+#### `set_status`
+Sets the sender's presence. Broadcast to everyone as
+[`member_status`](#member_status); `invisible` is broadcast as
+[`member_offline`](#member_offline) instead, and leaving it re-announces
+[`member_online`](#member_online) first.
+
+| field | type | notes |
+|---|---|---|
+| `status` | string | `online` (clears), `away`, `dnd` or `invisible` |
+| `custom` | string | optional short status text |
 
 ---
 
@@ -884,9 +923,63 @@ this session.
 | `app_id` | string | |
 | `channel_id` | string | |
 
-### Bot-only messages
+#### `mini_app_message`
+The receiving leg of the client [`mini_app_message`](#mini_app_message). An
+app socket receives players' messages with `from_pubkey` set; a player
+receives the app's messages without it.
 
-These are pushed only to a connection whose identity has a registered app.
+| field | type | notes |
+|---|---|---|
+| `app_id` | string | the app's public key |
+| `channel_id` | string | |
+| `payload` | string | opaque, passed through unchanged |
+| `from_pubkey` | string | omitted when absent; the sending player, **player → app only** |
+
+### Presence
+
+Hub-wide: delivered to every connection regardless of channel subscription.
+
+#### `member_online`
+A user's first socket connected, or they left `invisible`. Never sent for an
+invisible user.
+
+| field | type | notes |
+|---|---|---|
+| `public_key` | string | |
+
+#### `member_offline`
+A user's last socket disconnected, they switched to `invisible`, or they were
+banned.
+
+| field | type | notes |
+|---|---|---|
+| `public_key` | string | |
+
+#### `member_status`
+A user changed their presence with [`set_status`](#set_status).
+
+| field | type | notes |
+|---|---|---|
+| `public_key` | string | |
+| `status` | string | nullable; `away` or `dnd`, `null` for plain online |
+| `custom` | string | nullable; short status text |
+
+#### `member_updated`
+A user changed their display name or avatar; update in place without
+re-fetching `/users`.
+
+| field | type | notes |
+|---|---|---|
+| `public_key` | string | |
+| `display_name` | string | nullable |
+| `avatar` | string | nullable |
+| `name_color` | string | nullable; server-resolved nickname color |
+
+### App-only messages
+
+These are pushed only to an app socket (see
+[Connecting](#connecting-and-authenticating)): one whose identity had an app
+profile when it connected.
 
 #### `hub_event`
 Audit-log event matching one of the app's subscriptions. Live events carry the
