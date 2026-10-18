@@ -105,9 +105,12 @@ X-Wavvon-Timestamp:   <unix seconds>
 X-Wavvon-Webhook-Id:  <id>
 ```
 
-**Signing key**: `HKDF-SHA256(secret, salt="wavvon-webhook-signing")`.
-The raw secret the admin copied is the input; receivers derive the same
-signing key. HMAC-SHA256 is the choice here (not raw Ed25519) because
+**Signing key**: `HKDF-SHA256(secret, salt="wavvon-webhook-signing", info="")`.
+The hub shows the secret as base64url without padding; the HKDF input is the
+32 bytes that decodes to, not the base64 text. The HMAC key is the 32 derived
+bytes, not their hex. Both mistakes produce a plausible-looking wrong
+signature, so the vector `webhook_delivery_outgoing` in Wavvon-server:
+`crates/identity/wire-vectors.json` carries the secret in both forms. HMAC-SHA256 is the choice here (not raw Ed25519) because
 receivers are third-party services that expect HMAC — it is universally
 supported without a cryptography library.
 

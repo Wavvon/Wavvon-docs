@@ -582,8 +582,11 @@ HMAC, secret = 32 × 0x07:
     42abcf09c2fbd629a8ba1bff16e7f315b27ad167fb36a2f68e648716ee3079d3
 ```
 
-Wavvon-server: `crates/identity/tests/wire_vectors.rs` (`webhook_delivery_vector`)
-and `crates/hub/src/outgoing_webhooks/delivery.rs` (`signature_v1_vector`).
+Both are in Wavvon-server: `crates/identity/wire-vectors.json` as
+`webhook_delivery_hub` and `webhook_delivery_outgoing`, with the header names
+and the legacy body-only signatures. That file is the one authority for every
+vector in this document and ships as an asset of each server release; a string
+starting with `@` in it names an entry of its `fixtures`.
 
 ---
 

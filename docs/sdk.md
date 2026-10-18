@@ -190,8 +190,8 @@ cleartext, as apps.md describes for any client with no DH key.
    missing tier-1 vectors, and an `operationId` on every operation in
    `openapi.yaml` (§3).
 1. **TypeScript and Rust together.** TypeScript because it is what the
-   clients are written in; Rust because `wavvon-identity` already is the
-   authority, so the Rust SDK depends on it rather than copying it.
+   clients are written in; Rust because it is what the hub is written in, so
+   its conformance failures are the easiest to read against the authority.
 2. **Python and C#** — Python as the most common language for small
    programs, C# because it has a reviewer in-house (§10, question 5).
 3. **Go and Java**, community / experimental.
@@ -214,9 +214,13 @@ All answered on 2026-10-18.
    private, unbuilt and peer-depends on React, so wrapping it meant
    publishing it and making every bot install React. The conformance suite
    (§4) is what keeps the two implementations from drifting.
-4. **`wavvon-identity` is published to crates.io** so the Rust SDK depends on
-   it rather than copying it. Its API becomes public; `0.x` keeps it free to
-   break while the hub is pre-1.0.
+4. **`wavvon-identity` on crates.io — on hold.** First answered "publish it,
+   and the Rust SDK depends on it". But the crate is AGPL-3.0 with the rest
+   of Wavvon-server, and an Apache-2.0 SDK that links it hands every program
+   the AGPL anyway, undoing question 2. Until the crate is relicensed (the
+   copyright holders' call), the Rust SDK implements its few tier-1
+   primitives itself, like every other SDK, and the conformance suite proves
+   them equal.
 5. **Maintainers**: TypeScript, Rust, Python and C# are maintained in-house
    (C# has a reviewer). Java and Go ship marked **community / experimental**
    in their README until someone outside volunteers to maintain them; they
