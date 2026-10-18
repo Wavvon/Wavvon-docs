@@ -38,8 +38,8 @@ Everything [apps.md](apps.md) describes, and nothing beyond it:
 - **Auth.** `POST /auth/challenge`, sign, `POST /auth/verify`, with an invite
   code on an `invite_only` hub. When the challenge response names
   `scheme: "tagged-v1"`, sign `b"wavvon/auth-challenge/v1\0" || challenge`
-  (vector `auth_challenge_vector` in Wavvon-server:
-  `crates/identity/tests/wire_vectors.rs`). With no `scheme` field (an older
+  (vector `auth_challenge` in Wavvon-server:
+  `crates/identity/wire-vectors.json`). With no `scheme` field (an older
   hub), sign the raw challenge, and **only** if it is exactly 32 bytes — the
   rule the federation client follows (`AUTH_CHALLENGE_LEN` in Wavvon-server:
   `crates/hub/src/auth/handlers.rs`); anything else is refused, so an SDK can
