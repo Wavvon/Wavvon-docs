@@ -4,6 +4,24 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **SDKs in six languages, tier 1 (2026-10-18)**: TypeScript, Rust, Python,
+  C#, Go and Java libraries for programs — bots and apps — one repo each under
+  the organization, Apache-2.0, design in [sdk.md](sdk.md). Each generates
+  its REST client from `openapi.yaml`, hand-writes auth, retry, the event
+  stream and webhook verification, asserts Wavvon-server's
+  `crates/identity/wire-vectors.json`, and runs a smoke test against the real
+  hub binary. Go and Java ship as community / experimental.
+
+  Building them was mostly an audit of the contract. The spec had no
+  `operationId` at all, 164 operations with no response, 30 with no request
+  body and a schema it referenced but never defined; it now lints clean, and
+  the coverage check compares methods as well as paths, which turned up three
+  undocumented routes. The vectors became data with one authority, and the
+  clients' two mirrors assert the same file. On the hub side the SDK smoke
+  tests found an app `webhook_url` stored with no validation at all — a
+  member with `apps.register` could aim the hub at its own network (fixed,
+  Wavvon-server#173) — and four smaller gaps filed as issues (#169–#172).
+
 - **The clients look like one product (2026-10-01)**: a visual and interaction
   redesign of the web and desktop clients — look, feel, layout, hierarchy, not
   a state-model refactor. The direction is *the receiver*: the information

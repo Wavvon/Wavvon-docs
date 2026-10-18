@@ -1,7 +1,16 @@
 # SDKs
 
-**Proposal, not yet built.** Libraries that let a third party write a program
-that talks to a hub, in six languages: TypeScript, Rust, Python, C#, Java, Go.
+**Tier 1 built, 0.1.0, not yet published to any registry.** Libraries that let
+a third party write a program that talks to a hub, in six languages:
+[TypeScript](https://github.com/Wavvon/Wavvon-sdk-js),
+[Rust](https://github.com/Wavvon/Wavvon-sdk-rust),
+[Python](https://github.com/Wavvon/Wavvon-sdk-python),
+[C#](https://github.com/Wavvon/Wavvon-sdk-dotnet),
+[Go](https://github.com/Wavvon/Wavvon-sdk-go) and
+[Java](https://github.com/Wavvon/Wavvon-sdk-java) (the last two community /
+experimental). Each passes the conformance vectors and a smoke test against a
+real hub binary: authenticate, post, register a command, receive and answer a
+signed invocation.
 The rationale is in [decisions.md](decisions.md), "SDKs: one repo per
 language, generated REST, one shared conformance suite"; this document is the
 shape and the boundaries.
