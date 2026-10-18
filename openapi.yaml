@@ -205,8 +205,9 @@ components:
           type: array
           items: { $ref: '#/components/schemas/Reaction' }
         reply_to:
+          type: object
           nullable: true
-          anyOf: [{ $ref: '#/components/schemas/ReplyContext' }]
+          allOf: [{ $ref: '#/components/schemas/ReplyContext' }]
         visible_to_pubkey:
           type: string
           description: >-
