@@ -112,14 +112,35 @@ components:
         signer_cert:
           type: object
           description: When the signing key is not the actor's own, the master-signed cert tying the two.
-    User:
+    UserInfo:
       type: object
+      description: A member as listed by `GET /users`.
+      required: [public_key, display_name, avatar, online, group_role, birthday, name_color]
       properties:
         public_key: { type: string }
         display_name: { type: string, nullable: true }
         avatar: { type: string, nullable: true, description: "Base64-encoded image" }
         online: { type: boolean }
+        status: { type: string, description: Presence status. Omitted unless set. }
+        status_custom: { type: string, description: Custom status text. Omitted unless set. }
         group_role: { type: string, nullable: true }
+        birthday: { type: string, nullable: true }
+        name_color: { type: string, nullable: true }
+
+    MemberAdminInfo:
+      type: object
+      description: A member as listed for administrators by `GET /hub/members`.
+      required: [public_key, display_name, online, first_seen_at, last_seen_at, roles, birthday]
+      properties:
+        public_key: { type: string }
+        display_name: { type: string, nullable: true }
+        online: { type: boolean }
+        first_seen_at: { type: integer, format: int64 }
+        last_seen_at: { type: integer, format: int64 }
+        roles:
+          type: array
+          items: { $ref: '#/components/schemas/Role' }
+        birthday: { type: string, nullable: true }
 
     Channel:
       type: object
@@ -273,11 +294,29 @@ components:
     HubInfo:
       type: object
       description: |
-        Only the fields clients branch on are listed; `/info` carries more
-        (badges, LAN trust material, welcome banner, voice endpoint…) and is
-        additive by rule, so ignore what you do not recognise.
+        `GET /info`. Additive by rule: ignore fields you do not recognise.
+      required:
+        - name
+        - description
+        - icon
+        - version
+        - capabilities
+        - public_key
+        - min_security_level
+        - min_pow_level
+        - invite_only
+        - challenge_mode
+        - self_tags
+        - nsfw
+        - badges
+        - screen_share_v2
+        - emoji_count
+        - lan_mode
+        - birthdays_enabled
+        - max_attachment_bytes
       properties:
         name: { type: string }
+        description: { type: string, nullable: true }
         icon: { type: string, nullable: true }
         public_key:
           type: string
@@ -317,35 +356,141 @@ components:
         challenge_mode: { type: string, enum: [off, click, puzzle, both] }
         farm_url:
           type: string
-          nullable: true
-          description: When set, send `/auth/*` here instead of to the hub.
+          description: When present, send `/auth/*` here instead of to the hub. Omitted unless set.
+        self_tags: { type: array, items: { type: string } }
+        nsfw: { type: boolean }
+        badges:
+          type: array
+          description: Badges other hubs issued to this hub.
+          items:
+            type: object
+            required: [payload, signature]
+            properties:
+              payload: { $ref: '#/components/schemas/BadgePayload' }
+              signature: { type: string }
+        cert_requirement:
+          type: object
+          description: What a certificate must show to admit a member. Omitted unless set.
+          required: [mode, trusted_issuers, require]
+          properties:
+            mode: { type: string }
+            trusted_issuers: { type: array, items: { type: string } }
+            require:
+              type: object
+              required: [min_pow_level, min_member_since_days]
+              properties:
+                min_pow_level: { type: integer, nullable: true }
+                min_member_since_days: { type: integer, nullable: true }
+        screen_share_v2: { type: boolean }
+        sfu_url: { type: string, description: Omitted unless the hub runs an SFU. }
+        emoji_count: { type: integer, format: int64 }
+        rotation:
+          type: object
+          description: Hub key rotation payload during the transition window after a rotate-key ceremony (see `GET /key-rotation`). Omitted when no rotation is in progress.
+        lan_mode: { type: boolean }
+        lan_tls: { type: string, description: Omitted unless set. }
+        lan_fingerprint: { type: string, description: Omitted unless set. }
+        welcome_label: { type: string, description: Omitted unless set. }
+        welcome_invite_url: { type: string, description: Omitted unless set. }
+        farewell_label: { type: string, description: Omitted unless set. }
+        voice_wt_url: { type: string, description: WebTransport voice endpoint. Omitted unless set. }
+        voice_cert_hash: { type: string, description: Omitted unless set. }
+        timezone: { type: string, description: Omitted unless set. }
+        birthdays_enabled: { type: boolean }
+        max_attachment_bytes: { type: integer, format: int64 }
 
     MeInfo:
       type: object
+      required:
+        - public_key
+        - display_name
+        - avatar
+        - bio
+        - pronouns
+        - status_message
+        - activities
+        - accent_color
+        - cover
+        - favorite_hubs
+        - show_hubs
+        - findable_by_allies
+        - approval_status
+        - roles
+        - birthday
+        - name_color
       properties:
         public_key: { type: string }
         display_name: { type: string, nullable: true }
         avatar: { type: string, nullable: true }
+        bio: { type: string, nullable: true }
+        pronouns: { type: string, nullable: true }
+        status_message: { type: string, nullable: true }
+        activities: { type: string, nullable: true }
+        accent_color: { type: string, nullable: true }
+        cover: { type: string, nullable: true }
+        favorite_hubs:
+          type: array
+          items:
+            type: object
+            required: [url, name, icon]
+            properties:
+              url: { type: string }
+              name: { type: string }
+              icon: { type: string, nullable: true }
+        show_hubs: { type: boolean }
         findable_by_allies: { type: boolean }
         approval_status: { type: string, enum: [approved, pending] }
         roles:
           type: array
           items: { $ref: '#/components/schemas/Role' }
+        birthday: { type: string, nullable: true }
+        name_color: { type: string, nullable: true }
 
     DmMessage:
       type: object
+      required: [id, conversation_id, sender, sender_name, content, created_at, attachments, delivery_failed, is_encrypted, encrypted_envelope, group_encrypted_envelope]
       properties:
         id: { type: string }
         conversation_id: { type: string }
         sender: { type: string }
         sender_name: { type: string, nullable: true }
-        content: { type: string }
+        content: { type: string, nullable: true }
         created_at: { type: integer, format: int64 }
         attachments:
           type: array
           items: { $ref: '#/components/schemas/Attachment' }
-        is_encrypted: { type: boolean }
         delivery_failed: { type: boolean }
+        is_encrypted: { type: boolean }
+        encrypted_envelope:
+          type: object
+          nullable: true
+          description: 1-on-1 encrypted envelope (docs/wire-format.md).
+          required: [sender_pubkey, conv_id, ciphertext_hex, nonce_hex, dh_pubkey_hex, signature_hex, v]
+          properties:
+            sender_pubkey: { type: string }
+            conv_id: { type: string }
+            ciphertext_hex: { type: string }
+            nonce_hex: { type: string }
+            dh_pubkey_hex: { type: string }
+            signature_hex: { type: string }
+            v: { type: integer }
+            message_index: { type: integer, description: Omitted unless set. }
+            prev_count: { type: integer, description: Omitted unless set. }
+            signer_cert: { type: object, description: Device subkey cert when a subkey signed. Omitted unless set. }
+        group_encrypted_envelope:
+          type: object
+          nullable: true
+          description: Group sender-key envelope (docs/wire-format.md).
+          required: [sender_pubkey, conv_id, sender_key_version, iteration, ciphertext_hex, nonce_hex, signature_hex]
+          properties:
+            sender_pubkey: { type: string }
+            conv_id: { type: string }
+            sender_key_version: { type: integer }
+            iteration: { type: integer }
+            ciphertext_hex: { type: string }
+            nonce_hex: { type: string }
+            signature_hex: { type: string }
+            signer_cert: { type: object, description: Device subkey cert when a subkey signed. Omitted unless set. }
 
     Conversation:
       type: object
@@ -428,10 +573,15 @@ components:
         subject_pubkey: { type: string }
         member_since: { type: integer, format: int64 }
         standing: { type: string, enum: [good, revoked] }
-        pow_level: { type: integer, format: int64, nullable: true }
+        pow_level: { type: integer, nullable: true }
         issued_at: { type: integer, format: int64 }
         expires_at: { type: integer, format: int64 }
         capabilities: { type: array, items: { type: string } }
+        label:
+          type: string
+          description: Badge display name; present means this cert is an achievement badge. Omitted unless set.
+        description: { type: string, description: Omitted unless set. }
+        icon: { type: string, description: Emoji or short icon for the badge. Omitted unless set. }
 
     Certification:
       type: object
@@ -458,6 +608,34 @@ components:
           type: integer
           format: int64
           description: Replies after the viewer's read cursor. Omitted when unauthenticated.
+        reactions:
+          type: array
+          items: { $ref: '#/components/schemas/Reaction' }
+        attachments:
+          type: array
+          items:
+            type: object
+            required: [url, name, mime, size]
+            properties:
+              url: { type: string }
+              name: { type: string }
+              mime: { type: string }
+              size: { type: integer, format: int64 }
+        author_hub:
+          type: string
+          description: >-
+            Origin hub public key (hex) when the post came in through the
+            alliance forum write-proxy. Hub-asserted, not proven: render it as
+            mediated ("via HubName"). Omitted for local posts.
+        tags:
+          type: array
+          items:
+            type: object
+            required: [id, label]
+            properties:
+              id: { type: string }
+              label: { type: string }
+              color: { type: string, description: Omitted unless set. }
 
     PostDetail:
       allOf:
@@ -472,6 +650,7 @@ components:
 
     ReplyView:
       type: object
+      required: [id, post_id, author_pubkey, body, created_at, is_deleted, reactions, attachments]
       properties:
         id: { type: string }
         post_id: { type: string }
@@ -481,6 +660,20 @@ components:
         edited_at: { type: integer, format: int64, description: "Omitted when never edited" }
         reply_to_id: { type: string, description: "Omitted on top-level replies" }
         is_deleted: { type: boolean }
+        reactions:
+          type: array
+          items: { $ref: '#/components/schemas/Reaction' }
+        attachments:
+          type: array
+          items:
+            type: object
+            required: [url, name, mime, size]
+            properties:
+              url: { type: string }
+              name: { type: string }
+              mime: { type: string }
+              size: { type: integer, format: int64 }
+        author_hub: { type: string, description: Origin hub public key (hex) when authored through the alliance forum write-proxy. Omitted for local replies. }
 
     ForumTag:
       type: object
@@ -491,20 +684,6 @@ components:
         color: { type: string, nullable: true }
         position: { type: integer, format: int64 }
         created_at: { type: integer, format: int64 }
-
-    BotChannelScope:
-      type: object
-      properties:
-        bot_pubkey: { type: string }
-        channel_ids:
-          type: array
-          items: { type: string }
-          description: Empty means hub-wide access.
-
-    Error:
-      type: object
-      properties:
-        error: { type: string }
 
 paths:
 
@@ -927,7 +1106,7 @@ paths:
             application/json:
               schema:
                 type: array
-                items: { $ref: '#/components/schemas/User' }
+                items: { $ref: '#/components/schemas/MemberAdminInfo' }
 
   /hub/pending:
     get:
@@ -2419,7 +2598,7 @@ paths:
             application/json:
               schema:
                 type: array
-                items: { $ref: '#/components/schemas/User' }
+                items: { $ref: '#/components/schemas/UserInfo' }
 
   # ── Alliances ─────────────────────────────────────────────────────────────
 
