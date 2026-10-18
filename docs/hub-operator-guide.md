@@ -315,6 +315,12 @@ is very likely fine and is not something we test. Take the backup.
   campus, CGNAT): the limiter cannot tell them apart, and to someone who is
   rate-limited the hub looks like one that will not have them. For additional
   protection put a WAF in front (Cloudflare, or rate-limit at nginx).
+- [ ] **Webhook targets**: outgoing webhooks and an app's `webhook_url` must
+  be `https://` to a public host; the hub refuses `localhost`, loopback and
+  private ranges, so a member who can register an app cannot aim the hub at
+  your internal network. `WAVVON_ALLOW_PRIVATE_WEBHOOKS=true` lifts that for
+  a LAN-only hub or a local test harness — it switches the guard off, so
+  leave it unset on anything reachable from the internet.
 - [ ] **Approval gate**: consider enabling *require approval* in Hub Settings
   so new members are vetted before joining a community hub.
 - [ ] **PoW level**: set a minimum proof-of-work level (Hub Settings → Auth)
