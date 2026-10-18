@@ -6,6 +6,45 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## SDKs: one repo per language, generated REST, one shared conformance suite
+
+**Decision** (2026-10-17, proposal in [sdk.md](sdk.md)): Wavvon ships SDKs in
+TypeScript, Rust, Python, C#, Java and Go, **one repo per language**. The
+first tier is programs only — auth (including the `tagged-v1` challenge
+scheme), REST, WebSocket hub events, app registration, slash commands,
+webhook verification and mini-app hosting — because it needs only Ed25519,
+SHA-256, HMAC and HKDF, so all six languages can ship it before any of the E2E,
+multi-device or voice crypto. REST clients are generated from `openapi.yaml`.
+Wire-format vectors become one JSON conformance suite owned by Wavvon-server's
+`identity` crate, published with each release and asserted by every SDK's CI.
+SDKs branch on `capabilities`, never on versions, and are versioned
+independently of the hub.
+
+**Why.** A program is a client ([apps.md](apps.md)), so an SDK is the
+cheapest way to grow the number of clients without growing the hub. Generation
+is viable only because `check-openapi-coverage.mjs` keeps the spec honest.
+Hand-copied vectors already need three mirrors kept in step; nine is certain
+drift, so the vectors have to be data with one authority.
+
+**Alternatives.** A single SDK monorepo (one PR per cross-SDK change and one
+CI, but six release toolchains in one repo and a contributor needing all of
+them; every registry's tooling assumes one package root per repo). Shipping
+the full client tier first (what a client author eventually needs, but most
+of `wire-format.md` reimplemented six times before anyone can write a bot).
+Hand-written REST clients (idiomatic, but six chances to disagree with the
+spec). Copying vectors into each SDK (the status quo, and what fails).
+
+**Tradeoff.** A change that touches every SDK is six PRs; the conformance
+suite turns the drift that invites into a red CI in the repo that drifted.
+Generated clients are less idiomatic than hand-written ones, and the core
+layer above them is still hand-written per language. Replay protection for
+app webhooks is open: `X-Wavvon-Timestamp` is outside both signatures, and a
+slash invocation carries no signed timestamp (sdk.md §2, open question 6).
+
+**Outcome.** Draft for review; nothing is built and no repo exists. Rollout
+starts on Wavvon-server (vector export), then TypeScript and Rust, then Python
+and Go, then C# and Java. Open questions are listed in sdk.md §10.
+
 ## A group DM's roster changes on its members' signatures, not a peer's word
 
 **Decision** (2026-10-17, [Wavvon-server#119](https://github.com/Wavvon/Wavvon-server/issues/119)):
