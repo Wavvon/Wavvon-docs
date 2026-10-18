@@ -6,6 +6,36 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## The wire-format crate is Apache-2.0; the hub stays AGPL
+
+**Decision** (2026-10-18): Wavvon-server `crates/identity` (`wavvon-identity`)
+is licensed Apache-2.0. Everything else in that repo, the hub included, stays
+AGPL-3.0.
+
+**Why.** The crate is the protocol, not the product: the signed envelopes,
+signing bytes and crypto every client and SDK must reproduce byte for byte.
+Under the AGPL, the Apache-2.0 SDKs (question 2 of [sdk.md](sdk.md) §10)
+could not link it without handing every bot the AGPL, so the Rust SDK had to
+reimplement its primitives, and a third-party Rust client would have faced
+the same choice for all of tier 2 (E2E DMs, multi-device, voice). The AGPL's
+purpose here — a modified hub must offer its source — is untouched, because
+the hub is where that applies.
+
+**Alternatives.** Keep it AGPL and let every SDK reimplement (works for tier
+1, where it is a few dozen lines, and the conformance vectors keep them
+equal; expensive and drift-prone at tier 2). Dual-license AGPL/commercial (a
+revenue model this project does not have).
+
+**Tradeoff.** Someone can build a closed client on the reference
+implementation of the format. That is the intended outcome: more clients is
+the point of the SDKs. The crate must stay free of AGPL code, so it may
+depend only on permissive crates and never on another crate of the
+workspace (Wavvon-server `CLAUDE.md`). Every commit to the crate was by the
+copyright holder, so no other consent was needed.
+
+**Outcome.** Wavvon-server#175. The Rust SDK depends on the crate instead of
+its own copy; publishing the crate to crates.io is a separate step.
+
 ## SDKs: one repo per language, generated REST, one shared conformance suite
 
 **Decision** (2026-10-17, proposal in [sdk.md](sdk.md)): Wavvon ships SDKs in
@@ -46,7 +76,7 @@ starts on Wavvon-server (vector export), then TypeScript and Rust, then Python
 and Go, then C# and Java. Open questions are listed in sdk.md §10.
 
 *Status (2026-10-18):* the open questions are settled in sdk.md §10 —
-Apache-2.0, the TypeScript SDK on `@noble` alone rather than wrapping `packages/core`, `wavvon-identity` kept off crates.io while it is AGPL (an Apache SDK linking it would inherit the AGPL), C# moved
+Apache-2.0, the TypeScript SDK on `@noble` alone rather than wrapping `packages/core`, `wavvon-identity` kept off crates.io while it is AGPL (an Apache SDK linking it would inherit the AGPL — superseded the same day: the crate is now Apache-2.0, see the entry above), C# moved
 up beside Python, Java and Go community / experimental. Replay protection
 landed as `X-Wavvon-Signature-V1` (Wavvon-server#160).
 

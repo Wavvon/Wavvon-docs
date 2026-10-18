@@ -223,13 +223,13 @@ All answered on 2026-10-18.
    private, unbuilt and peer-depends on React, so wrapping it meant
    publishing it and making every bot install React. The conformance suite
    (§4) is what keeps the two implementations from drifting.
-4. **`wavvon-identity` on crates.io — on hold.** First answered "publish it,
-   and the Rust SDK depends on it". But the crate is AGPL-3.0 with the rest
-   of Wavvon-server, and an Apache-2.0 SDK that links it hands every program
-   the AGPL anyway, undoing question 2. Until the crate is relicensed (the
-   copyright holders' call), the Rust SDK implements its few tier-1
-   primitives itself, like every other SDK, and the conformance suite proves
-   them equal.
+4. **`wavvon-identity` is Apache-2.0 and the Rust SDK depends on it.** The
+   crate was AGPL-3.0 with the rest of Wavvon-server, and an Apache-2.0 SDK
+   linking it would have handed every program the AGPL, undoing question 2;
+   for a few hours the Rust SDK carried its own copy of the primitives. The
+   crate was relicensed the same day (decisions.md, "The wire-format crate
+   is Apache-2.0"); the hub stays AGPL. Publishing it to crates.io, which a
+   published Rust SDK needs, is still to do.
 5. **Maintainers**: TypeScript, Rust, Python and C# are maintained in-house
    (C# has a reviewer). Java and Go ship marked **community / experimental**
    in their README until someone outside volunteers to maintain them; they
