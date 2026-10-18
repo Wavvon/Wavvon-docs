@@ -107,7 +107,7 @@ components:
         Only on a hub advertising `dms.group.signedmembers`.
       required: [issued_at, signature]
       properties:
-        issued_at: { type: integer, description: unix seconds }
+        issued_at: { type: integer, format: int64, description: unix seconds }
         signature: { type: string }
         signer_cert:
           type: object
@@ -129,12 +129,35 @@ components:
         created_by: { type: string }
         parent_id: { type: string, nullable: true }
         is_category: { type: boolean }
-        display_order: { type: integer }
+        display_order: { type: integer, format: int64 }
         description: { type: string, nullable: true }
         icon: { type: string, nullable: true }
         color: { type: string, nullable: true }
         custom_icon_svg: { type: string, nullable: true }
-        created_at: { type: integer, description: "Unix timestamp" }
+        created_at: { type: integer, format: int64, description: "Unix timestamp" }
+        channel_type:
+          type: string
+          description: >-
+            `text`, `forum`, `banner` or `spawner`. Always `text` for
+            categories.
+        banner_url: { type: string, description: Omitted unless set }
+        banner_file_id: { type: string, description: Omitted unless set }
+        is_temporary:
+          type: boolean
+          description: True for a join-to-create room spawned from a spawner channel.
+        owner_pubkey:
+          type: string
+          description: Temp channels only (omitted otherwise) — the joiner who owns the room.
+        spawner_name_template:
+          type: string
+          description: Spawner channels only (omitted otherwise) — the name template for spawned rooms.
+        event_id:
+          type: string
+          description: Auto-spawned squad rooms only (omitted otherwise) — the event the room was made for.
+        forum_require_tag:
+          type: boolean
+          description: Forum channels — posts must carry at least one tag. Always false elsewhere.
+        nsfw: { type: boolean, description: NSFW flag for this channel specifically }
         can_move_members:
           type: boolean
           description: >-
@@ -152,8 +175,8 @@ components:
         sender: { type: string }
         sender_name: { type: string, nullable: true }
         content: { type: string }
-        created_at: { type: integer }
-        edited_at: { type: integer, nullable: true }
+        created_at: { type: integer, format: int64 }
+        edited_at: { type: integer, format: int64, nullable: true }
         attachments:
           type: array
           items: { $ref: '#/components/schemas/Attachment' }
@@ -168,7 +191,15 @@ components:
             this message (ephemeral bot replies).
         reply_count:
           type: integer
+          format: int64
           description: Number of direct replies; non-zero only on thread roots.
+        embeds:
+          type: array
+          items: { type: object }
+          description: Omitted unless set. Rich embeds authored by an app (docs/apps.md).
+        game:
+          type: object
+          description: Omitted unless set. Game-modal launch card authored by an app (docs/apps.md).
 
     Attachment:
       type: object
@@ -181,7 +212,7 @@ components:
       type: object
       properties:
         emoji: { type: string }
-        count: { type: integer }
+        count: { type: integer, format: int64 }
         me: { type: boolean }
 
     ReplyContext:
@@ -198,8 +229,12 @@ components:
         id: { type: string }
         name: { type: string }
         permissions: { type: array, items: { type: string } }
-        priority: { type: integer }
+        priority: { type: integer, format: int64 }
         display_separately: { type: boolean }
+        created_at: { type: integer, format: int64 }
+        color: { type: string, nullable: true }
+        icon: { type: string, nullable: true }
+        category_id: { type: string, nullable: true }
 
     RoleCategory:
       type: object
@@ -208,18 +243,19 @@ components:
         name: { type: string }
         color: { type: string, nullable: true }
         icon: { type: string, nullable: true }
-        position: { type: integer }
-        created_at: { type: integer }
+        position: { type: integer, format: int64 }
+        created_at: { type: integer, format: int64 }
 
     Invite:
       type: object
       properties:
         code: { type: string }
         created_by: { type: string }
-        max_uses: { type: integer, nullable: true }
-        uses: { type: integer }
-        expires_at: { type: integer, nullable: true }
-        created_at: { type: integer }
+        max_uses: { type: integer, format: int64, nullable: true }
+        uses: { type: integer, format: int64 }
+        expires_at: { type: integer, format: int64, nullable: true }
+        created_at: { type: integer, format: int64 }
+        grant_role_id: { type: string, nullable: true, description: Role granted on redemption besides everyone }
         bound_pubkey:
           type: string
           nullable: true
@@ -304,7 +340,7 @@ components:
         sender: { type: string }
         sender_name: { type: string, nullable: true }
         content: { type: string }
-        created_at: { type: integer }
+        created_at: { type: integer, format: int64 }
         attachments:
           type: array
           items: { $ref: '#/components/schemas/Attachment' }
@@ -317,8 +353,8 @@ components:
         id: { type: string }
         conv_type: { type: string }
         members: { type: array, items: { type: string } }
-        created_at: { type: integer }
-        last_activity_at: { type: integer }
+        created_at: { type: integer, format: int64 }
+        last_activity_at: { type: integer, format: int64 }
 
     AppRegistration:
       type: object
@@ -352,7 +388,7 @@ components:
         status: { type: string, enum: [lobby, promoted, member] }
         required_level: { type: integer }
         current_level: { type: integer }
-        entered_at: { type: integer, nullable: true }
+        entered_at: { type: integer, format: int64, nullable: true }
         welcome_md: { type: string, nullable: true }
 
     ChallengePrompt:
@@ -361,7 +397,7 @@ components:
         id: { type: string }
         mode: { type: string, enum: [click, puzzle, both] }
         prompt_svg: { type: string, nullable: true, description: "SVG puzzle image, present when mode includes puzzle" }
-        expires_at: { type: integer }
+        expires_at: { type: integer, format: int64 }
 
     AllianceInfo:
       type: object
@@ -369,7 +405,7 @@ components:
         id: { type: string }
         name: { type: string }
         created_by: { type: string }
-        created_at: { type: integer }
+        created_at: { type: integer, format: int64 }
 
     BadgePayload:
       type: object
@@ -390,11 +426,11 @@ components:
         issuer_pubkey: { type: string }
         issuer_url: { type: string }
         subject_pubkey: { type: string }
-        member_since: { type: integer }
+        member_since: { type: integer, format: int64 }
         standing: { type: string, enum: [good, revoked] }
-        pow_level: { type: integer, nullable: true }
-        issued_at: { type: integer }
-        expires_at: { type: integer }
+        pow_level: { type: integer, format: int64, nullable: true }
+        issued_at: { type: integer, format: int64 }
+        expires_at: { type: integer, format: int64 }
         capabilities: { type: array, items: { type: string } }
 
     Certification:
@@ -411,15 +447,16 @@ components:
         channel_id: { type: string }
         author_pubkey: { type: string, nullable: true, description: "Null on tombstoned posts for non-moderators" }
         title: { type: string, nullable: true }
-        created_at: { type: integer }
-        edited_at: { type: integer, description: "Omitted when never edited" }
+        created_at: { type: integer, format: int64 }
+        edited_at: { type: integer, format: int64, description: "Omitted when never edited" }
         is_pinned: { type: boolean }
         is_locked: { type: boolean }
-        reply_count: { type: integer }
-        last_activity_at: { type: integer }
+        reply_count: { type: integer, format: int64 }
+        last_activity_at: { type: integer, format: int64 }
         is_deleted: { type: boolean }
         unread_reply_count:
           type: integer
+          format: int64
           description: Replies after the viewer's read cursor. Omitted when unauthenticated.
 
     PostDetail:
@@ -440,8 +477,8 @@ components:
         post_id: { type: string }
         author_pubkey: { type: string, nullable: true }
         body: { type: string, nullable: true, description: "Null on tombstoned replies" }
-        created_at: { type: integer }
-        edited_at: { type: integer, description: "Omitted when never edited" }
+        created_at: { type: integer, format: int64 }
+        edited_at: { type: integer, format: int64, description: "Omitted when never edited" }
         reply_to_id: { type: string, description: "Omitted on top-level replies" }
         is_deleted: { type: boolean }
 
@@ -452,8 +489,8 @@ components:
         channel_id: { type: string }
         label: { type: string }
         color: { type: string, nullable: true }
-        position: { type: integer }
-        created_at: { type: integer }
+        position: { type: integer, format: int64 }
+        created_at: { type: integer, format: int64 }
 
     BotChannelScope:
       type: object
@@ -702,6 +739,7 @@ paths:
       tags: [Me]
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema: { $ref: '#/components/schemas/MeInfo' }
@@ -725,6 +763,12 @@ paths:
                     default; only takes effect while the alliance's own
                     `people_visible` switch is on. Hubs advertising
                     `alliance.people`.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MeInfo' }
     delete:
       operationId: deleteMe
       summary: Leave this hub
@@ -760,6 +804,7 @@ paths:
       tags: [Me]
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -770,8 +815,8 @@ paths:
                     id: { type: string }
                     friendly_name: { type: string, nullable: true }
                     aaguid: { type: string, nullable: true }
-                    created_at: { type: integer }
-                    last_used_at: { type: integer, nullable: true }
+                    created_at: { type: integer, format: int64 }
+                    last_used_at: { type: integer, format: int64, nullable: true }
 
   /me/credentials/{id}:
     patch:
@@ -791,6 +836,9 @@ paths:
               required: [friendly_name]
               properties:
                 friendly_name: { type: string }
+      responses:
+        "200":
+          description: OK
     delete:
       operationId: deleteMeCredential
       summary: Remove a passkey
@@ -800,6 +848,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /me/devices:
     get:
@@ -808,6 +859,7 @@ paths:
       tags: [Me]
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -817,9 +869,9 @@ paths:
                   properties:
                     id: { type: string }
                     device_name: { type: string, nullable: true }
-                    created_at: { type: integer }
-                    expires_at: { type: integer }
-                    last_used_at: { type: integer, nullable: true }
+                    created_at: { type: integer, format: int64 }
+                    expires_at: { type: integer, format: int64 }
+                    last_used_at: { type: integer, format: int64, nullable: true }
 
   /me/devices/{id}:
     delete:
@@ -831,6 +883,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   # ── Hub ───────────────────────────────────────────────────────────────────
 
@@ -847,6 +902,9 @@ paths:
               properties:
                 hub_name: { type: string }
                 hub_icon: { type: string, nullable: true }
+      responses:
+        "200":
+          description: OK
 
   /hub/settings:
     get:
@@ -864,6 +922,7 @@ paths:
       tags: [Hub]
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -883,11 +942,14 @@ paths:
         - name: limit
           in: query
           description: Page size, clamped to 1..500.
-          schema: { type: integer, default: 100, minimum: 1, maximum: 500 }
+          schema: { type: integer, format: int64, default: 100, minimum: 1, maximum: 500 }
         - name: cursor
           in: query
           description: Keyset cursor — the `public_key` of the previous page's last row.
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
 
   /hub/pending/{target_key}/approve:
     post:
@@ -899,16 +961,25 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
 
   /hub/icons:
     get:
       operationId: listHubIcons
       summary: List custom hub icons
       tags: [Hub]
+      responses:
+        "200":
+          description: OK
     post:
       operationId: createHubIcon
       summary: Upload a custom SVG icon (admin)
       tags: [Hub]
+      responses:
+        "201":
+          description: Created
 
   /hub/icons/{icon_id}:
     patch:
@@ -920,6 +991,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
     delete:
       operationId: deleteHubIcon
       summary: Delete a hub icon (admin)
@@ -929,6 +1003,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /hub/settings/lobby:
     put:
@@ -944,6 +1021,9 @@ paths:
                 enabled: { type: boolean }
                 min_security_level: { type: integer }
                 welcome_md: { type: string, nullable: true }
+      responses:
+        "200":
+          description: OK
 
   /hub/settings/challenge:
     put:
@@ -957,6 +1037,9 @@ paths:
               type: object
               properties:
                 challenge_mode: { type: string, enum: [off, click, puzzle, both] }
+      responses:
+        "200":
+          description: OK
 
   # ── Channels ──────────────────────────────────────────────────────────────
 
@@ -971,6 +1054,7 @@ paths:
       tags: [Apps]
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -1004,6 +1088,7 @@ paths:
       tags: [Apps]
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema: { $ref: "#/components/schemas/AppRegistration" }
@@ -1037,6 +1122,7 @@ paths:
                     thumbnail_url: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema: { $ref: "#/components/schemas/AppRegistration" }
@@ -1065,7 +1151,7 @@ paths:
                       args: { type: string }
                       scope: { type: string, enum: [channel, hub] }
                       privileged: { type: boolean }
-                      cooldown_seconds: { type: integer, description: "Per-user, per-command cooldown in seconds (default 3, 0 = none)" }
+                      cooldown_seconds: { type: integer, format: int64, description: "Per-user, per-command cooldown in seconds (default 3, 0 = none)" }
       responses:
         "200": { description: Replaced }
         "403": { description: Caller lacks apps.register }
@@ -1098,12 +1184,13 @@ paths:
                         items: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  count: { type: integer }
+                  count: { type: integer, format: int64 }
         "400": { description: A message.* subscription named no channels }
         "403": { description: Caller lacks apps.register }
 
@@ -1115,6 +1202,7 @@ paths:
       tags: [Channels]
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -1135,12 +1223,21 @@ paths:
                 is_category: { type: boolean }
                 parent_id: { type: string, nullable: true }
                 description: { type: string }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Channel' }
 
   /channels/reorder:
     post:
       operationId: reorderChannels
       summary: Reorder channels (manage_channels)
       tags: [Channels]
+      responses:
+        "200":
+          description: OK
 
   /channels/{channel_id}:
     patch:
@@ -1152,6 +1249,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
     delete:
       operationId: deleteChannel
       summary: Delete channel (manage_channels)
@@ -1161,6 +1261,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   # ── Channel permission overwrites (nested-channels §3.6) ──────────────────
 
@@ -1180,6 +1283,7 @@ paths:
           schema: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -1201,6 +1305,7 @@ paths:
           schema: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -1249,6 +1354,8 @@ paths:
                 allow: { type: array, items: { type: string } }
                 deny: { type: array, items: { type: string } }
       responses:
+        "200":
+          description: OK
         "403":
           description: Role at or above caller's priority, or grant exceeds caller's own permissions
     delete:
@@ -1264,6 +1371,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   # /channels/{channel_id}/members was removed 2026-08-08: it ignored its
   # channel_id and returned the same rows as GET /users. Use /users.
@@ -1273,18 +1383,30 @@ paths:
       operationId: listVoicePopulations
       summary: Voice user count per channel
       tags: [Voice]
+      responses:
+        "200":
+          description: OK
 
   /voice/active-users:
     get:
       operationId: listVoiceActiveUsers
       summary: List all users in any voice channel
       tags: [Voice]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { type: string } }
 
   /voice/participants:
     get:
       operationId: listVoiceParticipants
       summary: Participants in the caller's current voice channel
       tags: [Voice]
+      responses:
+        "200":
+          description: OK
 
   # ── Messages ──────────────────────────────────────────────────────────────
 
@@ -1304,9 +1426,10 @@ paths:
           description: Message ID cursor for pagination
         - name: limit
           in: query
-          schema: { type: integer, default: 50 }
+          schema: { type: integer, format: int64, default: 50 }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -1333,6 +1456,17 @@ paths:
                   type: array
                   items: { $ref: '#/components/schemas/Attachment' }
                 reply_to: { type: string, description: "Message ID being replied to" }
+      responses:
+        "201":
+          description: Message created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Message' }
+        "200":
+          description: A slash command failed; the body is the ephemeral error reply, visible to the caller only
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Message' }
 
   /channels/{channel_id}/messages/{message_id}:
     patch:
@@ -1355,6 +1489,12 @@ paths:
               type: object
               properties:
                 content: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Message' }
     delete:
       operationId: deleteChannelMessage
       summary: Delete message (own or manage_messages)
@@ -1368,6 +1508,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /channels/{channel_id}/messages/{message_id}/reactions:
     post:
@@ -1391,6 +1534,9 @@ paths:
               required: [emoji]
               properties:
                 emoji: { type: string }
+      responses:
+        "201":
+          description: Created
 
   /channels/{channel_id}/messages/{message_id}/reactions/{emoji}:
     delete:
@@ -1410,6 +1556,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   # ── Direct Messages ───────────────────────────────────────────────────────
 
@@ -1423,13 +1572,14 @@ paths:
         - name: limit
           in: query
           description: Page size, clamped to 1..500.
-          schema: { type: integer, default: 100, minimum: 1, maximum: 500 }
+          schema: { type: integer, format: int64, default: 100, minimum: 1, maximum: 500 }
         - name: cursor
           in: query
           description: Keyset cursor — the `id` of the previous page's last row.
           schema: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -1449,6 +1599,17 @@ paths:
                 members:
                   type: array
                   items: { type: string }
+      responses:
+        "201":
+          description: Conversation created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Conversation' }
+        "200":
+          description: A 1-on-1 conversation with this member already exists; it is returned
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Conversation' }
 
   /conversations/{conversation_id}/messages:
     get:
@@ -1468,13 +1629,14 @@ paths:
         - name: limit
           in: query
           description: Page size, clamped to 1..100.
-          schema: { type: integer, default: 50, minimum: 1, maximum: 100 }
+          schema: { type: integer, format: int64, default: 50, minimum: 1, maximum: 100 }
         - name: before
           in: query
           description: Keyset cursor — the `id` of the oldest message already held.
           schema: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -1513,6 +1675,12 @@ paths:
                     When the signing key is not the sender's canonical key: the
                     master-signed cert tying the two. Only on a hub advertising
                     `dms.plaintext.signercert`.
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DmMessage' }
 
   /conversations/{conversation_id}:
     get:
@@ -1529,10 +1697,11 @@ paths:
           schema: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Conversation' }
-        "404": { description: No such conversation, or the caller is not a member }
+        "404": { description: "No such conversation, or the caller is not a member" }
 
   # ── Friends ───────────────────────────────────────────────────────────────
 
@@ -1541,6 +1710,9 @@ paths:
       operationId: listFriends
       summary: List accepted friends
       tags: [Friends]
+      responses:
+        "200":
+          description: OK
     post:
       operationId: createFriend
       summary: Send a friend request
@@ -1556,12 +1728,18 @@ paths:
                 signed:
                   $ref: "#/components/schemas/SignedMemberChange"
                 hub_url: { type: string, description: "Required for federated (cross-hub) friends" }
+      responses:
+        "201":
+          description: Created
 
   /friends/pending:
     get:
       operationId: listPendingFriends
       summary: List incoming pending friend requests
       tags: [Friends]
+      responses:
+        "200":
+          description: OK
 
   /friends/{public_key}/accept:
     post:
@@ -1573,6 +1751,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
 
   /friends/{public_key}:
     delete:
@@ -1584,6 +1765,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   # ── Invites ───────────────────────────────────────────────────────────────
 
@@ -1605,13 +1789,14 @@ paths:
         - name: limit
           in: query
           description: Page size, clamped to 1..500.
-          schema: { type: integer, default: 100, minimum: 1, maximum: 500 }
+          schema: { type: integer, format: int64, default: 100, minimum: 1, maximum: 500 }
         - name: cursor
           in: query
           description: Keyset cursor — the `code` of the previous page's last row.
           schema: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -1640,12 +1825,30 @@ paths:
             schema:
               type: object
               properties:
-                max_uses: { type: integer, nullable: true }
-                expires_at: { type: integer, nullable: true }
+                max_uses: { type: integer, format: int64, nullable: true }
+                expires_in_seconds:
+                  type: integer
+                  format: int64
+                  nullable: true
+                  description: Lifetime in seconds from now. Omitted means no expiry, except as noted under `grant_role_id`.
+                grant_role_id:
+                  type: string
+                  nullable: true
+                  description: >-
+                    Role granted to the joining member besides the everyone
+                    role. Must exist, and the creator must be able to grant
+                    every permission it carries. A role that amounts to a
+                    takeover caps the invite to one use and a short expiry.
                 bound_pubkey:
                   type: string
                   nullable: true
                   description: 64 hex characters. The only identity this invite admits.
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Invite' }
 
   /invites/{code}:
     delete:
@@ -1657,6 +1860,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   # ── Roles ─────────────────────────────────────────────────────────────────
 
@@ -1676,6 +1882,7 @@ paths:
       tags: [Roles]
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -1730,6 +1937,7 @@ paths:
           description: Omit for the hub-wide answer.
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -1759,6 +1967,12 @@ paths:
       operationId: listRoles
       summary: List roles
       tags: [Roles]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Role' } }
     post:
       operationId: createRole
       summary: Create a role (manage_roles)
@@ -1772,9 +1986,15 @@ paths:
               properties:
                 name: { type: string }
                 permissions: { type: array, items: { type: string } }
-                priority: { type: integer }
+                priority: { type: integer, format: int64 }
                 display_separately: { type: boolean }
+      responses:
+        "201":
+          description: Created
 
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Role' }
   /roles/{role_id}:
     patch:
       operationId: updateRole
@@ -1785,6 +2005,12 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Role' }
     delete:
       operationId: deleteRole
       summary: Delete a role (manage_roles)
@@ -1794,6 +2020,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /roles/{role_id}/members:
     get:
@@ -1805,6 +2034,12 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { type: string } }
 
   # ── Role categories (display-only grouping, no permissions) ───────────────
 
@@ -1815,6 +2050,7 @@ paths:
       tags: [Roles]
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -1834,9 +2070,10 @@ paths:
                 name: { type: string }
                 color: { type: string, description: "^#[0-9a-fA-F]{6}$" }
                 icon: { type: string, description: "Single emoji grapheme, max 16 bytes" }
-                position: { type: integer, default: 0 }
+                position: { type: integer, format: int64, default: 0 }
       responses:
         "201":
+          description: Created
           content:
             application/json:
               schema: { $ref: '#/components/schemas/RoleCategory' }
@@ -1860,9 +2097,10 @@ paths:
                 name: { type: string }
                 color: { type: string, nullable: true }
                 icon: { type: string, nullable: true }
-                position: { type: integer }
+                position: { type: integer, format: int64 }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema: { $ref: '#/components/schemas/RoleCategory' }
@@ -1876,6 +2114,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /users/{public_key}/roles:
     get:
@@ -1887,7 +2128,13 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
 
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Role' } }
   /users/{public_key}/roles/{role_id}:
     put:
       operationId: setUserRole
@@ -1902,6 +2149,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
     delete:
       operationId: deleteUserRole
       summary: Remove role from user (manage_roles)
@@ -1915,6 +2165,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
 
   # ── Moderation ────────────────────────────────────────────────────────────
 
@@ -1935,11 +2188,14 @@ paths:
         - name: limit
           in: query
           description: Page size, clamped to 1..500.
-          schema: { type: integer, default: 100, minimum: 1, maximum: 500 }
+          schema: { type: integer, format: int64, default: 100, minimum: 1, maximum: 500 }
         - name: cursor
           in: query
           description: Keyset cursor — the `target_public_key` of the previous page's last row.
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
     post:
       operationId: createModerationBan
       summary: Ban a user (moderation.ban.temporary or .permanent)
@@ -1965,6 +2221,7 @@ paths:
                 reason: { type: string }
                 duration_seconds:
                   type: integer
+                  format: int64
                   minimum: 1
                   description: >-
                     Omit for a permanent ban. Zero is refused rather than
@@ -1973,6 +2230,7 @@ paths:
                     caller asking for a duration meant.
       responses:
         "201":
+          description: Created
           content:
             application/json:
               schema:
@@ -1983,9 +2241,10 @@ paths:
                   reason: { type: string, nullable: true }
                   expires_at:
                     type: integer
+                    format: int64
                     nullable: true
                     description: Unix seconds; null for a permanent ban.
-                  created_at: { type: integer }
+                  created_at: { type: integer, format: int64 }
         "400":
           description: "`duration_seconds` was zero."
         "403":
@@ -2006,6 +2265,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /moderation/mutes:
     get:
@@ -2017,15 +2279,21 @@ paths:
         - name: limit
           in: query
           description: Page size, clamped to 1..500.
-          schema: { type: integer, default: 100, minimum: 1, maximum: 500 }
+          schema: { type: integer, format: int64, default: 100, minimum: 1, maximum: 500 }
         - name: cursor
           in: query
           description: Keyset cursor — the `target_public_key` of the previous page's last row.
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
     post:
       operationId: createModerationMute
       summary: Mute a user (manage_users)
       tags: [Moderation]
+      responses:
+        "201":
+          description: Created
 
   /moderation/mutes/{target_key}:
     delete:
@@ -2037,18 +2305,27 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /moderation/timeout:
     post:
       operationId: timeoutUser
       summary: Timeout a user (manage_users)
       tags: [Moderation]
+      responses:
+        "201":
+          description: Created
 
   /moderation/kick:
     post:
       operationId: kickUser
       summary: Kick a user (manage_users)
       tags: [Moderation]
+      responses:
+        "200":
+          description: OK
 
   # Channel bans used to live here as well as under /channels/{id}/bans, with
   # a weaker permission gate and no `reason` on write. Unified into
@@ -2059,10 +2336,16 @@ paths:
       operationId: listModerationVoiceMutes
       summary: List voice mutes
       tags: [Moderation]
+      responses:
+        "200":
+          description: OK
     post:
       operationId: createModerationVoiceMute
       summary: Voice-mute a user (manage_users)
       tags: [Moderation]
+      responses:
+        "201":
+          description: Created
 
   /moderation/voice-mutes/{target_key}:
     delete:
@@ -2074,6 +2357,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /channels/{channel_id}/talk-power:
     get:
@@ -2085,6 +2371,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
     post:
       operationId: setChannelTalkPower
       summary: Set talk-power (manage_channels)
@@ -2094,6 +2383,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
 
   # ── Users ─────────────────────────────────────────────────────────────────
 
@@ -2115,13 +2407,14 @@ paths:
         - name: limit
           in: query
           description: Page size, clamped to 1..500.
-          schema: { type: integer, default: 200, minimum: 1, maximum: 500 }
+          schema: { type: integer, format: int64, default: 200, minimum: 1, maximum: 500 }
         - name: cursor
           in: query
           description: Keyset cursor — the `public_key` of the previous page's last row.
           schema: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -2135,6 +2428,12 @@ paths:
       operationId: listAlliances
       summary: List alliances this hub belongs to
       tags: [Alliances]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/AllianceInfo' } }
     post:
       operationId: createAlliance
       summary: Create an alliance (manage_hub)
@@ -2147,18 +2446,30 @@ paths:
               required: [name]
               properties:
                 name: { type: string }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AllianceInfo' }
 
   /alliances/join:
     post:
       operationId: joinAllianceWithInvite
       summary: Join an alliance via invite token (manage_hub)
       tags: [Alliances]
+      responses:
+        "200":
+          description: OK
 
   /alliances/pending-invites:
     get:
       operationId: listPendingAllianceInvites
       summary: List pending alliance invites received by this hub
       tags: [Alliances]
+      responses:
+        "200":
+          description: OK
 
   /alliances/pending-invites/{invite_id}/accept:
     post:
@@ -2170,6 +2481,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
 
   /alliances/pending-invites/{invite_id}:
     delete:
@@ -2181,6 +2495,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /alliances/{alliance_id}:
     get:
@@ -2192,6 +2509,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
 
   /alliances/{alliance_id}/people:
     get:
@@ -2236,7 +2556,7 @@ paths:
           schema: { type: string }
         - name: limit
           in: query
-          schema: { type: integer }
+          schema: { type: integer, format: int64 }
         - name: cursor
           in: query
           schema: { type: string }
@@ -2252,7 +2572,7 @@ paths:
                   required: [public_key, master_pubkey]
                   properties:
                     public_key: { type: string, description: Roster pubkey on the owning hub }
-                    master_pubkey: { type: string, description: Master key, for DM routing }
+                    master_pubkey: { type: string, description: "Master key, for DM routing" }
                     display_name: { type: string, nullable: true }
                     avatar: { type: string, nullable: true }
         "404":
@@ -2303,6 +2623,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
 
   /alliances/{alliance_id}/leave:
     delete:
@@ -2314,6 +2637,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /alliances/{alliance_id}/voice-grant:
     post:
@@ -2386,6 +2712,7 @@ paths:
           schema: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -2397,7 +2724,7 @@ paths:
                     role_id: { type: string }
                     role_name: { type: string }
                     granted_by: { type: string }
-                    granted_at: { type: integer }
+                    granted_at: { type: integer, format: int64 }
 
   /alliances/{alliance_id}/managers/{role_id}:
     put:
@@ -2452,6 +2779,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
     post:
       operationId: createAllianceChannel
       summary: Share a channel into the alliance (alliance manager + channels.manage)
@@ -2517,6 +2847,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /alliances/{alliance_id}/channels/{channel_id}/messages:
     get:
@@ -2532,6 +2865,12 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Message' } }
     post:
       operationId: createAllianceChannelMessage
       summary: Post to a federated alliance channel
@@ -2545,6 +2884,12 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Message' }
 
   # Alliance-shared forum channels. Read-through proxies to the owning hub —
   # a locally-owned channel delegates to the local /channels/{id}/posts
@@ -2572,9 +2917,10 @@ paths:
           schema: { type: string }
         - name: limit
           in: query
-          schema: { type: integer, default: 50, maximum: 100 }
+          schema: { type: integer, format: int64, default: 50, maximum: 100 }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -2584,7 +2930,7 @@ paths:
                     type: array
                     items: { $ref: '#/components/schemas/PostSummary' }
                   cursor: { type: string, description: "Omitted on the last page" }
-        "403": { description: Channel is not shared with the caller, or remote writes are off }
+        "403": { description: "Channel is not shared with the caller, or remote writes are off" }
         "409": { description: Channel is not a forum }
     post:
       operationId: createAllianceChannelPost
@@ -2613,6 +2959,7 @@ paths:
                 body: { type: string }
       responses:
         "201":
+          description: Created
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PostDetail' }
@@ -2638,6 +2985,7 @@ paths:
           schema: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PostDetail' }
@@ -2695,6 +3043,7 @@ paths:
                 reply_to_id: { type: string, description: For threaded replies }
       responses:
         "201":
+          description: Created
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ReplyView' }
@@ -2753,7 +3102,7 @@ paths:
               properties:
                 emoji: { type: string }
       responses:
-        "204": { description: Reaction applied }
+        "201": { description: Reaction applied }
 
   # ── Lobby ─────────────────────────────────────────────────────────────────
 
@@ -2765,6 +3114,7 @@ paths:
       tags: [Lobby]
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema: { $ref: '#/components/schemas/LobbyStatus' }
@@ -2787,12 +3137,18 @@ paths:
               properties:
                 nonce: { type: integer, format: int64 }
                 claimed_level: { type: integer }
+      responses:
+        "200":
+          description: OK
 
   /lobby/welcome:
     get:
       operationId: getLobbyWelcome
       summary: Get the hub's welcome message (Markdown)
       tags: [Lobby]
+      responses:
+        "200":
+          description: OK
 
   # ── Bot Challenge ─────────────────────────────────────────────────────────
 
@@ -2809,6 +3165,7 @@ paths:
       tags: [Challenge]
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ChallengePrompt' }
@@ -2830,6 +3187,9 @@ paths:
               properties:
                 challenge_id: { type: string }
                 answer: { type: string, description: "Numeric answer for puzzle mode; omit for click-only" }
+      responses:
+        "200":
+          description: OK
 
   # ── Survey ────────────────────────────────────────────────────────────────
 
@@ -2838,6 +3198,9 @@ paths:
       operationId: getSurveyCurrent
       summary: Get the active onboarding survey
       tags: [Survey]
+      responses:
+        "200":
+          description: OK
 
   /survey/submit:
     post:
@@ -2847,22 +3210,34 @@ paths:
         Choice answers auto-apply configured roles. Free-text answers route the
         user to pending approval. Returns the resulting approval state.
       tags: [Survey]
+      responses:
+        "200":
+          description: OK
 
   /admin/survey:
     get:
       operationId: getAdminSurvey
       summary: Get full survey config including role mappings (manage_hub)
       tags: [Survey]
+      responses:
+        "200":
+          description: OK
     put:
       operationId: setAdminSurvey
       summary: Create or replace the survey (manage_hub)
       tags: [Survey]
+      responses:
+        "200":
+          description: OK
 
   /admin/survey/responses:
     get:
       operationId: listAdminSurveyResponses
       summary: List all survey responses (manage_hub)
       tags: [Survey]
+      responses:
+        "200":
+          description: OK
 
   /admin/survey/responses/{pubkey}:
     get:
@@ -2874,6 +3249,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
 
   # ── App event queue ───────────────────────────────────────────────────────
 
@@ -2895,6 +3273,7 @@ paths:
           description: A `created_at` value (Unix seconds); only rows created strictly after it are returned.
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -2922,6 +3301,9 @@ paths:
               type: object
               properties:
                 ids: { type: array, items: { type: string } }
+      responses:
+        "200":
+          description: OK
 
   # ── Identity / Multi-device ───────────────────────────────────────────────
 
@@ -2935,6 +3317,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
     post:
       operationId: createIdentityDesignation
       summary: Publish a master-signed home-hub list
@@ -2956,6 +3341,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
 
   /identity/{master}/devices:
     get:
@@ -2967,6 +3355,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
     post:
       operationId: createIdentityDevice
       summary: Register a new device subkey
@@ -2976,6 +3367,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
 
   /identity/{master}/revocations:
     get:
@@ -2987,6 +3381,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
     post:
       operationId: createIdentityRevocation
       summary: Revoke a device key
@@ -2996,6 +3393,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
 
   /identity/{master}/prefs:
     get:
@@ -3007,6 +3407,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
     put:
       operationId: setIdentityPrefs
       summary: Store cross-device preferences blob
@@ -3016,6 +3419,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
 
   /identity/{pubkey}/dh-key:
     get:
@@ -3027,6 +3433,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
     put:
       operationId: setIdentityDhKey
       summary: Publish own DH public key
@@ -3036,24 +3445,36 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
 
   /identity/pairing/offer:
     post:
       operationId: createIdentityPairingOffer
       summary: Create a device-pairing offer
       tags: [Identity]
+      responses:
+        "200":
+          description: OK
 
   /identity/pairing/claim:
     post:
       operationId: claimIdentityPairing
       summary: Claim a pairing offer from a new device
       tags: [Identity]
+      responses:
+        "200":
+          description: OK
 
   /identity/pairing/complete:
     post:
       operationId: completeIdentityPairing
       summary: Complete the pairing handshake
       tags: [Identity]
+      responses:
+        "200":
+          description: OK
 
   /identity/pairing/status/{token}:
     get:
@@ -3065,6 +3486,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
 
   # ── Profile ───────────────────────────────────────────────────────────────
 
@@ -3079,6 +3503,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
     put:
       operationId: setProfile
       summary: Publish own public hub-list profile
@@ -3088,6 +3515,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
 
   # ── Federation ────────────────────────────────────────────────────────────
 
@@ -3096,10 +3526,16 @@ paths:
       operationId: listFederationPeers
       summary: List federated peer hubs
       tags: [Federation]
+      responses:
+        "200":
+          description: OK
     post:
       operationId: createFederationPeer
       summary: Add a federation peer
       tags: [Federation]
+      responses:
+        "201":
+          description: Created
 
   /federation/dm:
     post:
@@ -3113,6 +3549,9 @@ paths:
         conversation seen for the first time, and must then include the
         sender.
       tags: [Federation]
+      responses:
+        "200":
+          description: OK
 
   /federation/dm-member-change:
     post:
@@ -3137,22 +3576,25 @@ paths:
                 actor: { type: string }
                 added: { type: array, items: { type: string } }
                 removed: { type: array, items: { type: string } }
-                issued_at: { type: integer, description: unix seconds }
+                issued_at: { type: integer, format: int64, description: unix seconds }
                 signature: { type: string }
                 signer_cert:
                   type: object
                   description: When the signing key is not the actor's own, the master-signed cert tying the two.
       responses:
-        "200": { description: Applied, or nothing to apply }
-        "400": { description: Not a group, empty change, or issued_at in the future }
+        "200": { description: "Applied, or nothing to apply" }
+        "400": { description: "Not a group, empty change, or issued_at in the future" }
         "401": { description: Signature or signer_cert does not hold for the actor }
-        "403": { description: Actor not on the roster, or removing someone else }
+        "403": { description: "Actor not on the roster, or removing someone else" }
 
   /federation/alliance-invite:
     post:
       operationId: createFederationAllianceInvite
       summary: Receive an alliance invite push from a peer hub
       tags: [Federation]
+      responses:
+        "200":
+          description: OK
 
   /federation/alliance-member:
     delete:
@@ -3164,6 +3606,9 @@ paths:
         departure was local: the partners kept the row, kept calling the hub,
         and kept letting it read what the alliance shares.
       tags: [Federation]
+      responses:
+        "200":
+          description: OK
     post:
       operationId: createFederationAllianceMember
       summary: A hub that just joined an alliance announces itself to the other members
@@ -3176,12 +3621,18 @@ paths:
         answers for that key. Without this only the inviter learns of a new
         member, and an alliance of three never converges.
       tags: [Federation]
+      responses:
+        "200":
+          description: OK
 
   /admin/directory-sign:
     post:
       operationId: signAdminDirectoryListing
       summary: Sign a directory entry for the hub discovery service
       tags: [Federation]
+      responses:
+        "200":
+          description: OK
 
   /preview:
     get:
@@ -3200,6 +3651,7 @@ paths:
           schema: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -3223,6 +3675,7 @@ paths:
       tags: [Moderation]
       responses:
         "202":
+          description: Accepted
           content:
             application/json:
               schema:
@@ -3263,6 +3716,7 @@ paths:
                 body: { type: string }
       responses:
         "201":
+          description: Created
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PostDetail' }
@@ -3330,6 +3784,7 @@ paths:
                 reply_to_id: { type: string, description: For threaded replies }
       responses:
         "201":
+          description: Created
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ReplyView' }
@@ -3392,7 +3847,7 @@ paths:
                 author_pubkey: { type: string }
                 emoji: { type: string }
       responses:
-        "204": { description: Reaction applied }
+        "201": { description: Reaction applied }
         "403": { description: forum_remote_write_disabled }
 
   # ── Auth (session renewal) ────────────────────────────────────────────────
@@ -3415,6 +3870,7 @@ paths:
                 display_name: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -3441,6 +3897,7 @@ paths:
                 friendly_name: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -3466,6 +3923,7 @@ paths:
                 user_pubkey: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -3493,6 +3951,7 @@ paths:
                 credential: { type: object, description: "PublicKeyCredential assertion from navigator.credentials.get()" }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -3517,6 +3976,7 @@ paths:
                 device_name: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -3524,7 +3984,7 @@ paths:
                 properties:
                   id: { type: string }
                   token: { type: string, description: "Shown once — store hashed on the client" }
-                  expires_at: { type: integer }
+                  expires_at: { type: integer, format: int64 }
 
   /auth/device-token/redeem:
     post:
@@ -3543,6 +4003,7 @@ paths:
                 token: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -3586,6 +4047,7 @@ paths:
       tags: [Hub]
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -3604,6 +4066,9 @@ paths:
               required: [min_pow_level]
               properties:
                 min_pow_level: { type: integer }
+      responses:
+        "200":
+          description: OK
 
   /admin/settings/moderation:
     patch:
@@ -3618,6 +4083,9 @@ paths:
               properties:
                 webhook_url: { type: string }
                 webhook_secret: { type: string }
+      responses:
+        "200":
+          description: OK
 
   /admin/settings/listing:
     patch:
@@ -3632,6 +4100,9 @@ paths:
               required: [listed]
               properties:
                 listed: { type: boolean }
+      responses:
+        "204":
+          description: No content
 
   /admin/settings/tags:
     get:
@@ -3640,6 +4111,7 @@ paths:
       tags: [Hub]
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -3664,6 +4136,9 @@ paths:
               properties:
                 tags: { type: array, items: { type: string } }
                 nsfw: { type: boolean }
+      responses:
+        "200":
+          description: OK
 
   # ── Federated ban list (admin) ─────────────────────────────────────────────
 
@@ -3674,6 +4149,7 @@ paths:
       tags: [Federation]
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -3683,7 +4159,7 @@ paths:
                   properties:
                     url: { type: string }
                     policy: { type: string, enum: [hard-reject, soft-flag] }
-                    added_at: { type: integer }
+                    added_at: { type: integer, format: int64 }
                     issuer_pubkey: { type: string, nullable: true }
     post:
       operationId: createAdminBanlistSource
@@ -3700,6 +4176,7 @@ paths:
                 policy: { type: string, enum: [hard-reject, soft-flag], default: hard-reject }
       responses:
         "201":
+          description: Created
           content:
             application/json:
               schema:
@@ -3707,7 +4184,7 @@ paths:
                 properties:
                   url: { type: string }
                   policy: { type: string }
-                  added_at: { type: integer }
+                  added_at: { type: integer, format: int64 }
                   issuer_pubkey: { type: string, nullable: true }
     patch:
       operationId: updateAdminBanlistSources
@@ -3723,6 +4200,8 @@ paths:
                 url: { type: string }
                 policy: { type: string, enum: [hard-reject, soft-flag] }
       responses:
+        "200":
+          description: OK
         "404":
           description: Source not found
     delete:
@@ -3737,6 +4216,9 @@ paths:
               required: [url]
               properties:
                 url: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /admin/banlist/entries:
     get:
@@ -3750,6 +4232,7 @@ paths:
           description: Filter by source hub pubkey
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -3760,8 +4243,8 @@ paths:
                     source_hub_pubkey: { type: string }
                     target_master_pubkey: { type: string }
                     reason: { type: string, nullable: true }
-                    added_at: { type: integer }
-                    synced_at: { type: integer }
+                    added_at: { type: integer, format: int64 }
+                    synced_at: { type: integer, format: int64 }
 
   /moderation/history/{pubkey}:
     get:
@@ -3781,6 +4264,7 @@ paths:
           schema: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -3794,7 +4278,7 @@ paths:
                         source_hub_pubkey: { type: string }
                         policy: { type: string, enum: [hard-reject, soft-flag] }
                         reason: { type: string, nullable: true }
-                        added_at: { type: integer }
+                        added_at: { type: integer, format: int64 }
 
   /admin/banlist/overrides:
     get:
@@ -3803,6 +4287,7 @@ paths:
       tags: [Federation]
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -3813,7 +4298,7 @@ paths:
                     target_pubkey: { type: string }
                     override_type: { type: string, enum: [whitelist, blacklist] }
                     reason: { type: string, nullable: true }
-                    created_at: { type: integer }
+                    created_at: { type: integer, format: int64 }
     post:
       operationId: createAdminBanlistOverride
       summary: Add a local whitelist/blacklist override (admin)
@@ -3830,6 +4315,7 @@ paths:
                 reason: { type: string }
       responses:
         "201":
+          description: Created
           content:
             application/json:
               schema:
@@ -3838,7 +4324,7 @@ paths:
                   target_pubkey: { type: string }
                   override_type: { type: string }
                   reason: { type: string, nullable: true }
-                  created_at: { type: integer }
+                  created_at: { type: integer, format: int64 }
 
   /admin/banlist/overrides/{pubkey}:
     delete:
@@ -3850,6 +4336,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /admin/settings/banlist:
     get:
@@ -3858,6 +4347,7 @@ paths:
       tags: [Federation]
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -3871,7 +4361,7 @@ paths:
                       properties:
                         url: { type: string }
                         policy: { type: string }
-                        added_at: { type: integer }
+                        added_at: { type: integer, format: int64 }
                         issuer_pubkey: { type: string, nullable: true }
     patch:
       operationId: updateAdminSettingsBanlist
@@ -3885,6 +4375,9 @@ paths:
               required: [publish_banlist]
               properties:
                 publish_banlist: { type: boolean }
+      responses:
+        "200":
+          description: OK
 
   /admin/audit-log:
     get:
@@ -3897,21 +4390,22 @@ paths:
           schema: { type: string }
         - name: since
           in: query
-          schema: { type: integer }
+          schema: { type: integer, format: int64 }
           description: Unix timestamp lower bound
         - name: until
           in: query
-          schema: { type: integer }
+          schema: { type: integer, format: int64 }
           description: Unix timestamp upper bound
         - name: cursor
           in: query
-          schema: { type: integer }
+          schema: { type: integer, format: int64 }
           description: "`next_cursor` from the previous page"
         - name: limit
           in: query
-          schema: { type: integer, default: 50, maximum: 200 }
+          schema: { type: integer, format: int64, default: 50, maximum: 200 }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -3922,14 +4416,14 @@ paths:
                     items:
                       type: object
                       properties:
-                        seq: { type: integer }
+                        seq: { type: integer, format: int64 }
                         event_type: { type: string }
-                        at: { type: integer }
+                        at: { type: integer, format: int64 }
                         actor_pubkey: { type: string, nullable: true }
                         target_pubkey: { type: string, nullable: true }
                         channel_id: { type: string, nullable: true }
                         payload: { type: object }
-                  next_cursor: { type: integer, nullable: true }
+                  next_cursor: { type: integer, format: int64, nullable: true }
 
   # ── Unread counts ─────────────────────────────────────────────────────────
 
@@ -3940,6 +4434,7 @@ paths:
       tags: [Channels]
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -3948,7 +4443,7 @@ paths:
                   type: object
                   properties:
                     channel_id: { type: string }
-                    unread_count: { type: integer }
+                    unread_count: { type: integer, format: int64 }
 
   /channels/{channel_id}/read:
     post:
@@ -3960,6 +4455,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   # ── Message pins ──────────────────────────────────────────────────────────
 
@@ -3977,13 +4475,14 @@ paths:
         - name: limit
           in: query
           description: Page size, clamped to 1..500.
-          schema: { type: integer, default: 100, minimum: 1, maximum: 500 }
+          schema: { type: integer, format: int64, default: 100, minimum: 1, maximum: 500 }
         - name: cursor
           in: query
           description: Keyset cursor — the `message_id` of the previous page's last row.
           schema: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -3993,7 +4492,7 @@ paths:
                   properties:
                     message_id: { type: string }
                     pinned_by: { type: string }
-                    pinned_at: { type: integer }
+                    pinned_at: { type: integer, format: int64 }
                     message:
                       type: object
                       properties:
@@ -4001,7 +4500,7 @@ paths:
                         content: { type: string }
                         sender: { type: string }
                         sender_name: { type: string, nullable: true }
-                        created_at: { type: integer }
+                        created_at: { type: integer, format: int64 }
 
   /channels/{channel_id}/pins/{message_id}:
     post:
@@ -4017,6 +4516,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
     delete:
       operationId: unpinChannelMessage
       summary: Unpin a message (manage_messages)
@@ -4030,6 +4532,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   # ── File uploads ──────────────────────────────────────────────────────────
 
@@ -4058,6 +4563,7 @@ paths:
                 file: { type: string, format: binary }
       responses:
         "201":
+          description: Created
           content:
             application/json:
               schema:
@@ -4066,7 +4572,7 @@ paths:
                   id: { type: string }
                   url: { type: string, description: "Path under /uploads/" }
                   filename: { type: string }
-                  size_bytes: { type: integer }
+                  size_bytes: { type: integer, format: int64 }
                   mime_type: { type: string }
         "413":
           description: File exceeds the size limit
@@ -4103,6 +4609,7 @@ paths:
       tags: [Soundboard]
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -4114,9 +4621,9 @@ paths:
                     name: { type: string }
                     emoji: { type: string, nullable: true }
                     uploader: { type: string }
-                    size_bytes: { type: integer }
-                    duration_ms: { type: integer }
-                    created_at: { type: integer }
+                    size_bytes: { type: integer, format: int64 }
+                    duration_ms: { type: integer, format: int64 }
+                    created_at: { type: integer, format: int64 }
     post:
       operationId: createSoundboardSound
       summary: Upload a soundboard clip (manage_soundboard)
@@ -4136,6 +4643,7 @@ paths:
                 audio: { type: string, format: binary }
       responses:
         "201":
+          description: Created
           content:
             application/json:
               schema:
@@ -4145,9 +4653,9 @@ paths:
                   name: { type: string }
                   emoji: { type: string, nullable: true }
                   uploader: { type: string }
-                  size_bytes: { type: integer }
-                  duration_ms: { type: integer }
-                  created_at: { type: integer }
+                  size_bytes: { type: integer, format: int64 }
+                  duration_ms: { type: integer, format: int64 }
+                  created_at: { type: integer, format: int64 }
         "400":
           description: Missing fields, clip too large/long, invalid Opus/Ogg container, or hub clip limit reached
 
@@ -4161,6 +4669,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /soundboard/{id}/audio:
     get:
@@ -4199,6 +4710,9 @@ paths:
               required: [channel_id]
               properties:
                 channel_id: { type: string }
+      responses:
+        "204":
+          description: No content
 
   # ── Content reporting ─────────────────────────────────────────────────────
 
@@ -4237,13 +4751,14 @@ paths:
         - name: limit
           in: query
           description: Page size, clamped to 1..200.
-          schema: { type: integer, default: 50, minimum: 1, maximum: 200 }
+          schema: { type: integer, format: int64, default: 50, minimum: 1, maximum: 200 }
         - name: cursor
           in: query
           description: Keyset cursor — the `id` of the previous page's last row.
           schema: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -4257,7 +4772,7 @@ paths:
                     channel_id: { type: string }
                     reporter_pubkey: { type: string }
                     reason: { type: string }
-                    reported_at: { type: integer }
+                    reported_at: { type: integer, format: int64 }
                     status: { type: string }
 
   /admin/reports/{id}/review:
@@ -4279,6 +4794,9 @@ paths:
               properties:
                 action: { type: string, enum: [dismiss, delete_message, ban_user] }
                 note: { type: string }
+      responses:
+        "200":
+          description: OK
 
   # ── Search ────────────────────────────────────────────────────────────────
 
@@ -4298,9 +4816,10 @@ paths:
           schema: { type: string }
         - name: limit
           in: query
-          schema: { type: integer, default: 20, maximum: 100 }
+          schema: { type: integer, format: int64, default: 20, maximum: 100 }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -4314,7 +4833,7 @@ paths:
                     sender: { type: string }
                     sender_name: { type: string, nullable: true }
                     content_preview: { type: string }
-                    created_at: { type: integer }
+                    created_at: { type: integer, format: int64 }
 
   # ── Custom emojis ─────────────────────────────────────────────────────────
 
@@ -4326,6 +4845,7 @@ paths:
       tags: [Emojis]
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -4381,6 +4901,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   # ── Events / calendar ─────────────────────────────────────────────────────
 
@@ -4396,7 +4919,7 @@ paths:
           description: Only events starting now or later
         - name: limit
           in: query
-          schema: { type: integer, default: 20, maximum: 100 }
+          schema: { type: integer, format: int64, default: 20, maximum: 100 }
         - name: channel_id
           in: query
           schema: { type: string }
@@ -4407,6 +4930,7 @@ paths:
             that predate it ignore the parameter.
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -4419,16 +4943,16 @@ paths:
                     creator_pubkey: { type: string }
                     title: { type: string }
                     description: { type: string }
-                    starts_at: { type: integer }
-                    ends_at: { type: integer, nullable: true }
+                    starts_at: { type: integer, format: int64 }
+                    ends_at: { type: integer, format: int64, nullable: true }
                     location: { type: string, nullable: true }
-                    created_at: { type: integer }
+                    created_at: { type: integer, format: int64 }
                     rsvp_counts:
                       type: object
                       properties:
-                        going: { type: integer }
-                        maybe: { type: integer }
-                        not_going: { type: integer }
+                        going: { type: integer, format: int64 }
+                        maybe: { type: integer, format: int64 }
+                        not_going: { type: integer, format: int64 }
                     my_rsvp:
                       type: string
                       enum: [going, maybe, not_going]
@@ -4448,9 +4972,12 @@ paths:
                 channel_id: { type: string }
                 title: { type: string }
                 description: { type: string }
-                starts_at: { type: integer, description: "Unix timestamp" }
-                ends_at: { type: integer }
+                starts_at: { type: integer, format: int64, description: "Unix timestamp" }
+                ends_at: { type: integer, format: int64 }
                 location: { type: string }
+      responses:
+        "201":
+          description: Created
 
   /events/{event_id}:
     get:
@@ -4462,6 +4989,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
     put:
       operationId: setEvent
       summary: Update an event (creator or admin)
@@ -4479,9 +5009,12 @@ paths:
               properties:
                 title: { type: string }
                 description: { type: string }
-                starts_at: { type: integer }
-                ends_at: { type: integer }
+                starts_at: { type: integer, format: int64 }
+                ends_at: { type: integer, format: int64 }
                 location: { type: string }
+      responses:
+        "200":
+          description: OK
     delete:
       operationId: deleteEvent
       summary: Delete an event (creator or admin)
@@ -4491,6 +5024,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /events/{event_id}/rsvp:
     post:
@@ -4510,6 +5046,9 @@ paths:
               required: [status]
               properties:
                 status: { type: string, enum: [going, maybe, not_going] }
+      responses:
+        "204":
+          description: No content
 
   /events/{event_id}/rsvps:
     get:
@@ -4523,6 +5062,7 @@ paths:
           schema: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -4551,9 +5091,10 @@ paths:
               required: [name]
               properties:
                 name: { type: string }
-                capacity: { type: integer, nullable: true, description: "Omit or null = unlimited" }
+                capacity: { type: integer, format: int64, nullable: true, description: "Omit or null = unlimited" }
       responses:
         "201":
+          description: Created
           content:
             application/json:
               schema:
@@ -4561,9 +5102,9 @@ paths:
                 properties:
                   id: { type: string }
                   name: { type: string }
-                  capacity: { type: integer, nullable: true }
-                  position: { type: integer }
-                  claimed: { type: integer }
+                  capacity: { type: integer, format: int64, nullable: true }
+                  position: { type: integer, format: int64 }
+                  claimed: { type: integer, format: int64 }
                   claimants: { type: array, items: { type: string } }
 
   /events/{event_id}/slots/{slot_id}:
@@ -4588,9 +5129,10 @@ paths:
               type: object
               properties:
                 name: { type: string }
-                capacity: { type: integer, nullable: true }
+                capacity: { type: integer, format: int64, nullable: true }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -4598,9 +5140,9 @@ paths:
                 properties:
                   id: { type: string }
                   name: { type: string }
-                  capacity: { type: integer, nullable: true }
-                  position: { type: integer }
-                  claimed: { type: integer }
+                  capacity: { type: integer, format: int64, nullable: true }
+                  position: { type: integer, format: int64 }
+                  claimed: { type: integer, format: int64 }
                   claimants: { type: array, items: { type: string } }
         "400":
           description: New capacity is below the current claim count
@@ -4619,6 +5161,8 @@ paths:
           required: true
           schema: { type: string }
       responses:
+        "204":
+          description: No content
         "409":
           description: Slot has claimants
 
@@ -4639,6 +5183,7 @@ paths:
           schema: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -4649,7 +5194,7 @@ paths:
                     user_pubkey: { type: string }
                     target_channel_id: { type: string }
                     assigned_by: { type: string }
-                    created_at: { type: integer }
+                    created_at: { type: integer, format: int64 }
                     voice_only:
                       type: boolean
                       description: >-
@@ -4682,10 +5227,11 @@ paths:
               type: object
               required: [count]
               properties:
-                count: { type: integer, minimum: 1, maximum: 20 }
+                count: { type: integer, format: int64, minimum: 1, maximum: 20 }
                 name_prefix: { type: string, default: Squad }
       responses:
         "201":
+          description: Created
           content:
             application/json:
               schema:
@@ -4708,13 +5254,14 @@ paths:
         - name: limit
           in: query
           description: Page size, clamped to 1..500.
-          schema: { type: integer, default: 100, minimum: 1, maximum: 500 }
+          schema: { type: integer, format: int64, default: 100, minimum: 1, maximum: 500 }
         - name: cursor
           in: query
           description: Keyset cursor — the `id` of the previous page's last row.
           schema: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -4727,9 +5274,9 @@ paths:
                     creator_pubkey: { type: string }
                     question: { type: string }
                     options: { type: string, description: "JSON-encoded array of {id, text}" }
-                    ends_at: { type: integer, nullable: true }
-                    max_choices: { type: integer }
-                    created_at: { type: integer }
+                    ends_at: { type: integer, format: int64, nullable: true }
+                    max_choices: { type: integer, format: int64 }
+                    created_at: { type: integer, format: int64 }
                     totals:
                       type: object
                       additionalProperties: { type: integer }
@@ -4760,8 +5307,11 @@ paths:
                     properties:
                       id: { type: string }
                       text: { type: string }
-                ends_at: { type: integer, nullable: true }
-                max_choices: { type: integer, default: 1 }
+                ends_at: { type: integer, format: int64, nullable: true }
+                max_choices: { type: integer, format: int64, default: 1 }
+      responses:
+        "201":
+          description: Created
 
   /polls/{poll_id}:
     get:
@@ -4775,6 +5325,7 @@ paths:
           schema: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -4785,9 +5336,9 @@ paths:
                   creator_pubkey: { type: string }
                   question: { type: string }
                   options: { type: string, description: "JSON-encoded array of {id, text}" }
-                  ends_at: { type: integer, nullable: true }
-                  max_choices: { type: integer }
-                  created_at: { type: integer }
+                  ends_at: { type: integer, format: int64, nullable: true }
+                  max_choices: { type: integer, format: int64 }
+                  created_at: { type: integer, format: int64 }
                   totals:
                     type: object
                     additionalProperties: { type: integer }
@@ -4805,6 +5356,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /polls/{poll_id}/vote:
     post:
@@ -4851,9 +5405,10 @@ paths:
           description: Opaque cursor from the previous page
         - name: limit
           in: query
-          schema: { type: integer, default: 50, maximum: 100 }
+          schema: { type: integer, format: int64, default: 50, maximum: 100 }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -4883,6 +5438,7 @@ paths:
                 body: { type: string }
       responses:
         "201":
+          description: Created
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PostDetail' }
@@ -4903,6 +5459,7 @@ paths:
           schema: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -4940,9 +5497,10 @@ paths:
           description: Reply ID cursor — return replies created after it
         - name: limit
           in: query
-          schema: { type: integer, default: 50, maximum: 100 }
+          schema: { type: integer, format: int64, default: 50, maximum: 100 }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PostDetail' }
@@ -4967,6 +5525,12 @@ paths:
               properties:
                 title: { type: string }
                 body: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PostDetail' }
     delete:
       operationId: deleteChannelPost
       summary: Delete a post — soft delete / tombstone (author or manage_posts)
@@ -4980,6 +5544,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /channels/{channel_id}/posts/{post_id}/replies:
     post:
@@ -5006,6 +5573,7 @@ paths:
                 reply_to_id: { type: string, description: "Optional parent reply within the same post" }
       responses:
         "201":
+          description: Created
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ReplyView' }
@@ -5036,6 +5604,12 @@ paths:
               required: [body]
               properties:
                 body: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReplyView' }
     delete:
       operationId: deleteChannelPostReply
       summary: Delete a reply — soft delete (author or manage_posts)
@@ -5053,6 +5627,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /channels/{channel_id}/posts/{post_id}/pin:
     post:
@@ -5068,6 +5645,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
     delete:
       operationId: unpinChannelPost
       summary: Unpin a post (manage_posts)
@@ -5081,6 +5661,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /channels/{channel_id}/posts/{post_id}/lock:
     post:
@@ -5096,6 +5679,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
     delete:
       operationId: unlockChannelPost
       summary: Unlock a post (manage_posts)
@@ -5109,6 +5695,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /channels/{channel_id}/posts/{post_id}/read:
     post:
@@ -5124,6 +5713,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /channels/{channel_id}/posts/{post_id}/reactions:
     post:
@@ -5147,6 +5739,9 @@ paths:
               required: [emoji]
               properties:
                 emoji: { type: string, description: "1–8 chars" }
+      responses:
+        "201":
+          description: Created
 
   /channels/{channel_id}/posts/{post_id}/reactions/{emoji}:
     delete:
@@ -5166,6 +5761,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /channels/{channel_id}/posts/{post_id}/replies/{reply_id}/reactions:
     post:
@@ -5193,6 +5791,9 @@ paths:
               required: [emoji]
               properties:
                 emoji: { type: string, description: "1–8 chars" }
+      responses:
+        "201":
+          description: Created
 
   /channels/{channel_id}/posts/{post_id}/replies/{reply_id}/reactions/{emoji}:
     delete:
@@ -5216,6 +5817,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /channels/{channel_id}/tags:
     get:
@@ -5232,6 +5836,7 @@ paths:
           schema: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -5256,9 +5861,10 @@ paths:
               properties:
                 label: { type: string, description: 1–50 characters }
                 color: { type: string, nullable: true }
-                position: { type: integer, default: 0 }
+                position: { type: integer, format: int64, default: 0 }
       responses:
         "201":
+          description: Created
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ForumTag' }
@@ -5287,9 +5893,10 @@ paths:
               properties:
                 label: { type: string }
                 color: { type: string, nullable: true }
-                position: { type: integer }
+                position: { type: integer, format: int64 }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ForumTag' }
@@ -5305,7 +5912,7 @@ paths:
           required: true
           schema: { type: string }
       responses:
-        "204": { description: Deleted, or already gone }
+        "204": { description: "Deleted, or already gone" }
 
   # ── Channel-scoped moderation (pubkey field) ──────────────────────────────
 
@@ -5321,6 +5928,7 @@ paths:
           schema: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -5332,7 +5940,7 @@ paths:
                     pubkey: { type: string }
                     banned_by: { type: string }
                     reason: { type: string, nullable: true }
-                    banned_at: { type: integer }
+                    banned_at: { type: integer, format: int64 }
     post:
       operationId: createChannelBan
       summary: Ban a user from a channel (ban_members)
@@ -5356,6 +5964,9 @@ paths:
               properties:
                 pubkey: { type: string }
                 reason: { type: string, nullable: true }
+      responses:
+        "201":
+          description: Created
 
   /channels/{channel_id}/bans/{pubkey}:
     delete:
@@ -5371,6 +5982,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /channels/{channel_id}/voice-mutes:
     get:
@@ -5384,6 +5998,7 @@ paths:
           schema: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -5412,6 +6027,9 @@ paths:
               required: [pubkey]
               properties:
                 pubkey: { type: string }
+      responses:
+        "201":
+          description: Created
 
   /channels/{channel_id}/voice-mutes/{pubkey}:
     delete:
@@ -5427,6 +6045,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /channels/{channel_id}/raise-hand:
     post:
@@ -5440,6 +6061,7 @@ paths:
           schema: { type: string }
       responses:
         "201":
+          description: Created
           content:
             application/json:
               schema:
@@ -5464,6 +6086,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /channels/{channel_id}/raise-hands:
     get:
@@ -5475,6 +6100,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
 
   /channels/{channel_id}/talk-grants/{pubkey}:
     post:
@@ -5497,7 +6125,7 @@ paths:
           schema: { type: string }
       responses:
         "204": { description: Granted }
-        "403": { description: Missing moderation.mute, or the target outranks the caller }
+        "403": { description: "Missing moderation.mute, or the target outranks the caller" }
         "409": { description: That member is not in this voice channel }
 
   # ── Badges (hub-to-hub attestations) ──────────────────────────────────────
@@ -5509,6 +6137,7 @@ paths:
       tags: [Badges]
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -5533,6 +6162,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /badges/pending:
     get:
@@ -5541,6 +6173,7 @@ paths:
       tags: [Badges]
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -5566,6 +6199,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /badges/pending/{id}/decline:
     post:
@@ -5577,6 +6213,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /admin/badges/issue:
     post:
@@ -5600,6 +6239,7 @@ paths:
                 expires_days: { type: integer }
       responses:
         "201":
+          description: Created
           content:
             application/json:
               schema:
@@ -5620,6 +6260,9 @@ paths:
       operationId: listAdminIssuedBadges
       summary: List badges this hub has issued (admin)
       tags: [Badges]
+      responses:
+        "200":
+          description: OK
 
   /admin/badges/issued/{id}/revoke:
     delete:
@@ -5632,6 +6275,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /federation/badge-offer:
     post:
@@ -5653,6 +6299,11 @@ paths:
                 note: { type: string, nullable: true }
                 payload: { type: string, description: "Canonical BadgePayload JSON string" }
                 signature: { type: string, description: "Hex Ed25519 signature over payload bytes" }
+      responses:
+        "201":
+          description: Offer stored
+        "202":
+          description: Duplicate offer; already stored
 
   /federation/badge-revocations:
     get:
@@ -5667,6 +6318,7 @@ paths:
           description: ISO-8601 timestamp — only revocations at or after this time
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -5688,6 +6340,7 @@ paths:
       tags: [Certifications]
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -5697,11 +6350,11 @@ paths:
                   properties:
                     id: { type: string }
                     subject_pubkey: { type: string }
-                    pow_level: { type: integer, nullable: true }
-                    member_since: { type: integer }
-                    issued_at: { type: integer }
-                    expires_at: { type: integer }
-                    revoked_at: { type: integer, nullable: true }
+                    pow_level: { type: integer, format: int64, nullable: true }
+                    member_since: { type: integer, format: int64 }
+                    issued_at: { type: integer, format: int64 }
+                    expires_at: { type: integer, format: int64 }
+                    revoked_at: { type: integer, format: int64, nullable: true }
                     standing: { type: string, enum: [good, revoked] }
                     payload: { $ref: '#/components/schemas/CertPayload' }
 
@@ -5717,6 +6370,7 @@ paths:
           schema: { type: string }
       responses:
         "201":
+          description: Created
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Certification' }
@@ -5749,6 +6403,7 @@ paths:
                 icon: { type: string }
       responses:
         "201":
+          description: Created
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Certification' }
@@ -5766,6 +6421,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /admin/settings/certs:
     get:
@@ -5774,6 +6432,7 @@ paths:
       tags: [Certifications]
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -5781,8 +6440,8 @@ paths:
                 properties:
                   cert_mode: { type: string, enum: [none, any, trusted] }
                   cert_auto_issue: { type: boolean }
-                  cert_min_age_days: { type: integer }
-                  cert_validity_days: { type: integer }
+                  cert_min_age_days: { type: integer, format: int64 }
+                  cert_validity_days: { type: integer, format: int64 }
                   cert_trusted_issuers: { type: array, items: { type: string } }
                   cert_issuer_urls:
                     type: object
@@ -5827,6 +6486,9 @@ paths:
                   type: object
                   additionalProperties: { type: string }
                   description: Replaces the whole map, like the trust list it accompanies.
+      responses:
+        "204":
+          description: No content
 
   /identity/{pubkey}/certs:
     get:
@@ -5845,6 +6507,7 @@ paths:
           schema: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -5860,10 +6523,11 @@ paths:
       parameters:
         - name: since
           in: query
-          schema: { type: integer }
+          schema: { type: integer, format: int64 }
           description: Unix timestamp — only revocations at or after this time
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -5873,7 +6537,7 @@ paths:
                   properties:
                     id: { type: string }
                     subject_pubkey: { type: string }
-                    revoked_at: { type: integer }
+                    revoked_at: { type: integer, format: int64 }
 
   # ── Recovery contacts / key rotation ──────────────────────────────────────
 
@@ -5884,6 +6548,7 @@ paths:
       tags: [Recovery]
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -5896,8 +6561,8 @@ paths:
                       type: object
                       properties:
                         pubkey: { type: string }
-                        added_at: { type: integer }
-                  threshold: { type: integer }
+                        added_at: { type: integer, format: int64 }
+                  threshold: { type: integer, format: int64 }
     put:
       operationId: setRecoveryContacts
       summary: Replace the caller's recovery contact list
@@ -5911,7 +6576,10 @@ paths:
               required: [contacts, threshold]
               properties:
                 contacts: { type: array, items: { type: string } }
-                threshold: { type: integer }
+                threshold: { type: integer, format: int64 }
+      responses:
+        "200":
+          description: OK
 
   /recovery/contacts/{pubkey}:
     delete:
@@ -5923,6 +6591,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
 
   /recovery/rotate-key:
     post:
@@ -5955,6 +6626,7 @@ paths:
                       signature: { type: string }
       responses:
         "201":
+          description: Created
           content:
             application/json:
               schema:
@@ -5964,8 +6636,8 @@ paths:
                   old_pubkey: { type: string }
                   new_pubkey: { type: string }
                   status: { type: string, enum: [pending, ready_for_review] }
-                  created_at: { type: integer }
-                  attestation_count: { type: integer }
+                  created_at: { type: integer, format: int64 }
+                  attestation_count: { type: integer, format: int64 }
 
   /recovery/requests:
     get:
@@ -5974,6 +6646,7 @@ paths:
       tags: [Recovery]
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -5984,9 +6657,9 @@ paths:
                     id: { type: string }
                     new_pubkey: { type: string }
                     status: { type: string }
-                    created_at: { type: integer }
-                    attestation_count: { type: integer }
-                    threshold: { type: integer }
+                    created_at: { type: integer, format: int64 }
+                    attestation_count: { type: integer, format: int64 }
+                    threshold: { type: integer, format: int64 }
 
   /admin/recovery/pending:
     get:
@@ -5995,6 +6668,7 @@ paths:
       tags: [Recovery]
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -6007,8 +6681,8 @@ paths:
                     new_pubkey: { type: string }
                     reason: { type: string, nullable: true }
                     status: { type: string }
-                    created_at: { type: integer }
-                    attestation_count: { type: integer }
+                    created_at: { type: integer, format: int64 }
+                    attestation_count: { type: integer, format: int64 }
 
   /admin/recovery/{id}/approve:
     post:
@@ -6021,6 +6695,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
 
   /admin/recovery/{id}/deny:
     post:
@@ -6032,6 +6709,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
 
   /recovery/rotation-request/{id}:
     get:
@@ -6049,6 +6729,7 @@ paths:
           schema: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -6060,8 +6741,8 @@ paths:
                   new_pubkey: { type: string }
                   nonce: { type: string }
                   status: { type: string, enum: [pending, ready_for_review, approved, rejected] }
-                  attestation_count: { type: integer }
-                  threshold: { type: integer }
+                  attestation_count: { type: integer, format: int64 }
+                  threshold: { type: integer, format: int64 }
 
   /recovery/rotation-request/{id}/attest:
     post:
@@ -6087,11 +6768,11 @@ paths:
               type: object
               required: [attester, signature]
               properties:
-                attester: { type: string, description: Contact's public key, hex }
-                signature: { type: string, description: Ed25519 signature over the bundle, hex }
+                attester: { type: string, description: "Contact's public key, hex" }
+                signature: { type: string, description: "Ed25519 signature over the bundle, hex" }
       responses:
-        "204": { description: Attestation recorded }
-        "400": { description: Bad signature, or the attester is the old or new key }
+        "200": { description: Attestation recorded }
+        "400": { description: "Bad signature, or the attester is the old or new key" }
         "403": { description: Attester is not a designated contact for this owner }
         "409": { description: Request is no longer accepting attestations }
 
@@ -6113,9 +6794,10 @@ paths:
                 channel_id: { type: string }
                 display_name: { type: string }
                 avatar_url: { type: string }
-                rate_limit: { type: integer, default: 5 }
+                rate_limit: { type: integer, format: int64, default: 5 }
       responses:
         "201":
+          description: Created
           content:
             application/json:
               schema:
@@ -6135,6 +6817,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /webhooks/{id}/{token}:
     post:
@@ -6165,6 +6850,7 @@ paths:
                 embeds: { type: object }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -6183,6 +6869,7 @@ paths:
       tags: [OutgoingWebhooks]
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -6194,12 +6881,12 @@ paths:
                     url: { type: string }
                     display_name: { type: string, nullable: true }
                     active: { type: boolean }
-                    failure_count: { type: integer }
-                    last_delivery_at: { type: integer, nullable: true }
-                    last_failure_at: { type: integer, nullable: true }
-                    created_at: { type: integer }
+                    failure_count: { type: integer, format: int64 }
+                    last_delivery_at: { type: integer, format: int64, nullable: true }
+                    last_failure_at: { type: integer, format: int64, nullable: true }
+                    created_at: { type: integer, format: int64 }
                     created_by_pubkey: { type: string }
-                    subscription_count: { type: integer }
+                    subscription_count: { type: integer, format: int64 }
     post:
       operationId: createAdminOutgoingWebhook
       summary: Create an outgoing webhook (admin)
@@ -6219,6 +6906,7 @@ paths:
                 display_name: { type: string }
       responses:
         "201":
+          description: Created
           content:
             application/json:
               schema:
@@ -6248,6 +6936,9 @@ paths:
                 url: { type: string }
                 display_name: { type: string }
                 active: { type: boolean }
+      responses:
+        "200":
+          description: OK
     delete:
       operationId: deleteAdminOutgoingWebhook
       summary: Delete an outgoing webhook (admin)
@@ -6257,6 +6948,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /admin/outgoing-webhooks/{id}/subscriptions:
     get:
@@ -6270,6 +6964,7 @@ paths:
           schema: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -6314,12 +7009,13 @@ paths:
                         items: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  count: { type: integer }
+                  count: { type: integer, format: int64 }
 
   /admin/outgoing-webhooks/{id}/rotate-secret:
     post:
@@ -6333,6 +7029,7 @@ paths:
           schema: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -6350,6 +7047,9 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      responses:
+        "200":
+          description: OK
 
   /admin/outgoing-webhooks/{id}/deliveries:
     get:
@@ -6363,10 +7063,10 @@ paths:
           schema: { type: string }
         - name: limit
           in: query
-          schema: { type: integer, default: 50, maximum: 200 }
+          schema: { type: integer, format: int64, default: 50, maximum: 200 }
         - name: offset
           in: query
-          schema: { type: integer, default: 0 }
+          schema: { type: integer, format: int64, default: 0 }
         - name: event_type
           in: query
           schema: { type: string }
@@ -6375,6 +7075,7 @@ paths:
           schema: { type: boolean }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -6385,28 +7086,25 @@ paths:
                     id: { type: string }
                     webhook_id: { type: string }
                     event_type: { type: string }
-                    event_seq: { type: integer, nullable: true }
-                    attempted_at: { type: integer }
-                    attempt_number: { type: integer }
-                    status_code: { type: integer, nullable: true }
+                    event_seq: { type: integer, format: int64, nullable: true }
+                    attempted_at: { type: integer, format: int64 }
+                    attempt_number: { type: integer, format: int64 }
+                    status_code: { type: integer, format: int64, nullable: true }
                     success: { type: boolean }
                     error_msg: { type: string, nullable: true }
 
-  # ── Bots (external bot system) ────────────────────────────────────────────
+  # ── Voice and video over HTTP (clients with no socket) ────────────────────
 
   /voice/leave:
     delete:
       operationId: leaveVoice
-      summary: Bot leaves a voice channel
+      summary: Leave a voice channel
       description: >
-        Runs the same cleanup as a normal WebSocket voice disconnect.
-        Idempotent — calling when not in the channel is a no-op.
+        Removes the calling identity from the channel through the same cleanup
+        as a WebSocket voice disconnect, for a client (typically an app) that
+        has no socket to drop. Idempotent — calling when not in the channel is
+        a no-op and still answers 204.
       tags: [Apps]
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: string }
       requestBody:
         required: true
         content:
@@ -6417,24 +7115,21 @@ paths:
               properties:
                 channel_id: { type: string }
       responses:
-        "204": { description: No content }
-        "403": { description: "Caller is not the bot identified by {id}" }
+        "204": { description: "Left the channel, or was not in it" }
 
   /screenshare/start:
     post:
       operationId: startScreenshare
-      summary: Bot registers a video stream in a channel
+      summary: Register a video stream in a channel
       description: >
-        Registers a new screen-share stream for the bot and broadcasts
-        `screen_share_started` to all channel subscribers. After this call
-        the bot pushes `screen_share_chunk` binary envelopes over its WS
-        connection using the returned `stream_id`.
+        Registers a new screen-share stream for the calling identity and
+        broadcasts `screen_share_started` to all channel subscribers, for a
+        client (typically an app) that pushes frames without the WS start
+        handshake. After this call the caller pushes `screen_share_chunk`
+        binary envelopes over its WS connection using the returned
+        `stream_id`. Requires `voice.join` in the channel; streams started
+        this way count against a hub-wide budget.
       tags: [Apps]
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: string }
       requestBody:
         required: true
         content:
@@ -6449,6 +7144,7 @@ paths:
                 has_audio: { type: boolean, default: false }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -6456,24 +7152,20 @@ paths:
                 properties:
                   stream_id: { type: string }
                   channel_id: { type: string }
-        "403": { description: "Caller is not the bot identified by {id}" }
+        "403": { description: Caller lacks voice.join in this channel }
         "404": { description: Channel not found }
+        "429": { description: Hub-wide video stream budget exceeded }
 
   /screenshare/stop:
     delete:
       operationId: stopScreenshare
-      summary: Bot stops a previously started video stream
+      summary: Stop a previously started video stream
       description: >
-        Deregisters the stream and broadcasts `screen_share_stopped` to all
-        channel subscribers. Notifies any cross-channel subscribers that their
-        subscription ended. Idempotent — safe to call if the stream is already
-        gone.
+        Deregisters the caller's stream and broadcasts `screen_share_stopped`
+        to all channel subscribers. Notifies any cross-channel subscribers
+        that their subscription ended. Idempotent — safe to call if the stream
+        is already gone.
       tags: [Apps]
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: string }
       requestBody:
         required: true
         content:
@@ -6486,7 +7178,6 @@ paths:
                 stream_id: { type: string }
       responses:
         "204": { description: No content — idempotent if stream already gone }
-        "403": { description: "Caller is not the bot identified by {id}" }
 
   # ── Group DM membership / sender keys ─────────────────────────────────────
 
@@ -6508,6 +7199,9 @@ paths:
               required: [public_key]
               properties:
                 public_key: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /conversations/{conversation_id}/members/{pubkey}:
     delete:
@@ -6529,6 +7223,9 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/SignedMemberChange"
+      responses:
+        "204":
+          description: No content
 
   /conversations/{conversation_id}/sender-keys:
     get:
@@ -6542,6 +7239,7 @@ paths:
           schema: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -6550,11 +7248,11 @@ paths:
                   type: object
                   properties:
                     sender_pubkey: { type: string }
-                    sender_key_version: { type: integer }
-                    iteration: { type: integer }
+                    sender_key_version: { type: integer, format: int64 }
+                    iteration: { type: integer, format: int64 }
                     wrapped_key_hex: { type: string }
                     wrap_nonce_hex: { type: string }
-                    created_at: { type: integer }
+                    created_at: { type: integer, format: int64 }
     put:
       operationId: setConversationSenderKeys
       summary: Distribute the caller's group sender key (group conversations only)
@@ -6571,7 +7269,7 @@ paths:
               type: object
               required: [sender_key_version, recipients, signature_hex]
               properties:
-                sender_key_version: { type: integer }
+                sender_key_version: { type: integer, format: int64 }
                 recipients:
                   type: array
                   items:
@@ -6581,7 +7279,7 @@ paths:
                       recipient_pubkey: { type: string }
                       wrapped_key_hex: { type: string }
                       wrap_nonce_hex: { type: string }
-                      iteration: { type: integer }
+                      iteration: { type: integer, format: int64 }
                 signature_hex: { type: string, description: "Ed25519 signature over canonical bytes" }
                 signer_cert:
                   type: object
@@ -6591,6 +7289,9 @@ paths:
                     signer_cert.subkey_pubkey, and the cert's master against
                     the authenticated session. Absent means the canonical key
                     signed for itself.
+      responses:
+        "204":
+          description: No content
 
   # ── DM block set ──────────────────────────────────────────────────────────
 
@@ -6601,6 +7302,7 @@ paths:
       tags: [Identity]
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -6619,6 +7321,9 @@ paths:
               required: [pubkeys]
               properties:
                 pubkeys: { type: array, items: { type: string } }
+      responses:
+        "200":
+          description: OK
 
   # ── Alliances (hub-to-hub join + push invite) ─────────────────────────────
 
@@ -6649,6 +7354,7 @@ paths:
                 hub_url: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -6676,6 +7382,9 @@ paths:
                 target_hub_url: { type: string }
                 own_hub_url: { type: string }
                 message: { type: string, nullable: true }
+      responses:
+        "200":
+          description: OK
 
   # ── Join links ────────────────────────────────────────────────────────────
 
@@ -6692,13 +7401,14 @@ paths:
           schema: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   hub_name: { type: string }
-                  member_count: { type: integer }
+                  member_count: { type: integer, format: int64 }
                   code: { type: string }
         "404":
           description: Invite not found
@@ -6715,7 +7425,7 @@ paths:
           required: true
           schema: { type: string }
       responses:
-        "200":
+        "204":
           description: Joined
         "410":
           description: Invite expired or fully used
@@ -6734,6 +7444,7 @@ paths:
           schema: { type: string }
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -6742,7 +7453,7 @@ paths:
                   public_key: { type: string }
                   display_name: { type: string, nullable: true }
                   avatar: { type: string, nullable: true }
-                  joined_at: { type: integer }
+                  joined_at: { type: integer, format: int64 }
                   roles:
                     type: array
                     items:
@@ -6770,6 +7481,7 @@ paths:
       tags: [Federation]
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -6780,7 +7492,7 @@ paths:
                   public_key: { type: string }
                   hub_url: { type: string }
                   tags: { type: array, items: { type: string } }
-                  member_count_approx: { type: integer, description: "Rounded down to the nearest 10" }
+                  member_count_approx: { type: integer, format: int64, description: "Rounded down to the nearest 10" }
                   listed: { type: boolean }
 
   /federation/banlist:
@@ -6797,6 +7509,7 @@ paths:
         "404":
           description: This hub does not publish its ban list
         "200":
+          description: OK
           content:
             application/json:
               schema:
@@ -6806,7 +7519,7 @@ paths:
                     type: object
                     properties:
                       issuer_pubkey: { type: string }
-                      issued_at: { type: integer }
+                      issued_at: { type: integer, format: int64 }
                       entries:
                         type: array
                         items:
@@ -6814,7 +7527,7 @@ paths:
                           properties:
                             master_pubkey: { type: string }
                             reason: { type: string, nullable: true }
-                            added_at: { type: integer }
+                            added_at: { type: integer, format: int64 }
                   signature: { type: string }
 
 tags:
