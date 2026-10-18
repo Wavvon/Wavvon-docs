@@ -101,16 +101,15 @@ components:
     SignedMemberChange:
       type: object
       description: >-
-        The actor's signature over a group add or leave (wire-format.md,
-        "Group DM member change"). Without it the change holds on this hub
-        only; with it the hub carries the change to the other members' hubs.
-        Only on a hub advertising `dms.group.signedmembers`.
+        The actor's signature over a group add or leave (wire-format.md, "Group DM member change").
+        Without it the change holds on this hub only; with it the hub carries the change to the
+        other members' hubs. Only on a hub advertising `dms.group.signedmembers`.
       required: [issued_at, signature]
       properties:
         issued_at: { type: integer, format: int64, description: unix seconds }
         signature: { type: string }
         signer_cert:
-          type: object
+          allOf: [{ $ref: '#/components/schemas/SubkeyCert' }]
           description: When the signing key is not the actor's own, the master-signed cert tying the two.
     UserInfo:
       type: object
@@ -226,6 +225,7 @@ components:
 
     Attachment:
       type: object
+      required: [name, mime, data_b64]
       properties:
         name: { type: string }
         mime: { type: string }
@@ -587,7 +587,8 @@ components:
 
     Certification:
       type: object
-      description: Certification envelope (payload + hex Ed25519 hub signature).
+      description: "Certification envelope (payload + hex Ed25519 hub signature)."
+      required: [payload, signature]
       properties:
         payload: { $ref: '#/components/schemas/CertPayload' }
         signature: { type: string }
@@ -686,6 +687,223 @@ components:
         color: { type: string, nullable: true }
         position: { type: integer, format: int64 }
         created_at: { type: integer, format: int64 }
+
+    AllianceVoiceGrant:
+      type: object
+      required: [payload, signature]
+      properties:
+        payload: { $ref: '#/components/schemas/AllianceVoiceGrantPayload' }
+        signature:
+          type: string
+          description: Hex Ed25519 signature by origin_hub_pubkey over the payload JSON
+
+    AllianceVoiceGrantPayload:
+      type: object
+      required: [alliance_id, owner_hub_pubkey, channel_id, subject_pubkey, origin_hub_pubkey, origin_hub_url, issued_at, expires_at]
+      properties:
+        alliance_id: { type: string }
+        owner_hub_pubkey:
+          type: string
+          description: "Must be this hub, so a grant cannot be replayed elsewhere"
+        channel_id: { type: string }
+        subject_pubkey:
+          type: string
+          description: |
+            The visitor's canonical pubkey. Must equal the identity this
+            challenge-response just authenticated — the grant vouches for
+            membership of the origin hub, never for identity.
+        origin_hub_pubkey: { type: string }
+        origin_hub_url: { type: string }
+        display_name:
+          type: string
+          description: "Roster display only. Hub-vouched, not proven."
+          nullable: true
+        issued_at: { type: integer, format: int64 }
+        expires_at: { type: integer, format: int64 }
+
+    AppCommandDef:
+      type: object
+      required: [name, description]
+      properties:
+        name: { type: string }
+        description: { type: string }
+        args: { type: string }
+        scope: { type: string, enum: [channel, hub] }
+        privileged: { type: boolean }
+        cooldown_seconds:
+          type: integer
+          format: int64
+          description: "Per-user, per-command cooldown in seconds (default 3, 0 = none)"
+
+    AppSubscription:
+      type: object
+      required: [event]
+      properties:
+        event: { type: string }
+        channels: { type: array, items: { type: string } }
+
+    AttestationInput:
+      type: object
+      required: [attester, signature]
+      properties:
+        attester: { type: string }
+        signature: { type: string }
+
+    CreateSlotRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        capacity: { type: integer, format: int64, nullable: true, description: "Omit or null = unlimited" }
+
+    Embed:
+      type: object
+      properties:
+        title: { type: string }
+        url: { type: string }
+        description: { type: string }
+        color: { type: string }
+        fields: { type: array, items: { $ref: '#/components/schemas/EmbedField' } }
+        thumbnail_url: { type: string }
+        image_url: { type: string }
+        footer: { $ref: '#/components/schemas/EmbedFooter' }
+
+    EmbedField:
+      type: object
+      required: [name, value]
+      properties:
+        name: { type: string }
+        value: { type: string }
+        inline: { type: boolean }
+
+    EmbedFooter:
+      type: object
+      required: [text]
+      properties:
+        text: { type: string }
+
+    EncryptedDmEnvelope:
+      type: object
+      required: [sender_pubkey, conv_id, ciphertext_hex, nonce_hex, dh_pubkey_hex, signature_hex]
+      properties:
+        sender_pubkey: { type: string }
+        conv_id: { type: string }
+        ciphertext_hex: { type: string }
+        nonce_hex: { type: string }
+        dh_pubkey_hex: { type: string }
+        signature_hex: { type: string }
+        v: { type: integer }
+        message_index: { type: integer }
+        prev_count: { type: integer }
+        signer_cert: { $ref: '#/components/schemas/SubkeyCert' }
+
+    FavoriteHub:
+      type: object
+      required: [url, name]
+      properties:
+        url: { type: string }
+        name: { type: string }
+        icon: { type: string }
+
+    GameLaunchCard:
+      type: object
+      required: [entry_url, name]
+      properties:
+        entry_url: { type: string }
+        name: { type: string }
+        description: { type: string }
+        thumbnail_url: { type: string }
+
+    GroupEncryptedEnvelope:
+      type: object
+      required: [sender_pubkey, conv_id, sender_key_version, iteration, ciphertext_hex, nonce_hex, signature_hex]
+      properties:
+        sender_pubkey: { type: string }
+        conv_id: { type: string }
+        sender_key_version: { type: integer }
+        iteration: { type: integer }
+        ciphertext_hex: { type: string }
+        nonce_hex: { type: string }
+        signature_hex: { type: string }
+        signer_cert: { $ref: '#/components/schemas/SubkeyCert' }
+
+    PollOption:
+      type: object
+      required: [id, text]
+      properties:
+        id: { type: string }
+        text: { type: string }
+
+    PowProof:
+      type: object
+      required: [level, nonce]
+      properties:
+        level: { type: integer }
+        nonce: { type: string }
+
+    PublicHubEntry:
+      type: object
+      required: [hub_url, hub_name, joined_at]
+      properties:
+        hub_url: { type: string }
+        hub_name: { type: string }
+        joined_at: { type: integer, format: int64 }
+
+    SenderKeyRecipientBlob:
+      type: object
+      required: [recipient_pubkey, wrapped_key_hex, wrap_nonce_hex, iteration]
+      properties:
+        recipient_pubkey: { type: string }
+        wrapped_key_hex: { type: string }
+        wrap_nonce_hex: { type: string }
+        iteration: { type: integer }
+
+    SubkeyCert:
+      type: object
+      required: [master_pubkey, subkey_pubkey, device_label, issued_at, signature]
+      properties:
+        master_pubkey: { type: string }
+        subkey_pubkey: { type: string }
+        device_label: { type: string }
+        issued_at: { type: integer, format: int64 }
+        not_after: { type: integer, format: int64 }
+        fallback_hubs: { type: array, items: { type: string } }
+        signature: { type: string }
+
+    SurveyAnswerInput:
+      type: object
+      required: [question_id]
+      properties:
+        question_id: { type: string }
+        choice_id: { type: string }
+        text_answer: { type: string }
+
+    SurveyChoiceAdmin:
+      type: object
+      required: [id, label, display_order, role_ids]
+      properties:
+        id: { type: string }
+        label: { type: string }
+        display_order: { type: integer, format: int64 }
+        role_ids: { type: array, items: { type: string } }
+
+    SurveyQuestionAdmin:
+      type: object
+      required: [id, prompt, kind, required, display_order]
+      properties:
+        id: { type: string }
+        prompt: { type: string }
+        kind: { type: string }
+        required: { type: boolean }
+        display_order: { type: integer, format: int64 }
+        choices: { type: array, items: { $ref: '#/components/schemas/SurveyChoiceAdmin' } }
+
+    WebhookSubscriptionDto:
+      type: object
+      required: [event]
+      properties:
+        event: { type: string }
+        channels: { type: array, items: { type: string } }
 
 paths:
 
@@ -823,21 +1041,27 @@ paths:
               properties:
                 public_key: { type: string }
                 challenge: { type: string }
-                signature: { type: string, description: "Hex-encoded Ed25519 signature over the challenge bytes" }
-                invite_code: { type: string, description: "Required for invite-only hubs" }
-                security_nonce: { type: integer, format: int64, description: "PoW nonce" }
-                security_level: { type: integer, description: "Claimed PoW level" }
+                signature:
+                  type: string
+                  description: Hex-encoded Ed25519 signature over the challenge bytes
+                invite_code: { type: string, description: Required for invite-only hubs }
+                security_nonce: { type: integer, format: int64, description: PoW nonce }
+                security_level: { type: integer, description: Claimed PoW level }
+                pow_proof: { $ref: '#/components/schemas/PowProof' }
                 subkey_cert:
-                  type: object
+                  allOf: [{ $ref: '#/components/schemas/SubkeyCert' }]
                   description: "Multi-device: links a device subkey to a master key"
                 challenge_token:
                   type: string
-                  description: "Token from POST /challenge/verify (required when challenge_mode != off)"
+                  description: Token from POST /challenge/verify (required when challenge_mode != off)
                 is_hub:
                   type: boolean
-                  description: "Set by a hub authenticating to federate; yields a `peer` session unless the key is already a member"
+                  description: >-
+                    Set by a hub authenticating to federate; yields a `peer` session unless the key
+                    is already a member
+                certifications: { type: array, items: { $ref: '#/components/schemas/Certification' } }
                 alliance_voice_grant:
-                  type: object
+                  allOf: [{ $ref: '#/components/schemas/AllianceVoiceGrant' }]
                   description: |
                     Voice in alliance channels: an origin hub's signed assertion that the
                     caller is its member and the named channel is shared with an alliance
@@ -849,36 +1073,6 @@ paths:
                     caller who is already a member here, who gets their normal session.
 
                     Requires the `voice.alliance` capability on this hub.
-                  required: [payload, signature]
-                  properties:
-                    payload:
-                      type: object
-                      required:
-                        [alliance_id, owner_hub_pubkey, channel_id, subject_pubkey,
-                         origin_hub_pubkey, origin_hub_url, issued_at, expires_at]
-                      properties:
-                        alliance_id: { type: string }
-                        owner_hub_pubkey:
-                          type: string
-                          description: "Must be this hub, so a grant cannot be replayed elsewhere"
-                        channel_id: { type: string }
-                        subject_pubkey:
-                          type: string
-                          description: |
-                            The visitor's canonical pubkey. Must equal the identity this
-                            challenge-response just authenticated — the grant vouches for
-                            membership of the origin hub, never for identity.
-                        origin_hub_pubkey: { type: string }
-                        origin_hub_url: { type: string }
-                        display_name:
-                          type: string
-                          nullable: true
-                          description: "Roster display only. Hub-vouched, not proven."
-                        issued_at: { type: integer, format: int64 }
-                        expires_at: { type: integer, format: int64 }
-                    signature:
-                      type: string
-                      description: "Hex Ed25519 signature by origin_hub_pubkey over the payload JSON"
       responses:
         "200":
           description: Auth successful
@@ -929,6 +1123,7 @@ paths:
       summary: Update display name and avatar
       tags: [Me]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -936,14 +1131,22 @@ paths:
               properties:
                 display_name: { type: string }
                 avatar: { type: string, nullable: true }
+                bio: { type: string }
+                pronouns: { type: string }
+                status_message: { type: string }
+                activities: { type: string }
+                accent_color: { type: string }
+                cover: { type: string }
+                favorite_hubs: { type: array, items: { $ref: '#/components/schemas/FavoriteHub' } }
+                show_hubs: { type: boolean }
                 findable_by_allies:
                   type: boolean
                   description: >-
-                    List me to members of allied hubs (see
-                    `GET /alliances/{alliance_id}/people`). Per hub, off by
-                    default; only takes effect while the alliance's own
-                    `people_visible` switch is on. Hubs advertising
-                    `alliance.people`.
+                    List me to members of allied hubs (see `GET /alliances/{alliance_id}/people`).
+                    Per hub, off by default; only takes effect while the alliance's own
+                    `people_visible` switch is on. Hubs advertising `alliance.people`.
+                birthday: { type: string }
+                name_color: { type: string }
       responses:
         "200":
           description: OK
@@ -1010,6 +1213,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -1076,13 +1280,29 @@ paths:
       summary: Update hub name / icon (admin)
       tags: [Hub]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
               properties:
-                hub_name: { type: string }
-                hub_icon: { type: string, nullable: true }
+                name: { type: string }
+                description: { type: string }
+                icon: { type: string }
+                require_approval: { type: boolean }
+                min_security_level: { type: integer }
+                max_channel_depth: { type: integer }
+                welcome_label: { type: string }
+                welcome_invite_url: { type: string }
+                farewell_label: { type: string }
+                default_invite_role_id: { type: string }
+                timezone: { type: string }
+                birthdays_enabled: { type: boolean }
+                afk_channel_id: { type: string }
+                afk_timeout_secs: { type: integer }
+                max_attachment_bytes: { type: integer, format: int64 }
+                max_upload_bytes: { type: integer, format: int64 }
+                name_color_mode: { type: string }
       responses:
         "200":
           description: OK
@@ -1158,6 +1378,16 @@ paths:
       operationId: createHubIcon
       summary: Upload a custom SVG icon (admin)
       tags: [Hub]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, svg_content]
+              properties:
+                name: { type: string }
+                svg_content: { type: string }
       responses:
         "201":
           description: Created
@@ -1172,6 +1402,15 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
       responses:
         "200":
           description: OK
@@ -1194,13 +1433,14 @@ paths:
       summary: Update lobby / security level settings (admin)
       tags: [Hub]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
+              required: [lobby_enabled]
               properties:
-                enabled: { type: boolean }
-                min_security_level: { type: integer }
+                lobby_enabled: { type: boolean }
                 welcome_md: { type: string, nullable: true }
       responses:
         "200":
@@ -1212,12 +1452,15 @@ paths:
       summary: Update bot-challenge mode (admin)
       tags: [Hub]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
+              required: [challenge_mode, challenge_difficulty]
               properties:
-                challenge_mode: { type: string, enum: [off, click, puzzle, both] }
+                challenge_mode: { type: string, enum: ["off", click, puzzle, both] }
+                challenge_difficulty: { type: string }
       responses:
         "200":
           description: OK
@@ -1281,6 +1524,7 @@ paths:
       summary: Register or replace the caller's app profile (apps.register)
       tags: [Apps]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -1289,18 +1533,14 @@ paths:
               properties:
                 name: { type: string }
                 avatar_url: { type: string }
-                description: { type: string }
                 webhook_url: { type: string, description: "https only; receives slash invocations" }
+                description: { type: string }
                 homepage_url: { type: string }
+                commands: { type: array, items: { $ref: '#/components/schemas/AppCommandDef' } }
+                capabilities: { type: array, items: { type: string } }
                 mini_app_url: { type: string }
                 requires_camera: { type: boolean }
-                game:
-                  type: object
-                  properties:
-                    entry_url: { type: string }
-                    name: { type: string }
-                    description: { type: string }
-                    thumbnail_url: { type: string }
+                game: { $ref: '#/components/schemas/GameLaunchCard' }
       responses:
         "200":
           description: OK
@@ -1315,24 +1555,14 @@ paths:
       summary: Replace the caller's slash command list (apps.register)
       tags: [Apps]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
               required: [commands]
               properties:
-                commands:
-                  type: array
-                  items:
-                    type: object
-                    required: [name, description]
-                    properties:
-                      name: { type: string }
-                      description: { type: string }
-                      args: { type: string }
-                      scope: { type: string, enum: [channel, hub] }
-                      privileged: { type: boolean }
-                      cooldown_seconds: { type: integer, format: int64, description: "Per-user, per-command cooldown in seconds (default 3, 0 = none)" }
+                commands: { type: array, items: { $ref: '#/components/schemas/AppCommandDef' } }
       responses:
         "200": { description: Replaced }
         "403": { description: Caller lacks apps.register }
@@ -1347,22 +1577,14 @@ paths:
         subscriber's own read access to the channel the event happened in.
       tags: [Apps]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
               required: [subscriptions]
               properties:
-                subscriptions:
-                  type: array
-                  items:
-                    type: object
-                    required: [event]
-                    properties:
-                      event: { type: string }
-                      channels:
-                        type: array
-                        items: { type: string }
+                subscriptions: { type: array, items: { $ref: '#/components/schemas/AppSubscription' } }
       responses:
         "200":
           description: OK
@@ -1394,6 +1616,7 @@ paths:
       summary: Create a channel or category (manage_channels)
       tags: [Channels]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -1401,9 +1624,14 @@ paths:
               required: [name]
               properties:
                 name: { type: string }
-                is_category: { type: boolean }
                 parent_id: { type: string, nullable: true }
+                is_category: { type: boolean }
                 description: { type: string }
+                channel_type: { type: string }
+                banner_url: { type: string }
+                banner_file_id: { type: string }
+                spawner_name_template: { type: string }
+                nsfw: { type: boolean }
       responses:
         "201":
           description: Created
@@ -1416,6 +1644,15 @@ paths:
       operationId: reorderChannels
       summary: Reorder channels (manage_channels)
       tags: [Channels]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [channel_ids]
+              properties:
+                channel_ids: { type: array, items: { type: string } }
       responses:
         "200":
           description: OK
@@ -1430,6 +1667,25 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                description: { type: string }
+                parent_id: { type: string, nullable: true }
+                icon: { type: string, nullable: true }
+                color: { type: string, nullable: true }
+                custom_icon_svg: { type: string, nullable: true }
+                min_talk_power: { type: integer, format: int64 }
+                retention_days: { type: integer, format: int64, nullable: true }
+                banner_url: { type: string }
+                banner_file_id: { type: string }
+                forum_require_tag: { type: boolean }
+                nsfw: { type: boolean }
       responses:
         "200":
           description: OK
@@ -1527,6 +1783,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -1626,6 +1883,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -1633,10 +1891,9 @@ paths:
               required: [content]
               properties:
                 content: { type: string }
-                attachments:
-                  type: array
-                  items: { $ref: '#/components/schemas/Attachment' }
-                reply_to: { type: string, description: "Message ID being replied to" }
+                attachments: { type: array, items: { $ref: '#/components/schemas/Attachment' } }
+                reply_to: { type: string, description: Message ID being replied to }
+                game: { $ref: '#/components/schemas/GameLaunchCard' }
       responses:
         "201":
           description: Message created
@@ -1664,12 +1921,15 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
+              required: [content]
               properties:
                 content: { type: string }
+                embeds: { type: array, items: { $ref: '#/components/schemas/Embed' } }
       responses:
         "200":
           description: OK
@@ -1708,6 +1968,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -1771,15 +2032,16 @@ paths:
       summary: Create a DM conversation
       tags: [DMs]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
               required: [members]
               properties:
-                members:
-                  type: array
-                  items: { type: string }
+                members: { type: array, items: { type: string } }
+                member_hubs: { type: object, additionalProperties: { type: string } }
+                member_masters: { type: object, additionalProperties: { type: string } }
       responses:
         "201":
           description: Conversation created
@@ -1833,29 +2095,26 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
-              required: [content]
               properties:
                 content: { type: string }
-                attachments:
-                  type: array
-                  items: { $ref: '#/components/schemas/Attachment' }
-                is_encrypted: { type: boolean }
+                attachments: { type: array, items: { $ref: '#/components/schemas/Attachment' } }
+                encrypted_envelope: { $ref: '#/components/schemas/EncryptedDmEnvelope' }
+                group_encrypted_envelope: { $ref: '#/components/schemas/GroupEncryptedEnvelope' }
                 plaintext_signature:
                   type: string
                   description: >-
-                    Hex Ed25519 signature over the federated plaintext DM bytes
-                    (wire-format.md). A recipient on another hub refuses an
-                    unsigned plaintext DM.
+                    Hex Ed25519 signature over the federated plaintext DM bytes (wire-format.md). A
+                    recipient on another hub refuses an unsigned plaintext DM.
                 plaintext_signer_cert:
-                  type: object
+                  allOf: [{ $ref: '#/components/schemas/SubkeyCert' }]
                   description: >-
-                    When the signing key is not the sender's canonical key: the
-                    master-signed cert tying the two. Only on a hub advertising
-                    `dms.plaintext.signercert`.
+                    When the signing key is not the sender's canonical key: the master-signed cert
+                    tying the two. Only on a hub advertising `dms.plaintext.signercert`.
       responses:
         "201":
           description: Created
@@ -1899,16 +2158,16 @@ paths:
       summary: Send a friend request
       tags: [Friends]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
-              required: [public_key]
+              required: [target_public_key]
               properties:
-                public_key: { type: string }
-                signed:
-                  $ref: "#/components/schemas/SignedMemberChange"
-                hub_url: { type: string, description: "Required for federated (cross-hub) friends" }
+                target_public_key: { type: string }
+                hub_url: { type: string, description: Required for federated (cross-hub) friends }
+                display_name: { type: string }
       responses:
         "201":
           description: Created
@@ -2001,6 +2260,7 @@ paths:
         `challenge_mode` on. A bearer invite buys no such exemption.
       tags: [Invites]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -2010,20 +2270,21 @@ paths:
                 expires_in_seconds:
                   type: integer
                   format: int64
+                  description: >-
+                    Lifetime in seconds from now. Omitted means no expiry, except as noted under
+                    `grant_role_id`.
                   nullable: true
-                  description: Lifetime in seconds from now. Omitted means no expiry, except as noted under `grant_role_id`.
                 grant_role_id:
                   type: string
-                  nullable: true
                   description: >-
-                    Role granted to the joining member besides the everyone
-                    role. Must exist, and the creator must be able to grant
-                    every permission it carries. A role that amounts to a
-                    takeover caps the invite to one use and a short expiry.
+                    Role granted to the joining member besides the everyone role. Must exist, and
+                    the creator must be able to grant every permission it carries. A role that
+                    amounts to a takeover caps the invite to one use and a short expiry.
+                  nullable: true
                 bound_pubkey:
                   type: string
+                  description: "64 hex characters. The only identity this invite admits."
                   nullable: true
-                  description: 64 hex characters. The only identity this invite admits.
       responses:
         "201":
           description: Created
@@ -2159,16 +2420,20 @@ paths:
       summary: Create a role (manage_roles)
       tags: [Roles]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
-              required: [name]
+              required: [name, permissions, priority]
               properties:
                 name: { type: string }
                 permissions: { type: array, items: { type: string } }
                 priority: { type: integer, format: int64 }
                 display_separately: { type: boolean }
+                color: { type: string }
+                icon: { type: string }
+                category_id: { type: string }
       responses:
         "201":
           description: Created
@@ -2186,6 +2451,20 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                permissions: { type: array, items: { type: string } }
+                priority: { type: integer, format: int64 }
+                display_separately: { type: boolean }
+                color: { type: string, nullable: true }
+                icon: { type: string, nullable: true }
+                category_id: { type: string, nullable: true }
       responses:
         "200":
           description: OK
@@ -2242,6 +2521,7 @@ paths:
       summary: Create a role category (manage_roles)
       tags: [Roles]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -2270,6 +2550,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -2392,6 +2673,7 @@ paths:
         Both still require out-ranking the target.
       tags: [Moderation]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -2403,12 +2685,11 @@ paths:
                 duration_seconds:
                   type: integer
                   format: int64
-                  minimum: 1
                   description: >-
-                    Omit for a permanent ban. Zero is refused rather than
-                    treated as permanent: it would read as `expires_at: null`
-                    everywhere downstream, which is the opposite of what a
-                    caller asking for a duration meant.
+                    Omit for a permanent ban. Zero is refused rather than treated as permanent: it
+                    would read as `expires_at: null` everywhere downstream, which is the opposite of
+                    what a caller asking for a duration meant.
+                  minimum: 1
       responses:
         "201":
           description: Created
@@ -2472,6 +2753,16 @@ paths:
       operationId: createModerationMute
       summary: Mute a user (manage_users)
       tags: [Moderation]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [target_public_key]
+              properties:
+                target_public_key: { type: string }
+                reason: { type: string }
       responses:
         "201":
           description: Created
@@ -2495,6 +2786,17 @@ paths:
       operationId: timeoutUser
       summary: Timeout a user (manage_users)
       tags: [Moderation]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [target_public_key, duration_seconds]
+              properties:
+                target_public_key: { type: string }
+                reason: { type: string }
+                duration_seconds: { type: integer, format: int64 }
       responses:
         "201":
           description: Created
@@ -2504,6 +2806,15 @@ paths:
       operationId: kickUser
       summary: Kick a user (manage_users)
       tags: [Moderation]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [target_public_key]
+              properties:
+                target_public_key: { type: string }
       responses:
         "200":
           description: OK
@@ -2524,6 +2835,16 @@ paths:
       operationId: createModerationVoiceMute
       summary: Voice-mute a user (manage_users)
       tags: [Moderation]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [target_public_key]
+              properties:
+                target_public_key: { type: string }
+                reason: { type: string }
       responses:
         "201":
           description: Created
@@ -2564,6 +2885,15 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [min_talk_power]
+              properties:
+                min_talk_power: { type: integer, format: int64 }
       responses:
         "200":
           description: OK
@@ -2620,6 +2950,7 @@ paths:
       summary: Create an alliance (manage_hub)
       tags: [Alliances]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -2639,6 +2970,18 @@ paths:
       operationId: joinAllianceWithInvite
       summary: Join an alliance via invite token (manage_hub)
       tags: [Alliances]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [inviter_hub_url, alliance_id, invite_token, own_hub_url]
+              properties:
+                inviter_hub_url: { type: string }
+                alliance_id: { type: string }
+                invite_token: { type: string }
+                own_hub_url: { type: string }
       responses:
         "200":
           description: OK
@@ -2662,6 +3005,15 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [own_hub_url]
+              properties:
+                own_hub_url: { type: string }
       responses:
         "200":
           description: OK
@@ -3065,6 +3417,18 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content: { type: string }
+                attachments: { type: array, items: { $ref: '#/components/schemas/Attachment' } }
+                reply_to: { type: string }
+                game: { $ref: '#/components/schemas/GameLaunchCard' }
       responses:
         "201":
           description: Created
@@ -3130,6 +3494,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -3138,6 +3503,17 @@ paths:
               properties:
                 title: { type: string }
                 body: { type: string }
+                attachments:
+                  type: array
+                  items:
+                    type: object
+                    required: [url, name, mime, size]
+                    properties:
+                      url: { type: string }
+                      name: { type: string }
+                      mime: { type: string }
+                      size: { type: integer, format: int64 }
+                tag_ids: { type: array, items: { type: string } }
       responses:
         "201":
           description: Created
@@ -3214,6 +3590,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -3222,6 +3599,16 @@ paths:
               properties:
                 body: { type: string }
                 reply_to_id: { type: string, description: For threaded replies }
+                attachments:
+                  type: array
+                  items:
+                    type: object
+                    required: [url, name, mime, size]
+                    properties:
+                      url: { type: string }
+                      name: { type: string }
+                      mime: { type: string }
+                      size: { type: integer, format: int64 }
       responses:
         "201":
           description: Created
@@ -3275,6 +3662,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -3310,14 +3698,14 @@ paths:
         On promotion, the session scope changes to "member".
       tags: [Lobby]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
-              required: [nonce, claimed_level]
+              required: [pow_proof]
               properties:
-                nonce: { type: integer, format: int64 }
-                claimed_level: { type: integer }
+                pow_proof: { type: string }
       responses:
         "200":
           description: OK
@@ -3360,13 +3748,15 @@ paths:
       security: []
       tags: [Challenge]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
-              required: [challenge_id]
+              required: [id, pubkey]
               properties:
-                challenge_id: { type: string }
+                id: { type: string }
+                pubkey: { type: string }
                 answer: { type: string, description: "Numeric answer for puzzle mode; omit for click-only" }
       responses:
         "200":
@@ -3391,6 +3781,16 @@ paths:
         Choice answers auto-apply configured roles. Free-text answers route the
         user to pending approval. Returns the resulting approval state.
       tags: [Survey]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [survey_id, answers]
+              properties:
+                survey_id: { type: string }
+                answers: { type: array, items: { $ref: '#/components/schemas/SurveyAnswerInput' } }
       responses:
         "200":
           description: OK
@@ -3407,6 +3807,17 @@ paths:
       operationId: setAdminSurvey
       summary: Create or replace the survey (manage_hub)
       tags: [Survey]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id, enabled, questions]
+              properties:
+                id: { type: string }
+                enabled: { type: boolean }
+                questions: { type: array, items: { $ref: '#/components/schemas/SurveyQuestionAdmin' } }
       responses:
         "200":
           description: OK
@@ -3476,10 +3887,12 @@ paths:
       summary: Acknowledge delivered events
       tags: [Apps]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
+              required: [ids]
               properties:
                 ids: { type: array, items: { type: string } }
       responses:
@@ -3522,6 +3935,19 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [master_pubkey, hubs, issued_at, sequence, signature]
+              properties:
+                master_pubkey: { type: string }
+                hubs: { type: array, items: { type: string } }
+                issued_at: { type: integer, format: int64 }
+                sequence: { type: integer, format: int64 }
+                signature: { type: string }
       responses:
         "200":
           description: OK
@@ -3548,6 +3974,10 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/SubkeyCert' } }
       responses:
         "200":
           description: OK
@@ -3574,6 +4004,18 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [master_pubkey, subkey_pubkey, revoked_at, signature]
+              properties:
+                master_pubkey: { type: string }
+                subkey_pubkey: { type: string }
+                revoked_at: { type: integer, format: int64 }
+                signature: { type: string }
       responses:
         "200":
           description: OK
@@ -3600,6 +4042,18 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [master_pubkey, blob_version, ciphertext_hex, signature]
+              properties:
+                master_pubkey: { type: string }
+                blob_version: { type: integer, format: int64 }
+                ciphertext_hex: { type: string }
+                signature: { type: string }
       responses:
         "200":
           description: OK
@@ -3626,6 +4080,16 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [dh_pubkey_hex, signature_hex]
+              properties:
+                dh_pubkey_hex: { type: string }
+                signature_hex: { type: string }
       responses:
         "200":
           description: OK
@@ -3635,6 +4099,20 @@ paths:
       operationId: createIdentityPairingOffer
       summary: Create a device-pairing offer
       tags: [Identity]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [master_pubkey, home_hubs, pairing_token, issued_at, expires_at, signature]
+              properties:
+                master_pubkey: { type: string }
+                home_hubs: { type: array, items: { type: string } }
+                pairing_token: { type: string }
+                issued_at: { type: integer, format: int64 }
+                expires_at: { type: integer, format: int64 }
+                signature: { type: string }
       responses:
         "200":
           description: OK
@@ -3644,6 +4122,18 @@ paths:
       operationId: claimIdentityPairing
       summary: Claim a pairing offer from a new device
       tags: [Identity]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pairing_token, subkey_pubkey, device_label, proof]
+              properties:
+                pairing_token: { type: string }
+                subkey_pubkey: { type: string }
+                device_label: { type: string }
+                proof: { type: string }
       responses:
         "200":
           description: OK
@@ -3653,6 +4143,18 @@ paths:
       operationId: completeIdentityPairing
       summary: Complete the pairing handshake
       tags: [Identity]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pairing_token, cert, wrapped_blob_key_hex]
+              properties:
+                pairing_token: { type: string }
+                cert: { $ref: '#/components/schemas/SubkeyCert' }
+                wrapped_blob_key_hex: { type: string }
+                wrapped_dh_seed_hex: { type: string }
       responses:
         "200":
           description: OK
@@ -3696,6 +4198,20 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pubkey, display_name, public_hubs, issued_at, signature]
+              properties:
+                pubkey: { type: string }
+                display_name: { type: string }
+                avatar: { type: string }
+                public_hubs: { type: array, items: { $ref: '#/components/schemas/PublicHubEntry' } }
+                issued_at: { type: integer, format: int64 }
+                signature: { type: string }
       responses:
         "200":
           description: OK
@@ -3714,6 +4230,15 @@ paths:
       operationId: createFederationPeer
       summary: Add a federation peer
       tags: [Federation]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url: { type: string }
       responses:
         "201":
           description: Created
@@ -3730,6 +4255,28 @@ paths:
         conversation seen for the first time, and must then include the
         sender.
       tags: [Federation]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message_id, conversation_id, conv_type, sender, members, created_at]
+              properties:
+                message_id: { type: string }
+                conversation_id: { type: string }
+                conv_type: { type: string }
+                sender: { type: string }
+                members: { type: array, items: { type: string } }
+                content: { type: string }
+                attachments: { type: array, items: { $ref: '#/components/schemas/Attachment' } }
+                signature: { type: string }
+                created_at: { type: integer, format: int64 }
+                encrypted_envelope: { $ref: '#/components/schemas/EncryptedDmEnvelope' }
+                group_encrypted_envelope: { $ref: '#/components/schemas/GroupEncryptedEnvelope' }
+                sender_hub_url: { type: string }
+                signer_cert: { $ref: '#/components/schemas/SubkeyCert' }
+                mirror: { type: boolean }
       responses:
         "200":
           description: OK
@@ -3747,6 +4294,7 @@ paths:
         never seen also answers 200: its first DM brings the current roster.
       tags: [Federation]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -3760,8 +4308,10 @@ paths:
                 issued_at: { type: integer, format: int64, description: unix seconds }
                 signature: { type: string }
                 signer_cert:
-                  type: object
-                  description: When the signing key is not the actor's own, the master-signed cert tying the two.
+                  allOf: [{ $ref: '#/components/schemas/SubkeyCert' }]
+                  description: >-
+                    When the signing key is not the actor's own, the master-signed cert tying the
+                    two.
       responses:
         "200": { description: "Applied, or nothing to apply" }
         "400": { description: "Not a group, empty change, or issued_at in the future" }
@@ -3773,6 +4323,22 @@ paths:
       operationId: createFederationAllianceInvite
       summary: Receive an alliance invite push from a peer hub
       tags: [Federation]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id, alliance_id, alliance_name, from_hub_url, from_hub_name, from_hub_public_key, invite_token]
+              properties:
+                id: { type: string }
+                alliance_id: { type: string }
+                alliance_name: { type: string }
+                from_hub_url: { type: string }
+                from_hub_name: { type: string }
+                from_hub_public_key: { type: string }
+                invite_token: { type: string }
+                message: { type: string }
       responses:
         "200":
           description: OK
@@ -3787,6 +4353,15 @@ paths:
         departure was local: the partners kept the row, kept calling the hub,
         and kept letting it read what the alliance shares.
       tags: [Federation]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [alliance_id]
+              properties:
+                alliance_id: { type: string }
       responses:
         "200":
           description: OK
@@ -3802,6 +4377,18 @@ paths:
         answers for that key. Without this only the inviter learns of a new
         member, and an alliance of three never converges.
       tags: [Federation]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [alliance_id, hub_url, inviter_public_key, voucher]
+              properties:
+                alliance_id: { type: string }
+                hub_url: { type: string }
+                inviter_public_key: { type: string }
+                voucher: { type: string }
       responses:
         "200":
           description: OK
@@ -3811,6 +4398,19 @@ paths:
       operationId: signAdminDirectoryListing
       summary: Sign a directory entry for the hub discovery service
       tags: [Federation]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [hub_url, tags, language, bio]
+              properties:
+                hub_url: { type: string }
+                tags: { type: array, items: { type: string } }
+                language: { type: string }
+                bio: { type: string }
+                invite_code: { type: string }
       responses:
         "200":
           description: OK
@@ -3886,6 +4486,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -3926,6 +4527,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -3954,6 +4556,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -3992,6 +4595,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -4019,6 +4623,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -4041,13 +4646,14 @@ paths:
       security: []
       tags: [Auth]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
               required: [user_pubkey]
               properties:
-                user_pubkey: { type: string, description: "Hex-encoded Ed25519 public key" }
+                user_pubkey: { type: string, description: Hex-encoded Ed25519 public key }
                 display_name: { type: string }
       responses:
         "200":
@@ -4067,6 +4673,7 @@ paths:
       security: []
       tags: [Auth]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -4074,7 +4681,9 @@ paths:
               required: [session_id, credential]
               properties:
                 session_id: { type: string }
-                credential: { type: object, description: "RegisterPublicKeyCredential from navigator.credentials.create()" }
+                credential:
+                  type: object
+                  description: RegisterPublicKeyCredential from navigator.credentials.create()
                 friendly_name: { type: string }
       responses:
         "200":
@@ -4095,6 +4704,7 @@ paths:
       security: []
       tags: [Auth]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -4122,6 +4732,7 @@ paths:
       security: []
       tags: [Auth]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -4129,7 +4740,9 @@ paths:
               required: [session_id, credential]
               properties:
                 session_id: { type: string }
-                credential: { type: object, description: "PublicKeyCredential assertion from navigator.credentials.get()" }
+                credential:
+                  type: object
+                  description: PublicKeyCredential assertion from navigator.credentials.get()
       responses:
         "200":
           description: OK
@@ -4149,6 +4762,7 @@ paths:
       description: Requires an existing session (e.g. right after a WebAuthn assertion).
       tags: [Auth]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -4175,6 +4789,7 @@ paths:
       security: []
       tags: [Auth]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -4240,6 +4855,7 @@ paths:
       summary: Update the minimum PoW level (admin)
       tags: [Hub]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -4257,6 +4873,7 @@ paths:
       summary: Set the auto-moderation webhook URL and HMAC secret (admin)
       tags: [Hub]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -4274,6 +4891,7 @@ paths:
       summary: Toggle whether the hub is listed for discovery (admin)
       tags: [Hub]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -4309,6 +4927,7 @@ paths:
         rejected. Returns the normalised tag list.
       tags: [Hub]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -4347,6 +4966,7 @@ paths:
       summary: Add a ban list source and trigger an immediate sync (admin)
       tags: [Federation]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -4372,6 +4992,7 @@ paths:
       summary: Update the policy on an existing ban list source (admin)
       tags: [Federation]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -4390,6 +5011,7 @@ paths:
       summary: Remove a ban list source and its synced entries (admin)
       tags: [Federation]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -4485,6 +5107,7 @@ paths:
       summary: Add a local whitelist/blacklist override (admin)
       tags: [Federation]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -4549,6 +5172,7 @@ paths:
       summary: Toggle whether this hub publishes its ban list (admin)
       tags: [Federation]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -4884,6 +5508,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -4908,6 +5533,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -4967,6 +5593,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -5059,6 +5686,7 @@ paths:
       summary: Upload a custom emoji (admin)
       tags: [Emojis]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -5144,6 +5772,7 @@ paths:
       description: Also posts a system card message into the target channel.
       tags: [Events]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -5153,9 +5782,13 @@ paths:
                 channel_id: { type: string }
                 title: { type: string }
                 description: { type: string }
-                starts_at: { type: integer, format: int64, description: "Unix timestamp" }
+                starts_at: { type: integer, format: int64, description: Unix timestamp }
                 ends_at: { type: integer, format: int64 }
                 location: { type: string }
+                reminder_minutes: { type: integer, format: int64 }
+                slots: { type: array, items: { $ref: '#/components/schemas/CreateSlotRequest' } }
+                hub_wide: { type: boolean }
+                propagate_to_children: { type: boolean }
       responses:
         "201":
           description: Created
@@ -5183,6 +5816,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -5193,6 +5827,8 @@ paths:
                 starts_at: { type: integer, format: int64 }
                 ends_at: { type: integer, format: int64 }
                 location: { type: string }
+                reminder_minutes: { type: integer, format: int64, nullable: true }
+                hub_wide: { type: boolean }
       responses:
         "200":
           description: OK
@@ -5220,6 +5856,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -5227,6 +5864,7 @@ paths:
               required: [status]
               properties:
                 status: { type: string, enum: [going, maybe, not_going] }
+                slot_id: { type: string }
       responses:
         "204":
           description: No content
@@ -5265,14 +5903,9 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
-          application/json:
-            schema:
-              type: object
-              required: [name]
-              properties:
-                name: { type: string }
-                capacity: { type: integer, format: int64, nullable: true, description: "Omit or null = unlimited" }
+          application/json: { schema: { $ref: '#/components/schemas/CreateSlotRequest' } }
       responses:
         "201":
           description: Created
@@ -5304,6 +5937,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -5402,6 +6036,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -5473,6 +6108,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -5480,14 +6116,7 @@ paths:
               required: [question, options]
               properties:
                 question: { type: string }
-                options:
-                  type: array
-                  items:
-                    type: object
-                    required: [id, text]
-                    properties:
-                      id: { type: string }
-                      text: { type: string }
+                options: { type: array, items: { $ref: '#/components/schemas/PollOption' } }
                 ends_at: { type: integer, format: int64, nullable: true }
                 max_choices: { type: integer, format: int64, default: 1 }
       responses:
@@ -5552,6 +6181,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -5560,8 +6190,8 @@ paths:
               properties:
                 option_ids:
                   type: array
+                  description: "Must not exceed the poll's max_choices"
                   items: { type: string }
-                  description: Must not exceed the poll's max_choices
       responses:
         "204":
           description: Vote recorded; updated totals broadcast over WS
@@ -5609,6 +6239,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -5617,6 +6248,17 @@ paths:
               properties:
                 title: { type: string }
                 body: { type: string }
+                attachments:
+                  type: array
+                  items:
+                    type: object
+                    required: [url, name, mime, size]
+                    properties:
+                      url: { type: string }
+                      name: { type: string }
+                      mime: { type: string }
+                      size: { type: integer, format: int64 }
+                tag_ids: { type: array, items: { type: string } }
       responses:
         "201":
           description: Created
@@ -5699,6 +6341,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -5706,6 +6349,7 @@ paths:
               properties:
                 title: { type: string }
                 body: { type: string }
+                tag_ids: { type: array, items: { type: string } }
       responses:
         "200":
           description: OK
@@ -5744,6 +6388,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -5751,7 +6396,17 @@ paths:
               required: [body]
               properties:
                 body: { type: string }
-                reply_to_id: { type: string, description: "Optional parent reply within the same post" }
+                reply_to_id: { type: string, description: Optional parent reply within the same post }
+                attachments:
+                  type: array
+                  items:
+                    type: object
+                    required: [url, name, mime, size]
+                    properties:
+                      url: { type: string }
+                      name: { type: string }
+                      mime: { type: string }
+                      size: { type: integer, format: int64 }
       responses:
         "201":
           description: Created
@@ -5778,6 +6433,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -5913,6 +6569,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -5965,6 +6622,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -6034,13 +6692,14 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
               required: [label]
               properties:
-                label: { type: string, description: 1–50 characters }
+                label: { type: string, description: "1–50 characters" }
                 color: { type: string, nullable: true }
                 position: { type: integer, format: int64, default: 0 }
       responses:
@@ -6067,6 +6726,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -6137,6 +6797,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -6201,6 +6862,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -6408,6 +7070,7 @@ paths:
         /federation/badge-offer, and records it locally.
       tags: [Badges]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -6468,6 +7131,7 @@ paths:
       security: []
       tags: [Badges]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -6478,8 +7142,8 @@ paths:
                 from_hub_url: { type: string }
                 label: { type: string }
                 note: { type: string, nullable: true }
-                payload: { type: string, description: "Canonical BadgePayload JSON string" }
-                signature: { type: string, description: "Hex Ed25519 signature over payload bytes" }
+                payload: { type: string, description: Canonical BadgePayload JSON string }
+                signature: { type: string, description: Hex Ed25519 signature over payload bytes }
       responses:
         "201":
           description: Offer stored
@@ -6573,6 +7237,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -6641,6 +7306,7 @@ paths:
         for `cert_standing_days`, which is what GET calls the same setting.
       tags: [Certifications]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -6656,6 +7322,10 @@ paths:
                   oneOf: [{ type: string }, { type: integer }]
                 cert_mode: { type: string, enum: [none, any, trusted] }
                 cert_trusted_issuers: { type: array, items: { type: string } }
+                cert_issuer_urls:
+                  type: object
+                  additionalProperties: { type: string }
+                  description: "Replaces the whole map, like the trust list it accompanies."
                 cert_require:
                   type: object
                   properties:
@@ -6663,10 +7333,6 @@ paths:
                     min_member_since_days: { type: integer }
                 cert_min_pow_level:
                   oneOf: [{ type: string }, { type: integer }]
-                cert_issuer_urls:
-                  type: object
-                  additionalProperties: { type: string }
-                  description: Replaces the whole map, like the trust list it accompanies.
       responses:
         "204":
           description: No content
@@ -6750,6 +7416,7 @@ paths:
       description: Max 5 contacts; threshold must be between 1 and the contact count; the caller cannot be their own contact.
       tags: [Recovery]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -6757,7 +7424,7 @@ paths:
               required: [contacts, threshold]
               properties:
                 contacts: { type: array, items: { type: string } }
-                threshold: { type: integer, format: int64 }
+                threshold: { type: integer }
       responses:
         "200":
           description: OK
@@ -6788,23 +7455,18 @@ paths:
       security: []
       tags: [Recovery]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
-              required: [old_pubkey, new_pubkey, attestations]
+              required: [old_pubkey, new_pubkey, new_key_signature]
               properties:
                 old_pubkey: { type: string }
                 new_pubkey: { type: string }
                 reason: { type: string }
-                attestations:
-                  type: array
-                  items:
-                    type: object
-                    required: [attester, signature]
-                    properties:
-                      attester: { type: string }
-                      signature: { type: string }
+                new_key_signature: { type: string }
+                attestations: { type: array, items: { $ref: '#/components/schemas/AttestationInput' } }
       responses:
         "201":
           description: Created
@@ -6943,6 +7605,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -6966,6 +7629,7 @@ paths:
       description: The returned `webhook_url` embeds the secret token and is shown **once** — only its hash is stored.
       tags: [Webhooks]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -7019,6 +7683,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -7077,6 +7742,7 @@ paths:
         persisted HMAC signing key.
       tags: [OutgoingWebhooks]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -7109,6 +7775,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -7172,22 +7839,14 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
               required: [subscriptions]
               properties:
-                subscriptions:
-                  type: array
-                  items:
-                    type: object
-                    required: [event]
-                    properties:
-                      event: { type: string }
-                      channels:
-                        type: array
-                        items: { type: string }
+                subscriptions: { type: array, items: { $ref: '#/components/schemas/WebhookSubscriptionDto' } }
       responses:
         "200":
           description: OK
@@ -7373,6 +8032,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -7380,6 +8040,7 @@ paths:
               required: [public_key]
               properties:
                 public_key: { type: string }
+                signed: { $ref: '#/components/schemas/SignedMemberChange' }
       responses:
         "204":
           description: No content
@@ -7444,32 +8105,22 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
               required: [sender_key_version, recipients, signature_hex]
               properties:
-                sender_key_version: { type: integer, format: int64 }
-                recipients:
-                  type: array
-                  items:
-                    type: object
-                    required: [recipient_pubkey, wrapped_key_hex, wrap_nonce_hex, iteration]
-                    properties:
-                      recipient_pubkey: { type: string }
-                      wrapped_key_hex: { type: string }
-                      wrap_nonce_hex: { type: string }
-                      iteration: { type: integer, format: int64 }
-                signature_hex: { type: string, description: "Ed25519 signature over canonical bytes" }
+                sender_key_version: { type: integer }
+                recipients: { type: array, items: { $ref: '#/components/schemas/SenderKeyRecipientBlob' } }
+                signature_hex: { type: string, description: Ed25519 signature over canonical bytes }
                 signer_cert:
-                  type: object
+                  allOf: [{ $ref: '#/components/schemas/SubkeyCert' }]
                   description: >-
-                    Present when a paired device's subkey signed the
-                    distribution. The signature is then checked against
-                    signer_cert.subkey_pubkey, and the cert's master against
-                    the authenticated session. Absent means the canonical key
-                    signed for itself.
+                    Present when a paired device's subkey signed the distribution. The signature is
+                    then checked against signer_cert.subkey_pubkey, and the cert's master against
+                    the authenticated session. Absent means the canonical key signed for itself.
       responses:
         "204":
           description: No content
@@ -7495,6 +8146,7 @@ paths:
       summary: Replace the caller's DM-block set
       tags: [Identity]
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -7525,6 +8177,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -7554,6 +8207,7 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
+        required: true
         content:
           application/json:
             schema:
