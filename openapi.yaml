@@ -204,7 +204,9 @@ components:
         reactions:
           type: array
           items: { $ref: '#/components/schemas/Reaction' }
-        reply_to: { $ref: '#/components/schemas/ReplyContext', nullable: true }
+        reply_to:
+          nullable: true
+          anyOf: [{ $ref: '#/components/schemas/ReplyContext' }]
         visible_to_pubkey:
           type: string
           description: >-
