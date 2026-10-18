@@ -189,10 +189,9 @@ cleartext, as apps.md describes for any client with no DH key.
 0. **Wavvon-server and Wavvon-docs first**: the vector JSON export, the
    missing tier-1 vectors, and an `operationId` on every operation in
    `openapi.yaml` (§3).
-1. **TypeScript and Rust together.** TypeScript because
-   Wavvon-clients: `packages/core` (`identity/wire.ts`, `apps.ts`, `hubWire.ts`)
-   already implements most of tier 1; Rust because `wavvon-identity` already is
-   the authority, so the Rust SDK depends on it rather than copying it.
+1. **TypeScript and Rust together.** TypeScript because it is what the
+   clients are written in; Rust because `wavvon-identity` already is the
+   authority, so the Rust SDK depends on it rather than copying it.
 2. **Python and C#** — Python as the most common language for small
    programs, C# because it has a reviewer in-house (§10, question 5).
 3. **Go and Java**, community / experimental.
@@ -208,9 +207,13 @@ All answered on 2026-10-18.
    announcing.
 2. **Licence: Apache-2.0**, not the hub's AGPL-3.0, so a closed-source program
    can link the SDK. Apache rather than MIT for its patent grant.
-3. **`packages/core` is wrapped, not extracted**: `Wavvon-sdk-js` depends on a
-   published `packages/core`. Two public surfaces, but a client release never
-   waits on an SDK release. Extraction stays open if the two drift.
+3. **`packages/core` is neither wrapped nor extracted**: `Wavvon-sdk-js`
+   depends only on `@noble/curves` and `@noble/hashes`. First answered
+   "wrapped"; reversed the same day on reading the package — of tier 1 it
+   holds only the challenge signing and `parseGameLaunchCard`, and it is
+   private, unbuilt and peer-depends on React, so wrapping it meant
+   publishing it and making every bot install React. The conformance suite
+   (§4) is what keeps the two implementations from drifting.
 4. **`wavvon-identity` is published to crates.io** so the Rust SDK depends on
    it rather than copying it. Its API becomes public; `0.x` keeps it free to
    break while the hub is pre-1.0.
