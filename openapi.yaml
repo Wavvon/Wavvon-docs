@@ -4868,6 +4868,25 @@ paths:
           description: OK
 
   /admin/settings/moderation:
+    get:
+      operationId: getAdminSettingsModeration
+      summary: Read the auto-moderation webhook settings (moderation.settings)
+      tags: [Hub]
+      responses:
+        "200":
+          description: The webhook URL, whether a secret is set, and the circuit-breaker state
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [webhook_secret_set, circuit_open, circuit_open_until]
+                properties:
+                  webhook_url:
+                    type: string
+                    description: Omitted unless set.
+                  webhook_secret_set: { type: boolean }
+                  circuit_open: { type: boolean }
+                  circuit_open_until: { type: integer, format: int64, nullable: true }
     patch:
       operationId: updateAdminSettingsModeration
       summary: Set the auto-moderation webhook URL and HMAC secret (admin)
@@ -7623,6 +7642,30 @@ paths:
   # ── Incoming webhooks ─────────────────────────────────────────────────────
 
   /admin/webhooks:
+    get:
+      operationId: listAdminWebhooks
+      summary: List incoming webhooks (webhooks.incoming.manage)
+      tags: [Webhooks]
+      responses:
+        "200":
+          description: Every active incoming webhook
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [id, display_name, channel_id, channel_name, webhook_url, created_by, created_at]
+                  properties:
+                    id: { type: string }
+                    display_name: { type: string }
+                    channel_id: { type: string }
+                    channel_name: { type: string, nullable: true }
+                    webhook_url:
+                      type: string
+                      description: Base URL only; the token is stored hashed and cannot be recovered. Regenerate to get a working URL.
+                    created_by: { type: string }
+                    created_at: { type: integer, format: int64 }
     post:
       operationId: createAdminWebhook
       summary: Create an incoming webhook for a channel (admin)
@@ -7665,6 +7708,30 @@ paths:
       responses:
         "204":
           description: No content
+    patch:
+      operationId: regenerateAdminWebhook
+      summary: Issue a fresh token for a webhook (webhooks.incoming.manage)
+      description: The old URL stops working. The returned `webhook_url` embeds the new secret token and is shown **once**.
+      tags: [Webhooks]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: The webhook with its new URL
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, webhook_url, display_name]
+                properties:
+                  id: { type: string }
+                  webhook_url: { type: string }
+                  display_name: { type: string }
+        "404":
+          description: Webhook not found
 
   /webhooks/{id}/{token}:
     post:

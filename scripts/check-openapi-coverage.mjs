@@ -97,6 +97,34 @@ lines.forEach((line, i) => {
   if (!id) noOpId.push(op);
   else opIds.set(id, [...(opIds.get(id) ?? []), op]);
 });
+// A path can be documented while one of its methods is not, so compare
+// method + path too. The methods a route registers are the routing calls
+// (`get(...)`, `.patch(...)`) between it and the next `.route(`.
+const routeChunks = serverRs.split(/\.route\(/).slice(1);
+const codeOps = new Set(
+  routeChunks.flatMap((chunk) => {
+    const path = chunk.match(/^\s*"([^"]+)"/)?.[1];
+    if (!path) return [];
+    return [...chunk.matchAll(/\b(get|post|put|patch|delete)\(/g)].map(
+      (m) => `${m[1].toUpperCase()} ${normalize(path)}`,
+    );
+  }),
+);
+const specOps = new Set(
+  [...opIds.values()].flat().map((op) => {
+    const [method, path] = op.split(" ");
+    return `${method} ${normalize(path)}`;
+  }),
+);
+const opsMissingFromSpec = [...codeOps].filter((op) => !specOps.has(op)).sort();
+if (opsMissingFromSpec.length) {
+  console.error(
+    `FAIL — method registered in hub/src/server.rs but missing from openapi.yaml (${opsMissingFromSpec.length}):`,
+  );
+  for (const op of opsMissingFromSpec) console.error(`  ${op}`);
+  process.exit(1);
+}
+
 const duplicateIds = [...opIds].filter(([, ops]) => ops.length > 1);
 if (noOpId.length || duplicateIds.length) {
   for (const op of noOpId) console.error(`FAIL — no operationId: ${op}`);
