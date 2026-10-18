@@ -217,10 +217,10 @@ components:
           description: Number of direct replies; non-zero only on thread roots.
         embeds:
           type: array
-          items: { type: object }
+          items: { $ref: '#/components/schemas/Embed' }
           description: Omitted unless set. Rich embeds authored by an app (docs/apps.md).
         game:
-          type: object
+          allOf: [{ $ref: '#/components/schemas/GameLaunchCard' }]
           description: Omitted unless set. Game-modal launch card authored by an app (docs/apps.md).
 
     Attachment:
