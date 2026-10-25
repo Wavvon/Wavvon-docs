@@ -565,7 +565,8 @@ body      : the request body, raw bytes, unprefixed
 
 What a hub signs over a POST to a program: Ed25519 by the hub key for a slash
 or component dispatch, HMAC-SHA256 by the webhook's signing key for an outgoing
-webhook. Sent as `X-Wavvon-Signature-V1` beside the body-only
+webhook and for the moderation check (whose raw secret is the UTF-8 bytes of
+the one the operator typed). Sent as `X-Wavvon-Signature-V1` beside the body-only
 `X-Wavvon-Signature`, which stays until a major. Advertised as
 `webhooks.signedtimestamp`. Vectors (`1_700_000_000`):
 

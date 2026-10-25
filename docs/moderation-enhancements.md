@@ -137,10 +137,15 @@ fail-closed default would let a flaky external service take a hub offline,
 which no operator chooses on purpose.
 
 Config lives in `hub_settings`: `moderation_webhook_url TEXT` and
-`moderation_webhook_secret TEXT`, set via `PATCH /admin/settings`. The
-hub signs each request with `HMAC-SHA256(secret, canonical_payload)` in
-an `X-Wavvon-Signature` header so the external service can verify the
-call genuinely came from the hub and wasn't replayed or forged.
+`moderation_webhook_secret TEXT`, set via `PATCH /admin/settings/moderation`.
+The hub signs each request exactly as it signs an outgoing webhook
+([wire-format.md](wire-format.md#webhook-delivery-x-wavvon-signature-v1)):
+HMAC-SHA256 under the HKDF-derived key, body-only in `X-Wavvon-Signature` and
+timestamped in `X-Wavvon-Signature-V1` beside `X-Wavvon-Timestamp`, so one
+verifier serves both and a replay can be refused. The only difference is the
+raw secret: the operator types this one, so it is the secret's UTF-8 bytes
+rather than a decoded base64url string. Until 2026-10 it was a bare HMAC keyed
+by the secret over the body, with no timestamp (Wavvon-server#169).
 
 **Circuit breaker.** If the webhook returns 5xx on 3 consecutive requests
 within 60 seconds, the hub disables it for a 10-minute backoff, logs a
