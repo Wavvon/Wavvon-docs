@@ -1913,13 +1913,28 @@ paths:
           in: path
           required: true
           schema: { type: string }
-        - name: before
+        - name: cursor
           in: query
           schema: { type: string }
-          description: Message ID cursor for pagination
+          description: >-
+            The `id` of the last message of the previous page. Newest first;
+            with `thread_root`, oldest first and the cursor pages forward.
+        - name: before
+          in: query
+          deprecated: true
+          schema: { type: string }
+          description: The former name of `cursor`, still accepted for older clients.
         - name: limit
           in: query
-          schema: { type: integer, format: int64, default: 50 }
+          schema: { type: integer, format: int64, default: 50, maximum: 100 }
+        - name: thread_root
+          in: query
+          schema: { type: string }
+          description: Return only replies to this message, oldest first.
+        - name: q
+          in: query
+          schema: { type: string }
+          description: Full-text search within the channel; one page of hits, `cursor` ignored.
       responses:
         "200":
           description: OK
@@ -2128,9 +2143,14 @@ paths:
           in: query
           description: Page size, clamped to 1..100.
           schema: { type: integer, format: int64, default: 50, minimum: 1, maximum: 100 }
-        - name: before
+        - name: cursor
           in: query
           description: Keyset cursor — the `id` of the oldest message already held.
+          schema: { type: string }
+        - name: before
+          in: query
+          deprecated: true
+          description: The former name of `cursor`, still accepted for older clients.
           schema: { type: string }
       responses:
         "200":
