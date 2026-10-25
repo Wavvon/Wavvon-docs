@@ -227,6 +227,24 @@ components:
           items: { $ref: '#/components/schemas/ComponentRow' }
           description: Omitted unless set. Buttons and selects authored by an app; a click is sent back as `component_interaction` (docs/apps.md).
 
+    HubEvent:
+      type: object
+      description: One envelope for live push, replay, polling and outgoing webhooks (docs/apps.md).
+      required: [type, seq, event, hub_url, at, payload]
+      properties:
+        type: { type: string, enum: [hub_event] }
+        seq: { type: integer, format: int64 }
+        event: { type: string, example: member.joined }
+        hub_url: { type: string }
+        at: { type: integer, format: int64, description: Unix seconds }
+        payload: { type: object, additionalProperties: true }
+        actor_pubkey: { type: string }
+        target_pubkey: { type: string }
+        channel_id: { type: string }
+        replayed: { type: boolean, description: Set on events read back from the audit log (Resume and polling). }
+        webhook_id: { type: string, description: Outgoing webhooks only. }
+        truncated: { type: boolean, description: "Outgoing webhooks only, when the payload was cut to the size cap." }
+
     ComponentRow:
       type: object
       required: [type, components]
@@ -3887,54 +3905,43 @@ paths:
   /me/events:
     get:
       operationId: listMeEvents
-      summary: Poll the caller's undelivered queued events
+      summary: Poll the hub events the caller subscribed to
       description: >-
-        The polling transport for a client holding no WebSocket: rows queued
-        for the caller's own identity and not yet acknowledged, oldest first,
-        at most 100 per call. After a full page, acknowledge with DELETE and
-        poll again: `since` is strict on a whole-second timestamp, so paging
-        by the last row's `created_at` skips rows that share its second.
+        The polling transport for a program holding no WebSocket. It reads the
+        audit log that WebSocket `Resume` replays, so each item is the same
+        `hub_event` envelope the socket pushes: events of the caller's
+        subscribed types after `cursor`, in channels it can read, oldest
+        first. Nothing is queued or acknowledged; pass the last `seq` seen as
+        `cursor`. Without one, the poll starts at the beginning of the
+        72-hour window.
       tags: [Apps]
       parameters:
-        - name: since
+        - name: cursor
           in: query
           schema: { type: integer, format: int64 }
-          description: A `created_at` value (Unix seconds); only rows created strictly after it are returned.
+          description: The `seq` of the last event seen; only later events are returned.
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 100 }
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema:
+                type: array
+                items: { $ref: '#/components/schemas/HubEvent' }
+        "410":
+          description: The cursor is older than the 72-hour window; events after it were missed.
+          content:
+            application/json:
+              schema:
                 type: object
-                required: [events]
+                required: [type, earliest_seq, earliest_at]
                 properties:
-                  events:
-                    type: array
-                    items:
-                      type: object
-                      required: [id, event_type, payload, created_at]
-                      properties:
-                        id: { type: string }
-                        event_type: { type: string }
-                        payload: { type: string, description: "The event payload as a JSON-encoded string; parse it" }
-                        created_at: { type: integer, format: int64, description: "Unix seconds" }
-    delete:
-      operationId: ackMeEvents
-      summary: Acknowledge delivered events
-      tags: [Apps]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [ids]
-              properties:
-                ids: { type: array, items: { type: string } }
-      responses:
-        "200":
-          description: OK
+                  type: { type: string, enum: [replay_unavailable] }
+                  earliest_seq: { type: integer, format: int64 }
+                  earliest_at: { type: integer, format: int64, description: Unix seconds }
 
   # ── Identity / Multi-device ───────────────────────────────────────────────
 

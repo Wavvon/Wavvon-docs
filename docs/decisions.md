@@ -6,6 +6,31 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## App polling reads the audit log; there is no per-app queue
+
+**Decision** (2026-10-25): `GET /me/events` returns the `hub_event`
+envelopes `Resume` replays, read from the same audit log with the same
+subscription and channel-read filters, paged by `cursor` = the last `seq`.
+`DELETE /me/events` and the `app_event_queue` table are gone.
+
+**Why.** Nothing but tests ever wrote the queue, so polling always returned
+nothing (Wavvon-server#170). Its rows were also a second shape — an id, a
+JSON string, a `created_at` cursor — so a program would have needed two
+decoders for one stream. The audit log already holds every event for 72
+hours with a monotonic `seq`, which is exactly what a poller needs.
+
+**Alternatives.** Enqueue envelopes per subscriber for programs with no live
+socket (a write per event per app, an ack protocol, a cleanup job, and still
+a second copy of what the log holds). Drop polling and require a socket
+(sdk.md tier 1 promises polling to programs that cannot hold one).
+
+**Tradeoff.** A poller that falls more than 72 hours behind loses events,
+the same as a socket that reconnects that late; it is told so with a 410
+rather than handed a silent gap. The SDKs' 0.1 poll and ack helpers target
+the old shape and must follow.
+
+**Outcome.** Wavvon-server#170.
+
 ## The wire-format crate is Apache-2.0; the hub stays AGPL
 
 **Decision** (2026-10-18): Wavvon-server `crates/identity` (`wavvon-identity`)

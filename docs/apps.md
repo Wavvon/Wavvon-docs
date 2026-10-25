@@ -125,8 +125,11 @@ Two transports, same events:
   `replayed: true` and, when the audit row has them, `actor_pubkey`,
   `target_pubkey` and `channel_id` (absent, not null, when empty). Outgoing
   webhooks add `webhook_id` and, when cut to the size cap, `truncated: true`.
-- **HTTP polling** — `GET /me/events` and `DELETE /me/events` for a client
-  that holds no persistent socket.
+- **HTTP polling** — `GET /me/events?cursor=<seq>` for a client that holds
+  no persistent socket. It reads the same audit log `Resume` does, so it
+  returns the same envelopes; the client keeps the last `seq`, nothing is
+  acknowledged, and a cursor older than the window is a 410 with the
+  `replay_unavailable` body.
 
 `GET /admin/audit-log` is the same stream as an admin view, gated on
 `audit.read`.

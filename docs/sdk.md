@@ -60,7 +60,8 @@ Everything [apps.md](apps.md) describes, and nothing beyond it:
 - **WebSocket events** — typed `hub_event` envelopes ([ws-protocol.md](ws-protocol.md)),
   tracking the last `seq` and sending `resume` with `since_seq` on reconnect;
   `replay_unavailable` is surfaced to the program, not swallowed. HTTP polling
-  (`GET`/`DELETE /me/events`) for programs that hold no socket.
+  (`GET /me/events?cursor=<seq>`) for programs that hold no socket: the same
+  envelopes from the same audit log, a 410 for `replay_unavailable`.
 - **App registration** — `PUT /me/app/profile`, `/commands`, `/subscriptions`,
   gated on the `apps.register` capability and the program's own role.
 - **Slash commands and component interactions** — a webhook handler that
