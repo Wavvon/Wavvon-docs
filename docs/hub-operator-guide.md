@@ -71,6 +71,12 @@ ships ICU at that version. The static `wavvon-hub-linux-x86_64` and
 point `WAVVON_DATABASE_URL` at a PostgreSQL you provide. A database you built
 is never touched by bundled mode, which is the whole rule that path follows.
 
+It also needs a recent enough glibc. The PostgreSQL archives were rebuilt
+upstream on 2026-10-18 with a **glibc 2.36** floor, so a hub released after
+v0.6.0 runs bundled mode on Debian 12 or Ubuntu 24.04 and later, but not on
+Ubuntu 22.04 (glibc 2.35). The hub itself still runs there; it says so when
+`initdb` fails to load, and an external `WAVVON_DATABASE_URL` is the way out.
+
 You are told this before it costs you anything. A musl build **refuses bundled
 mode up front** — it does not download an archive, create a data directory or
 reach `initdb` — and `wavvon-hub --doctor` reports it as a FAIL with the same
