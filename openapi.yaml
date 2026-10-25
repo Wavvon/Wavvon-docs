@@ -222,6 +222,43 @@ components:
         game:
           allOf: [{ $ref: '#/components/schemas/GameLaunchCard' }]
           description: Omitted unless set. Game-modal launch card authored by an app (docs/apps.md).
+        components:
+          type: array
+          items: { $ref: '#/components/schemas/ComponentRow' }
+          description: Omitted unless set. Buttons and selects authored by an app; a click is sent back as `component_interaction` (docs/apps.md).
+
+    ComponentRow:
+      type: object
+      required: [type, components]
+      properties:
+        type: { type: string, enum: [row] }
+        components:
+          type: array
+          items: { $ref: '#/components/schemas/MessageComponent' }
+
+    MessageComponent:
+      type: object
+      required: [type, custom_id]
+      properties:
+        type: { type: string, enum: [button, select] }
+        custom_id: { type: string }
+        label: { type: string }
+        style: { type: string }
+        disabled: { type: boolean }
+        placeholder: { type: string }
+        min_values: { type: integer, format: int64 }
+        max_values: { type: integer, format: int64 }
+        options:
+          type: array
+          items: { $ref: '#/components/schemas/SelectOption' }
+
+    SelectOption:
+      type: object
+      required: [label, value]
+      properties:
+        label: { type: string }
+        value: { type: string }
+        description: { type: string }
 
     Attachment:
       type: object
