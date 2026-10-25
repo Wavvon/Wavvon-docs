@@ -25,51 +25,6 @@ backlog, or project work rather than a feature.
 
 ---
 
-## Admission for a program that cannot solve a puzzle
-
-With `challenge_mode` set to anything but `off`, `/auth/verify` wants a
-`challenge_token`, and that token is minted by clicking a button or reading an
-SVG. A program can do neither — the puzzle asks "are you a person" and the
-honest answer is no. The bot fork used to walk past the gate by declaring
-itself; that is exactly what was deleted ([decisions.md](decisions.md), "A bot
-is a client like any other"), and bringing back any version of *the caller
-declares itself exempt* recreates the hole.
-
-So the question is not how a program skips the check. It is **who grants the
-exemption, what it is bound to, and how it is taken away.**
-
-Two things shape the answer and are worth settling first:
-
-- **The gate is not at admission.** It runs on every `/auth/verify`, after
-  roles are assigned, with no "is this a stranger" condition — unlike the
-  invite gate a few lines above it. So a member who joined last year solves a
-  puzzle at every login, a second device solves one at pairing, and a one-shot
-  exemption would not survive to the next session.
-- **Membership and permissions are the same number.** `builtin-everyone` is a
-  role row rather than a floor, and zero roles is how the hub spells "not a
-  member" — in `DELETE /me`, in a ban, in recovery and in the farm-token
-  check. Until membership has its own field
-  ([Wavvon-server#58](https://github.com/Wavvon/Wavvon-server/issues/58)),
-  "admit it with nothing" means "admit it as a permanent stranger".
-
-The direction being weighed is a **pubkey-bound invite**
-([Wavvon-server#31](https://github.com/Wavvon/Wavvon-server/issues/31)): an
-invite only one identity can redeem, where the binding *is* the exemption. A
-leaked code is worthless without the private key, and the admin minting it has
-already said "this exact key gets in", which is a stronger statement than any
-puzzle result. A config allowlist of exempt pubkeys is the fallback for
-bootstrap, when no owner exists yet to mint anything — a public key in a
-config file grants nothing to whoever reads it.
-
-Explicitly not the answer: a global "programs skip challenges" switch, a
-`skip_challenge` field on the verify request, or a second admission endpoint
-for machines. Proof of work is already a machine-answerable wall
-(`min_pow_level`), so a PoW challenge adds nothing the hub cannot already do.
-
-Whatever is built, drive a real unattended client through it end to end: the
-per-IP auth limiter costs two requests per login, and a retrying program hits
-429 long before anyone suspects the rate limit.
-
 ## Hub menu — entries the reference clients have and this one does not
 
 The gesture and the menu are both built: the chevron beside the hub name and a

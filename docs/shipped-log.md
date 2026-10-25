@@ -22,6 +22,21 @@ the roadmap; design rationale lives in [decisions.md](decisions.md).
   member with `apps.register` could aim the hub at its own network (fixed,
   Wavvon-server#173) — and four smaller gaps filed as issues (#169–#172).
 
+- **A program gets past the admission puzzle by being named (2026-10-04)**:
+  an invite can carry `bound_pubkey`, and only that key can redeem it
+  (Wavvon-server#66). The admin minting it has already said "this exact key
+  gets in", so a bound invite stands in for the click or SVG challenge, and a
+  leaked code is worthless without the private key. It needed membership to
+  be its own answer first: `users.is_member` replaced "holds at least one
+  role", `builtin-everyone` became a floor rather than a row, and leave, ban
+  and recovery clear membership in the same transaction that drops the roles
+  (Wavvon-server#100). The challenge now gates only a key becoming a member,
+  so a returning member or a second device is never asked again. Checked end
+  to end on 2026-10-25 against a real hub with `challenge_mode: click`: a
+  bearer invite and a bound invite presented by another key are refused, the
+  named key is admitted with its role and logs in again with no invite.
+  ([pubkey-bound-invites.md](pubkey-bound-invites.md))
+
 - **The clients look like one product (2026-10-01)**: a visual and interaction
   redesign of the web and desktop clients — look, feel, layout, hierarchy, not
   a state-model refactor. The direction is *the receiver*: the information

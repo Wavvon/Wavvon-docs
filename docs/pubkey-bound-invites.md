@@ -1,6 +1,7 @@
 # Admitting one named key: the pubkey-bound invite
 
-**Status: designed, not built.**
+**Status: built** — Wavvon-server#66 (2026-10-01), on top of membership as
+its own field, Wavvon-server#100. Design issue
 [Wavvon-server#31](https://github.com/Wavvon/Wavvon-server/issues/31).
 
 Two things are missing, and they turn out to be the same missing thing.
