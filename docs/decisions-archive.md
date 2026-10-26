@@ -1855,6 +1855,10 @@ traffic only; personal state goes through home hubs.
 
 ## Channels are unified text + voice
 
+> **Superseded** (2026-10-27) by "Voice lives in voice channels" in
+> [decisions.md](decisions.md): voice moved to a `voice` channel type, which
+> keeps a chat of its own.
+
 **Decision**: every channel is both a chat room and a voice room. There
 is no "text channel" vs "voice channel" type. Joining voice is something
 a user *does* in a channel — not a property of the channel.

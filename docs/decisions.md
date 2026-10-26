@@ -6,6 +6,39 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Voice lives in voice channels
+
+**Decision** (2026-10-27): a new `channel_type`, `voice`, is the only kind of
+channel a member can join voice in. A voice channel keeps a text chat of its
+own. `text`, `forum` and `banner` channels stop accepting voice joins, and a
+`spawner` spawns `voice` rooms. Supersedes "Channels are unified text +
+voice" ([decisions-archive.md](decisions-archive.md)).
+
+**Why.** The unified model makes clicking a channel mean "read its chat", so
+there is no place to open a room and see who is in it before joining: the
+voice stage (Wavvon-clients#159) needs a channel that *is* the room. People
+coming from other community apps look for a list of rooms to walk into, and
+a sidebar where every channel is silently also a call reads as having none.
+What the unified model was right about survives: a voice channel still has
+its chat, so a raid team keeps one "raids" room rather than two.
+
+**Alternatives.** Keep unified and add a per-channel "voice enabled" flag
+(the same split under another name, with every text channel still one
+toggle away from being a call). Voice channels with no chat (the AFK notice,
+temp rooms and squad rooms post into a channel, and would need a new home).
+
+**Tradeoff.** Existing hubs have voice everywhere today. On upgrade only the
+channels that can only have been voice rooms convert by themselves: temporary
+rooms and the AFK channel. Any other channel stays `text`; an admin switches
+it in the channel's settings, both ways, keeping its chat history. That is an
+operator step after the upgrade, and the release notes say so. Clients test
+the `channels.voice` capability: against a hub without it they offer voice in
+every channel, as before.
+
+**Outcome.** Wavvon-server#188 (hub: the type, the join check, temp and squad
+rooms, AFK and voice-move targets, alliance voice), Wavvon-clients#159 (the
+sidebar and the stage view).
+
 ## App polling reads the audit log; there is no per-app queue
 
 **Decision** (2026-10-25): `GET /me/events` returns the `hub_event`
