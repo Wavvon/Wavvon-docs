@@ -5270,12 +5270,21 @@ paths:
   /admin/audit-log:
     get:
       operationId: listAdminAuditLog
-      summary: Cursor-paginated hub audit log (admin)
+      summary: Hub audit log, newest first (admin)
+      description: >-
+        Pages backwards: each page holds entries older than `cursor`. Hubs
+        advertising the `audit.newest` capability serve this shape; older
+        hubs answer `{entries, next_cursor}` oldest first. Apps that replay
+        the log forwards use `GET /me/events`.
       tags: [Moderation]
       parameters:
         - name: event_type
           in: query
           schema: { type: string }
+        - name: actor
+          in: query
+          schema: { type: string }
+          description: Only entries by this public key
         - name: since
           in: query
           schema: { type: integer, format: int64 }
@@ -5287,7 +5296,7 @@ paths:
         - name: cursor
           in: query
           schema: { type: integer, format: int64 }
-          description: "`next_cursor` from the previous page"
+          description: "`seq` of the oldest entry already shown"
         - name: limit
           in: query
           schema: { type: integer, format: int64, default: 50, maximum: 200 }
@@ -5297,21 +5306,17 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  entries:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        seq: { type: integer, format: int64 }
-                        event_type: { type: string }
-                        at: { type: integer, format: int64 }
-                        actor_pubkey: { type: string, nullable: true }
-                        target_pubkey: { type: string, nullable: true }
-                        channel_id: { type: string, nullable: true }
-                        payload: { type: object }
-                  next_cursor: { type: integer, format: int64, nullable: true }
+                type: array
+                items:
+                  type: object
+                  properties:
+                    seq: { type: integer, format: int64 }
+                    event_type: { type: string }
+                    at: { type: integer, format: int64 }
+                    actor_pubkey: { type: string, nullable: true }
+                    target_pubkey: { type: string, nullable: true }
+                    channel_id: { type: string, nullable: true }
+                    payload: { type: object }
 
   # ── Unread counts ─────────────────────────────────────────────────────────
 
