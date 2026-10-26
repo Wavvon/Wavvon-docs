@@ -7592,6 +7592,35 @@ paths:
                     attestation_count: { type: integer, format: int64 }
                     threshold: { type: integer, format: int64 }
 
+  /recovery/requests/to-attest:
+    get:
+      operationId: listRecoveryRequestsToAttest
+      summary: Open rotation requests that name the caller as a recovery contact
+      description: >-
+        Pending requests whose old key designated the caller, directly or by
+        master key, as a recovery contact, and which the caller has not attested
+        yet. Advertised by the `recovery.to_attest` capability; a
+        `recovery_attestation_requested` WebSocket event (`request_id`) tells a
+        connected contact when one opens.
+      tags: [Recovery]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string }
+                    old_pubkey: { type: string }
+                    new_pubkey: { type: string }
+                    reason: { type: string, nullable: true }
+                    created_at: { type: integer, format: int64 }
+                    attestation_count: { type: integer, format: int64 }
+                    threshold: { type: integer, format: int64 }
+
   /admin/recovery/pending:
     get:
       operationId: listAdminRecoveryPending
