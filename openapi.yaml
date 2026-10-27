@@ -158,8 +158,10 @@ components:
         channel_type:
           type: string
           description: >-
-            `text`, `forum`, `banner` or `spawner`. Always `text` for
-            categories.
+            `text`, `voice`, `forum`, `banner` or `spawner`. Always `text` for
+            categories. On hubs with the `channels.voice` capability only a
+            `voice` channel can be joined for voice; it has a chat as well, and
+            a spawner's rooms are `voice`.
         banner_url: { type: string, description: Omitted unless set }
         banner_file_id: { type: string, description: Omitted unless set }
         is_temporary:
@@ -1741,6 +1743,10 @@ paths:
                 banner_file_id: { type: string }
                 forum_require_tag: { type: boolean }
                 nsfw: { type: boolean }
+                channel_type:
+                  type: string
+                  enum: [text, voice]
+                  description: Switch between text and voice; both keep their chat.
       responses:
         "200":
           description: OK
@@ -7599,7 +7605,7 @@ paths:
       description: >-
         Pending requests whose old key designated the caller, directly or by
         master key, as a recovery contact, and which the caller has not attested
-        yet. Advertised by the `recovery.to_attest` capability; a
+        yet. Advertised by the `recovery.attest.requests` capability; a
         `recovery_attestation_requested` WebSocket event (`request_id`) tells a
         connected contact when one opens.
       tags: [Recovery]
