@@ -1,100 +1,88 @@
 # Threat Model
 
-First-pass writeup. Treat this as a *guide for design decisions* —
-when adding a feature, check whether it shifts something below from
-"defended" to "weakened" (or vice-versa).
+A guide for design decisions: when a feature moves something below from
+"defended" to "weakened" (or back), this file changes in the same commit.
+Rewritten 2026-10-27 against the code; the 2026-07 first pass predated E2E
+DMs, voice transport v2 and device revocation, and said so wrongly.
 
 ## Identity & trust roots
 
-- **Identity** is a per-device Ed25519 keypair, generated locally.
-- **Hub identity** is the same shape — a hub is just a peer with a
-  long-lived keypair stored next to its DB.
-- **No central authority.** There is no PKI, no email verification,
-  no out-of-band attestation. Trust is established by direct
-  invitation (a friend shared a hub URL) or by users choosing to
-  install the same software.
-- **Recovery phrase** (24-word BIP39) is the single backup mechanism.
-  Lose it and lose access; share it and lose ownership.
+- **Identity** is a BIP39 **master** key (24 words) plus one Ed25519
+  **subkey per device**, each carrying a master-signed cert
+  ([multi-device.md](multi-device.md)). A device's private key never leaves
+  it; a paired device never holds the master seed.
+- **Hub identity** is the same shape: a long-lived Ed25519 keypair in
+  `hub_identity.json`, rotatable with an endorsement signed by the old key
+  (`wavvon-hub rotate-key`, served at `/key-rotation`). Clients follow a
+  rotation rather than treating the hub as new.
+- **No central authority.** No PKI, no email, no username. Trust comes from
+  an invite, a pubkey-bound invite, or a hub's published certifications
+  ([hub-certifications.md](hub-certifications.md)).
+- **Recovery** has three paths ([identity-recovery.md](identity-recovery.md)):
+  the phrase (canonical), a `.wavvon-backup` file (Argon2id + AES-256-GCM),
+  and per-hub recovery contacts who vouch for a new key while an admin
+  decides ([recovery-attestation.md](recovery-attestation.md)).
 
-## What we defend against (today)
+## What we defend against
 
-| Threat                                      | Defense                                                                                  |
-| ------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Brute-force auth                             | Challenge/response signed with Ed25519. Token is opaque, server-stored, expires.         |
-| Account takeover via reused password        | N/A — there are no passwords.                                                            |
-| Spam / login flooding                        | Per-IP rate limit on `/auth/*` and write endpoints (token bucket).                       |
-| Random members posting in private channels   | Channel bans, role permissions, hub bans. Owner role is non-revokable.                   |
-| Unwanted voice transmission in a channel     | Voice mute (hub-wide), per-channel min talk power, channel ban.                          |
-| Hub admin abuse of own users                 | **Not defended.** Admin can read everything, ban anyone. Trust the hub or leave it.      |
-| Lost/stolen device                           | Recovery phrase rotates the identity; old key remains valid until everyone notices.       |
-| Mention noise / harassment                   | Three-state notification mode (all/mentions/silent), block-by-pubkey would help (TODO).   |
-| Malicious file attachments                   | 3 MB cap, no execution path; client renders as data URLs (sandboxed in webview).         |
+| Threat | Defense |
+| --- | --- |
+| Credential stuffing, reused passwords | There are no passwords. Auth is an Ed25519 challenge/response; the token is opaque, server-stored, and expires. |
+| Login flooding, write spam | Per-IP token buckets on `/auth/*` and on writes, separately tunable (`WAVVON_AUTH_RATE_*`). |
+| Strangers joining | Invite-only by default for a fresh hub; admission challenges; join approval. |
+| Members reaching channels they should not | Role permissions, channel overrides, channel bans, hub bans. |
+| Unwanted voice | Hub-wide voice mute, per-channel minimum talk power, channel ban. |
+| Hub operator reading DMs | **E2E**: 1:1 DMs use a Double Ratchet; group DMs use per-sender keys on desktop, and the web client refuses to send one rather than send it unencrypted ([e2e-encryption.md](e2e-encryption.md)). The hub stores and relays ciphertext. A recipient with no published DH key gets cleartext only after the sender is asked. |
+| Hub operator listening to voice | **E2E** since voice transport v2: per-sender AES-256-GCM keys wrapped with X25519; the relay forwards headers only ([voice-transport-v2.md](voice-transport-v2.md)). |
+| Lost or stolen device | The master revokes that device's subkey; hubs refuse it at auth ([multi-device.md](multi-device.md), Revocation). |
+| Harassment from a member | Block, mute and ignore, held on your home hub, applied by your client ([block-mute-ignore.md](block-mute-ignore.md)). Notification modes per hub and channel. |
+| A hostile hub's markup reaching the client | Hub-supplied SVG (admission challenges, icons) and emoji URLs are sanitized before rendering (Wavvon-clients#66–#68). |
+| Oversized uploads | Per-hub caps on attachment and upload size, bounded by a floor and a ceiling. |
+| A stranger reading an alliance | Alliance routes check that the caller is a member of that alliance (the `alliancesplit` finding, 2026-10). |
+| SSRF through app webhooks | Webhook URLs resolving to private addresses are refused unless the operator opts in (`WAVVON_ALLOW_PRIVATE_WEBHOOKS`). |
 
-## What we *don't* defend against (yet)
+## What we don't defend against (yet)
 
-These are known gaps. Each shapes a future feature decision.
+Known gaps, each shaping a future decision.
 
-- **Plaintext DMs at rest.** Every hub a DM passes through stores
-  the cleartext. Federation makes this worse — your message lives
-  on the recipient's hub forever. **Mitigation later: E2E encryption
-  per-recipient with sender-pubkey signing; group DM is harder.**
-- **Hostile peer hubs.** Federation auth proves identity but not
-  good behavior. A peer hub can lie about messages it forwards,
-  drop alliance reactions, fabricate "you were mentioned" events.
-  **Mitigation: signed-by-author messages so peers can't tamper;
-  not implemented.**
-- **Hostile alliance members.** When Hub A joins Alliance X with
-  Hub B, Hub B's admin can read every shared channel from Hub A
-  including any private-but-shared channels. **Mitigation: only
-  share what you'd public-post; treat alliance channels as semi-
-  public.**
-- **Hub server compromise.** Whoever has the hub's `hub_identity.json`
-  can impersonate the hub, sign federation calls, accept arbitrary
-  alliance joins. Same blast radius as any centralized service losing
-  its database.
-- **Key compromise / no revocation.** A leaked private key is leaked
-  forever. Generating a new identity loses your friend connections,
-  channel membership, etc. **Mitigation later: a master key →
-  device key model with revocation lists.**
-- **Metadata leaks.** Even with E2E DM bodies, peers see
-  who-talked-to-whom-when. Onion-routing the federation transport
-  would fix this; out of scope.
-- ~~**Voice plaintext on the hub relay.**~~ **Resolved by voice
-  transport v2 (2026-08,
-  [voice-transport-v2.md](voice-transport-v2.md))**: voice packets are
-  E2E AES-256-GCM under per-sender keys wrapped X25519
-  static-static; the relay forwards headers only and holds no content
-  key — the operator cannot wiretap voice (paired-desktop caveat in
-  [client-parity.md](client-parity.md)). Original entry kept below for
-  history:
-  Voice frames are Opus-encoded
-  but not encrypted to the hub, on both the UDP relay (desktop, Android)
-  and the `/voice/ws` WebSocket relay (browser). The hub operator can
-  passively wiretap voice on either path. **Mitigation: peer-to-peer
-  voice when topology allows, or SRTP-style E2E.**
-- **App abuse.** A compromised key posts anywhere its roles allow — the
-  same exposure as a compromised member, which is the point of having one
-  model. Rate limits +
-  scoped tokens are the planned defense.
+- **Hub admin over their own hub.** Channel messages, forum posts, rosters
+  and files are stored in the clear, and an admin reads all of it and can ban
+  anyone. Only DMs and voice are E2E. Trust the hub or leave it.
+- **Hostile peer hubs.** Federation auth proves which hub is talking, not
+  that what it relays is true. Federated messages carry no author signature
+  (`federated_messages` stores `sender` and `content` as the peer sent them),
+  so a peer can alter, drop or fabricate a message attributed to its own
+  members. **Mitigation: messages signed by the author's key, verified on
+  arrival. Not designed yet**; it is the main federation item before 1.0.
+- **Hostile alliance members.** An alliance partner's admin reads every
+  channel you share with the alliance. Treat shared channels as semi-public.
+- **Hub key compromise.** Whoever holds `hub_identity.json` impersonates the
+  hub in federation until it rotates. Rotation exists; detecting the theft
+  does not.
+- **Master key compromise.** Device subkeys revoke; the master does not. A
+  leaked phrase is the whole identity. The way out is a new identity, carried
+  over per hub through recovery contacts and an admin's decision.
+- **Your own DMs on another device.** A device cannot decrypt DMs you sent
+  from a different device, and says so instead of guessing. See
+  [e2e-encryption.md](e2e-encryption.md).
+- **Metadata.** Even with E2E bodies, hubs see who talks to whom, when, and
+  how much. Hiding it needs mix networks or cover traffic; not pursued.
+- **App abuse.** An app holds roles like a member does, so a leaked app key
+  posts wherever its roles allow, within the same rate limits.
 
 ## Decisions this should drive
 
-- **Apps and integrations:** an app holds roles, not a scoped token — full
-  user permissions. Token rotation is owner-pubkey-gated.
-- **Alliance peers:** any "private" channel marked alliance-shared
-  is effectively public to alliance admins. UI should warn before
-  sharing.
-- **Federated reactions (open from #124):** if peer hubs forward
-  reactions, they can also fabricate them. Sign reactions by
-  reactor pubkey when this ships.
-- **Cross-hub friends (medium pri):** friend list is a bidirectional
-  pubkey assertion; a peer hub claiming "alice and bob are friends"
-  isn't authoritative — both sides need their own copy.
+- **Federated content:** anything a peer hub relays and a client shows as
+  authored by someone needs that someone's signature, or the UI must not
+  present it as authored. Reactions and friend assertions are the same case.
+- **Alliance sharing:** the UI should warn before a non-public channel is
+  shared with an alliance. It does not today.
+- **Apps:** roles, not scoped tokens; token rotation is owner-gated.
 
 ## Out of scope (probably forever)
 
-- **Anonymity from the hub operator.** A hub knows your pubkey,
-  IP, when you connect. If you want anonymity, run your own hub.
-- **Resistance to legal compulsion.** A hub operator served with
-  process can hand over everything they have. Encryption helps for
-  DMs in flight; nothing helps once the operator decides to log.
+- **Anonymity from the hub operator.** A hub knows your pubkey, your IP and
+  when you connect. Run your own hub if that matters.
+- **Legal compulsion.** An operator served with process hands over what they
+  hold. E2E protects DM and voice content; nothing protects what the operator
+  chooses to log.
