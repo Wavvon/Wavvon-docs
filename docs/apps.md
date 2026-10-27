@@ -79,9 +79,9 @@ component was clicked in — the same `messages.read` check a person passes.
 Both are signed by the hub key. Verify `X-Wavvon-Signature-V1` against
 `X-Wavvon-Hub-Pubkey` — it covers `X-Wavvon-Timestamp` and the body
 ([wire-format.md](wire-format.md), "Webhook delivery") — and refuse a request
-more than 300 s old. The older `X-Wavvon-Signature` covers the body alone, and
-an invocation carries no time of its own, so on that signature alone a
-captured invocation replays forever.
+more than 300 s old. The body-only `X-Wavvon-Signature` it replaced was
+removed before 1.0: an invocation carries no time of its own, so on that
+signature alone a captured invocation replayed forever.
 
 ## 4. Mini-apps and the game modal
 

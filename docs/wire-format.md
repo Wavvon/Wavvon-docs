@@ -463,12 +463,12 @@ challenge   : the 32 challenge bytes, raw (no length prefix)
 ```
 
 Signed by the key named in `POST /auth/verify`. A hub or farm that accepts this
-answers `POST /auth/challenge` with `"scheme": "tagged-v1"`; a client signs the
-tagged bytes when the scheme is named and the raw challenge otherwise. Servers
-accept both until a major removes the raw form. The raw answer is only ever
-produced for exactly 32 bytes, the length a Wavvon server issues: every other
-object an identity or hub key signs is longer, so a raw answer cannot double as
-one of them (Wavvon-server#111).
+answers `POST /auth/challenge` with `"scheme": "tagged-v1"`, and it is the only
+answer a server accepts or a client gives: a client refuses a server that names
+no scheme. The raw answer (a signature over the bare challenge) was removed
+before 1.0, since signing bytes a server chose is what the tag exists to stop
+(Wavvon-server#111, #197). A client also refuses a challenge that is not
+exactly 32 bytes, the length a Wavvon server issues.
 
 Vector (challenge `0x00 … 0x1f`, master seed `0x01 … 0x20`):
 
@@ -566,8 +566,8 @@ body      : the request body, raw bytes, unprefixed
 What a hub signs over a POST to a program: Ed25519 by the hub key for a slash
 or component dispatch, HMAC-SHA256 by the webhook's signing key for an outgoing
 webhook and for the moderation check (whose raw secret is the UTF-8 bytes of
-the one the operator typed). Sent as `X-Wavvon-Signature-V1` beside the body-only
-`X-Wavvon-Signature`, which stays until a major. Advertised as
+the one the operator typed). Sent as `X-Wavvon-Signature-V1` (the body-only `X-Wavvon-Signature` was
+removed before 1.0). Advertised as
 `webhooks.signedtimestamp`. Vectors (`1_700_000_000`):
 
 ```
@@ -584,8 +584,8 @@ HMAC, secret = 32 × 0x07:
 ```
 
 Both are in Wavvon-server: `crates/identity/wire-vectors.json` as
-`webhook_delivery_hub` and `webhook_delivery_outgoing`, with the header names
-and the legacy body-only signatures. That file is the one authority for every
+`webhook_delivery_hub` and `webhook_delivery_outgoing`, with the header names.
+That file is the one authority for every
 vector in this document and ships as an asset of each server release; a string
 starting with `@` in it names an entry of its `fixtures`.
 

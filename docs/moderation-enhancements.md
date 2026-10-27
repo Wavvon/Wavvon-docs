@@ -140,9 +140,9 @@ Config lives in `hub_settings`: `moderation_webhook_url TEXT` and
 `moderation_webhook_secret TEXT`, set via `PATCH /admin/settings/moderation`.
 The hub signs each request exactly as it signs an outgoing webhook
 ([wire-format.md](wire-format.md#webhook-delivery-x-wavvon-signature-v1)):
-HMAC-SHA256 under the HKDF-derived key, body-only in `X-Wavvon-Signature` and
-timestamped in `X-Wavvon-Signature-V1` beside `X-Wavvon-Timestamp`, so one
-verifier serves both and a replay can be refused. The only difference is the
+HMAC-SHA256 under the HKDF-derived key, timestamped in
+`X-Wavvon-Signature-V1` beside `X-Wavvon-Timestamp`, so one verifier serves
+both and a replay can be refused. The only difference is the
 raw secret: the operator types this one, so it is the secret's UTF-8 bytes
 rather than a decoded base64url string. Until 2026-10 it was a bare HMAC keyed
 by the secret over the body, with no timestamp (Wavvon-server#169).

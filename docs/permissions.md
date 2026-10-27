@@ -458,7 +458,6 @@ about an invite is a channel.
 | Permission | Scope | Replaces | Covers |
 |---|---|---|---|
 | `alliances.manage` | H | `admin` | Create, accept, decline, leave — designed as `manage_alliances`, see [decisions.md](decisions.md) |
-| `alliances.peers` | H | `admin` on `add_peer` | Direct peer registration |
 | `directory.publish` | H | `admin` | Signing for the directory, the public listing |
 
 Per-alliance acts (invite another hub, share/unshare a channel, per-share

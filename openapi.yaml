@@ -368,7 +368,6 @@ components:
         - self_tags
         - nsfw
         - badges
-        - screen_share_v2
         - emoji_count
         - lan_mode
         - birthdays_enabled
@@ -440,7 +439,6 @@ components:
               properties:
                 min_pow_level: { type: integer, nullable: true }
                 min_member_since_days: { type: integer, nullable: true }
-        screen_share_v2: { type: boolean }
         sfu_url: { type: string, description: Omitted unless the hub runs an SFU. }
         emoji_count: { type: integer, format: int64 }
         rotation:
@@ -1294,41 +1292,6 @@ paths:
         "204":
           description: No content
 
-  /me/devices:
-    get:
-      operationId: listMeDevices
-      summary: List the caller's trusted devices (active device tokens)
-      tags: [Me]
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id: { type: string }
-                    device_name: { type: string, nullable: true }
-                    created_at: { type: integer, format: int64 }
-                    expires_at: { type: integer, format: int64 }
-                    last_used_at: { type: integer, format: int64, nullable: true }
-
-  /me/devices/{id}:
-    delete:
-      operationId: deleteMeDevice
-      summary: Revoke a trusted device token
-      tags: [Me]
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: string }
-      responses:
-        "204":
-          description: No content
-
   # ── Hub ───────────────────────────────────────────────────────────────────
 
   /hub:
@@ -1925,11 +1888,6 @@ paths:
           description: >-
             The `id` of the last message of the previous page. Newest first;
             with `thread_root`, oldest first and the cursor pages forward.
-        - name: before
-          in: query
-          deprecated: true
-          schema: { type: string }
-          description: The former name of `cursor`, still accepted for older clients.
         - name: limit
           in: query
           schema: { type: integer, format: int64, default: 50, maximum: 100 }
@@ -2152,11 +2110,6 @@ paths:
         - name: cursor
           in: query
           description: Keyset cursor — the `id` of the oldest message already held.
-          schema: { type: string }
-        - name: before
-          in: query
-          deprecated: true
-          description: The former name of `cursor`, still accepted for older clients.
           schema: { type: string }
       responses:
         "200":
@@ -4288,31 +4241,6 @@ paths:
 
   # ── Federation ────────────────────────────────────────────────────────────
 
-  /federation/peers:
-    get:
-      operationId: listFederationPeers
-      summary: List federated peer hubs
-      tags: [Federation]
-      responses:
-        "200":
-          description: OK
-    post:
-      operationId: createFederationPeer
-      summary: Add a federation peer
-      tags: [Federation]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [url]
-              properties:
-                url: { type: string }
-      responses:
-        "201":
-          description: Created
-
   /federation/dm:
     post:
       operationId: createFederationDm
@@ -4824,60 +4752,6 @@ paths:
                   session_token: { type: string }
         "401":
           description: Assertion verification failed
-
-  /auth/device-token/create:
-    post:
-      operationId: createAuthDeviceToken
-      summary: Mint a long-lived "trust this device" token
-      description: Requires an existing session (e.g. right after a WebAuthn assertion).
-      tags: [Auth]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                device_name: { type: string }
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  id: { type: string }
-                  token: { type: string, description: "Shown once — store hashed on the client" }
-                  expires_at: { type: integer, format: int64 }
-
-  /auth/device-token/redeem:
-    post:
-      operationId: redeemAuthDeviceToken
-      summary: Exchange a device token for a fresh session token
-      description: Rotates the device token on each use (issues a new one, invalidates the old).
-      security: []
-      tags: [Auth]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [token]
-              properties:
-                token: { type: string }
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  session_token: { type: string }
-        "401":
-          description: Device token expired, revoked, or invalid
 
   # ── Operational ───────────────────────────────────────────────────────────
 
@@ -7396,8 +7270,8 @@ paths:
       summary: Update certification settings (admin)
       description: >-
         All fields optional. Scalars are accepted as strings, booleans or
-        numbers and stored as text; `cert_min_age_days` is an accepted alias
-        for `cert_standing_days`, which is what GET calls the same setting.
+        numbers and stored as text. `cert_min_age_days` is the standing period,
+        under the name GET returns.
       tags: [Certifications]
       requestBody:
         required: true
@@ -7408,8 +7282,6 @@ paths:
               properties:
                 cert_auto_issue:
                   oneOf: [{ type: string }, { type: boolean }]
-                cert_standing_days:
-                  oneOf: [{ type: string }, { type: integer }]
                 cert_min_age_days:
                   oneOf: [{ type: string }, { type: integer }]
                 cert_validity_days:
@@ -8575,8 +8447,6 @@ tags:
   - name: Polls
   - name: Forum
     description: Threaded posts in forum-type channels.
-  - name: Games
-    description: Game install/enable (Tier 1) and live sessions (Tier 2 + legacy).
   - name: Recovery
     description: Social-recovery contacts and key rotation.
   - name: Webhooks

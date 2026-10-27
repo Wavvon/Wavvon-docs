@@ -95,11 +95,10 @@ success; non-2xx or network error triggers the retry policy (§5).
 
 ## 4. Signing
 
-Every outgoing POST carries three headers:
+Every outgoing POST carries these headers:
 
 ```
 X-Wavvon-Hub-Pubkey:  <hex ed25519 pubkey of the hub>
-X-Wavvon-Signature:   <HMAC-SHA256(body, signing_key), hex-encoded>
 X-Wavvon-Signature-V1: <HMAC-SHA256(tag || timestamp || body, signing_key), hex>
 X-Wavvon-Timestamp:   <unix seconds>
 X-Wavvon-Webhook-Id:  <id>
@@ -120,10 +119,9 @@ hub sent this — but the authenticity guarantee is the HMAC.
 **Replay protection**: verify `X-Wavvon-Signature-V1`, which covers the
 timestamp (layout and vectors in [wire-format.md](wire-format.md), "Webhook
 delivery"), then reject requests where `|now − X-Wavvon-Timestamp| > 300 s`.
-The body-only `X-Wavvon-Signature` cannot support that check: the timestamp
-beside it is unsigned, so a captured request replays with a fresh one. It
-stays only for receivers written before `webhooks.signedtimestamp`, and goes
-at a major.
+The body-only `X-Wavvon-Signature` that came before it could not support
+that check, since the timestamp beside it was unsigned; it was removed before
+1.0.
 
 **Rotate secret**: admin clicks "Rotate secret" in the UI → hub generates
 a new secret, stores the new key, returns the new raw secret (shown

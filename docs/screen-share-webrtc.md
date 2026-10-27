@@ -198,9 +198,9 @@ v2/v1 negotiation in §4.
 
 Three independent gates, all must pass for a session to use v2:
 
-1. **Hub capability** — `/info` advertises `screen_share_v2: bool` and
-   optional `turn: { url }`. An old hub omits the flag → clients use
-   v1.
+1. **Hub capability** — `/info` lists the `screenshare.v2` capability
+   (the `screen_share_v2` boolean that came first was removed before 1.0)
+   and optional `turn: { url }`. A hub without it → clients use v1.
 2. **Client capability** — the runtime WebRTC probe (§3) must pass.
 3. **Per-session negotiation** — the **sharer** picks the transport and
    stamps it in `ScreenShareStart { transport: "webrtc" | "chunks" }`.
@@ -269,7 +269,7 @@ not two separate stream IDs (cleaner than v1).
 
 ### `/info` capability
 
-Add `screen_share_v2: bool` and optional `turn: { url }`.
+The `screenshare.v2` capability and optional `turn: { url }`.
 
 ### Client state machine
 

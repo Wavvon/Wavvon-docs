@@ -41,9 +41,8 @@ enclave (TPM, Secure Enclave, Android StrongBox) or on a hardware
 key (YubiKey). Authentication is a biometric/PIN tap — no phrase,
 no clipboard, no plaintext key on disk.
 
-A companion feature — **"Trust this device"** — lets users skip
-the biometric tap on subsequent opens by issuing a long-lived device
-token stored in platform-secure storage.
+A companion "Trust this device" token was built and removed before 1.0;
+see the section of that name below.
 
 ---
 
@@ -55,7 +54,6 @@ token stored in platform-secure storage.
 | Backup | Recovery phrase | Passkey sync (iCloud Keychain, Google PM) or hardware key |
 | Hub restart | Invalidates all sessions; user must re-join | Re-assertion is a fresh challenge; identity survives |
 | Cross-device | Copy seed or recovery phrase manually | Passkey syncs automatically via OS provider |
-| Repeated opens | Re-reads localStorage / identity file silently | "Trust this device" device token skips biometric |
 
 Identity is **still per-user keypair** — WebAuthn is a better storage
 and ceremony. The Ed25519 identity key (for message signing,
@@ -138,20 +136,10 @@ CREATE TABLE webauthn_credentials (
     created_at       INTEGER NOT NULL,
     last_used_at     INTEGER
 );
-
-CREATE TABLE device_tokens (
-    id           TEXT PRIMARY KEY,      -- random 256-bit token, stored hashed
-    user_id      TEXT NOT NULL,         -- FK → users.public_key
-    device_name  TEXT,                  -- "MacBook Pro", "Pixel 8"
-    created_at   INTEGER NOT NULL,
-    expires_at   INTEGER NOT NULL,      -- default: now + 30 days
-    last_used_at INTEGER,
-    revoked      INTEGER NOT NULL DEFAULT 0
-);
 ```
 
-One user can have multiple credentials (phone + laptop + hardware key)
-and multiple trusted device tokens. All credentials are valid; the hub
+One user can have multiple credentials (phone + laptop + hardware key).
+All credentials are valid; the hub
 verifies whichever one signed the assertion.
 
 ### New routes
@@ -162,12 +150,9 @@ verifies whichever one signed the assertion.
 | POST | `/auth/webauthn/finish` | Complete registration; store credential; issue session token |
 | POST | `/auth/webauthn/assert/begin` | Start assertion (login) → `PublicKeyCredentialRequestOptions` |
 | POST | `/auth/webauthn/assert/finish` | Complete assertion; verify; issue session token |
-| POST | `/auth/device-token/redeem` | Exchange a device token for a short-lived session token |
 | GET | `/me/credentials` | List passkeys (id, friendly_name, aaguid, created_at, last_used_at) |
 | PATCH | `/me/credentials/:id` | Rename a passkey |
 | DELETE | `/me/credentials/:id` | Remove a passkey |
-| GET | `/me/devices` | List trusted devices |
-| DELETE | `/me/devices/:id` | Revoke a trusted device |
 
 The existing `/auth/register` + `/auth/login` keypair flow is not
 removed — it stays as the fallback path.
@@ -333,43 +318,15 @@ Keystore) as a first step, independently of WebAuthn.
 
 ---
 
-## "Trust this device"
+## "Trust this device" (removed)
 
-After a successful WebAuthn assertion, the client can request a
-**device token** — a long-lived opaque token (30-day TTL by default,
-configurable by the hub operator) stored in platform-secure storage.
-On subsequent opens the client redeems the device token silently for
-a fresh session token, skipping the biometric tap entirely.
-
-### Flow
-
-```
-1. WebAuthn assertion succeeds → session_token received
-2. Client: "Trust this device?" dialog (opt-in)
-3. User taps Yes → POST /auth/device-token/create (authenticated)
-                  ← { device_token, expires_at }
-4. Client stores device_token in platform-secure storage:
-     Web:     localStorage  (acceptable — revocable token, not the key)
-     Desktop: OS keychain via `keyring` crate
-     Android: EncryptedSharedPreferences (Android Keystore-backed)
-
-On next open:
-5. Client reads device_token from storage
-6. POST /auth/device-token/redeem { token }
-     ← { session_token }  (or 401 if expired/revoked)
-7. On 401: fall back to WebAuthn assertion flow
-```
-
-### Hub-side token lifecycle
-
-- Tokens are stored **hashed** (SHA-256) in `device_tokens`.
-- `redeem` verifies the hash, checks `expires_at` and `revoked`,
-  rotates the token (issues a new one, invalidates the old), and
-  returns a short-lived session token.
-- Rotation-on-use means a stolen token can only be used once before
-  the legitimate device detects the mismatch and re-prompts.
-- `GET /me/devices` lets users see all trusted devices and revoke any
-  from Settings (e.g. "Log out everywhere").
+The design had the client exchange a passkey assertion for a 30-day
+device token and redeem it silently on later opens. The hub built it
+(`/auth/device-token/*`, `/me/devices`); no client ever minted a token,
+and none needs one: a Wavvon client holds its key and signs the auth
+challenge without asking anything, so the token only added a long-lived
+bearer secret to steal. Removed before 1.0 with its table and the
+`WAVVON_DEVICE_TOKEN_TTL_DAYS` setting (Wavvon-server#197).
 
 ### Settings UI additions (all clients)
 
@@ -377,8 +334,6 @@ Under **Settings → Account**:
 
 - **Passkeys** — list of registered credentials (friendly name,
   device type icon from AAGUID, last used). Add / rename / remove.
-- **Trusted devices** — list of active device tokens (device name,
-  created, last used, expires). Revoke individually or "Revoke all".
 
 ---
 
@@ -489,9 +444,9 @@ and a startup warning when `webauthn_enabled = true` but TLS is off.
 | Area | Effort |
 |---|---|
 | Hub: DB migrations + 10 new routes + `webauthn-rs` wiring | ~2 days |
-| Hub: integration tests (register, assert, multi-credential, device token) | ~1 day |
+| Hub: integration tests (register, assert, multi-credential) | ~1 day |
 | Web: `@simplewebauthn/browser` + `WelcomeScreen` wiring + identity key wrapping | ~1.5 days |
-| Web: Settings → Passkeys + Trusted devices UI | ~0.5 day |
+| Web: Settings → Passkeys UI | ~0.5 day |
 | Desktop: Tauri command shims (Windows Hello + macOS Touch ID + libfido2) | ~2 days |
 | Android: `CredentialManager` Tauri plugin + `EncryptedSharedPreferences` | ~1.5 days |
 | Docs + `hub_info` capability flag + `hosting.md` TLS note | ~0.5 day |
@@ -505,8 +460,6 @@ and a startup warning when `webauthn_enabled = true` but TLS is off.
 - Should `rp_id` be derived from `WAVVON_PUBLIC_URL` automatically,
   or always require an explicit `WAVVON_WEBAUTHN_RP_ID` setting?
   (Reverse-proxy deployments may have a different public hostname.)
-- Device token TTL: 30 days default — should this be per-hub
-  operator configurable, or fixed?
 - Should the seed-phrase flow be formally deprecated on a timeline
   once passkey coverage is high, or kept indefinitely as a fallback?
 - Conditional UI (autofill-triggered passkey prompts) for the hub
