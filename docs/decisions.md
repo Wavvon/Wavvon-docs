@@ -6,6 +6,53 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## The hub schema carries a version, and a step runs once
+
+**Decision** (2026-10-27): the hub database records its schema version in a
+one-row `schema_version` table. What existed until today is a frozen,
+idempotent **baseline** that still runs on every start; every change after it
+is a numbered **step** that runs once, in its own transaction, and moves the
+recorded version. A database whose version is newer than the binary's is
+refused before anything runs.
+
+**Why.** The migrations were one function rerun in full at every boot, written
+for a time when no database was in the field. A hub has been since August.
+Rerunning is harmless for `CREATE TABLE IF NOT EXISTS`, but not for a data
+migration: the voice-channel conversion (entry below) turned the AFK channel
+and temporary rooms into voice rooms at every restart, undoing an admin who
+had switched one back to text. And an older binary started on an upgraded
+database ran its own baseline, `DROP TABLE IF EXISTS` included, against a
+schema it did not know. This is also the precondition of the additive-only
+rule that binds from 1.0: a rule about how a schema may change needs a record
+of which schema a database is at.
+
+**Alternatives.** `sqlx::migrate!` with SQL files: the baseline seeds
+permissions from Rust constants and loops over table lists, so it would have
+to be rewritten as SQL first, and the version table it keeps is the same
+idea with a checksum per file. A version number per table: more state, and
+nothing needs it. Keep rerunning and make every data migration idempotent by
+construction: true of the conversion only by accident, and the next one would
+have to be argued again.
+
+**Tradeoff.** The baseline is frozen in place rather than folded into steps,
+so a database's history before 2026-10-27 is still "whatever the baseline did".
+Accepted: the baseline is idempotent and tested as such, and nothing older
+than it has an upgrade path to keep. Until 1.0 a step may still be
+destructive; from 1.0 steps are additive only.
+
+The refusal also ends "the schema downgrades safely by construction", which
+the operator guide promised: an older binary no longer starts on an upgraded
+database at all. The promise was already false before 1.0, when a step may
+drop a table, and it never covered data the newer binary wrote. Restoring the
+pre-upgrade backup was already the supported rollback; it is now the only one.
+If an additive-only world after 1.0 wants downgrades back, the marker is what
+makes that a decision rather than an accident.
+
+**Outcome.** Wavvon-server#195. The farm's migrations keep the old shape for
+now: every statement in them is additive, none migrates data, and no farm runs
+in the field. They take the same marker with their first data migration or
+before 1.0, whichever comes first.
+
 ## Voice lives in voice channels
 
 **Decision** (2026-10-27): a new `channel_type`, `voice`, is the only kind of
@@ -28,7 +75,8 @@ toggle away from being a call). Voice channels with no chat (the AFK notice,
 temp rooms and squad rooms post into a channel, and would need a new home).
 
 **Tradeoff.** Existing hubs have voice everywhere today. On upgrade only the
-channels that can only have been voice rooms convert by themselves: temporary
+channels that can only have been voice rooms convert by themselves, once
+(schema step 1, entry above): temporary
 rooms and the AFK channel. Any other channel stays `text`; an admin switches
 it in the channel's settings, both ways, keeping its chat history. That is an
 operator step after the upgrade, and the release notes say so. Clients test

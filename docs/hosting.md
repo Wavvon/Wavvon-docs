@@ -716,11 +716,10 @@ warning are in the
 
 ## Upgrades (per method)
 
-Migrations run automatically on startup and are additive only (no
-down-migrations). **Run `wavvon-hub backup` first** — every time, not only
-for a major. The schema downgrades safely by construction, but data the new
-version wrote may not be readable by the old one, so that archive is the
-supported way back:
+Migrations run automatically on startup, each step once, and there are no
+down-migrations. **Run `wavvon-hub backup` first** — every time, not only
+for a major. An older binary refuses a database a newer one has upgraded, so
+that archive is the only way back:
 [Rollback](hub-operator-guide.md#rollback).
 
 | Method | Upgrade |

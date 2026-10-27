@@ -236,9 +236,10 @@ all three.
 3. Replace the binary with the new version.
 4. Start the hub. New migrations run automatically on startup.
 
-Wavvon uses additive migrations only — there are no destructive schema
-changes in minor/patch upgrades. If a migration fails (e.g., disk full),
-the hub exits and the database is left untouched.
+The database records its schema version, and each migration step runs once,
+in its own transaction: if one fails (e.g., disk full), the hub exits and
+that step is rolled back. Until 1.0 a release may carry a destructive step
+(a dropped or reshaped table); from 1.0 steps only add.
 
 ### When the upgrade also carries a PostgreSQL major
 
@@ -268,27 +269,17 @@ different message, and it means the binary is the wrong one, not the database.
 
 ### Rollback
 
-**The schema is safe to downgrade. The data is not guaranteed to be.**
+**Restore the backup you took before the upgrade, then run the old binary
+against it.** That is the only rollback, and it is why step 1 above is step 1.
 
-Schema side: migrations only add tables and columns, and every added column
-that is `NOT NULL` carries a `DEFAULT` — enforced by a test, not a habit. So
-an older binary, which does not know the new columns and omits them from its
-inserts, keeps reading and writing a newer schema without error. Reinstall
-the previous version and start it; nothing needs undoing.
-
-Data side: no such guarantee, and this is where a rollback actually bites. In
-the window before you downgraded, the newer binary may have written data the
-older one has no code for — a channel of a type it does not recognise, a
-field it will not read, an envelope version it cannot verify. That data does
-not disappear, but the old binary may ignore it, render it wrong, or reject
-it. Nothing checks this, and no downgrade has been driven end to end.
-
-So the supported rollback is: **restore the backup you took before the
-upgrade, then run the old binary against it.** That is exact, and it is why
-step 1 above is step 1.
-
-If you did not take one, running the old binary against the current database
-is very likely fine and is not something we test. Take the backup.
+Starting the old binary against the upgraded database is refused at startup:
+the database's schema version is newer than the one the binary knows, and the
+hub stops before running anything. That refusal is deliberate. Before 1.0 a
+step may drop or reshape a table the old binary still expects, and even an
+additive step can leave data the old binary has no code for — a channel of a
+type it does not recognise, an envelope version it cannot verify. Nothing
+would check that, so nothing is allowed to try. (Hubs older than 0.8.0 predate
+the check and do not refuse; the backup is still the way back.)
 
 > **One-time exception — upgrading to v0.3.0**: the schema baseline was
 > reset pre-production ([decisions.md](decisions.md)). Databases created
