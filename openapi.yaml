@@ -185,9 +185,7 @@ components:
           description: >-
             The caller's own `voice.move_members` on this channel, resolved
             channel-scoped, so a move-destination picker can offer only the
-            channels that will accept the move (events.md §7.1). Advertised
-            as the `channels.move.targets` capability; absent on hubs that
-            do not advertise it, which is not the same as `false`.
+            channels that will accept the move (events.md §7.1).
 
     Message:
       type: object
@@ -347,8 +345,7 @@ components:
           enum: [live, expired, used_up]
           description: >-
             Whether this invite can still admit anyone, and if not, which of
-            the two ways it retired. Advertised as the `invites.status`
-            capability; absent on hubs that do not advertise it.
+            the two ways it retired.
 
     HubInfo:
       type: object
@@ -389,12 +386,12 @@ components:
           type: array
           items: { type: string }
           description: |
-            What this hub can do, e.g. `voice.wt`, `list.cursor`. Test
+            What this hub can do, e.g. `voice.alliance`, `list.cursor`. Test
             membership to decide what to offer; absent or empty means a hub
             predating capability advertising, which reads correctly as "knows
             nothing". The list only ever grows — a string never changes
             spelling or meaning once published.
-          example: [list.cursor, pairing.subkey, recovery.attestation, screenshare.v2, voice.wt]
+          example: [list.cursor, list.cursor.lists, voice.alliance, voice.talk]
         canonical_url:
           type: string
           description: |
@@ -1339,8 +1336,16 @@ paths:
   /hub/members:
     get:
       operationId: listHubMembers
-      summary: List all hub members
+      summary: List hub members, oldest first (paged on hubs advertising list.cursor.admin)
       tags: [Hub]
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, format: int64, default: 100, maximum: 500 }
+        - name: cursor
+          in: query
+          schema: { type: string }
+          description: The `public_key` of the last member of the previous page
       responses:
         "200":
           description: OK
@@ -1372,13 +1377,13 @@ paths:
         "200":
           description: OK
 
-  /hub/pending/{target_key}/approve:
+  /hub/pending/{pubkey}/approve:
     post:
       operationId: approveHubPending
       summary: Approve a pending user (admin)
       tags: [Hub]
       parameters:
-        - name: target_key
+        - name: pubkey
           in: path
           required: true
           schema: { type: string }
@@ -1447,9 +1452,9 @@ paths:
         "204":
           description: No content
 
-  /hub/settings/lobby:
-    put:
-      operationId: setHubSettingsLobby
+  /admin/settings/lobby:
+    patch:
+      operationId: patchAdminSettingsLobby
       summary: Update lobby / security level settings (admin)
       tags: [Hub]
       requestBody:
@@ -1458,7 +1463,7 @@ paths:
           application/json:
             schema:
               type: object
-              required: [lobby_enabled]
+              description: Absent fields keep their stored value.
               properties:
                 lobby_enabled: { type: boolean }
                 welcome_md: { type: string, nullable: true }
@@ -1466,9 +1471,9 @@ paths:
         "200":
           description: OK
 
-  /hub/settings/challenge:
-    put:
-      operationId: setHubSettingsChallenge
+  /admin/settings/challenge:
+    patch:
+      operationId: patchAdminSettingsChallenge
       summary: Update bot-challenge mode (admin)
       tags: [Hub]
       requestBody:
@@ -1477,7 +1482,7 @@ paths:
           application/json:
             schema:
               type: object
-              required: [challenge_mode, challenge_difficulty]
+              description: Absent fields keep their stored value.
               properties:
                 challenge_mode: { type: string, enum: ["off", click, puzzle, both] }
                 challenge_difficulty: { type: string }
@@ -1840,27 +1845,6 @@ paths:
   # /channels/{channel_id}/members was removed 2026-08-08: it ignored its
   # channel_id and returned the same rows as GET /users. Use /users.
 
-  /voice/populations:
-    get:
-      operationId: listVoicePopulations
-      summary: Voice user count per channel
-      tags: [Voice]
-      responses:
-        "200":
-          description: OK
-
-  /voice/active-users:
-    get:
-      operationId: listVoiceActiveUsers
-      summary: List all users in any voice channel
-      tags: [Voice]
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema: { type: array, items: { type: string } }
-
   /voice/participants:
     get:
       operationId: listVoiceParticipants
@@ -2215,13 +2199,13 @@ paths:
         "200":
           description: OK
 
-  /friends/{public_key}/accept:
+  /friends/{pubkey}/accept:
     post:
       operationId: acceptFriend
       summary: Accept a friend request
       tags: [Friends]
       parameters:
-        - name: public_key
+        - name: pubkey
           in: path
           required: true
           schema: { type: string }
@@ -2229,13 +2213,13 @@ paths:
         "200":
           description: OK
 
-  /friends/{public_key}:
+  /friends/{pubkey}:
     delete:
       operationId: deleteFriend
       summary: Remove a friend
       tags: [Friends]
       parameters:
-        - name: public_key
+        - name: pubkey
           in: path
           required: true
           schema: { type: string }
@@ -2251,8 +2235,8 @@ paths:
       summary: List active invites (manage_invites)
       description: >-
         Newest first, and only the invites that can still admit someone — an
-        expired or used-up one is returned only with `include_inactive=true`,
-        on hubs advertising `invites.status`. Paged only on hubs advertising
+        expired or used-up one is returned only with `include_inactive=true`.
+        Paged only on hubs advertising
         `list.cursor.lists`.
       tags: [Invites]
       parameters:
@@ -2381,7 +2365,7 @@ paths:
                           description: Dotted prefix, for grouping without re-splitting the id.
                           example: moderation
 
-  /users/{public_key}/permissions/why:
+  /users/{pubkey}/permissions/why:
     get:
       operationId: explainUserPermissions
       summary: Why this member can (or cannot) do X here
@@ -2398,7 +2382,7 @@ paths:
         sources, because no role explains it.
       tags: [Roles]
       parameters:
-        - name: public_key
+        - name: pubkey
           in: path
           required: true
           schema: { type: string }
@@ -2614,13 +2598,13 @@ paths:
         "204":
           description: No content
 
-  /users/{public_key}/roles:
+  /users/{pubkey}/roles:
     get:
       operationId: listUserRoles
       summary: Get roles assigned to a user
       tags: [Roles]
       parameters:
-        - name: public_key
+        - name: pubkey
           in: path
           required: true
           schema: { type: string }
@@ -2631,13 +2615,13 @@ paths:
           content:
             application/json:
               schema: { type: array, items: { $ref: '#/components/schemas/Role' } }
-  /users/{public_key}/roles/{role_id}:
+  /users/{pubkey}/roles/{role_id}:
     put:
       operationId: setUserRole
       summary: Assign role to user (manage_roles)
       tags: [Roles]
       parameters:
-        - name: public_key
+        - name: pubkey
           in: path
           required: true
           schema: { type: string }
@@ -2653,7 +2637,7 @@ paths:
       summary: Remove role from user (manage_roles)
       tags: [Roles]
       parameters:
-        - name: public_key
+        - name: pubkey
           in: path
           required: true
           schema: { type: string }
@@ -2748,7 +2732,7 @@ paths:
             The caller lacks the permission this request shape needs, or does
             not out-rank the target.
 
-  /moderation/bans/{target_key}:
+  /moderation/bans/{pubkey}:
     delete:
       operationId: deleteModerationBan
       summary: Unban (moderation.ban.permanent)
@@ -2757,7 +2741,7 @@ paths:
         removing a ban is never the escalation the split guards against.
       tags: [Moderation]
       parameters:
-        - name: target_key
+        - name: pubkey
           in: path
           required: true
           schema: { type: string }
@@ -2801,13 +2785,13 @@ paths:
         "201":
           description: Created
 
-  /moderation/mutes/{target_key}:
+  /moderation/mutes/{pubkey}:
     delete:
       operationId: deleteModerationMute
       summary: Unmute (manage_users)
       tags: [Moderation]
       parameters:
-        - name: target_key
+        - name: pubkey
           in: path
           required: true
           schema: { type: string }
@@ -2883,13 +2867,13 @@ paths:
         "201":
           description: Created
 
-  /moderation/voice-mutes/{target_key}:
+  /moderation/voice-mutes/{pubkey}:
     delete:
       operationId: deleteModerationVoiceMute
       summary: Remove voice mute
       tags: [Moderation]
       parameters:
-        - name: target_key
+        - name: pubkey
           in: path
           required: true
           schema: { type: string }
@@ -3503,12 +3487,8 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  posts:
-                    type: array
-                    items: { $ref: '#/components/schemas/PostSummary' }
-                  cursor: { type: string, description: "Omitted on the last page" }
+                type: array
+                items: { $ref: '#/components/schemas/PostSummary' }
         "403": { description: "Channel is not shared with the caller, or remote writes are off" }
         "409": { description: Channel is not a forum }
     post:
@@ -3859,8 +3839,19 @@ paths:
   /admin/survey/responses:
     get:
       operationId: listAdminSurveyResponses
-      summary: List all survey responses (manage_hub)
+      summary: List survey responses, newest first (manage_hub)
       tags: [Survey]
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [pending, all], default: pending }
+        - name: limit
+          in: query
+          schema: { type: integer, format: int64, default: 50, maximum: 500 }
+        - name: cursor
+          in: query
+          schema: { type: string }
+          description: The `response_id` of the last response of the previous page
       responses:
         "200":
           description: OK
@@ -3924,13 +3915,13 @@ paths:
 
   # ── Identity / Multi-device ───────────────────────────────────────────────
 
-  /identity/{master}/designation:
+  /identity/{pubkey}/designation:
     get:
       operationId: getIdentityDesignation
       summary: Get the home-hub list a master key has published here
       tags: [Identity]
       parameters:
-        - name: master
+        - name: pubkey
           in: path
           required: true
           schema: { type: string }
@@ -3954,7 +3945,7 @@ paths:
         member — so it was only ever a way for a stranger to leave rows behind.
       tags: [Identity]
       parameters:
-        - name: master
+        - name: pubkey
           in: path
           required: true
           schema: { type: string }
@@ -3975,13 +3966,13 @@ paths:
         "200":
           description: OK
 
-  /identity/{master}/devices:
+  /identity/{pubkey}/devices:
     get:
       operationId: listIdentityDevices
       summary: List devices linked to a master key
       tags: [Identity]
       parameters:
-        - name: master
+        - name: pubkey
           in: path
           required: true
           schema: { type: string }
@@ -3993,7 +3984,7 @@ paths:
       summary: Register a new device subkey
       tags: [Identity]
       parameters:
-        - name: master
+        - name: pubkey
           in: path
           required: true
           schema: { type: string }
@@ -4005,13 +3996,13 @@ paths:
         "200":
           description: OK
 
-  /identity/{master}/revocations:
+  /identity/{pubkey}/revocations:
     get:
       operationId: listIdentityRevocations
       summary: List revoked device keys
       tags: [Identity]
       parameters:
-        - name: master
+        - name: pubkey
           in: path
           required: true
           schema: { type: string }
@@ -4023,7 +4014,7 @@ paths:
       summary: Revoke a device key
       tags: [Identity]
       parameters:
-        - name: master
+        - name: pubkey
           in: path
           required: true
           schema: { type: string }
@@ -4043,13 +4034,13 @@ paths:
         "200":
           description: OK
 
-  /identity/{master}/prefs:
+  /identity/{pubkey}/prefs:
     get:
       operationId: getIdentityPrefs
       summary: Get cross-device preferences blob
       tags: [Identity]
       parameters:
-        - name: master
+        - name: pubkey
           in: path
           required: true
           schema: { type: string }
@@ -4061,7 +4052,7 @@ paths:
       summary: Store cross-device preferences blob
       tags: [Identity]
       parameters:
-        - name: master
+        - name: pubkey
           in: path
           required: true
           schema: { type: string }
@@ -4765,19 +4756,6 @@ paths:
         "200":
           description: "`text/plain` gauges/counters: online users, voice participants, game sessions, video channels, messages total, uptime, DB size."
 
-  /key-rotation:
-    get:
-      operationId: getKeyRotation
-      summary: Get the signed hub key-rotation payload
-      description: Serves `hub_rotation.json` if the hub has rotated its keypair, so federation peers can follow the rotation. 204 when no rotation exists.
-      security: []
-      tags: [Federation]
-      responses:
-        "200":
-          description: Signed rotation payload (JSON)
-        "204":
-          description: No rotation on record
-
   # ── Admin settings ────────────────────────────────────────────────────────
 
   /admin/settings/pow:
@@ -4996,6 +4974,13 @@ paths:
           in: query
           schema: { type: string }
           description: Filter by source hub pubkey
+        - name: limit
+          in: query
+          schema: { type: integer, format: int64, default: 100, maximum: 500 }
+        - name: cursor
+          in: query
+          schema: { type: string }
+          description: `<source_hub_pubkey>:<target_master_pubkey>` of the last entry of the previous page
       responses:
         "200":
           description: OK
@@ -5152,9 +5137,7 @@ paths:
       operationId: listAdminAuditLog
       summary: Hub audit log, newest first (admin)
       description: >-
-        Pages backwards: each page holds entries older than `cursor`. Hubs
-        advertising the `audit.newest` capability serve this shape; older
-        hubs answer `{entries, next_cursor}` oldest first. Apps that replay
+        Pages backwards: each page holds entries older than `cursor`. Apps that replay
         the log forwards use `GET /me/events`.
       tags: [Moderation]
       parameters:
@@ -6181,7 +6164,7 @@ paths:
         - name: cursor
           in: query
           schema: { type: string }
-          description: Opaque cursor from the previous page
+          description: The id of the last post of the previous page
         - name: limit
           in: query
           schema: { type: integer, format: int64, default: 50, maximum: 100 }
@@ -6191,12 +6174,8 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  posts:
-                    type: array
-                    items: { $ref: '#/components/schemas/PostSummary' }
-                  cursor: { type: string, description: "Omitted on the last page" }
+                type: array
+                items: { $ref: '#/components/schemas/PostSummary' }
     post:
       operationId: createChannelPost
       summary: Create a post (create_posts)
@@ -6248,25 +6227,28 @@ paths:
           in: query
           required: true
           schema: { type: string }
+        - name: cursor
+          in: query
+          schema: { type: string }
+          description: The `post_id` of the last hit of the previous page
+        - name: limit
+          in: query
+          schema: { type: integer, format: int64, default: 50, maximum: 100 }
       responses:
         "200":
-          description: OK
+          description: Hits, newest post id first
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  results:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        post_id: { type: string }
-                        title_snippet: { type: string }
-                        body_snippet: { type: string }
-                        is_reply: { type: boolean }
-                        reply_id: { type: string }
-                  cursor: { type: string }
+                type: array
+                items:
+                  type: object
+                  properties:
+                    post_id: { type: string }
+                    title_snippet: { type: string }
+                    body_snippet: { type: string }
+                    is_reply: { type: boolean }
+                    reply_id: { type: string }
 
   /channels/{channel_id}/posts/{post_id}:
     get:
@@ -7028,7 +7010,14 @@ paths:
         "204":
           description: No content
 
-  /admin/badges/issue:
+  /admin/badges/issued:
+    get:
+      operationId: listAdminIssuedBadges
+      summary: List badges this hub has issued (admin)
+      tags: [Badges]
+      responses:
+        "200":
+          description: OK
     post:
       operationId: issueAdminBadge
       summary: Issue a badge to another hub (admin)
@@ -7067,16 +7056,7 @@ paths:
         "502":
           description: Recipient hub unreachable
 
-  /admin/badges/issued:
-    get:
-      operationId: listAdminIssuedBadges
-      summary: List badges this hub has issued (admin)
-      tags: [Badges]
-      responses:
-        "200":
-          description: OK
-
-  /admin/badges/issued/{id}/revoke:
+  /admin/badges/issued/{id}:
     delete:
       operationId: revokeAdminIssuedBadge
       summary: Revoke an issued badge (admin)
@@ -7149,8 +7129,16 @@ paths:
   /admin/certs:
     get:
       operationId: listAdminCerts
-      summary: List all cert issuances (admin)
+      summary: List cert issuances, newest first (admin; paged on hubs advertising list.cursor.admin)
       tags: [Certifications]
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, format: int64, default: 100, maximum: 500 }
+        - name: cursor
+          in: query
+          schema: { type: string }
+          description: The `id` of the last issuance of the previous page
       responses:
         "200":
           description: OK
@@ -7189,6 +7177,19 @@ paths:
               schema: { $ref: '#/components/schemas/Certification' }
         "403":
           description: User not approved or banned
+    delete:
+      operationId: revokeAdminCert
+      summary: Revoke a user's certs (admin)
+      description: Marks existing certs revoked and re-issues a short-lived standing=revoked cert so pull-path verifiers see it.
+      tags: [Certifications]
+      parameters:
+        - name: pubkey
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204":
+          description: No content
 
   /admin/certs/{pubkey}/badge:
     post:
@@ -7223,21 +7224,6 @@ paths:
               schema: { $ref: '#/components/schemas/Certification' }
         "403":
           description: User not approved or banned
-
-  /admin/certs/{pubkey}/revoke:
-    post:
-      operationId: revokeAdminCert
-      summary: Revoke a user's certs (admin)
-      description: Marks existing certs revoked and re-issues a short-lived standing=revoked cert so pull-path verifiers see it.
-      tags: [Certifications]
-      parameters:
-        - name: pubkey
-          in: path
-          required: true
-          schema: { type: string }
-      responses:
-        "204":
-          description: No content
 
   /admin/settings/certs:
     get:
@@ -7859,18 +7845,15 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  subscriptions:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        event: { type: string }
-                        channels:
-                          type: array
-                          items: { type: string }
-                          nullable: true
+                type: array
+                items:
+                  type: object
+                  properties:
+                    event: { type: string }
+                    channels:
+                      type: array
+                      items: { type: string }
+                      nullable: true
     put:
       operationId: setAdminOutgoingWebhookSubscriptions
       summary: Replace an outgoing webhook's event subscriptions (admin)
@@ -7947,9 +7930,10 @@ paths:
         - name: limit
           in: query
           schema: { type: integer, format: int64, default: 50, maximum: 200 }
-        - name: offset
+        - name: cursor
           in: query
-          schema: { type: integer, format: int64, default: 0 }
+          schema: { type: string }
+          description: The id of the last delivery of the previous page
         - name: event_type
           in: query
           schema: { type: string }

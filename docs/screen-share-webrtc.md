@@ -1,5 +1,11 @@
 # Screen Share Tier 2 — WebRTC Migration
 
+> **Status: not used by any client.** Desktop's WebRTC path listened for
+> message names the hub never sent and was removed (Wavvon-clients#195);
+> web never had one. Both clients share over the v1 chunk relay, and the
+> `screenshare.v2` capability was dropped before 1.0 (Wavvon-server#198).
+> The hub's signalling relay below is still there.
+
 v2 of screen share. The user-visible feature is identical to v1
 ([`screen-share.md`](screen-share.md)); the transport changes from
 **hub-relayed WebM chunks over WebSocket** to **WebRTC peer-to-peer

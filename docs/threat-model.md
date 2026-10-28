@@ -13,7 +13,7 @@ DMs, voice transport v2 and device revocation, and said so wrongly.
   it; a paired device never holds the master seed.
 - **Hub identity** is the same shape: a long-lived Ed25519 keypair in
   `hub_identity.json`, rotatable with an endorsement signed by the old key
-  (`wavvon-hub rotate-key`, served at `/key-rotation`). Clients follow a
+  (`wavvon-hub rotate-key`, served as `/info`'s `rotation`). Clients follow a
   rotation rather than treating the hub as new.
 - **No central authority.** No PKI, no email, no username. Trust comes from
   an invite, a pubkey-bound invite, or a hub's published certifications

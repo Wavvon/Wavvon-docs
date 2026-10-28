@@ -361,7 +361,7 @@ wavvon-hub admin revoke-session <token>
 # Promote a user to Owner
 wavvon-hub admin grant-role <pubkey> builtin-owner
 
-# Key rotation (updates hub_identity.json and publishes /key-rotation)
+# Key rotation (updates hub_identity.json and publishes it on /info)
 wavvon-hub rotate-key
 ```
 

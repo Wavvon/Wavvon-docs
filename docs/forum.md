@@ -207,12 +207,12 @@ ReplyView {
   created_at, edited_at?, reply_to_id?, is_deleted
 }
 
-PostListResponse   { posts: PostSummary[], cursor? }
+GET /posts          PostSummary[]   // limit + cursor = last post id
 CreatePostRequest  { title, body }
 EditPostRequest    { title?, body? }
 CreateReplyRequest { body, reply_to_id? }
 EditReplyRequest   { body }
-PostSearchResponse { results: PostSearchHit[], cursor? }
+GET /posts/search   PostSearchHit[] // limit + cursor = last post_id
 PostSearchHit      { post_id, title_snippet, body_snippet, is_reply, reply_id? }
 ```
 

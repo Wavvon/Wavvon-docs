@@ -11,8 +11,8 @@ Everything here lives in the **Wavvon-server** hub crate
 (see the `migrate` arm at `main.rs:107` for the existing pattern); the
 background jobs follow the `cert_worker` / `token_expiry` spawn pattern
 (`main.rs:273`, `main.rs:276`). None of these features require a client
-update, and none change the federation wire format except the new
-`/key-rotation` endpoint.
+update, and none change the federation wire format except the
+`rotation` field on `/info`.
 
 > See also: [hosting.md](hosting.md) (the practical run guide that this
 > design backs), [data-model.md](data-model.md) (schema), and
@@ -272,16 +272,15 @@ existing primitives.
 
 **How federation trusts it**:
 
-- The hub serves the payload at a new `GET /key-rotation` endpoint for a
-  configurable transition window (default **30 days**).
-- A peer or alliance member that holds the *old* pubkey fetches
-  `/key-rotation`, verifies the signature against the old pubkey it
+- The hub serves the payload as the `rotation` field of `GET /info` for a
+  configurable transition window (default **30 days**). (A separate
+  `GET /key-rotation` served the same bytes until it was folded into
+  `/info` before 1.0, Wavvon-server#198.)
+- A peer or alliance member that holds the *old* pubkey reads it,
+  verifies the signature against the old pubkey it
   already trusts, and on success caches `new_pubkey` as this hub's
   identity. Because the endorsement is signed by the key they already
   trust, no out-of-band channel is needed.
-- `GET /info` also carries an optional `rotation` field with the same
-  payload while a rotation is active, so a peer making an ordinary `/info`
-  call notices the rotation without a separate fetch.
 
 **CLI flow**: `wavvon-hub rotate-key [--new-key-path <path>]`
 
@@ -315,7 +314,7 @@ forward.
 
 **Alternative considered — automatic key rotation on a schedule** (the
 hub rotates itself every N days). Rejected: rotation only works if peers
-have *time and awareness* to re-fetch `/key-rotation` within the
+have *time and awareness* to re-fetch `/info` within the
 transition window. A hub that rotates unattended can drop offline mid-
 window (the most common self-hoster failure mode) and strand peers on a
 stale key with no human watching. Manual, operator-triggered rotation
@@ -324,8 +323,7 @@ keeps a human in the loop who can confirm peers have re-pinned — the same
 [threat-model.md](threat-model.md).
 
 **Implementation side** (Wavvon-server): `rotate-key` subcommand in
-`hub/src/main.rs`; a `hub/src/routes/key_rotation.rs` serving
-`GET /key-rotation`; the optional `rotation` field added to the `/info`
+`hub/src/main.rs`; the optional `rotation` field added to the `/info`
 handler; the `HubKeyRotation` sign/verify helper placed in the
 `identity` crate next to the existing bound-bundle signer so client and
 hub agree on the canonical bytes; load `hub_rotation.json` at boot

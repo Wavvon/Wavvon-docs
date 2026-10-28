@@ -681,6 +681,27 @@ and leave. Replace local state with this list.
 | `channel_id` | string | |
 | `participants` | array of [VoiceRosterEntry](#voicerosterentry) | |
 
+#### `voice_hands`
+Who has a hand raised in this voice channel, oldest first. Sent to everyone
+in the channel when a hand goes up (`POST /channels/{id}/raise-hand`), comes
+down (`DELETE .../raise-hand/{pubkey}`) or is answered with a talk grant.
+A snapshot: replace local state with it. Behind `voice.hands`.
+
+| field | type | notes |
+|---|---|---|
+| `channel_id` | string | |
+| `public_keys` | string[] | |
+
+#### `voice_talk_granted`
+A moderator gave `public_key` the floor (`POST /channels/{id}/talk-grants/{pubkey}`):
+their `may_speak` is true until they leave. Sent to everyone in the channel,
+the grantee included. Behind `voice.hands`.
+
+| field | type | notes |
+|---|---|---|
+| `channel_id` | string | |
+| `public_key` | string | |
+
 #### `voice_whisper_started`
 *Targeted*: delivered only to the resolved whisper recipients.
 

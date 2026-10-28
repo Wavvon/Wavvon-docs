@@ -86,7 +86,7 @@ No new tables. The lobby is a state of an existing user row.
 - `GET /lobby/welcome` — auth required, lobby-only.
   Response: `{ welcome_md, hub_name, required_level }`. Cached
   client-side for the duration of the lobby session.
-- `PUT /hub/settings/lobby` — admin only.
+- `PATCH /admin/settings/lobby` — admin only.
   Body: `{ lobby_enabled, welcome_md? }`. Writes the two settings rows.
 
 The existing auth handshake (`/auth/challenge`, `/auth/verify`)

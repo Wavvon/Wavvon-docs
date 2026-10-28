@@ -298,8 +298,7 @@ Two things kept deliberately identical to web rather than merely similar:
 **median round trip with mean absolute deviation** (one stalled probe on a
 flaky link must not move the headline number, and squaring the outlier the
 median just ignored would put it back), and **null means "no number", never
-zero** — before the first pong, out of voice, or on a hub without
-`voice.loss`. Two clients answering "how is my connection" with
+zero** — before the first pong or out of voice. Two clients answering "how is my connection" with
 differently-computed numbers is worse than one client not answering.
 
 
