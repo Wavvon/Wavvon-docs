@@ -4990,7 +4990,8 @@ paths:
         - name: cursor
           in: query
           schema: { type: string }
-          description: `<source_hub_pubkey>:<target_master_pubkey>` of the last entry of the previous page
+          description: >-
+            `<source_hub_pubkey>:<target_master_pubkey>` of the last entry of the previous page
       responses:
         "200":
           description: OK
