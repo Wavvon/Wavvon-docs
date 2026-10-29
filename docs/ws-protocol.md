@@ -301,8 +301,6 @@ to the channel. Multiple concurrent sharers per channel are allowed; each
 | `kind` | string | e.g. `"screen"` or `"webcam"` |
 | `mime` | string | container/codec MIME of the chunk stream |
 | `has_audio` | boolean | |
-| `transport` | string | optional; `"chunks"` (default, v1 relay) or `"webrtc"` (v2) |
-| `tracks` | array of [TrackMeta](#trackmeta) | optional; v2 track multiplexing metadata |
 
 #### `screen_share_chunk`
 Envelope for one media chunk. **Must be immediately followed by a binary
@@ -325,44 +323,6 @@ receive [`stream_subscription_ended`](#stream_subscription_ended).
 |---|---|---|
 | `channel_id` | string | |
 | `stream_id` | string | |
-
-#### `screen_share_viewer_join` / `screen_share_viewer_leave`
-(v2 WebRTC) Viewer announces it wants / no longer wants a peer connection for
-a stream. Relayed to the sharer as
-[`screen_share_viewer_joined`](#screen_share_viewer_joined) /
-[`screen_share_viewer_left`](#screen_share_viewer_left). Joining a
-non-existent stream returns an [`error`](#error) with context
-`screen_share_viewer_join`.
-
-| field | type | notes |
-|---|---|---|
-| `channel_id` | string | |
-| `stream_id` | string | |
-
-#### `screen_share_offer` / `screen_share_answer`
-(v2 WebRTC) SDP relay between sharer and viewer; delivered as
-[`screen_share_offer_in`](#screen_share_offer_in) /
-[`screen_share_answer_in`](#screen_share_answer_in) to `to_pubkey` only.
-`screen_share_offer` is only honoured when the sender is the sharer of
-`stream_id`; `screen_share_answer` only when `to_pubkey` is the sharer.
-
-| field | type | notes |
-|---|---|---|
-| `channel_id` | string | |
-| `to_pubkey` | string | |
-| `stream_id` | string | |
-| `sdp` | string | opaque |
-
-#### `screen_share_ice`
-(v2 WebRTC) ICE relay; delivered as
-[`screen_share_ice_in`](#screen_share_ice_in) to `to_pubkey` only.
-
-| field | type | notes |
-|---|---|---|
-| `channel_id` | string | |
-| `to_pubkey` | string | |
-| `stream_id` | string | |
-| `candidate` | string | JSON string `{ candidate, sdpMid, sdpMLineIndex }` — opaque to the hub |
 
 #### `stream_list`
 Request a snapshot of all active streams in channels visible to this
@@ -839,46 +799,6 @@ the stream.
 | `stream_id` | string | |
 | `sharer_pubkey` | string | |
 
-#### `screen_share_offer_in` / `screen_share_answer_in`
-*Targeted* (v2 WebRTC) SDP relay.
-
-| field | type | notes |
-|---|---|---|
-| `channel_id` | string | |
-| `to_pubkey` | string | you |
-| `stream_id` | string | |
-| `sdp` | string | opaque |
-| `from_pubkey` | string | the other peer |
-
-#### `screen_share_ice_in`
-*Targeted* (v2 WebRTC) ICE relay.
-
-| field | type | notes |
-|---|---|---|
-| `channel_id` | string | |
-| `to_pubkey` | string | |
-| `stream_id` | string | |
-| `candidate` | string | opaque |
-| `from_pubkey` | string | |
-
-#### `screen_share_viewer_joined`
-*Targeted* at the sharer: a viewer wants to negotiate.
-
-| field | type | notes |
-|---|---|---|
-| `channel_id` | string | |
-| `stream_id` | string | |
-| `from_pubkey` | string | the viewer |
-
-#### `screen_share_viewer_left`
-*Targeted* at the sharer.
-
-| field | type | notes |
-|---|---|---|
-| `channel_id` | string | |
-| `stream_id` | string | |
-| `from_pubkey` | string | |
-
 #### `stream_subscribed`
 Ack for `stream_subscribe`. If an init chunk is cached it follows immediately
 (as a `screen_share_chunk` envelope + binary frame).
@@ -1123,10 +1043,3 @@ present in server → client messages.
 | `kind` | string | |
 | `mime` | string | |
 | `has_audio` | boolean | |
-
-### TrackMeta
-
-| field | type | notes |
-|---|---|---|
-| `mid` | string | RTP `m=` mid value (matches `RTCRtpTransceiver.mid`) |
-| `kind` | string | `"screen"` or `"webcam"` |
