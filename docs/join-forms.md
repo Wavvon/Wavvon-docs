@@ -11,7 +11,8 @@ One form engine, two uses that answer different questions:
 
 The survey is the role questionnaire already built
 ([lobby-survey.md](lobby-survey.md), Feature 3). The application is new. A hub
-can run either, both, or neither. Status: designed, not built.
+can run either, both, or neither. Status: hub built (Wavvon-server#216,
+capability `admission.application`); clients in Wavvon-clients#199.
 
 ## Why an application
 
@@ -64,8 +65,9 @@ migrated.
    request, together with any ban-evasion flag
    ([Wavvon-server#208](https://github.com/Wavvon/Wavvon-server/issues/208)).
    The moderator approves, or rejects with a reason the joiner sees.
-4. **After a rejection** the joiner may apply again after a cooldown set by
-   the hub; the previous answers are not kept.
+4. **After a rejection** the joiner stays `pending`, reads the reason, leaves
+   the queue, and may apply again after seven days; the previous answers are
+   not kept.
 5. **After approval**, an onboarding survey, if the hub has one, runs as it
    does today.
 
@@ -76,7 +78,7 @@ be its gate.
 ## Privacy
 
 Application answers are personal data the joiner volunteered to one hub. They
-are deleted a fixed time after the decision (default 30 days, a hub setting),
+are deleted thirty days after the decision,
 never federated, never shown to members, and visible only to holders of the
 approval permission. The onboarding survey keeps its answers as today, since
 roles were derived from them.

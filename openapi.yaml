@@ -925,10 +925,13 @@ components:
     SurveyAnswerInput:
       type: object
       required: [question_id]
+      description: One answer; the field used follows the question's `kind`.
       properties:
         question_id: { type: string }
-        choice_id: { type: string }
-        text_answer: { type: string }
+        choice_id: { type: string, description: A `choice` answer. }
+        choice_ids: { type: array, items: { type: string }, description: A `multi` answer. }
+        text_answer: { type: string, description: A `text` answer. }
+        checked: { type: boolean, description: A `consent` answer. }
 
     SurveyChoiceAdmin:
       type: object
@@ -945,9 +948,19 @@ components:
       properties:
         id: { type: string }
         prompt: { type: string }
-        kind: { type: string }
+        kind:
+          type: string
+          enum: [text, choice, multi, consent]
+          description: >-
+            A required `consent` must be checked; an unchecked one is refused
+            with 422 `consent_refused:<question id>`.
         required: { type: boolean }
         display_order: { type: integer, format: int64 }
+        help: { type: string }
+        multiline: { type: boolean, default: false }
+        max_len: { type: integer, format: int32 }
+        min_choices: { type: integer, format: int32 }
+        max_choices: { type: integer, format: int32 }
         choices: { type: array, items: { $ref: '#/components/schemas/SurveyChoiceAdmin' } }
 
     WebhookSubscriptionDto:
@@ -1387,6 +1400,9 @@ paths:
                     public_key: { type: string }
                     display_name: { type: string, nullable: true }
                     first_seen_at: { type: integer, format: int64 }
+                    has_application:
+                      type: boolean
+                      description: Whether they filled the join application.
                     ban_evasion_match:
                       type: string
                       nullable: true
@@ -1409,6 +1425,33 @@ paths:
       responses:
         "200":
           description: OK
+
+  /hub/pending/{pubkey}/reject:
+    post:
+      operationId: rejectHubPending
+      summary: Reject a pending joiner's application (hub.admission)
+      description: >-
+        The joiner stays pending, reads the reason at
+        `GET /application/status`, and may apply again after a cooldown.
+        They leave the approval queue until they do.
+      tags: [Hub]
+      parameters:
+        - name: pubkey
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string }
+      responses:
+        "204":
+          description: Rejected
+        "404":
+          description: No pending application from this identity
 
   /hub/icons:
     get:
@@ -3889,6 +3932,104 @@ paths:
     get:
       operationId: getAdminSurveyResponse
       summary: Get a specific user's survey response (manage_hub)
+      tags: [Survey]
+      parameters:
+        - name: pubkey
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+
+  /application:
+    get:
+      operationId: getApplication
+      summary: The hub's join application, if it takes one
+      description: >-
+        No authentication: a client shows the form from an invite link or a
+        directory listing before the joiner has a seat. `null` when the hub
+        takes no applications. Present on hubs advertising
+        `admission.application` (join-forms.md).
+      tags: [Survey]
+      security: []
+      responses:
+        "200":
+          description: OK
+    post:
+      operationId: submitApplication
+      summary: Submit the join application (pending joiners)
+      description: >-
+        An enabled application seats every newcomer `pending`; this is what
+        a moderator reads. 409 when already a member or already submitted;
+        429 `retry_after:<unix>` when a rejected applicant applies again too
+        soon; 422 `consent_refused:<question id>` for an unchecked required
+        consent.
+      tags: [Survey]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [survey_id, answers]
+              properties:
+                survey_id: { type: string }
+                answers: { type: array, items: { $ref: '#/components/schemas/SurveyAnswerInput' } }
+      responses:
+        "201":
+          description: Submitted
+
+  /application/status:
+    get:
+      operationId: getApplicationStatus
+      summary: Where the caller's application stands
+      tags: [Survey]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [state]
+                properties:
+                  state: { type: string, enum: [none, submitted, rejected] }
+                  reason: { type: string }
+                  retry_after: { type: integer, format: int64, description: Unix seconds from which a rejected applicant may apply again. }
+
+  /admin/application:
+    get:
+      operationId: getAdminApplication
+      summary: The join application's configuration (surveys.manage)
+      tags: [Survey]
+      responses:
+        "200":
+          description: OK
+    put:
+      operationId: setAdminApplication
+      summary: Create or replace the join application (surveys.manage)
+      description: Same shape as the survey, except that no choice may map to a role.
+      tags: [Survey]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id, enabled, questions]
+              properties:
+                id: { type: string }
+                enabled: { type: boolean }
+                questions: { type: array, items: { $ref: '#/components/schemas/SurveyQuestionAdmin' } }
+      responses:
+        "200":
+          description: OK
+
+  /admin/application/responses/{pubkey}:
+    get:
+      operationId: getAdminApplicationResponse
+      summary: One joiner's application answers (hub.admission)
       tags: [Survey]
       parameters:
         - name: pubkey

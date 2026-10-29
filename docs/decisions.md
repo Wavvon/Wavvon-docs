@@ -27,7 +27,7 @@ two implementations of the same question kinds, which drift.
 **Tradeoff.** Two forms for an admin to configure where some hubs might have
 wanted one. Accepted: each is optional, and the questions they ask differ.
 
-**Outcome.** Not built yet; tracked as Wavvon-server and Wavvon-clients issues.
+**Outcome.** Hub side built in Wavvon-server#216; clients in Wavvon-clients#199.
 
 ## A ban stays on the identity; an IP is a signal, never a wall
 
