@@ -100,7 +100,7 @@ All in `hub/src/routes/alliances/` (Wavvon-server):
 | `POST   /alliances/pending-invites/:id/decline`      | `alliances.manage` | Decline a pending push invite |
 | `POST   /alliances/:id/join`                         | `alliances.manage` | Use invite token to join (hub-to-hub) |
 | `DELETE /alliances/:id/leave`                        | `alliances.manage` | Leave alliance             |
-| `GET    /alliances/:id/managers`                     | manager of this alliance | Roles on this alliance's grant list |
+| `GET    /alliances/:id/managers`                     | manager of this alliance, or `roles.manage` | Roles on this alliance's grant list |
 | `PUT    /alliances/:id/managers/:role_id`            | `roles.manage` | Add a role to the grant list     |
 | `DELETE /alliances/:id/managers/:role_id`            | `roles.manage` | Remove one                       |
 | `POST   /alliances/:id/channels`                     | manager **+** `channels.manage` | Share a local space (see below) |

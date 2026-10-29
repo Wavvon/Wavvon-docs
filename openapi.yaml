@@ -3253,7 +3253,8 @@ paths:
         the local roles that may invite another hub into this alliance, share
         and unshare a channel in it, and set the per-share policies.
         `alliances.manage` answers for every alliance and is not listed here.
-        Readable by anyone who may act on this alliance. Present only on hubs
+        Readable by anyone who may act on this alliance, and by holders of
+        `roles.manage`, who edit it. Present only on hubs
         advertising `alliance.permissions`.
       tags: [Alliances]
       parameters:
