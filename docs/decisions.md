@@ -59,7 +59,16 @@ is personal data, so the hub keeps a keyed hash, not the address, drops it
 when the window ends, and never puts it on a federated ban list: a hub does
 not hand its users' addresses to another hub.
 
-**Outcome.** Not built yet; tracked as a Wavvon-server issue.
+To know a banned identity's last address the hub has to have recorded it
+before the ban, so it keeps the hash of every identity's last address (at
+sign-in and at each socket) for seven days, then sweeps it. A ban copies that
+one hash into the flag list for thirty days. The HMAC key is derived from the hub's own key, so the hashes are
+not reversible by hashing the IPv4 space and do not match across hubs; a key
+rotation starts them afresh.
+
+**Outcome.** Built in Wavvon-server#214 (`admission.banevasion`). A flagged
+newcomer is seated `pending` even where `require_approval` is off, an
+invite does not auto-approve them, and `GET /hub/pending` names the match.
 
 ## The hub schema carries a version, and a step runs once
 

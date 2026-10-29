@@ -1376,6 +1376,25 @@ paths:
       responses:
         "200":
           description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [public_key, first_seen_at]
+                  properties:
+                    public_key: { type: string }
+                    display_name: { type: string, nullable: true }
+                    first_seen_at: { type: integer, format: int64 }
+                    ban_evasion_match:
+                      type: string
+                      nullable: true
+                      description: >-
+                        The banned identity whose last address this joiner
+                        arrived from, when that is why they wait. Approving
+                        clears it. Present on hubs advertising
+                        `admission.banevasion`.
 
   /hub/pending/{pubkey}/approve:
     post:
