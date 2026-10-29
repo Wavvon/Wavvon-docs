@@ -6,6 +6,38 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## A ban stays on the identity; an IP is a signal, never a wall
+
+**Decision** (2026-10-29): a ban keeps targeting the master public key. The
+hub may remember, for a short window, a keyed hash of the IP a banned
+identity last used, and a new identity that authenticates from the same
+address is **flagged to moderators**, not refused. There is no hardware ban.
+
+**Why.** A ban on a key is evaded by making a new key, which costs nothing.
+`invite_only` (the default) and the lobby's proof-of-work already raise that
+cost; what moderators lack is a hint that the newcomer is the person they
+just banned. The hub already sees the address: the rate limiter derives it,
+from `X-Forwarded-For` when a trusted proxy sits in front.
+
+**Alternatives.** *Refuse by IP*: one address is often many people (carrier
+NAT on mobile, a shared house, a venue, a school), so a ban would exclude
+strangers; meanwhile IPv6 rotation and a VPN lift it for free, and a hub
+behind a misconfigured proxy would see one address for everyone and ban the
+whole hub. *Ban by hardware*: the web client cannot read hardware, only a
+browser fingerprint, which is unreliable and hostile to privacy; a native
+client would report a machine id itself, and since the client is open source
+anyone can patch it to report another. The only identifier a client cannot
+forge is Android key attestation, which says the key lives in secure
+hardware, not that the phone is the same one as before.
+
+**Tradeoff.** A determined evader behind a fresh address is not caught; the
+flag only helps with the casual case, and the moderator still decides. An IP
+is personal data, so the hub keeps a keyed hash, not the address, drops it
+when the window ends, and never puts it on a federated ban list: a hub does
+not hand its users' addresses to another hub.
+
+**Outcome.** Not built yet; tracked as a Wavvon-server issue.
+
 ## The hub schema carries a version, and a step runs once
 
 **Decision** (2026-10-27): the hub database records its schema version in a
