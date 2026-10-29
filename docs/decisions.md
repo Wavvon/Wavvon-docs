@@ -6,6 +6,29 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## One form engine, two forms: the application before joining, the survey after
+
+**Decision** (2026-10-29): a hub can ask a joiner to fill an **application**
+before membership, which a moderator reads and approves or rejects. It runs on
+the same form engine as the onboarding survey, extended with multi-select and
+consent questions, but it stays a separate form with its own purpose. Design:
+[join-forms.md](join-forms.md).
+
+**Why.** A hub that is not for everyone needs to say so before someone is
+inside, and to ask enough that a moderator can decide. The survey runs after
+membership and feeds role mapping, so it does neither.
+
+**Alternatives.** *Move the survey before joining and make it the
+application*: one form would then answer two questions for two readers, role
+mappings would apply to someone not yet approved, and a hub wanting only role
+setup would gain a review step it did not ask for. *A second, separate engine*:
+two implementations of the same question kinds, which drift.
+
+**Tradeoff.** Two forms for an admin to configure where some hubs might have
+wanted one. Accepted: each is optional, and the questions they ask differ.
+
+**Outcome.** Not built yet; tracked as Wavvon-server and Wavvon-clients issues.
+
 ## A ban stays on the identity; an IP is a signal, never a wall
 
 **Decision** (2026-10-29): a ban keeps targeting the master public key. The

@@ -33,6 +33,7 @@ self-hosted, for a reader who has not run one. Then read in this order:
 ### Onboarding & anti-abuse
 
 - [lobby-survey.md](lobby-survey.md) — security-level lobby, admission challenge, role questionnaire (built)
+- [join-forms.md](join-forms.md) — one form engine for the pre-join application a moderator reviews and the post-join onboarding survey (designed, not built)
 
 ### Built features (design docs)
 

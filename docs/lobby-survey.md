@@ -313,6 +313,11 @@ independent. A hub at level 0 can still use `click` or `puzzle`.
 
 ## Feature 3 — Role Questionnaire / Onboarding Survey
 
+> **Status (2026-10-29)**: the survey is becoming one of two uses of a shared
+> form engine, next to a pre-join application; see
+> [join-forms.md](join-forms.md). This section stays the record of the survey
+> as built.
+
 ### What it does
 
 A hub admin defines an ordered list of questions. Each question is
