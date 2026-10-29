@@ -70,6 +70,12 @@ rotation starts them afresh.
 newcomer is seated `pending` even where `require_approval` is off, an
 invite does not auto-approve them, and `GET /hub/pending` names the match.
 
+Loopback, private and link-local addresses are ignored (Wavvon-server#215).
+They name a proxy or a LAN, not a person: a hub behind a reverse proxy it
+does not trust sees the proxy for everyone, and the first build held every
+newcomer for review after one ban. The clients' live e2e, where every browser
+is 127.0.0.1, found it the same day.
+
 ## The hub schema carries a version, and a step runs once
 
 **Decision** (2026-10-27): the hub database records its schema version in a
