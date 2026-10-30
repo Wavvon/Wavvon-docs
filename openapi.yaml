@@ -4615,9 +4615,41 @@ paths:
                   url: { type: string }
                   title: { type: string, nullable: true }
                   description: { type: string, nullable: true }
-                  image_url: { type: string, nullable: true }
+                  image_url:
+                    type: string
+                    nullable: true
+                    description: >-
+                      The page's image as fetched and served by this hub
+                      (`/preview/image/{id}` under its public URL), so readers
+                      never contact the third-party host. Null when the page has
+                      no PNG/JPEG/GIF/WebP/AVIF image of at most 1 MB, or the hub
+                      has no public URL.
         "429":
           description: Per-user rate limit exceeded
+
+  /preview/image/{id}:
+    get:
+      operationId: getPreviewImage
+      summary: An image fetched for a link preview
+      description: >-
+        Serves an image an authenticated `GET /preview` already fetched; never
+        fetches anything itself. No auth, since an `<img>` sends no token.
+        Kept for the preview cache's 30 minutes.
+      security: []
+      tags: [Messages]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: The image, with its original content type.
+          content:
+            image/*:
+              schema: { type: string, format: binary }
+        "404":
+          description: No such image, or it has expired.
 
   /admin/search/reindex:
     post:
