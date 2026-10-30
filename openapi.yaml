@@ -408,7 +408,7 @@ components:
         invite_only: { type: boolean }
         min_security_level: { type: integer }
         min_pow_level: { type: integer }
-        challenge_mode: { type: string, enum: [off, click, puzzle, both] }
+        challenge_mode: { type: string, enum: ["off", click, puzzle, both] }
         farm_url:
           type: string
           description: When present, send `/auth/*` here instead of to the hub. Omitted unless set.
@@ -1017,8 +1017,14 @@ paths:
             application/json:
               schema:
                 type: object
+                required: [status, version, uptime_seconds, db_status]
                 properties:
                   status: { type: string, example: ok }
+                  version: { type: string, description: The hub's version. }
+                  uptime_seconds: { type: integer, format: int64 }
+                  db_status:
+                    type: string
+                    description: "`ok`, or `error: ` followed by the reason the database did not answer."
 
   /info:
     get:
@@ -3818,12 +3824,21 @@ paths:
         - `both`: SVG puzzle shown, click confirmation also required.
       security: []
       tags: [Challenge]
+      parameters:
+        - name: pubkey
+          in: query
+          required: true
+          description: Hex public key of the identity about to authenticate.
+          schema: { type: string }
+          example: 79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ChallengePrompt' }
+        "404":
+          description: Challenges are off on this hub (`challenge_mode` is `off`).
 
   /challenge/verify:
     post:
