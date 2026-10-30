@@ -4924,7 +4924,9 @@ paths:
       tags: [Health]
       responses:
         "200":
-          description: "`text/plain` gauges/counters: online users, voice participants, game sessions, video channels, messages total, uptime, DB size."
+          description: "`text/plain` gauges/counters: online users, voice participants, video channels, messages total, uptime."
+        "404":
+          description: Metrics are off; the operator has not set `WAVVON_METRICS=true`.
 
   # ── Admin settings ────────────────────────────────────────────────────────
 

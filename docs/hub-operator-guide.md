@@ -371,16 +371,18 @@ For the full admin CLI reference, see [hub-admin-panel.md](hub-admin-panel.md).
 
 ## Observability
 
-Prometheus-compatible metrics are exposed at `GET /metrics` (text format).
-Key metrics:
+Prometheus-compatible metrics are served at `GET /metrics` (text format)
+when you set `WAVVON_METRICS=true`; otherwise the route answers 404. It has
+no authentication, so keep it behind a firewall or a reverse proxy that only
+your scraper reaches. Metrics:
 
 | Metric | What it measures |
 |--------|-----------------|
-| `hub_active_ws_connections` | WebSocket connections right now |
-| `hub_messages_total` | Chat messages sent (counter) |
-| `hub_auth_attempts_total` | Auth verifications (labelled `ok`/`failed`) |
-| `hub_voice_participants` | UDP voice relay participants right now |
-| `hub_db_query_duration_seconds` | Database query latency histogram |
+| `wavvon_online_users` | Connected users right now |
+| `wavvon_voice_participants` | Users in voice channels right now |
+| `wavvon_active_video_channels` | Channels with video on right now |
+| `wavvon_messages_total` | Messages stored |
+| `wavvon_uptime_seconds` | Hub process uptime |
 
 Logs are emitted in JSON to stdout (structured, `tracing`-based). Pipe to
 `journald`, Loki, or any JSON log aggregator.

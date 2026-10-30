@@ -204,6 +204,12 @@ they front any scrape target — firewalled, on loopback, or behind their
 reverse proxy — rather than us inventing a metrics token. This matches
 the dominant operator expectation for a pull-based scrape.
 
+**Opt-in**: the route answers 404 unless the operator sets
+`WAVVON_METRICS=true`. The stock deployments expose every route, so an
+always-on endpoint told any stranger how many members were online, in voice
+and posting; the observability decision in `decisions.md` already called it
+opt-in, and the code now agrees.
+
 **Metrics in v1** (intentionally small; add more as they prove useful):
 
 | Metric | Type | Source |
