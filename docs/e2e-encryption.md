@@ -62,7 +62,13 @@ Standard `ed25519_sk_to_x25519` (the same trick as libsodium's
   signing key derives an encryption key" — the safety is specific to this
   curve pair and clamping recipe.
 - Subkeys (`SubkeyCert`) do not derive their own DH keys. See "Multi-device"
-  below — DH key always comes from the **master** seed.
+  below — the DH key always comes from the **canonical seed**: the BIP39
+  entropy itself, which is also subkey 0's signing seed
+  (Wavvon-server: `identity/src/lib.rs`, `Identity::dh_keypair`). It is
+  **not** the master signing key's seed, which is
+  `HKDF(entropy, "wavvon/master/v1")`; deriving from that gives a different
+  key that cannot decrypt anything. (The `master_seed` fixture in
+  `wire-vectors.json` is this entropy, despite its name.)
 
 ### Publication
 
@@ -246,10 +252,11 @@ and stored in `group_sender_key_distributions` on the hub.
 | Member removed | Each remaining sender MUST rotate (new `chain_key`, `version += 1`) before the next message; re-distribute to new membership set |
 | Member added | Existing senders wrap their current chain key for the new member at the current iteration and push the blob |
 
-In v2 (current) group conversations have static membership — no add/remove
-routes exist yet. The rotation mechanism is designed in but not triggered.
-When member management lands, the hub will emit a `DmMemberChanged` WS
-event; the client handles it by calling `rotate_group_sender_key`.
+Members are added and removed with `POST /conversations/{id}/members` and
+`DELETE /conversations/{id}/members/{pubkey}`; the hub emits a
+`dm_member_changed` WS event, and the desktop client answers it by calling
+`rotate_group_sender_key`. The web client has no sender keys yet
+(Wavvon-clients#190), so it only reloads the conversation list.
 
 ---
 
@@ -366,7 +373,7 @@ holds `EncryptedDmEnvelope`; when `is_group_encrypted=1` it holds
 
 ### What's deferred
 
-- Key rotation on membership change (needs member add/remove routes first)
+- Key rotation on membership change in the web client (it has no sender keys yet)
 - Federation of key distributions to remote recipient hubs
   (v2 delivers to members on the same hub; cross-hub distribution is handled
   by the same outbox/retry path as DM messages once that is extended)
@@ -461,7 +468,7 @@ table.
 | Question | Working answer |
 |---|---|
 | **Identity regeneration** — user wipes and regenerates their identity; the new DH key can't decrypt old messages encrypted to the old key. | Keep old DH private keys in `~/.wavvon/old_dh_keys.json` for decryption only. Never publish or encrypt with old keys. Eviction policy TBD (probably never — they're 32 bytes each). |
-| **Multi-device** — Alice has two devices with different subkeys (`SubkeyCert`). Which DH key does Bob encrypt to? | Always the **master** seed's DH derivation. Master is the same across all of Alice's paired devices; subkeys do not derive their own DH keys. This matches the "two-axis state" rule — DH key is personal-axis, anchored to the master. |
+| **Multi-device** — Alice has two devices with different subkeys (`SubkeyCert`). Which DH key does Bob encrypt to? | Always the DH derivation of the **canonical seed** (the BIP39 entropy, see above), which is the same across all of Alice's paired devices; a paired device receives the canonical DH scalar ECIES-wrapped at pairing. Subkeys do not derive their own DH keys. This matches the "two-axis state" rule — DH key is personal-axis, anchored to the master. |
 | **Subkey-only devices** — what if a device was paired and only holds a subkey, not the master? | It receives the master's DH private key wrapped in the `PairingComplete` payload (the existing `wrapped_blob_key_hex` slot is the natural carrier; add a sibling `wrapped_dh_seed_hex` next to it). Document in `multi-device.md` cross-link. |
 | **DH key rotation** for forward secrecy without a full ratchet | Out of scope for v1. v2 is the ratchet. A "rotate DH key" command that pushes a new key + signature would orphan past-messages on every recipient — not worth the half-measure. |
 | **Hub-side abuse: encrypted blobs as a storage attack** | Same per-message size cap as plaintext today. No new attack surface beyond what plaintext DMs already allow. |

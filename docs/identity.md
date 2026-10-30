@@ -51,20 +51,21 @@ verifies. See `hub/src/federation/client.rs` and
 3. The phrase deterministically yields the Ed25519 keypair. Same phrase
    ⇒ same pubkey ⇒ same identity to every hub.
 
-This is "one device per account" — pasting a phrase doesn't sync; it
-*replaces* the device's identity. Both devices having the same phrase
-means both have the same key, with no coordination between them.
+## Master key and devices
 
-## Why no master key (yet)
+Shipped. The phrase's entropy is the canonical seed (it is also subkey 0,
+so a single-key identity keeps its pubkey) and derives a master key by
+HKDF. Further devices pair: each gets its own subkey, certified by the
+master in a `SubkeyCert`, and a lost device is revoked by the master. A hub
+seats every device of an identity as one user. See
+[multi-device.md](multi-device.md).
 
-Discussed but **not implemented**. A future model could treat the
-recovery phrase as a master seed and derive subkeys (per-device, per-app)
-via HKDF. That layers on backward-compatibly: existing single-key
-identities can be migrated by treating the phrase as both seed and direct
-secret. We chose to ship the simple model first. See [decisions.md](decisions.md).
+## Anti-spam: proof of work
 
-## Anti-spam (future, not shipped)
-
-Proof-of-work knobs live in `identity/src/pow.rs` in Wavvon-server. Idea: a
-hub admin sets a PoW level for joins / messages. Real solution still
-deferred — see ROADMAP.
+Shipped. A hub admin sets `min_security_level`; `/auth/verify` checks the
+level a client claims (`security_level` + `security_nonce`) and, below the
+minimum, confines the session to the lobby when the lobby is on or refuses
+it with 403 when it is off. The hub owner is exempt. The level is the number
+of leading zero bits of `SHA-256(utf8(pubkey_hex) || nonce as u64 LE)`
+(Wavvon-server: `identity/src/pow.rs`, gate in `hub/src/auth/handlers.rs`).
+The lobby flow is in [lobby-survey.md](lobby-survey.md).

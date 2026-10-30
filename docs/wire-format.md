@@ -8,9 +8,10 @@ GroupEncryptedEnvelope, group key distribution), and identity verification
 (DhKeyRecord, PublicHubProfile, SignedPrefsBlob).
 
 Client implementations **must** reproduce these exact byte sequences to
-interoperate. The corresponding Rust test vectors live in
-`identity/tests/wire_vectors.rs` in Wavvon-server; those tests assert the
-exact hex produced from the fixed inputs below — the spec and the code must
+interoperate. The vectors are data, in `identity/wire-vectors.json` in
+Wavvon-server; `identity/tests/wire_vectors.rs` there only loads that file
+and asserts the crate reproduces it, and every other implementation asserts
+the same file. The hex below is copied from it — the spec and the code must
 stay in sync.
 
 For the higher-level design rationale behind these envelopes see
@@ -675,5 +676,5 @@ starting with `@` in it names an entry of its `fixtures`.
 
 The version tag is part of the signing bytes. Any change to the field layout
 **must** use a new tag (e.g. `wavvon/subkey-cert/v2\0`) so old verifiers
-reject the new format cleanly. Add new vectors to
-`identity/tests/wire_vectors.rs` in Wavvon-server for the new version.
+reject the new format cleanly. Add the new version's vectors to
+`identity/wire-vectors.json` in Wavvon-server, next to the old ones.

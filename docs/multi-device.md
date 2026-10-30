@@ -207,9 +207,15 @@ What every hub (not just home hubs) must implement to participate:
 - **Auth path** accepts `{ subkey_sig, subkey_cert }` instead of bare
   `subkey_sig`. Verify cert signature, check `master_pubkey` is the
   identity, check cert not expired. Cache the subkey→master mapping.
-- **Revocation cache**: periodically fetch revocation entries from
-  any hub in the user's home hub list (per
-  [home-hub.md](home-hub.md)). Refuse auth from listed subkeys.
+  The hub does all of this in one place, `resolve_canonical_identity`
+  (Wavvon-server: `hub/src/auth/handlers.rs`), which every sign-in goes
+  through; the farm checks the same at its own `/auth/verify`.
+- **Revocation cache**: a revocation reaches a hub two ways. A client
+  posts it to every hub in its home hub list (per
+  [home-hub.md](home-hub.md)), and a worker on each hub polls, every six
+  hours, the home hub recorded with each device cert it holds
+  (`subkey_revocation_worker.rs`). A revoked subkey is refused at sign-in,
+  its existing tokens stop working, and its open sockets are closed.
 - **Federation auth**: hub-to-hub auth is unchanged. User-on-behalf
   federation messages now carry the user's master pubkey, not
   subkey, as the canonical identifier.
