@@ -6,6 +6,31 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## GIFs come from GIPHY, loaded by the client, and each member opts in
+
+**Decision** (2026-10-31): GIF search uses GIPHY with the hub operator's API
+key. Searches and media go from the member's client straight to GIPHY, and the
+picker stays off for each member until they turn it on, with one line saying
+where the GIFs come from.
+
+**Why.** GIPHY's developer docs require exactly that shape: calls made from the
+client, no proxying of API calls or media, no caching or storing, and
+"Powered By GIPHY" attribution
+(https://developers.giphy.com/docs/api/#best-practices). Tenor, the other
+widely used API, shut down on 2026-06-30.
+
+**Alternatives.** *Proxy everything through the hub*, as link-preview images
+and masquerade avatars are: the only way to keep a member's address and
+searches from the provider, but forbidden by GIPHY. *A provider that allows
+proxying*: smaller libraries, some carrying ads in results. *No GIFs*: the
+feature members of every comparable platform expect.
+
+**Tradeoff.** For the first time a feature sends a member's IP address and
+search terms to a third party. Accepted only because it is twice opt-in: the
+operator enables it with a key, and each member enables it for themselves.
+
+**Outcome.** Tracked in Wavvon-server#243.
+
 ## One form engine, two forms: the application before joining, the survey after
 
 **Decision** (2026-10-29): a hub can ask a joiner to fill an **application**
