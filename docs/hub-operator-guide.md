@@ -10,6 +10,32 @@ method), see [hosting.md](hosting.md). For architecture background, see
 
 ---
 
+## Upgrade notices
+
+Upgrades that need something from you beyond replacing the binary or the
+image. Newest first; the release notes have the full detail.
+
+| Version | What to do |
+|---|---|
+| **v0.7.0** | The image runs as the unprivileged `wavvon` user (uid 10001). Before starting it, give it the data volume: `docker compose run --rm --no-deps --user root --entrypoint chown hub -R 10001:10001 /data` (a bind-mounted host directory: `sudo chown -R 10001:10001 <dir>`). Also: the bundled PostgreSQL needs glibc 2.36; `WAVVON_DATABASE_READ_URL` is gone. See the [v0.7.0 release](https://github.com/Wavvon/Wavvon-server/releases/tag/v0.7.0). |
+
+## Security advisories
+
+Fixed security defects, so you can tell whether the version you run is
+affected. Report a new one as described in the organisation's security policy,
+not in a public issue.
+
+| Published | Affected | Fixed in | Advisory |
+|---|---|---|---|
+| 2026-10-02 | hub ≤ 0.6.0 | hub 0.7.0 | A device cert was accepted without proof of the device key, letting a third party redirect a member's DMs ([#75](https://github.com/Wavvon/Wavvon-server/issues/75)). |
+| 2026-10-02 | farm ≤ 0.6.0 | 0.7.0 | Farm admin two-factor check skipped for a paired device ([#76](https://github.com/Wavvon/Wavvon-server/issues/76)). |
+| 2026-10-02 | clients ≤ 0.6.0 | clients 0.7.0 | Unsanitized hub-supplied SVG and emoji markup in the clients ([#66](https://github.com/Wavvon/Wavvon-clients/issues/66), [#67](https://github.com/Wavvon/Wavvon-clients/issues/67), [#68](https://github.com/Wavvon/Wavvon-clients/issues/68)). |
+
+Release checklist: a release whose notes carry an operator step adds a row to
+*Upgrade notices*; a release that fixes a security defect adds one here.
+
+---
+
 ## Configuration
 
 The hub reads configuration from three sources, in priority order (highest last):

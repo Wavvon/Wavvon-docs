@@ -7,31 +7,31 @@ feature. Kept factual and up to date as features land.
 
 ## At a glance
 
-| Feature | **Wavvon** | Discord | Slack | Matrix / Element | TeamSpeak | Mumble |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Open source** | ✅ fully | ❌ | ❌ | ✅ | ❌ (server) | ✅ |
-| **Self-hostable** | ✅ | ❌ | ⚠️ enterprise only | ✅ | ✅ | ✅ |
-| **Federated / decentralized** | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
-| **No account required** | ✅ keypair identity | ❌ email + account | ❌ email + account | ⚠️ optional guest | ❌ account | ❌ account |
-| **Voice channels** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Text channels** | ✅ | ✅ | ✅ | ✅ | ⚠️ basic | ⚠️ basic |
-| **Screen share** | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
-| **E2E encrypted DMs (1:1)** | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
-| **E2E encrypted group DMs** | ✅ sender-key | ❌ | ❌ | ✅ | ❌ | ❌ |
-| **E2E encrypted voice** | ✅ per-packet AEAD, relay can't listen | ❌ | ❌ | ⚠️ via Element Call | ❌ | ❌ |
-| **Multi-device** | ✅ QR pairing | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Account recovery without email** | ✅ phrase, backup file, recovery contacts | ❌ email reset | ❌ email reset | ⚠️ recovery key | ❌ | ⚠️ cert backup |
-| **Cross-community federation** | ✅ Alliances | ❌ | ❌ | ✅ rooms | ❌ | ❌ |
-| **Community roles & permissions** | ✅ | ✅ | ✅ | ✅ | ✅ | ⚠️ basic |
-| **Bots & webhooks** | ✅ | ✅ | ✅ | ✅ | ⚠️ limited | ❌ |
-| **In-community games / activities** | ✅ | ✅ Activities | ❌ | ❌ | ❌ | ❌ |
-| **Desktop client (native)** | ✅ Tauri | ✅ Electron | ✅ Electron | ✅ Electron | ✅ | ✅ |
-| **Browser client** | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
-| **Mobile (iOS / Android)** | ❌ planned | ✅ | ✅ | ✅ | ✅ | ⚠️ 3rd party |
-| **Free — no premium tier** | ✅ always free | ⚠️ Nitro upsell | ⚠️ message limits | ✅ | ⚠️ slot limits | ✅ |
-| **Data owned by the community** | ✅ | ❌ | ❌ | ✅ (self-hosted) | ✅ (self-hosted) | ✅ (self-hosted) |
-| **OpenTelemetry observability** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Anti-spam lobby + PoW** | ✅ | ⚠️ phone verify | ❌ | ❌ | ❌ | ❌ |
+| Feature | **Wavvon** | Discord | Slack | Matrix / Element | Stoat | TeamSpeak | Mumble |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Open source** | ✅ fully | ❌ | ❌ | ✅ | ✅ | ❌ (server) | ✅ |
+| **Self-hostable** | ✅ | ❌ | ⚠️ enterprise only | ✅ | ✅ | ✅ | ✅ |
+| **Federated / decentralized** | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| **No account required** | ✅ keypair identity | ❌ email + account | ❌ email + account | ⚠️ optional guest | ❌ email + account | ❌ account | ❌ account |
+| **Voice channels** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Text channels** | ✅ | ✅ | ✅ | ✅ | ✅ | ⚠️ basic | ⚠️ basic |
+| **Screen share** | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| **E2E encrypted DMs (1:1)** | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| **E2E encrypted group DMs** | ✅ sender-key | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| **E2E encrypted voice** | ✅ per-packet AEAD, relay can't listen | ❌ | ❌ | ⚠️ via Element Call | ❌ | ❌ | ❌ |
+| **Multi-device** | ✅ QR pairing | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Account recovery without email** | ✅ phrase, backup file, recovery contacts | ❌ email reset | ❌ email reset | ⚠️ recovery key | ❌ email reset | ❌ | ⚠️ cert backup |
+| **Cross-community federation** | ✅ Alliances | ❌ | ❌ | ✅ rooms | ❌ | ❌ | ❌ |
+| **Community roles & permissions** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ⚠️ basic |
+| **Bots & webhooks** | ✅ | ✅ | ✅ | ✅ | ✅ | ⚠️ limited | ❌ |
+| **In-community games / activities** | ✅ | ✅ Activities | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Desktop client (native)** | ✅ Tauri | ✅ Electron | ✅ Electron | ✅ Electron | ✅ Electron | ✅ | ✅ |
+| **Browser client** | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| **Mobile (iOS / Android)** | ❌ planned | ✅ | ✅ | ✅ | ⚠️ official apps: hosted service only | ✅ | ⚠️ 3rd party |
+| **Free — no premium tier** | ✅ always free | ⚠️ Nitro upsell | ⚠️ message limits | ✅ | — | ⚠️ slot limits | ✅ |
+| **Data owned by the community** | ✅ | ❌ | ❌ | ✅ (self-hosted) | ⚠️ when self-hosted | ✅ (self-hosted) | ✅ (self-hosted) |
+| **OpenTelemetry observability** | ✅ | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ |
+| **Anti-spam lobby + PoW** | ✅ | ⚠️ phone verify | ❌ | ❌ | ⚠️ captcha | ❌ | ❌ |
 
 ---
 
@@ -73,4 +73,6 @@ features as of the date below, and implies no affiliation with or
 endorsement by any of the products mentioned. Spotted an error? Please
 open an issue.*
 
-*Last updated: 2026-08-07 — v0.4.0 (develop)*
+*Stoat (formerly Revolt) added 2026-10-30, from its public repositories and documentation. — means not established from public sources.*
+
+*Last updated: 2026-10-30*
