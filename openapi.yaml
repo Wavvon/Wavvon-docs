@@ -239,7 +239,14 @@ components:
       required: [name]
       properties:
         name: { type: string, minLength: 1, maxLength: 32 }
-        avatar_url: { type: string, maxLength: 512, description: An http(s) URL. }
+        avatar_url:
+          type: string
+          maxLength: 512
+          description: >-
+            Sent as an http(s) URL. The hub fetches it (PNG, JPEG, GIF, WebP or
+            AVIF up to 1 MB) and stores its own copy, so on a message it is the
+            hub-relative `/uploads/...` path; an avatar it cannot fetch is
+            dropped and the name kept.
 
     HubEvent:
       type: object
