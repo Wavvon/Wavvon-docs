@@ -228,6 +228,7 @@ lives in a channel. There is no channel-scoped hub administration.
 | `messages.read` | H C | `read_messages` | Reading a channel; also the visibility filter for lists and WS auto-subscribe |
 | `messages.send` | H C | `send_messages` | Posting, polls, reactions |
 | `messages.manage` | H C | `manage_messages`, `admin` on `delete_poll` | Deleting and editing others' messages, pinning, deleting a poll |
+| `messages.masquerade` | H C | — | Posting a message under another name and avatar (bridges); the real sender stays visible |
 
 ### Forum
 

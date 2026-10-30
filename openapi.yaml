@@ -226,6 +226,20 @@ components:
           type: array
           items: { $ref: '#/components/schemas/ComponentRow' }
           description: Omitted unless set. Buttons and selects authored by an app; a click is sent back as `component_interaction` (docs/apps.md).
+        masquerade:
+          allOf: [{ $ref: '#/components/schemas/Masquerade' }]
+          description: >-
+            Omitted unless set. A name and avatar to show instead of the
+            sender's own (a bridge relaying someone from another network, or a
+            webhook's `username`). `sender` and `sender_name` stay the real
+            author, and clients show both.
+
+    Masquerade:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 32 }
+        avatar_url: { type: string, maxLength: 512, description: An http(s) URL. }
 
     HubEvent:
       type: object
@@ -1634,6 +1648,9 @@ paths:
                 mini_app_url: { type: string }
                 requires_camera: { type: boolean }
                 game: { $ref: '#/components/schemas/GameLaunchCard' }
+                masquerade:
+                  allOf: [{ $ref: '#/components/schemas/Masquerade' }]
+                  description: Needs `messages.masquerade` in the channel (403 without it, 400 when malformed).
       responses:
         "200":
           description: OK
@@ -7940,8 +7957,8 @@ paths:
               required: [content]
               properties:
                 content: { type: string }
-                username: { type: string, description: "Overrides the webhook's display name" }
-                avatar_url: { type: string }
+                username: { type: string, maxLength: 32, description: "Shown instead of the webhook's display name on this message (stored as its `masquerade`)" }
+                avatar_url: { type: string, maxLength: 512, description: "An http(s) URL, shown as this message's avatar (stored as its `masquerade`)" }
                 embeds: { type: object }
       responses:
         "200":
