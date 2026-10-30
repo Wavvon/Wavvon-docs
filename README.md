@@ -32,7 +32,8 @@ stacks up — including its honest limitations.
 - **Build on it** — the whole protocol is plain HTTP + WebSocket,
   specified in [`openapi.yaml`](openapi.yaml) and
   [ws-protocol.md](docs/ws-protocol.md). Write a client or a bot in any
-  language.
+  language; [Awesome Wavvon](https://github.com/Wavvon/awesome-wavvon)
+  lists the SDKs, examples and community projects.
 
 ## Features
 
