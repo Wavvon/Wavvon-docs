@@ -249,7 +249,34 @@ proof (subkey signature):
 ### PairingComplete
 
 Not directly signed; it is a container that wraps a `SubkeyCert` (see above)
-and an opaque `wrapped_blob_key_hex`. No separate signing bytes.
+and two ECIES-wrapped secrets, `wrapped_blob_key_hex` and
+`wrapped_dh_seed_hex`. No separate signing bytes.
+
+**ECIES wrap** (Wavvon-server: `crates/identity/src/ecies.rs`), for a
+32-byte secret and a recipient's Ed25519 public key:
+
+```
+recipient_x : Ed25519 pubkey → Montgomery form (X25519 pubkey)
+eph         : fresh X25519 keypair (eph_secret, eph_pub)
+shared      : X25519(eph_secret, recipient_x)
+key         : HKDF-SHA256(ikm = shared, salt = eph_pub, info = "wavvon/ecies/v1") → 32 bytes
+ct          : AES-256-GCM(key, nonce[12], secret), no associated data → 48 bytes incl. tag
+output      : eph_pub[32] || nonce[12] || ct[48]   (92 bytes, sent as 184 hex chars)
+```
+
+The recipient derives its X25519 scalar from its own Ed25519 seed (the
+standard conversion above) and reverses the steps.
+
+**Test vector** — secret = `d0 d1 … ef`, recipient = `subkey_pub`,
+eph_secret = `a0 a1 … bf`, nonce = `c0 c1 … cb` (fixed only for the vector;
+both are random in use):
+
+```
+wrapped:
+  605a725d2a4adfeeb1a29e17edd621c1b7593ee8cdbc44ac6c4ab6e2f805d23c
+  c0c1c2c3c4c5c6c7c8c9cacbb1f9260522804ce8d1b77c71b46ef23908cafcc0
+  db96d1ff899645f59f4863208ad6b0be8d3ea8204a2cf79cea36655a
+```
 
 ---
 
@@ -309,6 +336,39 @@ signing_bytes:
 signature (master):
   6d41d6b3f9f4c5b5d87a7d819f4e9b2e1a1340c3aa97cf044037f926c63710dd
   3edeb5bc66d9dfa89fc0d9fe2a67b8a28c6c5908f42b947b3551c04dbf113709
+```
+
+---
+
+### Double-ratchet DM envelope (`dm-ciphertext/v2`)
+
+The 1:1 envelope once a conversation runs the double ratchet. The nonce is
+derived from the message key, so it is not transmitted; the ratchet position
+is.
+
+```
+prefix        : "wavvon/dm-ciphertext/v2\0"   (24 bytes incl. NUL)
+conv_id       : write_str(conv_id)
+message_index : write_u32_le(message_index)
+prev_count    : write_u32_le(prev_count)
+ciphertext_hex: write_str(ciphertext_hex)
+dh_pubkey_hex : write_str(ratchet_dh_pubkey_hex)
+```
+
+**Test vector** — conv_id = `"conv123"`, message_index = 7, prev_count = 3,
+dh_pubkey = `master_dh_pub`:
+
+```
+signing_bytes:
+  776176766f6e2f646d2d636970686572746578742f76320007000000636f6e76
+  3132330700000003000000140000003633363937303638363537323734363537
+  3837344000000034613338303764303634643037373138316363303730393839
+  6537363839316432306463613535353935343864633263373763316135303237
+  33383832623338
+
+signature (master):
+  ec785f82324fc2929119872fd005f90836f8b05e961e4df569bb9036c600f68a
+  f3ff8492020c296a5c3fca8ddb9de584ef49e7a2bc4bdcb83b88bfb8c6ea8b0c
 ```
 
 ---
@@ -451,7 +511,27 @@ per hub     : write_str(hub_url)
               write_u64_le(joined_at)
 ```
 
-Signed by the user's Ed25519 identity key.
+Signed by the user's Ed25519 identity key. `display_name` and `avatar` travel
+with the profile but are not signed.
+
+**Test vector** — pubkey = `master_pub`, issued_at = timestamp, hubs =
+(`https://hub.example`, `Example Hub`, 1_690_000_000) and
+(`https://other.example`, `Other`, 1_695_000_000):
+
+```
+signing_bytes:
+  776176766f6e2f7075626c69632d6875622d70726f66696c652f763100400000
+  0037396235353632653866653635346639343037386231313265386139386261
+  3739303166383533616536393562656437653065333931306261643034393636
+  3400f1536500000000020000001300000068747470733a2f2f6875622e657861
+  6d706c650b0000004578616d706c6520487562805abb64000000001500000068
+  747470733a2f2f6f746865722e6578616d706c65050000004f74686572c0a507
+  6500000000
+
+signature (master):
+  9f7ea02f84a3590bb2f9d670aafa0c245c607624b1d6328069d337fc881ae700
+  2ac4190b55da6031e8f137b979b15ea5a351009ae9cf11509723f36c431cf104
+```
 
 ---
 
