@@ -85,6 +85,7 @@ had a "recently shipped" section, whatever this line used to claim):
 - [sdk.md](sdk.md) — **proposal, not yet built**: SDKs in TypeScript, Rust, Python, C#, Java, Go, one repo each; tier 1 is programs (auth, REST generated from `openapi.yaml`, hub events, slash commands, webhooks, mini-apps), the full client waits; one shared JSON conformance suite owned by the identity crate
 - [stickers.md](stickers.md) — **designed 2026-11-01, not built**: admin-managed sticker packs, and a personal collection kept on the home hub as a list without the images. When you send a sticker, the hub you post on fetches a deduplicated, origin-verified copy from the hub that published it, so a reader never contacts another hub. `stickers.packs.manage`, `stickers.external` and `stickers.moderate`, plus the stored-sticker admin page with hash blocking. There is deliberately no GIF feature (see decisions.md)
     - [sticker-storage.md](sticker-storage.md) — the hub side: normalize to WebP and then hash, dedup on the exact hash, two disk budgets (packs refuse additions at their cap; chat copies evict orphans and then least-recently-used ones, so a send is never refused), and every limit a hub setting with none per member
+- [attachments.md](attachments.md) — **designed 2026-11-01, not built** ([Wavvon-server#249](https://github.com/Wavvon/Wavvon-server/issues/249)): attachments leave the `messages` row for disk. One upload route and one table (the existing `POST /channels/{id}/upload`, folded), hub-computed SHA-256 with dedup, magic-byte sniffing, images re-encoded to WebP (EXIF gone) unless sent as a file, everything else (executables and SVG included) always a download under `nosniff` and a sandbox CSP, operator retention, a disk budget that expires the oldest attachments instead of refusing anyone, and the fix for encrypted-DM attachments travelling in the clear
 - [alliance-member-discovery.md](alliance-member-discovery.md) — **proposal, not yet decided** ([Wavvon-server#36](https://github.com/Wavvon/Wavvon-server/issues/36)): finding *people* on allied hubs — an opted-in listing served read-through by each member's own hub, two consent switches, DM via the member's designation; also flags that `GET /users` is open to any peer hub today
 
 ### Archived designs
@@ -124,7 +125,7 @@ Reading order is for learning the system end-to-end. This section is for
 - **Replies / threading** — [data-model.md](data-model.md)
 - **Mentions** — [data-model.md](data-model.md)
 - **Edit / delete messages** — [data-model.md](data-model.md)
-- **Attachments (inline ≤3 MB) + file uploads (≤25 MB)** — [data-model.md](data-model.md)
+- **Attachments (inline ≤3 MB) + file uploads (≤25 MB)** — [data-model.md](data-model.md); the move to disk (dedup, content checks, retention, disk budget; designed) — [attachments.md](attachments.md)
 - **Search per channel** — [data-model.md](data-model.md)
 - **Forum channels (posts + reply threads)** — [forum.md](forum.md)
 - **Typing indicators (channel + DM)** — [client.md](client.md)

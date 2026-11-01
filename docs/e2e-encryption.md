@@ -461,6 +461,11 @@ Cap stays the same (`MAX_ATTACHMENTS_BYTES`, ~3 MB). AES-GCM expansion is
 16 bytes, negligible against the cap. No separate attachment ciphertext
 table.
 
+**Not implemented as written (found 2026-11-01).** Both clients encrypt
+`{content}` alone and send attachments in the clear beside the envelope. The
+fix, and how DM files will later move to disk, are in
+[attachments.md](attachments.md) §8.
+
 ---
 
 ## Open questions

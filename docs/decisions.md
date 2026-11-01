@@ -6,6 +6,73 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Attachments move to disk; a full disk expires the oldest, never refuses a member
+
+**Decision** (2026-11-01): message and forum attachments leave the database
+row for disk. The existing `POST /channels/{id}/upload` becomes the only way
+bytes enter, `upload_files` is replaced by a per-upload `attachments` row over
+a hash-keyed `attachment_blobs` table, and messages send `attachment_ids`.
+The hub computes SHA-256 and dedups on it, and decides the type from magic
+bytes, refusing only a name that contradicts them. Images are re-encoded to
+WebP with the sticker pipeline; "send as file" keeps the original as a
+download. Everything that is not a re-encoded image, **executables and SVG
+included**, is accepted and only ever served as a download, under `nosniff`
+and `default-src 'none'; sandbox`, and the client warns before downloading
+an executable type. Retention is an operator setting, default never. At the
+disk budget the hub expires the oldest attachments to make room; the upload
+always succeeds. Existing inline attachments become "attachment expired"
+tombstones rather than being converted, and uploaded banners must be
+re-uploaded. Encrypted-DM attachments, which travel in the clear today, are
+fixed first by implementing the existing spec (attachments inside the
+encrypted plaintext); files on disk for DMs come later. Design:
+[attachments.md](attachments.md).
+
+**Why.** Base64 in `messages.attachments` adds a third to every file, bloats
+backups and every message query, and stores whatever type the client
+declared. The upload route already wrote to disk, so folding into it adds no
+second route family.
+
+**Alternatives.**
+
+- *Keep the original beside the re-encoded image*: full quality on demand,
+  but twice the disk, and the original still carries the EXIF location the
+  re-encode exists to remove. Instead a member can **send an image as a
+  file**: stored as is, served only as a download, with the client saying
+  that location data stays in it.
+- *No re-encode, strip metadata chunks only*: keeps JPEG quality, but leaves
+  polyglot payloads and needs a stripper per format.
+- *Refuse native executables and SVG at the hub*: the first draft of this
+  entry. Rejected: gaming communities share mods and tools, and a ZIP carries
+  an executable past any such check anyway. What makes a file dangerous to
+  the hub's origin is being rendered, so the rule is that nothing but a
+  re-encoded image is ever served inline, and the member gets a warning.
+- *Block attachments on encrypted DMs until files on disk can be encrypted*:
+  it stops the leak, but removes a feature the spec already describes how
+  to provide inline.
+- *Refuse uploads at the cap*: the simplest budget, but it blocks members
+  for storage, which Wavvon does not do. *Per-member quotas*: rejected for
+  the same reason, as for stickers.
+- *Evict largest files first*: frees space fastest, but which messages lose
+  their files becomes unpredictable. Age matches retention, so readers meet
+  one rule.
+- *Hash-addressed URLs*, as stickers have: they let anyone holding a file ask
+  whether a hub has it, private channels included. The URL is the random row
+  id instead.
+- *Convert existing inline attachments*: a one-shot import through the new
+  pipeline. Alpha allows breaking history, and tombstones cost one SQL step.
+
+**Tradeoff.** On a small, busy hub, old attachments expire before retention
+says so, and one member flooding uploads can push others' files out; that is
+a moderation problem, handled by `messages.manage` and the message rate
+limits, as with stickers. Existing attachments and uploaded banners are lost
+at the upgrade. Executables reach members, guarded by a warning, not a
+refusal. Encrypted DM attachments stay inline, under the per-message cap,
+until their files can travel with the DM to the recipient's home hubs.
+
+**Outcome.** Wavvon-server#249 carries the hub work and a clients issue the
+rendering, gated on the capability `attachments.stored`. The encrypted-DM
+fix is a separate pair of issues that does not wait for either.
+
 ## No GIF feature: links and attachments only
 
 **Decision** (2026-11-01): Wavvon has no GIF feature: no provider, no hub GIF
