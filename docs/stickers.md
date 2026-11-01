@@ -9,11 +9,9 @@ A hub publishes sticker packs (the Discord shape). A member saves any sticker
 seen on any hub into a personal collection and sends it anywhere (the
 Telegram shape). The second half is the hard one in a federated system.
 
-**GIFs are not part of this.** A link to a GIF shows through the existing
-link preview, which the hub fetches so that no reader's IP leaves it, and a
-GIF file can be sent as an ordinary attachment (decisions.md, "No GIF
-feature"). Attachments themselves are still base64 inside the `messages` row
-(`crates/hub/src/routes/messages.rs:112-139`). Moving them to disk is a
+**GIFs are not part of this**: they stay link previews and attachments
+(decisions.md, "No GIF feature"). Moving attachments, still base64 in the
+`messages` row (`crates/hub/src/routes/messages.rs:112-139`), to disk is a
 separate design.
 
 ## 1. The rule that shapes everything
@@ -28,43 +26,80 @@ Never on the sender's home hub, and never on the hub the sticker came from.
 - The hub that shows content moderates it. A copy on hub B is B's to delete;
   a link to hub A is not.
 
-So sending a saved sticker to hub B **uploads a copy to B**. It is
-deduplicated by the hash of the normalized image (§3), so a second sender
-uploads nothing.
+So sending a saved sticker to hub B makes **B hold a copy**. B fetches the
+copy itself, **from the hub that published it** (§3), and dedups it by the
+hash of the normalized image, so the second send fetches nothing.
 
 ## 2. Two axes, kept apart
 
 | What | Axis | Lives in |
 |---|---|---|
-| Packs, and the copies that sends create | community | that hub (§3) |
+| Packs, and the copies that sends create | community | that hub ([sticker-storage.md](sticker-storage.md)) |
 | A member's saved collection | personal | the prefs blob on the home hub(s) |
-| The bytes of a saved sticker | neither, by design | any hub that has them, plus the client's cache |
+| The bytes of a saved sticker | community | the origin hub's pack, and copies on hubs where it was sent |
 
 **The home hub stores the list, never the bytes.** Each entry is `{sha256,
-name, source_hub_url, origin_hub_url, saved_at}`: `source` is where it was
-seen, `origin` is where it was first published. The list rides the encrypted
-prefs blob like block lists and themes ([home-hub.md](home-hub.md)), so the
-home hub learns neither what you keep nor how much.
+name, origin_hub_url, origin_hub_name, saved_at}`. The origin is the hub
+whose pack the sticker belongs to, and it is verified (§3). The list rides
+the encrypted prefs blob like block lists and themes
+([home-hub.md](home-hub.md)), so the home hub learns neither what you keep
+nor how much.
 
-Bytes stay out of the blob because it is rewritten whole on every settings
-change (Wavvon-clients: `apps/web/src/utils/prefsSync.ts`). The cost: a saved
-sticker that no reachable hub or device cache still holds is gone, and the
-picker says so.
+Bytes stay out of the blob because the blob is rewritten whole on every
+settings change (Wavvon-clients: `apps/web/src/utils/prefsSync.ts`). The
+client keeps no byte cache either: a hub only ever takes a sticker from its
+origin.
 
 **v1: only the device holding the phrase can edit the collection.** The blob
 is master-signed, and the web client does not hand its key to a paired device
 (`prefsSync.ts:96-103`).
 
-## 3. Storage, disk and limits
+## 3. A hub fetches a sticker from its origin
 
-These are in [sticker-storage.md](sticker-storage.md). In short:
+When a member sends a saved sticker on hub B and B lacks it:
 
-- every sticker is normalized to WebP, stripped of metadata, then hashed by
-  the hub, and dedup is on that exact hash;
-- packs have a cap that refuses additions;
-- copies are a cache that evicts orphans and then least-recently-used copies,
-  so a send is never refused for space;
-- every limit is a hub setting under `hub.settings`, and none is per member.
+1. **B fetches** `GET {origin}/federation/stickers/{sha256}`.
+   - B goes through the hub's SSRF-checked fetcher (`fetch_capped`,
+     `routes/preview.rs:244`), because the origin URL comes from a member.
+   - It is capped at `stickers_max_file_bytes` and shares the link-preview
+     rate limit (`preview.rs:238`). That limit bounds outbound traffic; it is
+     not a storage quota.
+2. **B checks** that the bytes hash to the requested `sha256` and come out
+   unchanged from its canonical-WebP pass-through (sticker-storage.md §1).
+   Anything else is refused.
+3. **B ingests the bytes and records `origin_hub_url` as verified**: B itself
+   fetched the hash from there. B reads the origin's name from its `/info`.
+
+**The origin serves only its own pack stickers.** A copy of a copy therefore
+always comes from the origin, which keeps the origin's choices enforceable:
+removing a sticker, or turning export off. The cost is accepted, because
+there is no client upload path. If the origin is offline, or has removed the
+sticker, a hub that does not already hold it cannot get it. The same goes for
+a copy evicted for space (sticker-storage.md §3): it comes back only while
+the origin still serves it.
+
+**Unauthenticated, deliberately.** Hub-to-hub auth (a hub-key challenge with
+`is_hub: true`, `federation/client.rs:39-90`, with the token cached per URL,
+`federation/mod.rs:11-26`) proves only a self-chosen key
+(`auth/middleware.rs:44-49`). The origin already serves the same bytes
+publicly at `GET /stickers/{sha256}`. And the handshake's plain `reqwest`
+client (`client.rs:22-26`) would reach a member-chosen URL with no SSRF
+check.
+
+**Export.** The hub setting `stickers_export` (default **on**, because hubs
+want to advertise themselves; `hub.settings`) answers "let other hubs use our
+stickers". Off, the federation route answers 403. This is a **deterrent, not
+DRM**. Anyone who saw a sticker has its pixels and can post them as a plain
+attachment, and the public image route still serves readers. What export off
+prevents is the sticker flow and the origin label. Copies other hubs already
+hold are their content and stay.
+
+**The origin label advertises.** A sticker from elsewhere shows "from <origin
+hub name>", linking to the origin's public preview (its `/info`, and its
+invite if it publishes one).
+
+Storage, normalization, the two disk budgets and every limit are in
+[sticker-storage.md](sticker-storage.md).
 
 ## 4. Permissions
 
@@ -76,13 +111,17 @@ baseline re-grants its rows at every start (`db/migrations.rs:616-630`).
 | Id | Scope | Default | Gates |
 |---|---|---|---|
 | `stickers.packs.manage` | Hub | owner | create, rename and delete packs; add and remove their stickers, including "add to a pack" from a sticker seen in chat |
-| `stickers.external` | HubAndChannel | `builtin-everyone` | upload a copy; send a sticker that is in no pack |
+| `stickers.external` | HubAndChannel | `builtin-everyone` | make this hub fetch a sticker from another hub; send a sticker that is in no pack |
 | `stickers.moderate` | Hub | owner | the stored-sticker admin page: delete, block, unblock |
 
 Sending also needs `messages.send`. Revoking `stickers.external` from everyone
-means "only our own packs", like Discord's *Use External Stickers*; channel
-scope allows external stickers in #memes only. The upload is gated as well as
-the send, as `routes/uploads.rs:77-82` reasons.
+means "only our own packs", like Discord's *Use External Stickers*.
+
+**The admin UI shows it as a plain hub toggle**, "Allow stickers from other
+hubs", mapped to `stickers.external` on `builtin-everyone`, so an admin never
+needs the permission model. Changing it needs `roles.manage`, like any role
+edit. Per-channel control stays available through the permission. The fetch
+is gated as well as the send, as `routes/uploads.rs:77-82` reasons.
 
 ## 5. Admin page and endpoints
 
@@ -104,10 +143,10 @@ GET    /stickers/packs                           packs + stickers        (member
 POST   /stickers/packs {name} · PATCH|DELETE /stickers/packs/{id}        (stickers.packs.manage)
 POST   /stickers/packs/{id}/stickers  multipart file, name | {sha256}    (stickers.packs.manage)
 DELETE /stickers/packs/{id}/stickers/{sticker_id}                        (stickers.packs.manage)
-HEAD   /stickers/{sha256}                        200 / 404               (public)
 GET    /stickers/{sha256}                        bytes                   (public)
-POST   /channels/{id}/stickers  multipart file, name, origin_hub_url     (messages.send + stickers.external)
-         -> {id, sha256}; 200 with the existing row when the hash is known
+GET    /federation/stickers/{sha256}    own pack stickers only; 403 export off (public)
+POST   /channels/{id}/stickers  {sha256, origin_hub_url}                 (messages.send + stickers.external)
+         -> {id}: 200 already here, 201 fetched from the origin, 502 origin unavailable
 POST   /channels/{id}/messages  + sticker_id
 GET    /admin/stickers?state=&uploader=&sort=&limit=&cursor=             (stickers.moderate)
 GET    /admin/stickers/usage                     both budgets, evictions (stickers.moderate)
@@ -115,9 +154,12 @@ DELETE /admin/stickers/{id}?block=true                                   (sticke
 GET    /admin/stickers/blocklist · DELETE /admin/stickers/blocklist/{sha256}
 ```
 
-`{sha256}` on a pack means "add the copy already here". The lists use the
-hub's paging dialect (`limit`, keyset `cursor`). A hash-addressed public URL
-lets anyone ask whether a hub holds an image, which joining answers anyway.
+`{sha256}` on a pack means "add the copy already here"; that sticker then
+counts as this hub's own. The lists use the hub's paging dialect (`limit`,
+keyset `cursor`). A hash-addressed public URL lets anyone ask whether a hub
+holds an image, which joining answers anyway. `POST /channels/{id}/stickers`
+on a hash that is one of this hub's own pack stickers needs no
+`stickers.external`.
 
 `send_message_with` (`routes/messages.rs:92`) is the one choke point for local
 and alliance-forwarded sends, so all the checks sit there:
@@ -128,25 +170,24 @@ and alliance-forwarded sends, so all the checks sit there:
 - the alliance path refuses `sticker_id` in v1.
 
 Responses and the WebSocket broadcast carry `sticker {id, name, url, sha256,
-width, height, origin_hub_url, state}`. `openapi.yaml` gains every route.
+width, height, origin_hub_url, origin_hub_name, state}`. `openapi.yaml` gains every route.
 **Capability string: `stickers`.**
 
 ## 6. Client flow
 
-**Sending** a saved sticker to hub B:
+**Sending** a saved sticker to hub B takes two calls:
 
-1. `HEAD /stickers/{sha256}` on B. If present, go to step 4.
-2. Take the bytes from the local cache, otherwise from `GET` on the entry's
-   `source_hub_url`. If neither has them, the sticker is "no longer
-   available".
-3. `POST /channels/{id}/stickers` on B, with `origin_hub_url`.
-4. Send with `sticker_id`.
+1. `POST /channels/{id}/stickers {sha256, origin_hub_url}` on B, which
+   returns the sticker id.
+2. Send the message with `sticker_id`.
 
-Step 1 matches across hubs because canonical WebP is kept byte for byte
-(sticker-storage.md §1).
-A 403 means "this hub allows only its own stickers", and the picker greys out
-saved stickers where `stickers.external` is missing. A send is never refused
-for space; only a file over `stickers_max_file_bytes` is.
+The client never uploads sticker bytes. How to read the answers:
+
+- 403 means "this hub allows only its own stickers"; the picker greys out
+  saved stickers where `stickers.external` is missing.
+- 502 means "not available right now": the origin is offline, has removed
+  the sticker, or has export off.
+- A send is never refused for space.
 
 **Two save actions on a sticker in chat**, on different axes:
 
@@ -160,10 +201,12 @@ it does not know**, so it must carry the new one forward, or a push from
 desktop erases the collection.
 
 - **Picker:** Saved, then this hub's packs.
-- **Rendering:** a fixed size, "from <host>" when there is an origin, and a
-  tombstone's sentence.
-- **Admin:** packs, the stored-sticker page and the settings, in the shared
-  hub admin page.
+- **Rendering:** a fixed size, "from <origin hub name>" linking to the
+  origin's preview, and a tombstone's sentence.
+- **Admin:** packs, the stored-sticker page, the settings and the two
+  toggles, in the shared hub admin page. The toggles are "Let other hubs use
+  our stickers" (`stickers_export`) and "Allow stickers from other hubs"
+  (`stickers.external` on everyone).
 
 ## 7. Deferred and open
 
@@ -173,8 +216,5 @@ Deferred:
 - **DMs**, where a sticker would be an end-to-end encrypted attachment.
 - The perceptual hint, saving a whole pack, and pack share links.
 
-Open question (the storage ones are in sticker-storage.md §5):
-
-1. **Verify `origin_hub_url`?** It is the sender's claim, shown as plain text
-   and never followed. Checking would cost one server-to-server `HEAD` per new
-   copy.
+Origin verification is settled by §3: the origin is the hub the bytes were
+fetched from. The open questions are on storage (sticker-storage.md §5).

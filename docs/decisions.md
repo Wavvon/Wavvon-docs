@@ -59,9 +59,13 @@ provider is reconsidered in a new entry. Until then, no provider.
 **Decision** (2026-11-01): admins publish sticker packs on their hub, and a
 member saves any sticker they see into a personal collection. The collection
 is a list kept in the encrypted prefs blob on the member's home hub(s), never
-the bytes. Sending a saved sticker to a hub uploads a copy there, normalized
-to WebP and deduplicated on the hash the hub computes, and the message
-references that hub's copy. Three permissions govern it:
+the bytes. When a saved sticker is sent on a hub that lacks it, **that hub
+fetches it from the origin hub** (whose pack it belongs to), checks the hash,
+and records the origin as verified. The copy is normalized to WebP and
+deduplicated on the hash the hub computes, and the message references that
+hub's copy. Clients never upload sticker bytes. The origin serves only its
+own pack stickers, and only while its `stickers_export` setting is on (the
+default). Three permissions govern it:
 `stickers.packs.manage`, `stickers.external` and `stickers.moderate`. Every
 limit is a hub setting, and none applies per member. Disk is split in two:
 
@@ -95,6 +99,12 @@ flooding new stickers to push other people's copies out is a moderation
 problem, handled by deleting and blocking hashes and by the existing message
 rate limits.
 
+*The sending client uploads the bytes*, the first draft of this entry. It
+works when the origin is offline, but the origin label is only the sender's
+claim, and a copy of a copy escapes the origin's removal and its export
+choice. *Copies served onward by any hub that holds them*: more available,
+but the same escape.
+
 **Tradeoff.** The same image is stored once per hub it is posted on, and each
 hub carries content its members brought in. Accepted: holding the content is
 what lets a hub moderate it, the hash makes every later send free, and
@@ -102,12 +112,28 @@ what lets a hub moderate it, the hash makes every later send free, and
 
 **On a small, full hub, old messages lose their stickers.** Eviction turns
 them into "sticker no longer available" until someone sends the image again.
-The list on the home hub holds no bytes, so a saved sticker that no reachable
-hub or device cache still has is lost. In v1 the collection is editable only
-on the device holding the phrase.
 
-**Outcome.** Designed; server and client work tracked as issues. Moving
-message attachments to disk with the same pipeline is a separate design.
+**A hub that does not already hold a sticker cannot get it** while the origin
+is offline, has removed it, or has export off. With no client upload path,
+that is the price of a verified origin.
+
+Export off is a deterrent, not DRM: anyone who saw the pixels can post them
+as a plain attachment. What it stops is the sticker flow and the origin
+label. In v1 the collection is editable only on the device holding the
+phrase.
+
+**Outcome.** Designed; server and client work tracked as Wavvon-server#248 and
+Wavvon-clients#225. Moving message attachments to disk with the same pipeline
+is a separate design.
+
+Revised the same day:
+
+- a hub-to-hub fetch from the origin replaced the client upload and its byte
+  cache;
+- the origin label became verified and links to the origin hub;
+- the `stickers_export` setting was added;
+- "Allow stickers from other hubs" is shown in the admin UI as a toggle over
+  `stickers.external`.
 
 ## GIFs come from GIPHY, loaded by the client, and each member opts in
 

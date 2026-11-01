@@ -11,7 +11,7 @@ The goal: **disk grows with distinct stickers, not with messages.**
 ## 1. Ingest: normalize, strip, hash
 
 Every sticker that enters goes through one function, whether it is a pack
-upload or a copy made by a send:
+upload or a copy fetched from its origin hub (stickers.md §3):
 
 1. **Decode fully**, in pure Rust. Accepted inputs: PNG, JPEG, GIF, WebP and
    APNG.
@@ -22,8 +22,8 @@ upload or a copy made by a send:
    its metadata chunks (EXIF, XMP, ICCP) and keeps every other byte. That is
    what makes a copy from hub A hash the same on hub B. Re-encoding a lossy
    WebP would mint a new hash on every hop.
-4. **SHA-256, computed by the hub.** A client's hash only ever *asks*
-   (`HEAD`); it is never stored as truth.
+4. **SHA-256, computed by the hub.** A requested hash is only a key to look
+   up or fetch, and a fetched copy must hash to it exactly.
 5. **Blocklist check** (stickers.md §5), then **dedup** on the exact hash.
 
 An encoder upgrade can store one image twice, once per upgrade. That is
@@ -42,7 +42,8 @@ never sent, and an attacker can craft such collisions on purpose.
 sticker_packs      id, name, created_by, created_at
 stickers           id, sha256 UNIQUE, name, mime, size_bytes, width, height,
                    pack_id NULL -> sticker_packs ON DELETE SET NULL,
-                   origin_hub_url NULL, uploader, created_at,
+                   origin_hub_url NULL, origin_hub_name NULL,
+                   uploader, created_at,
                    last_used_at, removed_at NULL, evicted_at NULL
 sticker_blocklist  sha256 PK, blocked_by, reason, created_at
 messages           + sticker_id NULL -> stickers
@@ -58,7 +59,11 @@ messages           + sticker_id NULL -> stickers
   Both delete the bytes and keep the row:
   - `removed_at` (a moderator deleted it): "sticker removed".
   - `evicted_at` (space was needed): "sticker no longer available". A later
-    send re-uploads into the same row and clears the mark.
+    send re-fetches the sticker from its origin into the same row and clears
+    the mark.
+- **`origin_hub_url` is verified by construction**: a copy exists only
+  because this hub fetched that hash from that hub. It is NULL for this
+  hub's own pack uploads.
 - **Served** at `GET /stickers/{sha256}`: public (an `<img>` sends no token),
   `immutable`, `image/webp`, `nosniff`.
 - One numbered step in `db/migrations.rs`, never the per-boot baseline.
@@ -70,7 +75,8 @@ messages           + sticker_id NULL -> stickers
 - **Copies** are a cache, and **a send is never refused for space**. When an
   ingest would cross the copies cap, the hub evicts orphans first (no
   message, no pack), then the least recently used copies by `last_used_at`.
-  An evicted sticker comes back the moment anyone sends it again.
+  An evicted sticker comes back the moment anyone sends it again, as long as
+  its origin still serves it.
 
 A worker beside the retention worker also deletes orphans older than the GC
 delay, so a quiet hub does not sit at its cap.
@@ -89,13 +95,14 @@ plus a floor and a ceiling in code, stored in `hub_settings` and set through
 
 | Setting | Default | Floor | Ceiling | At the limit |
 |---|---|---|---|---|
-| `stickers_max_file_bytes` | 512 KB | 64 KB | 4 MB | that file refused (input and output) |
+| `stickers_max_file_bytes` | 512 KB | 64 KB | 4 MB | that file refused: pack upload, or a fetch from an origin |
 | `stickers_packs_cap_bytes` | 512 MB | 16 MB | 100 GB | additions to packs refused |
 | `stickers_packs_warn_percent` | 90 | 50 | 99 | admin warning |
 | `stickers_copies_cap_bytes` | 1 GB | 64 MB | 1 TB | orphans, then LRU copies evicted; the send succeeds |
 | `stickers_per_pack` | 60 | 1 | 500 | adding to that pack refused |
 | `sticker_packs_per_hub` | 20 | 1 | 200 | creating a pack refused |
 | `stickers_orphan_gc_days` | 30 | 1 | 365 | the orphan worker's age threshold |
+| `stickers_export` | on | — | — | off: `GET /federation/stickers/{sha256}` answers 403 (stickers.md §3) |
 
 The copies-cap floor sits above the file ceiling, so eviction can always make
 room for one file.
