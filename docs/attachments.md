@@ -1,6 +1,6 @@
 # Attachments: disk, dedup, content checks, retention
 
-**Status: designed 2026-11-01, not built** ([Wavvon-server#249](https://github.com/Wavvon/Wavvon-server/issues/249)).
+**Status: built 2026-11-01 on the hub** ([Wavvon-server#261](https://github.com/Wavvon/Wavvon-server/pull/261)); clients follow in Wavvon-clients#227.
 Rationale is in [decisions.md](decisions.md), "Attachments move to disk; a
 full disk expires the oldest, never refuses a member". Code paths are in
 Wavvon-server unless named otherwise. It shares its ingest rules with
@@ -65,8 +65,10 @@ attachments       id PK (random UUID; the URL), sha256 NULL -> attachment_blobs
    AVIF are files (no pure-Rust decoder).
 2. **Images are re-encoded** by the sticker pipeline, one function with a
    larger fixed maximum dimension (4096 px long edge; not a setting, per
-   sticker-storage.md §5): PNG and still GIF to lossless WebP, JPEG to lossy
-   WebP at high quality, animations to animated WebP. Decoding runs under
+   sticker-storage.md §5): PNG and still GIF to lossless WebP, JPEG to JPEG
+   (quality 85; the only encoder that needs no C toolchain writes lossless
+   WebP, which makes a photo several times larger), animations to animated
+   WebP. Decoding runs under
    pixel and frame limits (decompression bombs), in `spawn_blocking` behind a
    small semaphore. EXIF, location and anything appended after the image go.
 3. **Unless the member sends it as a file** (`as_file` form field): bytes
@@ -153,8 +155,9 @@ The cap's floor exceeds two maximum files, so eviction can always make room.
 - **Alliance reads**: the reader's hub rewrites `url` to
   `/alliances/{aid}/uploads/{id}` and streams it from the owning hub, storing
   nothing, so the reader never contacts a hub it did not choose (stickers.md
-  §1). Alliance *sends* already drop attachments
-  (`routes/alliances/channels.rs:451-461`) and still do.
+  §1). An alliance *send* to a channel another hub
+  owns carries text only, so one with `attachment_ids` is refused with 400
+  rather than posted without its files.
 - `DELETE /uploads/{id}` tombstones one attachment (`messages.manage` on the
   channel). `openapi.yaml` gains every change; the SDKs regenerate from it.
 - **Capability string: `attachments.stored`.**
