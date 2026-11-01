@@ -6,7 +6,108 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## No GIF feature: links and attachments only
+
+**Decision** (2026-11-01): Wavvon has no GIF feature: no provider, no hub GIF
+library, no GIF search. GIFs keep working as they already do. A link to a GIF
+shows through the link preview, whose image the hub fetches and re-hosts, so
+no reader's address leaves the hub. A GIF file can be sent as an ordinary
+attachment. This **supersedes** "GIFs come from GIPHY" (2026-10-31) below.
+
+**Why.** A provider can only be used without exposing readers if the hub
+proxies its search and media. GIPHY forbids proxying. KLIPY allows it only by
+written agreement, per its integration requirements as quoted by third
+parties. That arrangement is what Discord has: its clients talk only to
+Discord, which proxies GIF search and media.
+
+Without such an agreement, every **reader's** IP address goes to the
+provider, not just the sender's. For an operator in the EU that is a GDPR
+exposure: a German court awarded damages for passing a visitor's IP to Google
+by embedding Google Fonts (LG München I, 20 January 2022, 3 O 17493/20). It
+also breaks the rule that the hub is the only party a member has to trust.
+
+A GIF library run by the hub would avoid the provider. But it starts with an
+empty picker, and it puts the copyright and moderation burden of a public
+media shelf on every operator.
+
+**Alternatives.**
+
+- *GIPHY*: client-side only. No proxying, caching or storing.
+- *KLIPY without proxy approval*: readers' addresses go to KLIPY.
+- *KLIPY with approval*: a written agreement that each self-hosted operator
+  would have to obtain.
+- *Stoat's Gifbox*: a GIF service hosted by Stoat
+  (https://stoat.chat/updates/introducing-gifbox). Using it sends readers to
+  a third party just the same.
+- *A hub GIF library*, designed and dropped the same day: the cold start and
+  the operator burden above.
+- *Imgur*: image hosting, not a GIF picker.
+
+**Tradeoff.** There is no GIF picker, which members of comparable platforms
+expect. Stickers ([stickers.md](stickers.md)), link previews and attachments
+cover the use; finding a GIF happens outside Wavvon.
+
+**Outcome.** Wavvon-server#243 is closed as not planned, linking this entry.
+
+## Stickers: a personal collection, a copy on every hub that shows one
+
+**Decision** (2026-11-01): admins publish sticker packs on their hub, and a
+member saves any sticker they see into a personal collection. The collection
+is a list kept in the encrypted prefs blob on the member's home hub(s), never
+the bytes. Sending a saved sticker to a hub uploads a copy there, normalized
+to WebP and deduplicated on the hash the hub computes, and the message
+references that hub's copy. Three permissions govern it:
+`stickers.packs.manage`, `stickers.external` and `stickers.moderate`. Every
+limit is a hub setting, and none applies per member. Disk is split in two:
+
+- packs refuse additions at their cap;
+- chat copies never refuse a send, and the hub evicts orphans and then the
+  least recently used copies instead.
+
+Design: [stickers.md](stickers.md), [sticker-storage.md](sticker-storage.md).
+
+**Why.** Members expect to carry stickers between communities, as on
+Telegram, and communities expect to curate their own, as on Discord. In a
+federated system the first wish only works if the message never depends on a
+hub other than the one holding it.
+
+**Alternatives.** *Reference the copy on the sender's home hub*: no upload and
+no duplicate bytes, but every reader's client would fetch from a hub the
+reader never chose, handing it their IP address, and the sticker would vanish
+whenever that hub was down; the hub showing it could not moderate what it does
+not hold. *Hub-local stickers only*: the simplest, and already how custom
+emoji work, but it drops the half of the feature members asked for.
+*An external sticker service*: one shared catalog would make discovery and
+dedup trivial, but it is the central server Wavvon exists not to have, and
+every send would leak to it.
+
+*Merge perceptually similar images automatically*: it would save more disk,
+but two different images can collide, so readers would see a picture the
+sender never sent, and an attacker could craft collisions on purpose. It
+stays a hint at upload, never a merge. *Per-member quotas*: rejected, because
+a member must never be refused a sticker because of storage. A member
+flooding new stickers to push other people's copies out is a moderation
+problem, handled by deleting and blocking hashes and by the existing message
+rate limits.
+
+**Tradeoff.** The same image is stored once per hub it is posted on, and each
+hub carries content its members brought in. Accepted: holding the content is
+what lets a hub moderate it, the hash makes every later send free, and
+`stickers.external` lets a community refuse copies altogether.
+
+**On a small, full hub, old messages lose their stickers.** Eviction turns
+them into "sticker no longer available" until someone sends the image again.
+The list on the home hub holds no bytes, so a saved sticker that no reachable
+hub or device cache still has is lost. In v1 the collection is editable only
+on the device holding the phrase.
+
+**Outcome.** Designed; server and client work tracked as issues. Moving
+message attachments to disk with the same pipeline is a separate design.
+
 ## GIFs come from GIPHY, loaded by the client, and each member opts in
+
+**Status: superseded 2026-11-01** by "No GIF feature: links and attachments
+only" above.
 
 **Decision** (2026-10-31): GIF search uses GIPHY with the hub operator's API
 key. Searches and media go from the member's client straight to GIPHY, and the

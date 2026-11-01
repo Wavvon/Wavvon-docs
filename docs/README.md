@@ -83,6 +83,8 @@ had a "recently shipped" section, whatever this line used to claim):
 - [future-features.md](future-features.md) — intent settled, design pending: hub-menu entries, desktop parity, visibility push, language packs (the three single-piece entries became `help wanted` issues on 2026-09-16)
 - [mini-apps.md](mini-apps.md) — the sandboxed webview an app opens in a channel: scoped session token, opaque relay, hub stays dumb about games
 - [sdk.md](sdk.md) — **proposal, not yet built**: SDKs in TypeScript, Rust, Python, C#, Java, Go, one repo each; tier 1 is programs (auth, REST generated from `openapi.yaml`, hub events, slash commands, webhooks, mini-apps), the full client waits; one shared JSON conformance suite owned by the identity crate
+- [stickers.md](stickers.md) — **designed 2026-11-01, not built**: admin-managed sticker packs, and a personal collection kept on the home hub as a list without the images. Sending uploads a deduplicated copy to the hub you post on, so a reader never contacts another hub. `stickers.packs.manage`, `stickers.external` and `stickers.moderate`, plus the stored-sticker admin page with hash blocking. There is deliberately no GIF feature (see decisions.md)
+    - [sticker-storage.md](sticker-storage.md) — the hub side: normalize to WebP and then hash, dedup on the exact hash, two disk budgets (packs refuse additions at their cap; chat copies evict orphans and then least-recently-used ones, so a send is never refused), and every limit a hub setting with none per member
 - [alliance-member-discovery.md](alliance-member-discovery.md) — **proposal, not yet decided** ([Wavvon-server#36](https://github.com/Wavvon/Wavvon-server/issues/36)): finding *people* on allied hubs — an opted-in listing served read-through by each member's own hub, two consent switches, DM via the member's designation; also flags that `GET /users` is open to any peer hub today
 
 ### Archived designs
@@ -180,6 +182,7 @@ Reading order is for learning the system end-to-end. This section is for
 - **Quick channel switcher (Ctrl+K)** — [client.md](client.md)
 - **Hub drag-drop reorder, /info preview, clear local data** — [client.md](client.md)
 - **Client QoL (search, drafts, emojis, events, polls, threads)** — [client-qol.md](client-qol.md)
+- **Stickers (packs, personal collection, cross-hub copies)** — [stickers.md](stickers.md); storage and limits — [sticker-storage.md](sticker-storage.md)
 - **Events (RSVP, role-slot sign-ups, reminders, hub-wide, propagation, voice-move staging)** — [events.md](events.md)
 
 ### Future direction (designed, not built)
