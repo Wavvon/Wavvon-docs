@@ -49,6 +49,11 @@ cover the use; finding a GIF happens outside Wavvon.
 
 **Outcome.** Wavvon-server#243 is closed as not planned, linking this entry.
 
+**When to reopen.** If a provider appears that needs no account, key or
+agreement, and that a hub can use without any reader's address reaching it
+(it allows the hub to proxy search and media, or it can be self-hosted), a
+provider is reconsidered in a new entry. Until then, no provider.
+
 ## Stickers: a personal collection, a copy on every hub that shows one
 
 **Decision** (2026-11-01): admins publish sticker packs on their hub, and a
