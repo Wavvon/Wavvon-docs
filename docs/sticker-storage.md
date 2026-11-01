@@ -27,9 +27,15 @@ upload or a copy fetched from its origin hub (stickers.md §3):
 5. **Blocklist check** (stickers.md §5), then **dedup** on the exact hash.
 
 An encoder upgrade can store one image twice, once per upgrade. That is
-accepted. The hub has no image pipeline today: `image` 0.25 reaches
-`Cargo.lock` only through `qrcodegen-image`, and animated-WebP *encoding*
-needs libwebp (C).
+accepted. The pipeline is pure Rust, in Wavvon-server
+`crates/hub/src/sticker_image.rs`: `image` decodes, `image-webp`'s lossless
+encoder writes each frame, and the animated container (`ANIM`, `ANMF`) is
+muxed by hand, because no pure-Rust crate writes animated WebP and libwebp
+(C) would put a C toolchain into every musl release build. It is lossless
+only, so a photographic input can come out larger than it went in; the
+result is checked against `stickers_max_file_bytes` like any file. Decoding
+is bounded (2048 px a side, 60 frames, 16 megapixels across an animation),
+runs in `spawn_blocking`, and at most two decodes run at once.
 
 **Perceptual hashing is phase 2, and only a hint** ("this looks like X in a
 pack, use it?"). It never merges automatically. Two different images can
@@ -53,11 +59,15 @@ messages           + sticker_id NULL -> stickers
   following the soundboard (`crates/hub/src/routes/soundboard.rs:31-44`).
   `backup` and `restore` already carry that directory
   (`crates/hub/src/routes/uploads.rs:33-38`).
-- **Pack sticker or copy is decided by `pack_id`.** Deleting a pack turns its
-  stickers into copies, which the cache can then evict.
+- **Pack sticker or copy is decided by `pack_id`.** Deleting a pack, or
+  taking one sticker out of it, turns it into a copy, which the cache can then
+  evict. A copy that was a pack sticker has no origin, so once evicted it
+  cannot come back.
 - **Two tombstones**, so that a message renders a sentence rather than a gap.
   Both delete the bytes and keep the row:
-  - `removed_at` (a moderator deleted it): "sticker removed".
+  - `removed_at` (a moderator deleted it): "sticker removed". The same image
+    is refused at later ingests while the row exists; the orphan sweep deletes
+    an unreferenced row, and only a blocked hash stays refused after that.
   - `evicted_at` (space was needed): "sticker no longer available". A later
     send re-fetches the sticker from its origin into the same row and clears
     the mark.
@@ -109,7 +119,7 @@ room for one file.
 
 ## 5. Open questions
 
-1. **Can libwebp be built for the musl targets?** A fallback format there
-   would hash differently and break dedup across hubs.
+1. ~~Can libwebp be built for the musl targets?~~ Settled: libwebp is not
+   used (see §1), so there is no fallback format and no hash divergence.
 2. **The maximum dimension is deliberately not a setting** (512 px is
    proposed), because changing it changes every hash. Confirm.

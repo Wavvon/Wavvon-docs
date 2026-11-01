@@ -233,6 +233,60 @@ components:
             sender's own (a bridge relaying someone from another network, or a
             webhook's `username`). `sender` and `sender_name` stay the real
             author, and clients show both.
+        sticker:
+          allOf: [{ $ref: '#/components/schemas/Sticker' }]
+          description: >-
+            Omitted unless set. The sticker sent with this message, held by
+            this hub (stickers.md). A removed or evicted one carries its
+            `state` so a client renders a sentence rather than a gap.
+
+    Sticker:
+      type: object
+      description: >-
+        A sticker this hub holds (stickers.md). `url` is relative to the hub
+        that holds it, which is the only hub a reader fetches from.
+      properties:
+        id: { type: string }
+        name: { type: string }
+        url: { type: string, description: "`/stickers/{sha256}`" }
+        sha256: { type: string, description: "Hash of the stored WebP, computed by this hub" }
+        width: { type: integer }
+        height: { type: integer }
+        origin_hub_url: { type: string, nullable: true, description: "The hub whose pack it came from; null for this hub's own pack stickers. Verified: this hub fetched the hash from there." }
+        origin_hub_name: { type: string, nullable: true }
+        state:
+          type: string
+          enum: [ok, removed, evicted]
+          description: "`removed`: a moderator deleted it. `evicted`: space was needed; sending it again re-fetches it from its origin."
+
+    StickerPack:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        created_by: { type: string }
+        created_at: { type: integer, format: int64 }
+        stickers:
+          type: array
+          items: { $ref: '#/components/schemas/Sticker' }
+
+    AdminSticker:
+      type: object
+      properties:
+        id: { type: string }
+        sha256: { type: string }
+        name: { type: string }
+        size_bytes: { type: integer, format: int64 }
+        width: { type: integer }
+        height: { type: integer }
+        pack_id: { type: string, nullable: true, description: "Null for a copy" }
+        uploader: { type: string }
+        origin_hub_url: { type: string, nullable: true }
+        origin_hub_name: { type: string, nullable: true }
+        created_at: { type: integer, format: int64 }
+        last_used_at: { type: integer, format: int64 }
+        state: { type: string, enum: [ok, removed, evicted] }
+        message_count: { type: integer, format: int64 }
 
     Masquerade:
       type: object
@@ -1361,6 +1415,14 @@ paths:
                 max_upload_bytes: { type: integer, format: int64 }
                 max_preview_image_bytes: { type: integer, format: int64, description: "Largest link-preview image in bytes, 262144 to 16777216, default 4194304. Also returned by GET /hub/settings." }
                 name_color_mode: { type: string }
+                stickers_max_file_bytes: { type: integer, format: int64, description: "65536 to 4194304, default 524288. Also returned by GET /hub/settings, as are the other stickers_* settings." }
+                stickers_packs_cap_bytes: { type: integer, format: int64, description: "16 MB to 100 GB, default 512 MB. Pack additions are refused at the cap." }
+                stickers_packs_warn_percent: { type: integer, description: "50 to 99, default 90" }
+                stickers_copies_cap_bytes: { type: integer, format: int64, description: "64 MB to 1 TB, default 1 GB. Orphans, then least recently used copies, are evicted; a send is never refused." }
+                stickers_per_pack: { type: integer, description: "1 to 500, default 60" }
+                sticker_packs_per_hub: { type: integer, description: "1 to 200, default 20" }
+                stickers_orphan_gc_days: { type: integer, description: "1 to 365, default 30" }
+                stickers_export: { type: boolean, description: "Default true. Off: GET /federation/stickers/{sha256} answers 403." }
       responses:
         "200":
           description: OK
@@ -2005,6 +2067,7 @@ paths:
                 attachments: { type: array, items: { $ref: '#/components/schemas/Attachment' } }
                 reply_to: { type: string, description: Message ID being replied to }
                 game: { $ref: '#/components/schemas/GameLaunchCard' }
+                sticker_id: { type: string, description: "A sticker this hub holds (see POST /channels/{channel_id}/stickers). 404 unknown, 410 removed or evicted, 403 for a copy without stickers.external. Refused on alliance channels." }
       responses:
         "201":
           description: Message created
@@ -5600,6 +5663,352 @@ paths:
         "404":
           description: File not found
 
+  # ── Stickers ──────────────────────────────────────────────────────────────
+
+  /stickers/packs:
+    get:
+      operationId: listStickerPacks
+      summary: List every pack with its stickers
+      description: >-
+        Bounded by `sticker_packs_per_hub` and `stickers_per_pack`, so it does
+        not page. Advertised by the `stickers` capability.
+      tags: [Stickers]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/StickerPack' }
+    post:
+      operationId: createStickerPack
+      summary: Create a pack (stickers.packs.manage)
+      tags: [Stickers]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 64 }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StickerPack' }
+        "400": { description: "Empty or too long name" }
+        "403": { description: "Caller lacks stickers.packs.manage" }
+        "409": { description: "`too_many_packs`: the hub is at `sticker_packs_per_hub`" }
+
+  /stickers/packs/{pack_id}:
+    patch:
+      operationId: renameStickerPack
+      summary: Rename a pack (stickers.packs.manage)
+      tags: [Stickers]
+      parameters:
+        - { name: pack_id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 64 }
+      responses:
+        "204": { description: "No content" }
+        "400": { description: "Empty or too long name" }
+        "403": { description: "Caller lacks stickers.packs.manage" }
+        "404": { description: "No such pack" }
+    delete:
+      operationId: deleteStickerPack
+      summary: Delete a pack (stickers.packs.manage)
+      description: Its stickers become copies, which the cache can then evict.
+      tags: [Stickers]
+      parameters:
+        - { name: pack_id, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: "No content" }
+        "403": { description: "Caller lacks stickers.packs.manage" }
+        "404": { description: "No such pack" }
+
+  /stickers/packs/{pack_id}/stickers:
+    post:
+      operationId: addStickerToPack
+      summary: Add a sticker to a pack (stickers.packs.manage)
+      description: >-
+        Either a multipart upload (`file`, optional `name`) or JSON
+        `{sha256}` for a copy this hub already holds, which then counts as the
+        hub's own. The file is decoded fully whatever its declared type (PNG,
+        JPEG, GIF, WebP, APNG), converted to WebP (animated stays animated) at
+        a fixed maximum of 512 px, and hashed by the hub. A WebP already within
+        bounds only loses its metadata chunks.
+      tags: [Stickers]
+      parameters:
+        - { name: pack_id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+                name: { type: string, maxLength: 32 }
+          application/json:
+            schema:
+              type: object
+              required: [sha256]
+              properties:
+                sha256: { type: string }
+                name: { type: string, maxLength: 32 }
+      responses:
+        "201":
+          description: Added
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Sticker' }
+        "400": { description: "Not an image, or invalid hash" }
+        "403": { description: "Caller lacks stickers.packs.manage, `sticker_blocked`, or `sticker_removed`" }
+        "404": { description: "No such pack, or no such copy here" }
+        "409": { description: "`pack_full` (`stickers_per_pack`), `packs_full` (`stickers_packs_cap_bytes`), or `already_in_a_pack`" }
+        "413": { description: "Over `stickers_max_file_bytes`, before or after conversion, or too large a decode (dimensions, frames)" }
+
+  /stickers/packs/{pack_id}/stickers/{sticker_id}:
+    delete:
+      operationId: removeStickerFromPack
+      summary: Take a sticker out of a pack (stickers.packs.manage)
+      description: It becomes a copy; messages that used it keep working.
+      tags: [Stickers]
+      parameters:
+        - { name: pack_id, in: path, required: true, schema: { type: string } }
+        - { name: sticker_id, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: "No content" }
+        "403": { description: "Caller lacks stickers.packs.manage" }
+        "404": { description: "Not in this pack" }
+
+  /stickers/{sha256}:
+    get:
+      operationId: getSticker
+      summary: A sticker's bytes
+      description: >-
+        Public: an `<img>` sends no token. Always `image/webp`, `nosniff`,
+        `Cache-Control: public, max-age=31536000, immutable`. 404 for a
+        removed or evicted sticker.
+      tags: [Stickers]
+      security: []
+      parameters:
+        - name: sha256
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{64}$' }
+      responses:
+        "200":
+          description: "`image/webp` bytes"
+        "404": { description: "Unknown, removed, or evicted" }
+
+  /federation/stickers/{sha256}:
+    get:
+      operationId: federationGetSticker
+      summary: Another hub fetching a sticker this hub published
+      description: >-
+        Serves only this hub's own pack stickers that are not removed, never
+        a copy. Unauthenticated (the bytes are public already and any key can
+        claim to be a hub) and rate-limited per address. 403 when the hub
+        setting `stickers_export` is off, 404 for anything else.
+      tags: [Stickers]
+      security: []
+      parameters:
+        - name: sha256
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{64}$' }
+      responses:
+        "200":
+          description: "`image/webp` bytes"
+        "403": { description: "`stickers_export_off`" }
+        "404": { description: "Not an own pack sticker" }
+        "429": { description: "Rate limited" }
+
+  /channels/{channel_id}/stickers:
+    post:
+      operationId: ensureChannelSticker
+      summary: Make this hub hold a sticker so a message can reference it
+      description: >-
+        Returns the existing row when the hash is already here (200); this
+        hub's own pack stickers need no `stickers.external`. Otherwise needs
+        `messages.send` and `stickers.external`: the hub fetches
+        `{origin_hub_url}/federation/stickers/{sha256}` through its
+        SSRF-checked fetcher, capped at `stickers_max_file_bytes` and sharing
+        the link-preview rate limit, checks that the bytes hash to `sha256`
+        and come out of normalization unchanged, ingests them (201), and
+        records the origin and its `/info` name. An evicted copy is re-fetched
+        the same way. Then send the message with `sticker_id`.
+      tags: [Stickers]
+      parameters:
+        - { name: channel_id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sha256, origin_hub_url]
+              properties:
+                sha256: { type: string }
+                origin_hub_url: { type: string }
+                name: { type: string, maxLength: 32 }
+      responses:
+        "200":
+          description: Already here
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Sticker' }
+        "201":
+          description: Fetched from the origin
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Sticker' }
+        "400": { description: "Invalid hash or origin URL" }
+        "403": { description: "Lacks `messages.send` or `stickers.external`, `sticker_blocked`, or `sticker_removed`" }
+        "413": { description: "The origin's file is over `stickers_max_file_bytes`" }
+        "429": { description: "Over the shared fetch rate limit" }
+        "502": { description: "The origin is unavailable, no longer serves it, has export off, or sent bytes that do not hash to the request or are not a canonical sticker" }
+
+  /admin/stickers:
+    get:
+      operationId: listStoredStickers
+      summary: "Everything stored, pack stickers and copies (stickers.moderate)"
+      tags: [Stickers]
+      parameters:
+        - name: state
+          in: query
+          schema: { type: string, enum: [ok, removed, evicted] }
+        - name: uploader
+          in: query
+          schema: { type: string }
+        - name: sort
+          in: query
+          schema: { type: string, enum: [created, used, size], default: created }
+          description: Newest or largest first.
+        - name: limit
+          in: query
+          schema: { type: integer, format: int64, default: 100, maximum: 500 }
+        - name: cursor
+          in: query
+          schema: { type: string }
+          description: The `id` of the last sticker of the previous page.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/AdminSticker' }
+        "400": { description: "Unknown `sort` or `state`" }
+        "403": { description: "Caller lacks stickers.moderate" }
+
+  /admin/stickers/usage:
+    get:
+      operationId: getStickerUsage
+      summary: Both disk budgets against their caps (stickers.moderate)
+      tags: [Stickers]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  packs:
+                    type: object
+                    properties:
+                      count: { type: integer, format: int64 }
+                      bytes: { type: integer, format: int64 }
+                      cap_bytes: { type: integer, format: int64 }
+                  packs_warning: { type: boolean, description: "Packs are at or past `stickers_packs_warn_percent` of their cap" }
+                  copies:
+                    type: object
+                    properties:
+                      count: { type: integer, format: int64 }
+                      bytes: { type: integer, format: int64 }
+                      cap_bytes: { type: integer, format: int64 }
+                  evictions: { type: integer, format: int64, description: "Copies whose bytes were dropped for space and have not come back" }
+        "403": { description: "Caller lacks stickers.moderate" }
+
+  /admin/stickers/blocklist:
+    get:
+      operationId: listStickerBlocklist
+      summary: Blocked hashes, newest first (stickers.moderate)
+      tags: [Stickers]
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, format: int64, default: 100, maximum: 500 }
+        - name: cursor
+          in: query
+          schema: { type: string }
+          description: The `sha256` of the last entry of the previous page.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    sha256: { type: string }
+                    blocked_by: { type: string }
+                    reason: { type: string, nullable: true }
+                    created_at: { type: integer, format: int64 }
+        "403": { description: "Caller lacks stickers.moderate" }
+
+  /admin/stickers/blocklist/{sha256}:
+    delete:
+      operationId: unblockSticker
+      summary: Unblock a hash (stickers.moderate)
+      tags: [Stickers]
+      parameters:
+        - name: sha256
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{64}$' }
+      responses:
+        "204": { description: "No content" }
+        "400": { description: "Invalid hash" }
+        "403": { description: "Caller lacks stickers.moderate" }
+        "404": { description: "Not on the blocklist" }
+
+  /admin/stickers/{id}:
+    delete:
+      operationId: deleteStoredSticker
+      summary: Delete a stored sticker, optionally blocking its hash (stickers.moderate)
+      description: >-
+        The bytes go and the row stays as the "sticker removed" tombstone that
+        messages render. With `block=true` the hash is also refused at every
+        later ingest; without it a removed row still refuses the same image
+        until the orphan sweep deletes it.
+      tags: [Stickers]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: block, in: query, schema: { type: boolean, default: false } }
+        - { name: reason, in: query, schema: { type: string } }
+      responses:
+        "204": { description: "No content" }
+        "403": { description: "Caller lacks stickers.moderate" }
+        "404": { description: "No such sticker" }
+
   # ── Soundboard ────────────────────────────────────────────────────────────
 
   /soundboard:
@@ -8682,6 +9091,8 @@ tags:
     description: Incoming webhooks for posting messages from external services.
   - name: OutgoingWebhooks
     description: Outgoing webhooks — hub pushes signed event payloads to an external URL.
+  - name: Stickers
+    description: Hub sticker packs, copies from other hubs, and their moderation.
   - name: Soundboard
     description: Per-hub voice soundboard clip library.
   - name: Search

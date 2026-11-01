@@ -395,6 +395,21 @@ Three things about it were wrong, and are fixed
 individual, and `channels.manage` sets the threshold. A fourth way to say it
 would be a permission with nothing left to gate.
 
+### Stickers
+
+Dedicated ids, as the soundboard has its own (stickers.md §4). Custom emoji
+borrow `hub.appearance`; stickers do not. `stickers.external` is granted to
+`builtin-everyone` once, by a numbered migration step, so revoking it sticks.
+
+| Permission | Scope | Replaces | Covers |
+|---|---|---|---|
+| `stickers.packs.manage` | H | — | Creating, renaming and deleting packs; adding and removing their stickers |
+| `stickers.external` | H C | — | Making this hub fetch a sticker from another hub, and sending a sticker that is in no pack. This hub's own pack stickers need nothing beyond `messages.send` |
+| `stickers.moderate` | H | — | The stored-sticker admin page: delete, delete and block, unblock |
+
+Sending also needs `messages.send`. Revoked from everyone, `stickers.external`
+means "our own packs only".
+
 ### Moderation
 
 | Permission | Scope | Replaces | Covers |
