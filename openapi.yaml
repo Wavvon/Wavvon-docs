@@ -1359,6 +1359,7 @@ paths:
                 afk_timeout_secs: { type: integer }
                 max_attachment_bytes: { type: integer, format: int64 }
                 max_upload_bytes: { type: integer, format: int64 }
+                max_preview_image_bytes: { type: integer, format: int64, description: "Largest link-preview image in bytes, 262144 to 16777216, default 4194304. Also returned by GET /hub/settings." }
                 name_color_mode: { type: string }
       responses:
         "200":
