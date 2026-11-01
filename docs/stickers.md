@@ -1,6 +1,6 @@
 # Stickers
 
-**Status: designed 2026-11-01, not built.** Rationale is in
+**Status: built 2026-11-01** (Wavvon-server#259, Wavvon-clients#229). Rationale is in
 [decisions.md](decisions.md): "Stickers: a personal collection, a copy on
 every hub that shows one". Code paths are in Wavvon-server unless named
 otherwise.

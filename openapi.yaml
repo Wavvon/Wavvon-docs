@@ -2619,6 +2619,7 @@ paths:
     patch:
       operationId: updateRole
       summary: Update a role (manage_roles)
+      description: Built-in roles are refused, except that the permissions of builtin-everyone may be changed; any other field on it is a 403.
       tags: [Roles]
       parameters:
         - name: role_id

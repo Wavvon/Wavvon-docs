@@ -1,6 +1,6 @@
 # Sticker storage: ingest, disk, limits
 
-**Status: designed 2026-11-01, not built.** This is the hub side of
+**Status: built 2026-11-01** (Wavvon-server#259). This is the hub side of
 [stickers.md](stickers.md): how a sticker is taken in, stored once, and
 evicted, and which limits an admin sets. Rationale is in
 [decisions.md](decisions.md), "Stickers: a personal collection, a copy on

@@ -399,7 +399,8 @@ would be a permission with nothing left to gate.
 
 Dedicated ids, as the soundboard has its own (stickers.md §4). Custom emoji
 borrow `hub.appearance`; stickers do not. `stickers.external` is granted to
-`builtin-everyone` once, by a numbered migration step, so revoking it sticks.
+`builtin-everyone` once, by a numbered migration step, so revoking it sticks. An admin revokes it with
+`PATCH /roles/builtin-everyone`, which accepts `permissions` and nothing else.
 
 | Permission | Scope | Replaces | Covers |
 |---|---|---|---|
