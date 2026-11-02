@@ -20,8 +20,8 @@ self-tag asserts *nothing* (the operator says so), a badge asserts
 would let a spam hub mint itself a "verified" label, so they are kept
 strictly separate below.
 
-> Connects to [future-features.md](future-features.md) "hub
-> certification (reputation)" — that section certifies **users**; badges
+> Connects to [hub-certifications.md](hub-certifications.md) (built) —
+> that doc certifies **users**; badges
 > here certify **hubs**. Same signing primitive, different subject.
 > Connects to [hub-discovery.md](hub-discovery.md), which already
 > carries operator-supplied `tags` on directory listings — self-tags
@@ -125,8 +125,8 @@ travels with the subject (Hub B serves it from its own `/info`) and is
 verifiable offline by any third party holding Hub A's public key — no
 call back to Hub A, no central registry.
 
-This is the same shape as the hub-certifies-user primitive sketched in
-[future-features.md](future-features.md), and the same shape as farm
+This is the same shape as the hub-certifies-user primitive in
+[hub-certifications.md](hub-certifications.md), and the same shape as farm
 session tokens ([decisions.md](decisions.md) "signed self-describing
 tokens"): an Ed25519 signature over a canonical payload, verified
 locally against a published public key.
@@ -205,12 +205,13 @@ Mirrors the alliance push-invite mechanics already decided:
      optional `GET /federation/badge-revocations` on the issuer that
      lists revoked `(subject_pubkey, label, issued_at)` triples a
      careful verifier MAY poll — same opt-in revoke-check shape as the
-     farm token design ([decisions.md](decisions.md)). v1 relies on
-     expiry; the revoke-check endpoint is deferred (see below).
+     farm token design ([decisions.md](decisions.md)). Built:
+     `GET /federation/badge-revocations?since=` lists badges the issuer
+     revoked via `DELETE /admin/badges/issued/{id}`.
 
 ### Relationship to user certifications and alliances
 
-- **User certifications** ([future-features.md](future-features.md)):
+- **User certifications** ([hub-certifications.md](hub-certifications.md)):
   same primitive, `subject_pubkey` is a user instead of a hub. The two
   can share one canonical-payload signer in `hub/src/federation/`
   (Wavvon-server) with a `subject_kind: "hub" | "user"` discriminant.
@@ -240,8 +241,7 @@ keyword is never mistaken for a third-party attestation.
   - An `18+` / NSFW hub shows the reserved indicator and is
     filtered/blurred per the client's content setting before the card
     renders.
-- **Discover tab** (`Wavvon-desktop`, mirrored in `Wavvon-web` /
-  `Wavvon-android`): the existing tag/language filter chips now read
+- **Discover tab** (`packages/ui` `DiscoverPage.tsx`, user build only): the existing tag/language filter chips now read
   the hub-authoritative self-tags via the directory's `?tag=` filter.
   Add a "trusted-badge" filter only if/when trust roots are
   user-configurable (deferred). NSFW filter toggle (default: hide).
@@ -260,41 +260,43 @@ such authority.
 
 ## Data model & route changes (all in Wavvon-server unless noted)
 
-**Hub DB** (`hub/src/db/migrations.rs`):
-- `hub_settings`: new rows `self_tags` (JSON text array), `nsfw`
-  (boolean).
-- New table `hub_badges` (badges this hub holds and serves):
-  `subject_pubkey`, `issuer_pubkey`, `issuer_url`, `label`, `issued_at`,
-  `expires_at`, `signature`, `accepted_at`. `subject_pubkey` is always
-  this hub's own key (kept for payload completeness / verification).
-- New table `pending_badge_offers` (offers awaiting accept/decline):
-  same columns as a badge plus `received_at`. Mirrors
-  `pending_alliance_invites`.
+As built; code (`crates/hub/src/db/migrations.rs`, `routes/tags.rs`,
+`routes/badges.rs`) is authoritative for columns.
+
+**Hub DB**:
+- `hub_settings`: rows `hub_tags` (JSON text array) and `hub_nsfw`.
+- `hub_badges` — badges this hub holds and serves: `id`, `issuer_pubkey`,
+  `issuer_url`, `label`, `payload`, `signature`, `accepted_at` (subject and
+  expiry live inside the signed `payload`).
+- `badge_offers` — offers awaiting accept/decline.
+- `issued_badges` — badges this hub granted to others, with `revoked_at`
+  (feeds the revocation list).
 
 **Hub routes**:
-- `GET /info` (`routes/health.rs`): add `self_tags`, `nsfw`, and
+- `GET /info` (`routes/health.rs`): `self_tags`, `nsfw`, and
   `badges: { payload, signature }[]` (accepted, non-expired only).
-- `routes/directory.rs` (or extend the existing directory-sign route):
-  `PATCH /admin/discovery` to set `self_tags` + `nsfw` (admin-only,
-  enforces normalisation + the 12-cap + reserved-word rejection).
-- `routes/badges.rs` (new): `POST /admin/badges/grant` (admin issues a
-  badge to a target URL → POSTs to target's `/federation/badge-offer`),
-  `GET /admin/badges/pending`, `POST /admin/badges/pending/:id/accept`,
-  `POST /admin/badges/pending/:id/decline`, `GET /admin/badges`,
-  `DELETE /admin/badges/:id`.
-- `federation/handlers.rs`: `POST /federation/badge-offer`
-  (unauthenticated, validates payload shape + Ed25519 signature +
-  `subject_pubkey == this hub`, inserts pending row).
+- `GET`/`PATCH /admin/settings/tags` (`routes/tags.rs`, `hub.appearance`):
+  self-tags + NSFW, enforcing normalisation, the 12-cap and reserved words.
+- `routes/badges.rs`, all `badges.manage`: `GET /badges/pending`,
+  `POST /badges/pending/{id}/accept|decline`, `GET /badges`,
+  `DELETE /badges/{id}`; issuing side `POST`/`GET /admin/badges/issued`
+  (POSTs to the target's `/federation/badge-offer`) and
+  `DELETE /admin/badges/issued/{id}` (revoke).
+- `POST /federation/badge-offer` (`federation/handlers.rs`;
+  unauthenticated, validates payload shape + Ed25519 signature +
+  `subject_pubkey == this hub`, inserts an offer) and
+  `GET /federation/badge-revocations`.
 
-**Directory** (`Wavvon-discovery`):
+**Directory** (`Wavvon-discovery`) — not built as of 2026-11-02: listing
+`tags` still come from the signed submit payload, not from `/info`:
 - Listing scraper reads `self_tags` and `nsfw` from `/info` instead of
   taking `tags` as a free operator field on submit. Existing `?tag=`
   filter and `HubListing.tags` shape are unchanged on the wire.
 - Optional later: surface `badges` and an `nsfw` filter. Not required
   for v1.
 
-**Client** (`Wavvon-desktop`, mirrored on `Wavvon-web` /
-`Wavvon-android`):
+**Client** (as planned; the shared UI now lives in Wavvon-clients
+`packages/ui`, and Android was removed 2026-07-12):
 - Hub preview card: distinct self-tag vs badge rendering + NSFW gate.
 - Hub Settings: Discovery panel tag editor + NSFW toggle; new Badges
   tab.
@@ -306,14 +308,10 @@ such authority.
 
 ## What's deferred
 
-- **Issuer revoke-check endpoint** (`/federation/badge-revocations`
-  polling). v1 leans on `expires_at`; build the poll only if retraction
-  before expiry becomes a real need — same posture as farm token
-  revoke-check.
+- ~~Issuer revoke-check endpoint~~ — built (`GET /federation/badge-revocations`).
 - **User-configurable trust roots** — designed in Part 4 below.
-- **User certifications** reusing this signer (subject = user). Lands
-  with the [future-features.md](future-features.md) anti-spam Layer 2;
-  this doc only establishes the hub-subject case and the shared signer.
+- ~~User certifications reusing this signer~~ — built; see
+  [hub-certifications.md](hub-certifications.md).
 - **Badge transitivity / web-of-trust** ("Hub C trusts whoever Hub A
   trusts"). **Won't do** — see [ROADMAP.md](../ROADMAP.md) 💤. It
   reintroduces global trust reasoning we don't want, and

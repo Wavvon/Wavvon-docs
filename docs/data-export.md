@@ -85,9 +85,11 @@ validation and the merge rule (`parseArchiveDocument`, `planRestore`) in
   remaining case a *paired* device can't do itself (no local entropy to
   derive the blob key from; only the entropy-holding device can). A
   404 (nothing published yet) is an empty `hub_synced: null`, not a gap.
-  Custom themes do **not** ride inside this blob — the desktop
-  `LocalPrefs` struct only carries `blocked_users`/`voice_settings`; they
-  stay a separate, already-covered archive section (§2, `themes`).
+  Custom themes: on web they now ride inside this blob too, in its
+  `settings` map (`wavvon.customThemes` in `apps/web/src/utils/syncedSettings.ts`);
+  desktop's typed `LocalPrefs` reads only its own fields and carries that
+  map through untouched. The archive keeps them as a separate section
+  regardless (§2, `themes`), so a restore does not depend on the blob.
 - **Home hubs / devices**: `home_hubs.designations` and
   `devices.subkey_certs`/`revocations` are plaintext, signed records
   (not E2E ciphertext) fetched read-only from the active hub's existing

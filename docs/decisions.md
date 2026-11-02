@@ -971,7 +971,9 @@ act on, which is why neither became an issue.
 
 ## No wildcard permission: the owner is a property, and everything else is named
 
-**Decision** (2026-09-15, designed with the user; not yet built): the `admin`
+**Status**: built 2026-09-16 (Wavvon-server#40).
+
+**Decision** (2026-09-15, designed with the user): the `admin`
 permission is deleted. Its job — "this person can do everything" — becomes a
 property of the caller (`is_owner`, from membership of `builtin-owner`)
 checked in `has()`, and the 83 routes that asked for `admin` each get a named
@@ -2054,6 +2056,11 @@ direct ([alliances.md](alliances.md)). A single-origin build breaks it.
 
 ## The first hub you sign in to becomes your home hub, and the hub list rides the prefs blob
 
+> **Partly superseded 2026-08-25** by "Two web clients: one per hub, one per
+> user" directly above: the `web+wavvon:` protocol-handler idea this entry
+> calls promising is killed there and removed from future-features.md. The
+> auto-designation and the hub list in the prefs blob stand.
+
 **Decision** (2026-08-25): a web client that reaches a hub with no
 `HomeHubList` published for that account publishes one naming that hub, slot 0,
 sequence 1 — once, never overwriting an existing designation, including one the
@@ -2536,6 +2543,12 @@ placeholder passwords out of `hub.toml.example` and
 
 ## Hub capabilities are advertised, not inferred from a version number
 
+> **Partly superseded 2026-08-25** by "Two web clients: one per hub, one per
+> user": the hosted client this entry's corollary leaves undecided is decided
+> there, as the user build served from one origin we host, with the hub-served
+> build kept alongside it, now showing only its own hub rather than being
+> multi-hub. The capability mechanism stands.
+
 **Decision** (2026-08-08): `GET /info` gains `capabilities: Vec<String>`, and
 clients decide what to render by testing membership in that list — never by
 comparing version strings. `version` stays in `/info`, but for display and for
@@ -2952,6 +2965,30 @@ backed-up handlers were added at the same time, but the log line is the
 fix — it converts a silent divergence into something the next hub feature
 surfaces on first run.
 
+## Voice transport v2: one WebTransport (QUIC) transport with per-packet E2E AEAD
+
+**Decision** (2026-08-06, user chose "final version directly, no two
+versions"): voice moves to a single WebTransport (QUIC) transport with
+per-packet E2E AEAD for both clients — spec in
+[voice-transport-v2.md](voice-transport-v2.md). The raw-UDP relay
+(desktop) and the WS Opus relay (web) are deleted, not kept as
+fallbacks (alpha, no backcompat). Key choices: reuse the shipped
+voice_join token as the WT CONNECT credential; reuse the never-wired
+`voice_key_offer/received/request` signaling as the E2E key channel;
+AES-256-GCM with `salt[4]||ctr[8]` nonces (the old `seq:u16` wrapped
+in ~22 min); rotating self-signed ECDSA cert + `serverCertificateHashes`
+so hubs need no CA cert for voice. Folds in two latent bugs: the
+desktop `:3001` hardcode (ignores `voice_udp_addr`) and the farm spawn
+never passing a per-hub voice port.
+
+*Alternatives considered*: (a) AEAD over the existing raw UDP + keep
+the WS relay (the original Phase 2 plan) — rejected: two transports to
+encrypt and maintain, and web voice stays TCP-degraded; (b) WebRTC —
+rejected: screen-share v2 carries it for P2P video, but voice is
+hub-relayed by design and WebTransport needs no SDP/ICE machinery;
+(c) farm-level voice proxying — rejected again: extra hop and
+bandwidth funnel, voice stays direct-to-node.
+
 ## Member name colors: hub-chosen priority between role color and profile color, resolved server-side
 
 **Decision** (2026-08-07, iterated with the user from "Discord role
@@ -2979,28 +3016,6 @@ color per role is the role's visual identity, and the existing
 color-mix blends already differentiate badge vs. name rendering;
 (c) client-side resolution — rejected: needs the mode + both raw colors
 exposed publicly and the cascade duplicated per client.
-
-**Decision** (2026-08-06, user chose "final version directly, no two
-versions"): voice moves to a single WebTransport (QUIC) transport with
-per-packet E2E AEAD for both clients — spec in
-[voice-transport-v2.md](voice-transport-v2.md). The raw-UDP relay
-(desktop) and the WS Opus relay (web) are deleted, not kept as
-fallbacks (alpha, no backcompat). Key choices: reuse the shipped
-voice_join token as the WT CONNECT credential; reuse the never-wired
-`voice_key_offer/received/request` signaling as the E2E key channel;
-AES-256-GCM with `salt[4]||ctr[8]` nonces (the old `seq:u16` wrapped
-in ~22 min); rotating self-signed ECDSA cert + `serverCertificateHashes`
-so hubs need no CA cert for voice. Folds in two latent bugs: the
-desktop `:3001` hardcode (ignores `voice_udp_addr`) and the farm spawn
-never passing a per-hub voice port.
-
-*Alternatives considered*: (a) AEAD over the existing raw UDP + keep
-the WS relay (the original Phase 2 plan) — rejected: two transports to
-encrypt and maintain, and web voice stays TCP-degraded; (b) WebRTC —
-rejected: screen-share v2 carries it for P2P video, but voice is
-hub-relayed by design and WebTransport needs no SDP/ICE machinery;
-(c) farm-level voice proxying — rejected again: extra hop and
-bandwidth funnel, voice stays direct-to-node.
 
 ## AFK channel rides the voice-move primitive; idle = server-observed silence
 
@@ -3101,6 +3116,11 @@ delivery target.
 
 ## Hub setup wizard: client-side channel templates after ownership
 
+> **Partly superseded 2026-08-28** by "A hub is self-hosted; no client creates
+> one": the server-side template catalogue this entry kept as "the plan for
+> farm/discovery-driven creation" was removed with the bootstrap-token
+> plumbing. The client-side wizard itself is not affected by that entry.
+
 **Decision** (2026-07-25, user feedback from first-run walkthrough): a
 fresh hub owner gets a **"How do you want to use this hub?"** wizard the
 first time they land in a hub they own that has **no channels** —
@@ -3129,8 +3149,6 @@ empty sidebar and members "never know where the channels are."
   is no longer what users copy — it was "quite long and terrible to
   use". The serial-carrying form returns when farm-hosted hubs need
   serial routing in links.
-
-## Hub timezone + birthday badge: plain profile field, viewer-local day, triple opt-in
 
 ## Hub timezone + birthday badge: plain profile field, viewer-local day, triple opt-in
 
@@ -3283,6 +3301,11 @@ authoritative). Two soft spots to fix on pickup, noted in
 
 ## Game-bot distribution (gaming Phase 4): reuse invite + discovery, no bot index
 
+> **Superseded 2026-09-26** by "A bot is a client like any other" near the top
+> of this file: there is no game-bot, no per-hub bot directory and no
+> capability grant to build on. A program joins with an ordinary invite and
+> the launch surfaces are gated by `apps.register`.
+
 **Decision** (2026-07-19): game-bot distribution needs **almost no new
 machinery**. A game-bot is structurally just a bot, so *adding* one is the
 shipped invite-by-pubkey flow ([apps.md §2](apps.md)) plus the Phase 1
@@ -3315,6 +3338,11 @@ from the Phase 1 `game` descriptor — and it is gated on Phase 1 landing
 first. Everything else is deferred-until-demand.
 
 ## Multiplayer lobby (gaming Phase 3): a bot-side convention, not hub surface
+
+> **Partly superseded 2026-09-26** by "A bot is a client like any other" near
+> the top of this file: the `bot-kit` and `ttt-bot` crates this entry built on
+> are deleted. The `mini_app_message` relay stays as ordinary API surface, so
+> "a convention, not hub surface" still describes how a lobby would be done.
 
 **Decision** (2026-07-19): the multiplayer session/lobby helper is a
 **message convention plus a reusable bot-side Rust module (`wavvon-bot-kit`)
@@ -3463,6 +3491,10 @@ PoW-gated; writes/deletes/purge master-signed (reuse the `put_prefs`
 pattern). Additive migration (`identity_vault_blobs`).
 
 ## Passkey identity: refuse creation unless restore is proven at birth
+
+> **Superseded 2026-07-19**: the PRF identity path was removed from the web
+> client (clients `9afe8b0`); see [webauthn-auth.md](webauthn-auth.md). This
+> refuse-on-unverified invariant is kept as the rule for any reinstatement.
 
 **Decision** (2026-07-18, user call): identity creation via passkey PRF
 performs a **restore self-test** (a scoped PRF sign-in immediately after
@@ -3990,6 +4022,11 @@ identity on a shared device).
 
 ## Passkey PRF output is the identity entropy, not a new key layer
 
+> **Superseded 2026-07-19**: the PRF identity path was removed from the web
+> client (clients `9afe8b0`; the last code went 2026-09-04); see
+> [webauthn-auth.md](webauthn-auth.md), which keeps the derivation spec for a
+> reinstatement.
+
 **Decision** (2026-07-11, implemented web-only same day): the
 "passkey = master key anchor" design from
 [webauthn-auth.md](webauthn-auth.md) is implemented by using the
@@ -4099,6 +4136,10 @@ and the deferred schedule are unchanged.
 
 ## "Create a hub" from the `+` button is a two-exit router, not a spawner
 
+> **Superseded 2026-08-28** by "A hub is self-hosted; no client creates one":
+> no client has a Create path, the web wizard at `/new` is deleted, and farm
+> provisioning is not a client concept.
+
 **Decision** (2026-07-06): the hub-list `+` button gets a Join/Create
 fork. "Create a hub" does not pretend the client can stand up a server —
 it routes to one of two honest exits and re-absorbs the result as an
@@ -4184,6 +4225,12 @@ Phase 2 routing text in [farm-impl.md](farm-impl.md), which now carries
 a forward pointer.
 
 ## Schema baseline reset at v0.3.0 (pre-production)
+
+> **Superseded 2026-10-27** by "The hub schema carries a version, and a step
+> runs once": the rerun-everything baseline is frozen and every later change
+> is a numbered step, the versioned framework this entry deferred. The
+> wizard and template catalogue it names went with "A hub is self-hosted; no
+> client creates one" (2026-08-28); the hub's own first-run bootstrap stays.
 
 **Decision** (2026-07-05): collapse the hub's accumulated migration
 history — every `ALTER TABLE ADD COLUMN` layered on since the first
@@ -4356,6 +4403,10 @@ group of roles may…" — bulk permission tooling, if ever wanted, must
 operate on roles, not categories. Accepted; that's the point.
 
 ## Web voice via a WebSocket Opus relay, not WebRTC
+
+> **Superseded 2026-08-06** by "Voice transport v2: one WebTransport (QUIC)
+> transport with per-packet E2E AEAD" (shipped 2026-08-07): the WS Opus relay
+> and the desktop raw-UDP relay are both deleted.
 
 **Decision** (shipped 2026-06-13): the browser client joins the same voice
 channels as native clients by relaying Opus frames over a hub WebSocket
@@ -4617,6 +4668,15 @@ request ID) to both.
 
 ## Hub admin panel removed — hub management moves to desktop client
 
+> **Partly superseded.** The removal of the web panel stands. "Management
+> belongs in the desktop client" does not: the shared UI lives in
+> `packages/ui` with the web client as source of truth ("Shared UI
+> components: hoist from web into packages/ui; desktop adapts"), so hub
+> management is in every client. "Ownership is set at hub-creation time
+> through the client wizard" ended 2026-08-28 with "A hub is self-hosted; no
+> client creates one": no client wizard exists, and the hub's own first-run
+> bootstrap seats the owner.
+
 **Decision**: the web-based hub admin panel (`/admin/panel`) is removed
 entirely. Hub management — banning users, managing roles, channels, and
 reports — belongs in the desktop client, not a separate web UI. Hub ownership
@@ -4640,6 +4700,12 @@ hub management.
 
 ## Architecture: Farm → Server → Hub; standalone hub binary deprecated
 
+> **Superseded 2026-08-08** by "The hub bundles PostgreSQL, and never touches
+> one it did not create" (download one binary, run it, you have a hub) and
+> 2026-08-28 by "A hub is self-hosted; no client creates one": the standalone
+> hub binary is the primary deployment, and a farm is an optional server-side
+> aggregate, not the canonical unit.
+
 **Decision**: the canonical deployment unit is Farm (control plane, manages
 multiple servers) → Server (compute node, runs hub processes) → Hub (community
 space, the product users experience). A hub is never run directly — it is
@@ -4660,6 +4726,12 @@ wizard and the farm's control surface.
 ---
 
 ## OAuth account linking — rejected as an auth mechanism; deferred as a social badge
+
+> **Partly superseded 2026-09-05** by "A hub may hold what you sign or
+> encrypt, never what can reconstitute you": the "better path" below lists
+> *their hub* as a place to keep the passphrase-encrypted recovery phrase.
+> That is the identity vault, and it is rejected. The file and the user's own
+> storage remain; the rejection of OAuth as auth stands.
 
 **Decision**: OAuth login (Google, Steam, GitHub, etc.) will not be used as an
 identity mechanism or recovery path in Wavvon.
@@ -4689,6 +4761,10 @@ is a better first-time safety net and doesn't require any external account.
 ---
 
 ## Admin panel auth: desktop-app signing + TOTP, not a shared bearer token
+
+> **Superseded** by "Hub admin panel removed — hub management moves to desktop
+> client" directly above: the panel this auth protected was removed, and the
+> built Ed25519+TOTP login was reverted.
 
 **Decision**: the web admin surfaces (hub web panel, farm console) drop the
 shared `web_admin_token` for a two-factor login tied to real identity. Factor
@@ -4781,6 +4857,8 @@ author sets only what they want to differ; the theme maintainer owns the rest.
 ---
 
 ## Database abstraction: trait-based store crate split, not inline raw SQLx
+
+> **Superseded 2026-10-04**: the `store` crate was deleted (Wavvon-server#88) because nothing had ever called it; the hub holds a `PgPool` directly. See [store-trait-design.md](store-trait-design.md).
 
 **Decision**: the hub's data layer will move from a bare `sqlx::SqlitePool` embedded directly in `AppState` and raw `sqlx::query*` calls scattered across every route handler, to a set of domain-split traits (`AuthStore`, `UserStore`, `ChannelStore`, `MessageStore`, `RoleStore`, `InviteStore`, `ModerationStore`, `SettingsStore`, and more) collected into a `HubStore` super-trait, implemented by `wavvon-store-sqlite` (the current code, moved) and eventually `wavvon-store-postgres` (community contribution). `AppState.db: SqlitePool` becomes `AppState.store: Arc<dyn HubStore>`. A `StoreError` enum (`NotFound`, `Conflict`, `PermissionDenied`, `Internal`) replaces per-route ad-hoc `.map_err()` and `"UNIQUE"` string-sniffing. `#[async_trait]` is the dispatch mechanism. Transaction scope is managed by a `with_transaction<F, T>` closure. Migration contract: each backend owns its schema via a `Migrate` trait; the hub calls `store.run_migrations()` on startup. Full design in [`store-trait-design.md`](store-trait-design.md).
 

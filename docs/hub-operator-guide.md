@@ -41,23 +41,23 @@ Release checklist: a release whose notes carry an operator step adds a row to
 The hub reads configuration from three sources, in priority order (highest last):
 
 1. **Built-in defaults** — sensible values that work out of the box.
-2. **`hub.toml`** — a TOML file in the working directory. Copy `hub.toml.example` (shipped with the binary) and edit it. The file is optional; missing it is fine.
+2. **`hub.toml`** — a TOML file in the working directory. `hub.toml.example` in the Wavvon-server repo is a starting point. The file is optional; missing it is fine.
 3. **`WAVVON_*` environment variables** — override anything in the file. Useful for Docker / Kubernetes where env injection is the norm.
 
 ### hub.toml quick reference
 
 ```toml
 http_port       = 3000           # HTTP / WebSocket port
-voice_udp_port  = 3001           # Voice UDP relay port
+voice_udp_port  = 3001           # Voice (WebTransport/QUIC) UDP port
+public_url      = "https://hub.example.com"  # needed for voice, invites, passkeys
 
 # tls_cert = "/etc/wavvon/hub.crt"   # enable HTTPS (both must be set)
 # tls_key  = "/etc/wavvon/hub.key"
 
-owner_pubkey    = "<64-hex>"     # hub owner identity (set before first boot)
+# owner_pubkey  = "<64-hex>"     # optional: seeded as owner at every boot
 # farm_url      = "https://farm.example.com"
 
 # template_url  = "https://example.com/template.json"
-# bootstrap_token = ""
 
 log_format      = "text"         # "text" or "json"
 # otlp_endpoint = "http://localhost:4317"
@@ -65,7 +65,7 @@ log_format      = "text"         # "text" or "json"
 
 Every option also has a `WAVVON_<OPTION_NAME>` env var equivalent (e.g. `WAVVON_HTTP_PORT`, `WAVVON_TLS_CERT`). `wavvon-hub --help` prints the full table generated directly from the binary — treat it as authoritative.
 
-The hub binds to `0.0.0.0` on both ports. `hub_identity.json` is written to the process working directory; set `WorkingDirectory=` in your service unit to control where it lands. The database is PostgreSQL — configure with `WAVVON_DATABASE_URL`.
+The hub binds to `0.0.0.0` on both ports. `hub_identity.json` is written to the process working directory; set `WorkingDirectory=` in your service unit to control where it lands. The database is PostgreSQL — set `WAVVON_DATABASE_URL` to use your own, or leave it unset and the hub runs a bundled one in the working directory (see below).
 
 ### Database connection pool
 
@@ -128,24 +128,18 @@ If you restrict origins, add the serving origin of any browser client (including
 
 ## Hub ownership
 
-On a fresh hub **no owner is set by default**. You must assign one before opening the hub to users, otherwise nobody has admin access.
+A fresh hub has **no owner** and is **invite-only**, so nobody can join until ownership is settled. Three ways, any one is enough:
 
-**Before first boot (recommended):**
-```toml
-# hub.toml
-owner_pubkey = "<your-64-char-ed25519-pubkey>"
-```
+**First-boot owner invite (default):** while nobody holds the owner role, the hub logs a one-time invite at startup — `First-boot owner invite: https://your-hub/join/<code>` — and `wavvon-hub --doctor` prints the same link. Open it in a client and you join as owner. It stops being minted once the hub has a user.
 
-**After first boot (CLI):**
+**Configured key:** set `WAVVON_OWNER_PUBKEY` (or `owner_pubkey` in `hub.toml`) to your identity's 64-hex public key. The hub seeds it as owner at every boot, replacing any other owner.
+
+**CLI, no restart:**
 ```bash
 wavvon-hub admin users set-owner <pubkey>
 ```
 
-**After first boot (web panel):**  
-Visit `http://your-server:3000/admin/panel` → Ownership tab.  
-Activate the panel first: `wavvon-hub admin rotate-admin-token`
-
-Your public key is shown in the desktop client's identity / profile panel.
+There is no web admin panel; once you are owner, hub settings live in the client. Your public key is shown in the client's identity settings.
 
 ---
 
@@ -322,7 +316,7 @@ the check and do not refuse; the backup is still the way back.)
 - [ ] **TLS**: terminate TLS at the hub (via `WAVVON_TLS_CERT` / `WAVVON_TLS_KEY`)
   or at a reverse proxy (nginx/Caddy). Never expose HTTP to the public internet.
 - [ ] **Firewall**: allow only ports 443 (HTTPS) and `WAVVON_VOICE_UDP_PORT`
-  (UDP). No SSH from the internet.
+  (UDP, WebTransport voice). No SSH from the internet.
 - [ ] **Service user**: run the hub as a dedicated non-root user.
   `hub_identity.json` must be readable only by that user (`chmod 600`).
 - [ ] **Backups**: schedule daily `wavvon-hub backup FILE` + an off-site copy of
@@ -377,21 +371,26 @@ Returns:
 
 ## Hub admin CLI
 
+Talks to the database directly; `wavvon-hub admin` with no argument prints
+the usage line, which is authoritative.
+
 ```bash
-# Create an invitation link (bypasses approval gate)
-wavvon-hub admin invite --expires 24h
+wavvon-hub admin stats                      # counts, as JSON
+wavvon-hub admin users list
+wavvon-hub admin users ban <pubkey>
+wavvon-hub admin users unban <pubkey>
+wavvon-hub admin users set-owner <pubkey>   # replaces any existing owner
+wavvon-hub admin channels list
+wavvon-hub admin tokens                     # 20 newest sessions, token prefix only
+wavvon-hub admin backup [FILE]              # same as `wavvon-hub backup`
+wavvon-hub admin restore FILE [--force]     # same as `wavvon-hub restore`
 
-# Revoke a session by token
-wavvon-hub admin revoke-session <token>
-
-# Promote a user to Owner
-wavvon-hub admin grant-role <pubkey> builtin-owner
-
-# Key rotation (updates hub_identity.json and publishes it on /info)
+# Key rotation: writes a new hub_identity.json plus a signed
+# hub_rotation.json (old -> new), which /info then serves.
 wavvon-hub rotate-key
 ```
 
-For the full admin CLI reference, see [hub-admin-panel.md](hub-admin-panel.md).
+Invites, roles and sessions are managed from the client, not the CLI.
 
 ---
 
@@ -407,8 +406,12 @@ your scraper reaches. Metrics:
 | `wavvon_online_users` | Connected users right now |
 | `wavvon_voice_participants` | Users in voice channels right now |
 | `wavvon_active_video_channels` | Channels with video on right now |
-| `wavvon_messages_total` | Messages stored |
+| `wavvon_messages_total` | Messages stored (a row count) |
+| `wavvon_attachments_bytes` | Bytes of stored upload blobs |
+| `wavvon_attachments_cap_bytes` | Configured upload disk budget |
+| `wavvon_attachments_evictions_total` | Blobs evicted for space since start |
 | `wavvon_uptime_seconds` | Hub process uptime |
 
-Logs are emitted in JSON to stdout (structured, `tracing`-based). Pipe to
-`journald`, Loki, or any JSON log aggregator.
+Logs go to stdout as human-readable text by default; set
+`WAVVON_LOG_FORMAT=json` for structured JSON (Loki or any JSON aggregator).
+`RUST_LOG` sets the level (default `info`).

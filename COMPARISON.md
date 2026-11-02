@@ -60,7 +60,6 @@ The hub is a single static Linux binary (~30 MB musl). The desktop client is Tau
 |---|---|
 | No mobile clients | The early Android beta was removed (2026-07-12) rather than left to rot; a clean-slate mobile client is planned when mobile becomes the priority. No iOS work yet |
 | E2E forward secrecy is partial | 1:1 DMs have it (Double Ratchet, shipped 2026-07); group DMs and voice use sender keys — voice keys rotate when someone leaves, but neither ratchets per-message |
-| Voice E2E on paired desktop devices | Voice (and DMs) are E2E, but a *paired* desktop device can't unwrap keys yet — desktop pairing doesn't provision the canonical DH scalar (tracked in client-parity) |
 | Windows installer unsigned | SmartScreen warning ("More info → Run anyway"); free OSS code-signing programs require more project popularity than we have yet |
 | macOS DMG unsigned | Gatekeeper warning until Apple Developer signing is set up |
 | No push notifications | Clients must be open to receive messages |

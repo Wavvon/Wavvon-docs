@@ -28,15 +28,22 @@ join — with an `app_open` carrying the URL and a scoped token; the client
 opens the mini-app URL in a sandboxed webview inside the Wavvon client
 window.
 
-The hub injects auth context into the webview at load time — the same
-pattern used when the hub self-serves the web client:
+The client hands the mini-app its auth context, and how depends on the
+client. **Desktop** injects globals into the webview at load time
+(Wavvon-clients `apps/desktop/src-tauri/src/mini_app.rs`):
 
 ```
 window.__WAVVON_HUB__     = "https://hub.example.com"
 window.__WAVVON_TOKEN__   = "<scoped-session-token>"
 window.__WAVVON_CHANNEL__ = "<channel-id>"
-window.__WAVVON_APP_ID__  = "<app-pubkey>"
+window.__WAVVON_BOT_ID__  = "<app-pubkey>"   // designed as __WAVVON_APP_ID__
+window.__WAVVON_REQUIRES_CAMERA__ = false
 ```
+
+**Web** cannot inject into a cross-origin iframe, so it `postMessage`s
+`{ type: "wavvon_context", hub_url, token, channel_id, app_id }` to the
+iframe once it loads (`packages/ui/src/components/GameModal.tsx`). A
+mini-app that wants to run on both reads whichever arrives.
 
 The mini-app connects to the hub's existing `/ws` endpoint using
 `__WAVVON_TOKEN__` and exchanges messages with the app (and with other
@@ -159,15 +166,13 @@ Open a second `WebviewWindow` for the mini-app, sandboxed with:
 
 ### Web
 
-Open the mini-app in a sandboxed `<iframe>` within the channel layout
-(Discord's approach). CSP `sandbox` attribute: `allow-scripts
-allow-same-origin`. The host page communicates the auth context via
-`postMessage` before the iframe loads, so the token never appears in
-the URL.
+Open the mini-app in a sandboxed `<iframe>` (Discord's approach), promoted
+to a focus-taking `GameModal`. CSP `sandbox` attribute: `allow-scripts
+allow-same-origin`. The host page sends the auth context via `postMessage`
+once the iframe has loaded, so the token never appears in the URL.
 
-### Android
-
-Same as desktop: a secondary `WebviewWindow` via Tauri Android.
+(An Android section planned a Tauri Android `WebviewWindow`; that client
+was removed 2026-07-12.)
 
 ## App author experience
 
@@ -230,25 +235,15 @@ changes needed beyond the mini-app registration.
 
 ## Open questions
 
-- **Token delivery on web** — `postMessage` from parent frame is the
-  natural channel, but requires the mini-app origin to be allow-listed
-  or the message validated. Needs a small handshake spec.
+- **Token delivery on web** — `postMessage` from the parent frame is what
+  shipped, but it posts with target origin `"*"` and no handshake; pinning
+  the target origin to the `mini_app_url` origin is still open.
 - **Mini-app URL allow-listing** — should hub operators restrict which
   `mini_app_url` domains are permitted? A per-hub allow-list in
   `hub.toml` seems right; default open.
 - **Multiple simultaneous sessions** — can two different apps have
   active mini-app sessions in the same channel? Probably yes, but the
   client UI for stacking launch cards needs thought.
-- **Mobile keyboard + canvas** — soft keyboard covers the canvas on
-  Android when guessing. Needs layout handling in the mini-app (app
-  author's problem, but we should document it).
-
-## Estimate
-
-Hub (token minting + 3 new WS message types): ~2 days.
-Desktop client (WebviewWindow + context injection): ~1.5 days.
-Web client (sandboxed iframe + postMessage): ~1 day.
-Android client: ~0.5 days (mirrors desktop Tauri pattern).
-Docs + a worked example: ~1 day.
-
-**Total: ~6 days.**
+- **Mobile keyboard + canvas** — on a mobile browser the soft keyboard
+  covers the canvas when guessing. Needs layout handling in the mini-app
+  (app author's problem, but we should document it).

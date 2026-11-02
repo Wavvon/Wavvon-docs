@@ -1,10 +1,14 @@
 # Android Client
 
 > **Superseded / historical (2026-07-12).** The Android client was removed
-> from the monorepo; it's slated for a clean-slate rewrite when mobile is
-> prioritized (~2-3 years out), so this document describes the *old* design
-> and is kept for reference only. For what carries forward — the build/native
-> learnings and the rewrite strategy — see
+> from the monorepo, and **no Android APK ever shipped** — the release build
+> never got past `audiopus_sys` cross-compilation (see
+> [android-rewrite-notes.md](android-rewrite-notes.md)). Where this doc
+> says voice or anything else "shipped on Android", read "worked in a dev
+> build". It's slated for a clean-slate rewrite when mobile is prioritized
+> (~2-3 years out), so this document describes the *old* design and is kept
+> for reference only. For what carries forward — the build/native learnings
+> and the rewrite strategy — see
 > [android-rewrite-notes.md](android-rewrite-notes.md).
 
 A third client living at `apps/android/android/` in the **Wavvon-client**

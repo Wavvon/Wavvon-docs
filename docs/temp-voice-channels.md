@@ -5,7 +5,13 @@ fresh personal room next to it, moves the joiner in, and the room
 garbage-collects itself when it has been empty for a grace period. How
 large communities avoid a wall of twenty static voice channels.
 
-**Status: designed, not implemented.** ROADMAP wishlist item.
+**Status: shipped 2026-07-04** (hub `3005fc5`). Spawn-on-join is in
+Wavvon-server `crates/hub/src/routes/ws/handlers/voice.rs`
+(`handle_voice_join`) and `crates/hub/src/routes/channels.rs`
+(`spawn_temp_channel`). Since then voice moved into dedicated `voice`
+channels ([decisions.md](decisions.md), "Voice lives in voice
+channels"), so a spawned room is `channel_type = 'voice'`, and
+permissions are dotted ids (`voice.join`, `channels.manage`).
 
 ---
 
@@ -18,12 +24,12 @@ ALTER TABLE channels ADD COLUMN spawner_name_template TEXT; -- spawners only
 ALTER TABLE channels ADD COLUMN empty_since BIGINT;         -- temp GC bookkeeping
 ```
 
-- **Spawner** = `channel_type = 'spawner'` (the discriminant column
-  already exists: `text` / `forum` / `spawner`). A spawner holds no
-  messages and no voice of its own; it renders in the sidebar with a
-  `+`-style affordance.
-- **Temp channel** = a completely normal unified text+voice channel
-  with `is_temporary = TRUE` and `owner_pubkey` set. Everything
+- **Spawner** = `channel_type = 'spawner'` (alongside `text`, `voice`,
+  `forum`, `banner`). A spawner holds no messages and no voice of its
+  own; it renders in the sidebar with a `+`-style affordance.
+- **Temp channel** = an ordinary `voice` channel with
+  `is_temporary = TRUE` and `owner_pubkey` set. (Designed when every
+  channel was text+voice; that model is superseded.) Everything
   existing (voice relay, messages, permission cascade) works on it
   unchanged.
 
@@ -33,7 +39,7 @@ On a voice-join request for a spawner channel (the WS voice-join
 handler, which since channel permission overwrites resolves
 channel-scoped permissions):
 
-1. Gate on effective `read_messages` on the **spawner** (same gate as
+1. Gate on effective `voice.join` on the **spawner** (same gate as
    any voice join).
 2. Create a sibling channel (`parent_id` = spawner's parent,
    `display_order` = after the spawner): name from
@@ -45,7 +51,7 @@ channel-scoped permissions):
    existing `VoiceJoined { channel_id, … }` response already carries
    the channel id, so the client lands in the new room with no new
    message type.
-5. Broadcast `channel_list_changed` (§4).
+5. Broadcast `channels_updated` (§4).
 
 Permissions on the temp room need no special handling: it sits under
 the spawner's parent, so the **ancestor cascade applies automatically**
@@ -57,10 +63,10 @@ a sibling of the spawner, same depth — never violates
 
 - **Owner powers, v1: rename only.** `update_channel` allows name
   changes when `is_temporary AND owner_pubkey = caller` (in addition to
-  the existing `MANAGE_CHANNELS` path). No user caps, no owner
+  the existing `channels.manage` path). No user caps, no owner
   transfer, no kick — per-user room admin waits for per-user overwrites
   ([nested-channels-ux.md](nested-channels-ux.md) §3.9).
-- **GC**: when the last participant leaves (the existing `leave_voice`
+- **GC**: when the last participant leaves (the existing `voice_leave`
   path knows the roster), stamp `empty_since = now`. A
   `temp_channel_worker` (existing worker pattern) sweeps every 10s and
   deletes temp channels with `empty_since` older than **30s** — the
@@ -116,7 +122,7 @@ owner's name in the tooltip.
 - **Owner user-cap / kick / transfer** — needs per-user overwrites or
   a dedicated room-moderation mechanism; rename-only covers v1.
 - **Persistent "keep this room"** (owner promotes temp → permanent) —
-  cheap later (`is_temporary = FALSE` + `MANAGE_CHANNELS` check), out
+  cheap later (`is_temporary = FALSE` + `channels.manage` check), out
   of v1 to keep the GC story simple.
 - **Spawner templates beyond name** (pre-set overwrites, talk power) —
   inherit-from-parent covers the real cases so far.
@@ -134,7 +140,8 @@ owner's name in the tooltip.
 - **30s empty-grace GC via a sweep worker, not instant delete.**
   Instant deletion destroys rooms on voice reconnects; the stamped
   `empty_since` + sweep also gives boot cleanup the same code path.
-- **Payload-free `channel_list_changed`.** Pushing channel objects
+- **Payload-free `channels_updated`** (designed as
+  `channel_list_changed`). Pushing channel objects
   would need per-recipient permission filtering in the WS layer — a
   second visibility code path to keep correct. A refetch hits the one
   already-gated endpoint. Channel lists are small; the cost is noise-

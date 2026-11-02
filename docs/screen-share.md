@@ -7,9 +7,10 @@ view in a viewer panel alongside the chat.
 
 v1 ships as a **hub-relayed WebSocket chunk stream** — the existing
 WS infrastructure carries WebM chunks from sharer to hub to viewers.
-v2 (deferred) upgrades the transport to WebRTC P2P with the hub as
-SDP/ICE signaler. The user-visible feature surface is identical
-between the two transports; the change is internal.
+It is the only transport today. A v2 (WebRTC P2P, hub as SDP/ICE
+signaler) was partly built on desktop and then removed, hub relay
+included ([screen-share-webrtc.md](screen-share-webrtc.md) status).
+Hub handlers: Wavvon-server `crates/hub/src/routes/ws/handlers/screen.rs`.
 
 ---
 
@@ -117,9 +118,9 @@ before they can decode anything.
 ### Wire format
 
 Two new envelope variants on the existing typed message channel in
-`hub/src/routes/chat_models.rs` (Wavvon-server) — the same enum that
-already carries `Subscribe` / `Unsubscribe` at
-lines 175-181 (`SubscribeAll` removed — hub auto-subscribes on connect):
+`crates/hub/src/routes/chat_models.rs` (Wavvon-server) — the same enum
+that carries `Subscribe` / `Unsubscribe`. Field-level contract:
+[ws-protocol.md](ws-protocol.md).
 
 ```
 // Client → Hub
@@ -212,7 +213,11 @@ scaling pain point that motivates v2.
 
 ---
 
-## Transport — v2 (WebRTC P2P, future)
+## Transport — v2 (WebRTC P2P, removed)
+
+> Built partly on desktop, then removed with its hub relay; see
+> [screen-share-webrtc.md](screen-share-webrtc.md). The sketch below is
+> the original rationale.
 
 Trigger conditions for the v1 → v2 migration:
 
@@ -269,7 +274,8 @@ simply produces silent audio if no driver is present, with no error.
 ### Webcam mic
 
 Not captured. The user's mic is already in the voice channel via
-the cpal pipeline (`voice/src/capture.rs` in Wavvon-desktop). Capturing
+the voice pipeline (`crates/voice/src/capture.rs` in Wavvon-clients on
+desktop, `getUserMedia` on web). Capturing
 it twice would echo or double-mic.
 
 ### Viewer volume
@@ -285,19 +291,19 @@ client prefs.
 
 | Change | Where |
 |---|---|
-| New WS envelopes (`ScreenShareStart`/`Chunk`/`Stop` + `*Started`/`ChunkOut`/`Stopped`) | `hub/src/routes/chat_models.rs` in Wavvon-server (extend the enums at line 175 and 196) |
-| Binary frame correlation (envelope ↔ next binary frame) | `hub/src/routes/ws/` (Wavvon-server) |
-| In-memory `ActiveShare` map per channel | `hub/src/state.rs` (Wavvon-server, sibling of `voice_channels`) |
+| New WS envelopes (`ScreenShareStart`/`Chunk`/`Stop` + `*Started`/`ChunkOut`/`Stopped`) | `crates/hub/src/routes/chat_models.rs` in Wavvon-server |
+| Binary frame correlation (envelope ↔ next binary frame) | `crates/hub/src/routes/ws/handlers/screen.rs` (Wavvon-server) |
+| In-memory `ActiveShare` map, keyed `(channel_id, sharer_pubkey)` | `crates/hub/src/state.rs` (`screen_shares`) |
 | Init-chunk cache per active stream | Same map, fixed-size byte buffer per stream |
-| Permission check on `ScreenShareStart` | Reuses existing channel-membership + role check |
-| At-most-one-sharer-per-channel enforcement | Reject `ScreenShareStart` if `ActiveShare` exists; allow same sharer to add a second stream (webcam) |
+| Permission check on `ScreenShareStart` | `voice.join` on the channel |
+| ~~At-most-one-sharer-per-channel~~ | Dropped: multiple concurrent sharers are allowed |
 
 No DB schema changes. No persistent storage. Active-share state
 dies with the process; on restart, in-flight shares are dropped
 and clients reconnect normally.
 
 The voice channel itself does not change — screen share rides on
-the chat WS, not the voice UDP relay. (Putting it on UDP would
+the chat WS, not the voice datagram relay. (Putting it on datagrams would
 require new reliability primitives the WS path gives us for free.)
 
 ---
@@ -312,10 +318,11 @@ channel's voice. Clicking it opens the source picker modal.
 
 ### Source picker modal
 
-> **Desktop-native modal (designed, not built):** A unified Wavvon-native
-> source picker with thumbnail previews (bypassing the OS overlay) is designed
-> in [screen-share-modal.md](screen-share-modal.md). The current v1 picker
-> uses the OS-native `getDisplayMedia()` overlay described below.
+> **Desktop-native modal (partly built):** the Wavvon-native source
+> picker with thumbnails from [screen-share-modal.md](screen-share-modal.md)
+> exists on desktop (`ScreenShareModal.tsx`, `list_capture_sources`), but
+> the chosen `sourceId` is not used yet, so `getDisplayMedia()` still
+> shows the OS picker after it. Web uses the OS overlay described below.
 
 | Element | Behaviour |
 |---|---|
@@ -392,14 +399,12 @@ screen audio is present).
 
 | Default | Behaviour |
 |---|---|
-| Any approved member of the hub can share into any channel they have voice access to | Matches voice rules — sharing is "richer voice" |
-| Admins can restrict sharing to specific roles | New `channel_permissions` flag: `can_screen_share` |
-| Hub-wide toggle: "Allow screen share" on/off | Hub settings → Voice |
+| Anyone holding `voice.join` on the channel can share into it | Matches voice rules — sharing is "richer voice" |
 
-The permission gate is checked hub-side on `ScreenShareStart`. The
-client also greys out the share button when the permission check
-would fail (read from the same role/permission state the rest of
-the UI uses).
+The gate is checked hub-side on `screen_share_start`. There is no
+separate screen-share permission and no hub-wide toggle (both were
+planned here and not built): restricting sharing means restricting
+`voice.join` on that channel.
 
 The home hub list (personal-axis) is not involved — screen share
 is community traffic, flowing direct between the sharer and the

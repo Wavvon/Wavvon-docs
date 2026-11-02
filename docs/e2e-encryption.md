@@ -4,6 +4,12 @@
 > describes as "today" is the state *before* it. DMs are end-to-end encrypted
 > now, the store is PostgreSQL rather than SQLite, and a web DM cannot leave
 > unencrypted without the sender being asked (shipped log, 2026-09-07).
+>
+> **Paths.** Every desktop `~/.wavvon/<file>.json` below now lives per
+> account, under `~/.wavvon/accounts/<id>/` (Wavvon-clients
+> `apps/desktop/src-tauri/src/accounts.rs`); the DM commands are in
+> `apps/desktop/src-tauri/src/dm.rs`, not `lib.rs`. Hub paths read
+> `hub/src/` as Wavvon-server `crates/hub/src/`.
 
 When this was written, DMs were plaintext in the hub's database
 (`dm_messages.content`, `hub/src/db/migrations.rs` in Wavvon-server) and the
@@ -360,14 +366,14 @@ holds `EncryptedDmEnvelope`; when `is_group_encrypted=1` it holds
 
 | Change | Where |
 |---|---|
-| `push_group_sender_key(conv_id)` Tauri command | `desktop/src-tauri/src/lib.rs` |
+| `push_group_sender_key(conv_id)` Tauri command | Wavvon-clients `apps/desktop/src-tauri/src/dm.rs` |
 | `fetch_group_sender_keys(conv_id)` Tauri command | same |
 | `encrypt_group_dm(conv_id, content)` Tauri command | same |
-| `decrypt_group_dm(conv_id, envelope)` Tauri command | same |
-| Local chain-key state file `~/.wavvon/group_sender_keys.json` | managed by Tauri commands |
-| Group DM send path uses `encrypt_group_dm` | `desktop/src/App.tsx` |
-| `get_dm_messages` decrypts group envelopes inline | `desktop/src-tauri/src/lib.rs` |
-| Group DM banner replaced by lock icon once all keys are available | `desktop/src/components/ContentArea.tsx` |
+| Group decrypt — `decrypt_group_dm_inner`, a helper, not a command | same |
+| Local chain-key state file `group_sender_keys.json` (per account, `~/.wavvon/accounts/<id>/`) | managed by Tauri commands |
+| Group DM send path uses `encrypt_group_dm` | `apps/desktop/src/hooks/useDms.ts` |
+| `get_dm_messages` decrypts group envelopes inline | `dm.rs` |
+| Group DM banner replaced by lock icon once all keys are available | shared `ContentArea` in `packages/ui` |
 
 ---
 
@@ -452,19 +458,16 @@ every new message will be encrypted automatically — no user action needed.
 
 ## Attachment encryption
 
-Same scheme, same key. The `plaintext_json` we encrypt in §"1:1 message
-encryption" already includes `attachments`. The attachment bytes (base64
-in `Attachment.data_b64`, see `routes/chat_models.rs`) are part of the
-plaintext blob and ride inside the same AES-GCM ciphertext.
+The original design: same scheme, same key — the `plaintext_json` in
+§"1:1 message encryption" includes `attachments`, and the base64 bytes
+ride inside the same AES-GCM ciphertext. No separate attachment
+ciphertext table.
 
-Cap stays the same (`MAX_ATTACHMENTS_BYTES`, ~3 MB). AES-GCM expansion is
-16 bytes, negligible against the cap. No separate attachment ciphertext
-table.
-
-**Not implemented as written (found 2026-11-01).** Both clients encrypt
-`{content}` alone and send attachments in the clear beside the envelope. The
-fix, and how DM files will later move to disk, are in
-[attachments.md](attachments.md) §8.
+**Not implemented as written (found 2026-11-01).** Both clients encrypted
+`{content}` alone and sent attachments in the clear beside the envelope.
+Inline base64 attachments are gone since (files are stored on hub disk),
+and the hub now refuses plaintext attachments beside an encrypted DM. The
+current design is [attachments.md](attachments.md) §8.
 
 ---
 

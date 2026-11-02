@@ -1,9 +1,12 @@
 # Permissions — Model and Catalog
 
-**Status**: designed 2026-09-15 with the user; **not built**. This file
-replaces the permission model that exists today rather than describing it.
-Where it says "today", that is the code as of 2026-09-15; everything else is
-the target.
+**Status**: designed 2026-09-15 with the user; **built 2026-09-16** on the
+hub ([Wavvon-server#40](https://github.com/Wavvon/Wavvon-server/pull/40), with
+#38, #39, #43 and #44 before and after it) and in the clients (Wavvon-clients
+#48, #49). The catalogue is declared once in `Wavvon-server:
+crates/hub/src/permissions.rs`, which is authoritative for the list; §3 here
+records why each entry exists. §0 describes the model this replaced, as it
+stood on 2026-09-15 — read "today" there as "before the rebuild".
 
 The channel overwrite cascade ([nested-channels-ux.md](nested-channels-ux.md)
 §3) is the one piece that survives unchanged — this design reuses its
@@ -43,7 +46,7 @@ The drift produced four ghosts and one invisible gate:
 | `use_video` | Granted to `builtin-owner` in `migrations.rs:445`, consulted nowhere. |
 | `manage_games` | Granted at bootstrap, offered as a channel overwrite, consulted nowhere. |
 | `start_game` | Granted to `builtin-everyone`, offered as a channel overwrite, consulted nowhere. |
-| `manage_voice` | A **real gate** (voice-zone creation, `ws/handlers/voice.rs:990`) written as a string literal, absent from every list — so no client can show it and the overwrite validator rejects it. **Server side since 2026-09-16**: catalogued, and both call sites use the constant, so validating `create_role` did not make an enforced permission ungrantable. Still absent from the clients' copies until §1.5 lands, and it folds into `channels.manage` here regardless. |
+| `manage_voice` | A **real gate** (voice-zone creation, `ws/handlers/voice.rs:990`) written as a string literal, absent from every list — so no client can show it and the overwrite validator rejects it. **Server side since 2026-09-16**: catalogued, and both call sites use the constant, so validating `create_role` did not make an enforced permission ungrantable. Folded into `channels.manage` by the rebuild. |
 
 ## 1. The model
 
@@ -121,28 +124,34 @@ nobody ticks 40 boxes by hand.
 
 ### 1.5 One source of truth
 
-The server owns the catalog. Clients stop carrying their own copies:
+The server owns the catalog. Clients do not carry their own copies:
 
-- The hub exposes the catalog — each entry with its id and its valid scopes.
-  The roles UI and the channel-overwrite UI both render from it, which
-  deletes `RolesSection.ALL_PERMISSIONS` and
-  `CHANNEL_OVERWRITE_PERMISSIONS` and the "which of these has a channel
-  dimension" decision that currently lives in a TypeScript comment.
-- `create_role` / `update_role` validate against the catalog. Missing today.
+- The hub serves the catalog at `GET /permissions` — each entry with its id
+  and its scope — behind the `permissions.catalogue` capability. The roles UI
+  and the channel-overwrite UI both render from it, so the "which of these has
+  a channel dimension" decision lives beside each id in the Rust declaration
+  instead of in a TypeScript comment. `RolesSection.ALL_PERMISSIONS` survives
+  only as the set of ids this client build has labels for; nothing renders
+  from it.
+- `create_role` / `update_role` validate against the catalog, and a channel
+  overwrite is also refused when the id's scope is hub-only.
 - Labels stay in the i18n catalogs keyed by id, as
-  `hub.admin.roles.perm.<id>`. `templateLabels.test.ts` already fails when an
-  id has no label in one of the four languages; it keeps working, and now
-  covers the overwrite UI too, which today ships hardcoded English strings
-  (`channelPermissions.ts`, rendered raw at `ChannelPermissionsTab.tsx:159`).
-- A **derivation endpoint** — "why can this member do X here" answering
-  *role Moderators, allowed on #general*. Two axes are debuggable by reading;
-  they are not debuggable by guessing, and every operator question about
-  permissions is this question.
+  `hub.admin.roles.perm.<id>`. `templateLabels.test.ts` fails when an id has
+  no label in one of the four languages, and that covers the overwrite UI too.
+  A hub newer than the client can send an id with no label; the screen shows
+  the raw id rather than hiding a permission that exists.
+- A **derivation endpoint**, `GET /users/{pubkey}/permissions/why` — "why can
+  this member do X here", answering *role Moderators, allowed on #general*,
+  with sources in the order the resolver folds them. Two axes are debuggable
+  by reading; they are not debuggable by guessing, and every operator question
+  about permissions is this question.
 
 ### 1.6 The escalation ceiling, without which this is worse than `admin`
 
 Deleting the wildcard makes `roles.manage` the most dangerous permission on
-the hub, and today nothing bounds what it may hand out.
+the hub, and before 2026-09-16 nothing bounded what it may hand out. The guard
+below is built as `require_can_grant` in `permissions.rs`; this section is the
+reason it is a precondition rather than hardening.
 
 The channel-overwrite path already has the guard (`channel_permissions.rs:245`):
 a caller may only *allow* permissions they themselves effectively hold on that
@@ -171,9 +180,11 @@ building the first three). `create_invite` with `grant_role_id`
 `manage_channels`, **not** `manage_roles`, so it is reachable by everyone who
 can invite people. It bounded priority only, like the rest. `role_grants_admin`
 already clamped uses and expiry for an invite carrying `admin`, so the
-takeover shape had been seen there; but it looks for the one string this
-design deletes, so after the rebuild it catches nothing. All four doors take
-the guard.
+takeover shape had been seen there; but it looked for the one string this
+design deletes. It is now `role_is_a_takeover_token` (`routes/invites.rs`),
+which looks for `roles.manage` and for ownership instead. All four doors take
+the guard — five, counting the lobby survey: answering one assigns the mapped
+roles with nobody in the loop, so it takes the same ceiling.
 
 Three consequences worth naming:
 
@@ -184,13 +195,13 @@ Three consequences worth naming:
   `certs.issue` does not touch a role they already minted carrying it. The
   subset check is on write, not a standing invariant, and that is the intended
   reading — but it means demoting a delegate is two steps, not one.
-- **The owner exemption is currently free, and stops being free.** `has()`
-  short-circuits on `admin`, so while the wildcard exists an owner clears
-  every subset check without anything being written for them. When `admin` is
-  deleted that silently inverts: the owner becomes a caller who holds only
-  what `builtin-owner` was separately given, and cannot grant the rest. The
-  guard has to start consulting `is_owner` in the same change that removes the
-  string, not after it.
+- **The owner exemption was free, and had to stay free.** `has()` used to
+  short-circuit on `admin`, so an owner cleared every subset check without
+  anything being written for them. Deleting `admin` would have silently
+  inverted that: the owner becomes a caller who holds only what
+  `builtin-owner` was separately given, and cannot grant the rest. It holds
+  because `has()` now short-circuits on `is_owner` instead, in the same change
+  that removed the string.
 
 ## 2. Granularity rule
 
@@ -250,6 +261,13 @@ activity. `set_talk_power` likewise — it is a channel setting that was gated
 hub-admin by accident.
 
 ### Voice
+
+*Since written, voice became a kind of channel* ([decisions.md](decisions.md),
+"Voice lives in voice channels"): `channel_type` now also includes `voice`, and
+a voice join is refused anywhere but a `voice` (or `spawner`) channel
+(`ws/handlers/voice.rs`). `voice.join` still decides *who* may join one; the
+paragraph below is the reasoning as it stood when every channel could be
+talked in.
 
 Voice is not a kind of channel. `channel_type` is `text`, `forum`, `banner` or
 `spawner` (`routes/channels.rs:218`) — every ordinary channel can be talked in.
@@ -451,8 +469,8 @@ All of these keep the `max_priority` out-ranking check.
 | `hub.admission` | H | `admin` on `list_pending`/`approve_user` | The join queue and admission posture |
 | `invites.manage` | H | `manage_channels` (**wrong today**) | Mint, list and revoke invites |
 
-Listing invites requires `manage_channels` today (`invites.rs:47`). Nothing
-about an invite is a channel.
+Listing invites used to require `manage_channels`. Nothing about an invite
+is a channel.
 
 ### Events
 
@@ -550,21 +568,17 @@ like any other".
   Shipped with a `voice.permissions` capability and the client row behind it —
   the split is unusable until an operator can deny the voice half, and denying
   read alone no longer hides anything.
-- **The catalog endpoint and the derivation endpoint** (§1.5).
-- **A capability string.** Clients branch on capabilities, never on version
-  numbers, and a client is multi-hub: one served by a rebuilt hub will talk to
-  a hub still on the old catalogue. It needs to know which, or it renders a
-  roles screen of ids that hub has never heard of. Same shape as
-  `alliance.permissions` from the alliance design.
-- **`openapi.yaml`.** The catalogue and derivation endpoints are new paths and
-  the role payloads change ids; `scripts/check-openapi-coverage.mjs` fails the
-  build until the spec matches, and the spec is part of the change rather than
-  a follow-up.
+- ~~**The catalog endpoint and the derivation endpoint** (§1.5)~~ — **done
+  2026-09-16**: `GET /permissions` and `GET /users/{pubkey}/permissions/why`.
+- ~~**A capability string**~~ — **done 2026-09-16**: `permissions.catalogue`.
+  Clients branch on capabilities, never on version numbers, and a client is
+  multi-hub: one served by a rebuilt hub will talk to a hub still on the old
+  catalogue. Against a hub without the string the roles screen offers nothing
+  to tick, because the old snake_case ids share no spelling with the new ones.
+- ~~**`openapi.yaml`**~~ — **done 2026-09-16**, in the same change.
 - ~~**The hub-wide self-grant guard** (§1.6)~~ — **done 2026-09-16**, on all
   four doors including the invite one §1.6 had not listed. Its owner exemption
-  rides on `admin` short-circuiting in `has()`, which is the trap named at the
-  end of §1.6: the change that deletes the string has to replace the exemption
-  in the same breath.
+  moved from `admin` to `is_owner` in the change that deleted the string.
 - ~~**Validation in `create_role` / `update_role`** (§0)~~ — **done
   2026-09-16**. It landed first, as predicted, and the first thing it caught
   was a dead permission string in the server's own test suite (`"kick"`, where
@@ -573,10 +587,13 @@ like any other".
 
 ## 6. Migration
 
-Alpha, no backward compatibility ([ROADMAP](../ROADMAP.md)). The catalog is
-rebuilt rather than mapped: drop the contents of `role_permissions` and
-`channel_permission_overwrites`, reseed `builtin-everyone` and
-`builtin-owner`, and reseed the bootstrap role templates with the new ids.
+**Done 2026-09-16** (Wavvon-server#40). Alpha, no backward compatibility
+([ROADMAP](../ROADMAP.md)). The catalog is
+rebuilt rather than mapped: drop the rows in the old spelling from
+`role_permissions` and `channel_permission_overwrites`, reseed
+`builtin-everyone` and `builtin-owner`, and reseed the bootstrap role
+templates with the new ids. The migration logs how many rows it dropped, so an
+operator knows to re-grant what custom roles carried.
 `builtin-everyone` carries `voice.join` among them — the whole "nothing
 changes until someone denies it" property of an independent voice gate rests
 on that one seeded row.

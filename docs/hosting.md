@@ -1,7 +1,7 @@
 # Hosting a Hub
 
-The practical guide to **deploying** a Wavvon hub (the `hub/` crate in
-Wavvon-server) as a real service. This doc is organized by deployment
+The practical guide to **deploying** a Wavvon hub (the `crates/hub/` crate
+in Wavvon-server) as a real service. This doc is organized by deployment
 *method* — pick one, follow it end to end. For *operating* a running hub
 (config reference, ownership, backups, admin CLI, monitoring) see the
 [hub-operator-guide.md](hub-operator-guide.md). For architecture, see
@@ -32,8 +32,12 @@ serve API-only by default; opt into the web client explicitly.
 - A Linux server with a public IP (or behind a reverse proxy with one).
 - A domain name pointing at the server (A/AAAA record to the IP).
 - Two open ports: HTTP/WS (default **3000**) and voice UDP (default
-  **3001**). Voice UDP must be reachable directly — it never passes
-  through an HTTP proxy.
+  **3001**, WebTransport over QUIC). Voice UDP must be reachable directly —
+  it never passes through an HTTP proxy.
+- `WAVVON_PUBLIC_URL` set to the hub's public base URL
+  (`https://your-hub.example`). Without it the hub warns at startup and
+  voice, invite links and passkeys are unavailable. Farm-hosted hubs derive
+  it from the farm and need not set it.
 - TLS — terminated at the hub or at a reverse proxy. Browser clients
   served over HTTPS cannot connect to a plain-`http://` hub.
 - **PostgreSQL — or nothing at all.** Since 2026-08-30 the hub carries its own:
@@ -54,13 +58,16 @@ serve API-only by default; opt into the web client explicitly.
   binary and a restore with the new one — the hub refuses to start on a data
   directory from another major and prints those two commands rather than
   attempting anything.
-- Disk for inline attachments and the Tantivy search index. Community-scale
-  is modest; the per-message attachment cap defaults to 3 MB and is
-  settable in hub admin (Overview -> Limits), up to 8 MB.
+- Disk for uploaded files, the Tantivy search index (`hub.search/`) and the
+  bundled database if you use it. Uploads live on disk in `./uploads/`
+  (`WAVVON_UPLOADS_DIR`), up to 25 MiB per file, inside a total budget that
+  defaults to 10 GiB and evicts the oldest blobs when full. Inline message
+  attachments are a separate, smaller cap (default 3 MB, up to 8 MB). All of
+  these are hub settings, adjustable from the client by the owner.
 
-The hub's persistent state is the PostgreSQL database plus
-`hub_identity.json` (the hub's Ed25519 federation key) in the working
-directory.
+The hub's persistent state is the PostgreSQL database, the uploads
+directory and `hub_identity.json` (the hub's Ed25519 federation key), all
+in the working directory unless configured otherwise.
 
 > **Critical**: `hub_identity.json` *is* the hub's identity — whoever
 > holds it can impersonate the hub to federation peers. Back it up
@@ -227,7 +234,8 @@ services:
         condition: service_healthy
     environment:
       WAVVON_DATABASE_URL: "postgres://wavvon:${WAVVON_DB_PASSWORD:?set it in .env}@db:5432/wavvon"
-      WAVVON_OWNER_PUBKEY: "<your-64-hex-pubkey>"  # set before first boot
+      WAVVON_PUBLIC_URL: "https://your-hub.example"
+      # WAVVON_OWNER_PUBKEY: "<your-64-hex-pubkey>"  # optional, see below
       # WAVVON_CORS_ORIGINS defaults to * — correct for a public hub
       # WAVVON_WEB_CLIENT_DIR defaults to /web-client in the image — leave it
     volumes:
@@ -297,16 +305,15 @@ host directory bind-mounted at `/data` does not, so chown it first
 (`sudo chown -R 10001:10001 ./hub-data`) or the hub stops at startup with
 `Permission denied` writing its identity file.
 
-Get your owner pubkey from the desktop client's **Settings → Identity**
-(64 hex chars). Set `WAVVON_OWNER_PUBKEY` before first boot, or assign it
-later without a restart:
+**Becoming the owner.** A fresh hub is invite-only, and while nobody holds
+the owner role it logs a one-time **first-boot owner invite**
+(`First-boot owner invite: https://your-hub.example/join/<code>`; read it
+with `docker compose logs hub`, or `wavvon-hub --doctor` prints it too).
+Open that link and you join as owner. Alternatives: set
+`WAVVON_OWNER_PUBKEY` (your identity's 64-hex public key) — it is seeded
+as owner at every boot — or assign it without a restart:
 `docker compose exec hub wavvon-hub admin users set-owner <pubkey>`.
 Ownership detail lives in the [operator guide](hub-operator-guide.md#hub-ownership).
-
-> **Note (known issue, 2026-06):** on a fresh hub the *first* user to
-> join can silently become owner before you assign one. Set
-> `WAVVON_OWNER_PUBKEY` and join first, or keep the hub closed until
-> ownership is assigned. Tracked in ROADMAP.
 
 ---
 
@@ -336,7 +343,7 @@ services:
         condition: service_healthy
     environment:
       WAVVON_DATABASE_URL: "postgres://wavvon:${WAVVON_DB_PASSWORD:?set it in .env}@db:5432/wavvon"
-      WAVVON_OWNER_PUBKEY: "<your-64-hex-pubkey>"
+      WAVVON_PUBLIC_URL: "https://your-hub.example"
       WAVVON_LOG_FORMAT: "text"
       # REQUIRED behind a proxy — see the warning below.
       WAVVON_TRUSTED_PROXY: "true"
@@ -469,9 +476,6 @@ wavvon-hub --version
 wavvon-hub --doctor    # says which database mode this binary will use
 ```
 
-The cargo target is named `hub`; the install examples here keep the
-on-disk name `wavvon-hub` for clarity.
-
 **Database** — a musl binary does not bring one. Set up PostgreSQL and a
 `WAVVON_DATABASE_URL` first: [Providing PostgreSQL](#providing-postgresql).
 Verify with `psql "$WAVVON_DATABASE_URL" -c 'select version();'` before
@@ -506,6 +510,7 @@ PrivateTmp=true
 # Configuration (see the operator guide for the full env reference)
 Environment=WAVVON_HTTP_PORT=3000
 Environment=WAVVON_VOICE_UDP_PORT=3001
+Environment=WAVVON_PUBLIC_URL=https://hub.example
 # TLS at the hub — omit these if a reverse proxy terminates TLS instead:
 Environment=WAVVON_TLS_CERT=/etc/letsencrypt/live/hub.example/fullchain.pem
 Environment=WAVVON_TLS_KEY=/etc/letsencrypt/live/hub.example/privkey.pem
@@ -572,7 +577,7 @@ the `apps/web` SPA into `/web-client`:
 
 ```bash
 # With the web client (Wavvon-client checked out into web-client-src/):
-docker build -f hub/Dockerfile -t wavvon-hub:local .
+docker build -f crates/hub/Dockerfile -t wavvon-hub:local .
 
 # Without web-client-src/ present, the image still builds, but /web-client
 # is EMPTY (no index.html). The image still sets WAVVON_WEB_CLIENT_DIR=
@@ -584,7 +589,7 @@ docker run -e WAVVON_WEB_CLIENT_DIR= wavvon-hub:local
 **Build the web-client dist standalone** (for method 3's optional serving):
 
 ```bash
-git clone https://github.com/wavvon/Wavvon-client && cd Wavvon-client
+git clone https://github.com/Wavvon/Wavvon-clients && cd Wavvon-clients
 pnpm install && pnpm --filter wavvon-web build:hub   # output in apps/web/dist-hub
 ```
 
@@ -680,7 +685,8 @@ curl https://hub.example/info     # hub name, description, icon, public key
 ```
 
 Point an uptime monitor (Uptime Kuma, Prometheus blackbox, …) at
-`/health`. Prometheus-format metrics are at `GET /metrics` — see the
+`/health`. Prometheus-format metrics are at `GET /metrics` once you set
+`WAVVON_METRICS=true` (404 otherwise) — see the
 [operator guide](hub-operator-guide.md#observability).
 
 ---

@@ -8,8 +8,8 @@ the discovery service are each their own repo.
 
 ```
 Wavvon              ── docs, ROADMAP.md, openapi.yaml (this repo)
-Wavvon-server       ── Rust workspace: hub/, identity/, store/, hub-env/,
-                       farm/, agent/, demo-seed/
+Wavvon-server       ── Rust workspace: crates/{hub, identity, hub-env,
+                       farm, agent, demo-seed}
 Wavvon-clients      ── pnpm + Cargo monorepo for every client:
                        apps/web (Vite + React, two builds),
                        apps/desktop (Tauri 2 + React),
@@ -26,17 +26,21 @@ There is no Android app in the workspace — only `apps/web` and
 
 ## The Wavvon-server workspace
 
-The canonical deployment unit is **Farm → Server → Hub** (see
-[decisions.md](decisions.md), "Architecture: Farm → Server → Hub"): a
-farm is the control plane, a server is a compute node running a server
-agent, and a hub is the community space the agent spawns and manages.
-Standalone `wavvon-hub` binary usage is deprecated.
+A hub is **self-hosted**: somebody runs the `wavvon-hub` binary on their
+own machine, and no client creates one (see [decisions.md](decisions.md),
+"A hub is self-hosted"). The **Farm → Server → Hub** layering
+("Architecture: Farm → Server → Hub") is an optional way for one operator
+to run many hubs: a farm is the control plane, a server is a compute node
+running the agent, and a hub is a process the agent spawns. *(Status
+2026-11-02: an earlier version of this page called standalone hubs
+deprecated; that was reversed by the self-hosted decision.)*
 
 ### `hub/` crate
 
 A single hub. Owns:
 - An axum HTTP+WebSocket API (port 3000 by default).
-- A UDP voice relay (port 3001 by default).
+- A WebTransport (QUIC) voice relay on UDP 3001 by default, for web and
+  desktop alike (`voice_wt.rs`; see [voice-transport-v2.md](voice-transport-v2.md)).
 - A PostgreSQL database (configured via `WAVVON_DATABASE_URL`).
 - An outbox worker for federated DMs (`dm_worker.rs`).
 - A federation client for talking to other hubs.
@@ -44,9 +48,9 @@ A single hub. Owns:
   data retention (`retention_worker.rs`), cert maintenance
   (`cert_worker.rs`).
 
-Entry: `hub/src/main.rs` → `server.rs` (router setup), in Wavvon-server.
+Entry: `Wavvon-server: crates/hub/src/main.rs` → `server.rs` (router setup).
 
-Key submodules (all under `hub/src/` in Wavvon-server):
+Key submodules (all under `Wavvon-server: crates/hub/src/`):
 - `auth/` — challenge-response signature auth (see [identity.md](identity.md))
 - `routes/` — every HTTP endpoint, one file per resource
 - `federation/` — hub-to-hub HTTP client + handlers
@@ -62,9 +66,9 @@ Rationale in [decisions.md](decisions.md) ("Farm model phases 1 + 2"
 and "phase 3") and design in [farm-model.md](farm-model.md) /
 [farm-impl.md](farm-impl.md).
 
-### `server/` crate
+### `agent/` crate
 
-The server agent (`wavvon-server` binary). Runs on each compute node,
+The server agent (`wavvon-agent` binary). Runs on each compute node,
 reverse-connects to its farm over WebSocket (`agent.rs`), and spawns,
 monitors, and stops local hub processes on the farm's behalf
 (`hub_manager.rs`). No HTTP surface of its own.
@@ -80,31 +84,27 @@ link it — the Tauri shells carry their own `identity.rs`
 clients carry TypeScript implementations (Wavvon-clients
 `packages/core/src/identity/`) —
 so each reimplementation must match the crate byte-for-byte, validated
-against shared test vectors. A wire-format spec with test vectors is
-being added at `docs/wire-format.md` in Wavvon-server.
+against shared test vectors. The spec is [wire-format.md](wire-format.md)
+in this repo; the vectors are `Wavvon-server: crates/identity/wire-vectors.json`.
+Apache-2.0, unlike the rest of the workspace, so third-party clients can link it.
 
-- Lib entry: `identity/src/lib.rs` (Wavvon-server)
-- Recovery phrases: `identity/src/recovery.rs` (Wavvon-server)
-- PoW helpers (anti-spam, future): `identity/src/pow.rs` (Wavvon-server)
+- Lib entry: `crates/identity/src/lib.rs` (Wavvon-server)
+- Recovery phrases: `crates/identity/src/recovery.rs` (Wavvon-server)
+- PoW helpers: `crates/identity/src/pow.rs` (Wavvon-server)
 
-### `store/` crate
-
-The database abstraction and PostgreSQL implementation. Defines
-domain-split traits (`AuthStore`, `UserStore`, `MessageStore`, …)
-collected into a `HubStore` super-trait plus a `StoreError` enum; the
-`PostgresStore` type is the concrete implementation. The hub holds
-`Arc<dyn HubStore>`. Rationale in [decisions.md](decisions.md)
-("Database abstraction: trait-based store crate split") and design in
-[store-trait-design.md](store-trait-design.md).
+The `store/` crate (a `HubStore` trait over PostgreSQL) is gone: the hub
+queries PostgreSQL directly through `AppState.db`, a `PgPool`.
+[store-trait-design.md](store-trait-design.md) is kept for the history.
 
 ### `crates/voice/` (in Wavvon-clients)
 
-Audio pipeline: capture → denoise (RNNoise) → encode (Opus) → transport
-→ decode → playback. Used by the desktop and Android Tauri shells.
+Audio pipeline: capture → denoise (RNNoise) → encode (Opus) → encrypt →
+WebTransport → decode → playback. Used by the desktop Tauri shell; the
+web client does the same in the browser.
 
 - Pipeline orchestration: `crates/voice/src/pipeline.rs` (Wavvon-clients)
 - Codec: `crates/voice/src/codec.rs` (Wavvon-clients)
-- UDP transport: `crates/voice/src/transport.rs` (Wavvon-clients)
+- WebTransport client: `crates/voice/src/transport.rs` (Wavvon-clients)
 - Wire protocol: `crates/voice/src/protocol.rs` (Wavvon-clients)
 
 See [voice.md](voice.md) for the full data flow.
@@ -141,7 +141,7 @@ See [federation.md](federation.md) for the protocol and
   Wavvon-server is the single source of truth for the wire format;
   client reimplementations (Rust shells and TypeScript) are verified
   against it with shared test vectors rather than linking the crate.
-- **Farm → Server → Hub**: hubs are managed processes, not hand-run
-  binaries, so fleet operations and hub creation have one control
-  surface. (See [decisions.md](decisions.md).)
+- **Self-hosted hubs, optional farm**: a community owns its hub by running
+  it; the farm layering exists for an operator with many hubs, not as a
+  required control surface. (See [decisions.md](decisions.md).)
 - **Tauri over Electron**: smaller binaries, native voice, real OS APIs.

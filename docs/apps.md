@@ -9,7 +9,7 @@ capability layer, and no way for a caller to declare itself a different kind
 of thing. What used to be "a bot" is a member whose role carries
 **`apps.register`**.
 
-This replaced `apps.md`, `apps.md` and `apps.md` on
+This replaced `bots.md`, `bot-capability-layer.md` and `bot-media.md` on
 2026-09-26. The reasoning is in [decisions.md](decisions.md), "A bot is a
 client like any other"; what follows is how the surface works now.
 
@@ -22,9 +22,10 @@ on an `invite_only` hub present an invite code. A program can hold a code —
 it is a string.
 
 The one thing a program genuinely cannot do is solve the admission puzzle,
-because the puzzle asks "are you a person" and the honest answer is no. That
-gap is open and designed separately; see
-[future-features.md](future-features.md).
+because the puzzle asks "are you a person" and the honest answer is no. A
+**bound invite** closes that gap (2026-10-04, Wavvon-server#66): an invite
+carrying `bound_pubkey` can be redeemed only by that key and stands in for
+the challenge, because the admin who minted it already named the program.
 
 There used to be a second admission path — `POST /bots` wrote a `users` row
 with `is_bot = TRUE` and the caller asserted `is_bot: true` at verify to skip
@@ -102,7 +103,8 @@ Camera inside the webview stays behind an operator switch
 `requires_camera` declaration.
 
 See [mini-apps.md](mini-apps.md) for the session-scoping details and
-[gaming.md](gaming.md) for the sandboxed game SDK.
+[gaming.md](gaming.md) for why games need no SDK of their own (a game is an
+app with a mini-app URL).
 
 ## 5. Hub events
 

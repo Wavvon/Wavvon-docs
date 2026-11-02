@@ -1,115 +1,46 @@
 # Desktop Client
 
 Tauri 2 + React 19 + TypeScript. Lives at `apps/desktop/` in the
-Wavvon-client monorepo (shared TS in `packages/core|ui|platform|i18n`).
+Wavvon-clients monorepo (shared TS in `packages/core|ui|i18n`).
 Two halves:
 
-- **Rust shell** (`apps/desktop/src-tauri/` in Wavvon-client) — file I/O,
+- **Rust shell** (Wavvon-clients: `apps/desktop/src-tauri/`) — file I/O,
   voice, OS notifications, system tray, OS-native dialogs. Communicates
-  with the UI via Tauri commands.
-- **React UI** (`apps/desktop/src/` in Wavvon-client) — everything visual.
+  with the UI via Tauri commands, one module per command domain.
+- **React UI** (Wavvon-clients: `apps/desktop/src/`) — `App.tsx` is the
+  state orchestrator; almost every visual component (sidebars,
+  `ContentArea`, `HubAdminPage`, settings tabs, modals) is shared from
+  `packages/ui`. Web is the source of truth for the UI; see
+  [client-monorepo.md](client-monorepo.md) and
+  [client-parity.md](client-parity.md).
 
-## React entry
+## Persistence (per-account)
 
-- `src/main.tsx` — boots React
-- `src/App.tsx` — state container. Holds all hooks, effects, and
-  handlers; renders only by composing top-level components.
-- `src/components/` — all visual components.
-
-**State in `App.tsx`**: identity, hub list, active hub, channel list,
-messages, DMs, alliances, blocked users, notifications, theme, voice
-state, and all UI transient state (modal open flags, form drafts,
-context menu positions).
-
-### Component tree (top-down)
-
-`App.tsx` renders one of three full-page views:
-
-| Condition | Component |
-|---|---|
-| `showHubAdmin` | `HubAdminPage` |
-| `showSettings` | `SettingsPage` |
-| otherwise | main layout (below) |
-
-The main layout is:
-
-```
-HubSidebar          — leftmost icon bar: hub list + DM button
-ChannelSidebar      — channel/DM list, alliances, games, voice footer
-ContentArea         — chat area, game iframe, member sidebar
-```
-
-Overlays rendered unconditionally when their state is set:
-`AddHubModal`, `CreateChannelModal`, `InstallGameModal`, `EditGameModal`,
-`FriendsModal`, `ChannelContextMenu`, `UserContextMenu`,
-`EditDescriptionModal`, `ChannelBansModal`, `ChannelPalette`, `Lightbox`.
-
-### Component categories
-
-**Page-level** (own the full viewport):
-`HubAdminPage`, `SettingsPage`
-
-**Layout panels** (receive all state as props, no internal state except
-DnD sensors):
-`HubSidebar`, `ChannelSidebar`, `ContentArea`
-
-**Modals and overlays** (opened by App.tsx, closed via `onClose` prop):
-`AddHubModal`, `CreateChannelModal`, `InstallGameModal`, `EditGameModal`,
-`FriendsModal`, `EditDescriptionModal`, `ChannelBansModal`,
-`ChannelContextMenu`, `UserContextMenu`, `ChannelPalette`, `Lightbox`
-
-**Primitives** (self-contained, used by multiple parents):
-`Avatar`, `TypingIndicator`, `MessageContent`, `MessageReactions`,
-`ReactionPicker`, `Attachments`, `UserListGrouped`, `MicLevelMeter`,
-`SortableItems`, `Icons`, `ThemePicker`, `PttKeyBinder`,
-`ImagePicker`, `AvatarEditor`, `WelcomeRecoveryBlock`
-
-**Admin sub-components** (used inside `HubAdminPage`):
-`MemberRow`, `RoleEditor`, `RoleCreator`, `InvitesSection`,
-`AlliancesSection`, `ChannelBansModal`
-
-**Settings sub-components** (used inside `SettingsPage`):
-`ProfileTab`, `RestoreIdentitySection`, `MicLevelMeter`
-
-## Persistence (per-device)
-
-JSON files in Tauri's app-data directory, owned by the Rust shell:
-
-| File                  | Purpose                                  |
-|-----------------------|------------------------------------------|
-| `identity.json`       | The Ed25519 keypair (one per device)     |
-| `hubs.json`           | Known hubs: URL + nickname + last token  |
-| `prefs.json`          | UI prefs (theme, notification scopes)    |
-| `blocked_users.json`  | Per-device pubkey block list             |
-
-These do **not** sync across devices today. (See [decisions.md](decisions.md).)
-
-## Tauri commands
-
-Defined in `apps/desktop/src-tauri/src/lib.rs` (Wavvon-client). A non-exhaustive
-list:
-
-- `load_identity` / `save_identity` — keypair persistence
-- `load_hubs` / `save_hubs` — hub list
-- `load_blocked_users` / `save_blocked_users` — per-device block list
-- `preview_hub_info` — pre-add fetch of hub name/icon
-- `clear_local_data` — wipes all of the above (double-confirmed in UI)
-- voice control commands (start/stop capture, mute, deafen, device select)
+The desktop client is multi-account. JSON files live under `~/.wavvon/`:
+an `accounts.json` registry plus one directory per account
+(`accounts/<id>/` — identity, pairing cert, home hub list, DM ratchet
+state, per-account local store). Device-global prefs (voice, appearance)
+stay at the root. Path helpers: Wavvon-clients
+`apps/desktop/src-tauri/src/accounts.rs`; the per-account vs
+device-global split is in `local_store.rs`. Personal-axis state that
+should follow the user (prefs blob, block list, home hubs) syncs through
+the home hub — see [home-hub.md](home-hub.md).
 
 ## Themes
 
-Four: Calm (default), Classic, Linear, Light. Theme tokens are CSS
-variables applied at the root via `data-theme`; switching is just a
-dataset change. Light overrides shadow tokens too — the dark-mode
-shadow values would look heavy on a light background.
+Two built-in themes, dark and light, plus custom skins that start from
+one of them ([custom-themes.md](custom-themes.md)). Tokens are CSS
+variables applied via `data-theme` on the root, all in the single
+stylesheet `packages/ui/src/styles.css`; switching is a dataset change.
+Light overrides shadow tokens too — the dark-mode shadow values would
+look heavy on a light background.
 
 ## Voice surface in the sidebar
 
-Each channel that has anyone in voice renders the participants nested
-underneath it in the sidebar — names indented under the channel row.
-The data comes from `GET /voice/participants` (polled every 5s); the
-channel row itself shows a `🎙️ N` count badge when there are people in
-voice. Double-clicking any channel joins voice on it.
+Voice lives in `voice`-type channels (decisions.md, "Voice lives in voice
+channels"). Each voice channel with anyone in it renders the participants
+nested underneath it in the sidebar. The data comes from
+`GET /voice/participants`, polled (`apps/desktop/src/hooks/useVoice.ts`).
 
 The user's mute mic and deafen toggles live in the sidebar footer next
 to the settings gear, and only render when the user is in voice on
@@ -126,83 +57,36 @@ backoff (1s, 2s, 4s, … capped at 30s) — no user action required. The
 existing "Reconnect" button in the banner is a manual override that
 resets backoff and tries immediately.
 
-State lives in two refs: `reconnectTimers` (per-hub setTimeout IDs) and
-`reconnectAttempts` (per-hub backoff counters). Both clear on success
-or when the user leaves the hub.
+The backoff helper is shared (`packages/core`); per-hub timers and
+counters clear on success or when the user leaves the hub.
 
 ## State organisation
 
-**Single flat state container.** All ~172 `useState`/`useRef`/`useEffect`
-hooks, all effects, and all event handlers live in `App.tsx`. Components
-are pure renderers; they receive values and callbacks as props and hold
-no application state of their own (only local UI concerns: DnD sensors,
-input focus).
+`App.tsx` is the orchestrator, but most application state now lives in
+per-domain hooks under `apps/desktop/src/hooks/` (`useHubLifecycle`,
+`useChannelMessages`, `useDms`, `useVoice`, `useWsHandlers`, ...), which
+App.tsx composes. The earlier rule — everything in one flat App.tsx, no
+domain hooks — is superseded (status 2026-11: the hooks exist; read the
+code, not this page, for which hook owns what). What still holds:
 
-**No per-domain custom hooks. No application-state context.** This was
-considered and rejected — see [decisions.md](decisions.md). The short
-version: handlers and effects are heavily cross-domain (a single hub
-switch touches eight "domains"; the hub-WS event handler writes into
-nine of them), so a domain split would either leak its dependencies
-through its public surface or force the coordinating handlers back up
-into App.tsx anyway. Context would also weaken TypeScript inference
-and make the two consumer components untestable without a provider.
-
-**Logical groupings inside App.tsx** (these are reading-order labels,
-not modules):
-
-| Group | Owns |
-|---|---|
-| Identity | `publicKey`, `recoveryPhrase`, `profiles`, `defaultProfileId` |
-| Hubs | `hubs`, `activeHubId`, `hubConnected`, `reconnectingHubs`, `pingByHub`, `hubNotifyMode`, reconnect refs |
-| Channels | `channels`, `selectedChannel`, `pinnedChannels`, `collapsedCategories`, `unreadByChannel`, `channelNotifyMode`, `voicePartByChannel`, `voiceActiveUsers` |
-| Messages | `messages`, `editingMessageId`, `editingDraft`, `replyTarget`, `pendingAttachments`, `inputText`, `searchQuery`, `searchResults`, `searchOpen`, `stickToBottom` |
-| Typing | `typingByKey`, `dmTypingByKey` and their debounce refs |
-| DMs | `view`, `conversations`, `selectedConversation`, `dmMessages`, `unreadDms` |
-| Alliances | `userAlliances`, `allianceChannels`, `selectedAllianceChannel`, `allianceMessages` |
-| Voice | `voiceChannelId`, `selfMuted`, `selfDeafened`, audio devices, `vadThreshold`, `voiceMode`, `pttKey`, `micLevel`, `micTesting` |
-| Friends | `friends`, `pendingFriends`, friend-request form drafts |
-| Games | `installedGames`, `selectedGame`, install/edit form drafts |
-| Settings | `theme`, `mentionPingEnabled`, `blockedUsers`, settings tab |
-| Hub admin | `myRoles`, `myApprovalStatus`, `adminMembers`, `adminBans`, `adminVoiceMutes`, `adminInvites`, `adminRoles`, `pendingMembers`, `requireApproval`, hub-edit drafts |
-| UI flags | modal open flags, context menu positions, lightbox, toast, error, palette open, member sidebar hidden |
-
-**Convention for additions**: when adding state, place it next to the
-existing group that owns the same data. Effects go below their state
-group. Handlers that span groups go below all the state they touch.
-
-**What is allowed to leave App.tsx**:
-- Pure helpers (URL builders, formatters, sort comparators) → `src/utils/`.
-- Small, single-purpose custom hooks for *mechanism* not *domain* —
-  e.g., a debounce helper, a reconnect-backoff helper. These are fine
-  if they take their dependencies as arguments and return primitives.
-
-**What is not allowed**:
-- Domain hooks (`useHubs`, `useMessaging`, `useVoice`, ...).
-- Context providers for application state.
-- Components owning state that should be in App.tsx (drafts, selections,
-  toggles that other components also need to see).
+- Shared components in `packages/ui` are **prop-only**: no closures over
+  app state, no platform imports. Data access arrives as callback or
+  actions-object props.
+- **No application-state context, no state library.** React state covers
+  everything; props are explicit and type-checked.
+- `packages/ui/src/hooks/` holds only network-free hooks; anything that
+  fetches stays in the app.
 
 ## Conventions
 
-- **`App.tsx` owns state; components own rendering.** All hooks, effects,
-  and event handlers live in `App.tsx`. Components receive what they need
-  as props and call handlers via callbacks — no internal state except
-  local UI concerns (DnD sensors, input focus).
-- **Props-only data flow.** The fat prop interfaces on `ContentArea`
-  (~50 props) and `ChannelSidebar` (~30 props) are deliberate — they
-  are direct children of `App.tsx`, so the "drilling" is one level
-  deep, and the explicit interface keeps the components testable and
-  type-checked. See [decisions.md](decisions.md).
-- **No state library**. React state covers everything. Context is not
-  used for application state either (see "State organisation" above).
 - **No router**. Internal "pages" are just conditionally rendered panels.
 - **Client never trusts the hub for permissions** — it shows or hides UI
   based on what the hub returns; the hub re-checks every action.
 
 ## Tests
 
-The Tauri Rust side has unit tests in `src-tauri/src/lib.rs` under a
-`#[cfg(test)] mod tests` block. We deliberately avoid testing Tauri
+The Tauri Rust side has unit tests in `#[cfg(test)]` blocks across the
+`src-tauri/src/` modules. We deliberately avoid testing Tauri
 commands directly (they need a real `AppHandle` / `State` / runtime);
 instead we cover the boundary logic that doesn't need any of that —
 URL encoding, serde shapes (so an old prefs file still round-trips),
@@ -210,20 +94,22 @@ and small pure helpers. Run with `cargo test` from `src-tauri/`.
 
 To grow the suite: any function that takes plain values and returns
 plain values is fair game. Anything that touches `dirs::data_dir()`
-needs a refactor to take a base path before it's testable.
+needs to take a base path to be testable (`accounts.rs` does: its `*_in(base)`
+variants are what the tests drive).
 
-The React side has no test framework wired up yet — that's a separate
-future task.
+The React side runs vitest (`npm run test` in `apps/desktop`), as do
+`packages/core` and `packages/ui`.
 
 ## Sibling clients
 
-This is the reference client. The web client ([browser-client.md](browser-client.md))
-and Android client ([android-client.md](android-client.md)) reuse the same
-React UI and a shared platform layer (`packages/platform` in Wavvon-client),
-swapping only the transport/storage adapter. All three now ship voice —
-desktop and Android over UDP via the `voice/` crate, web over the hub's
-WebSocket relay (see [voice.md](voice.md)).
+The web client ([browser-client.md](browser-client.md)) is the delivery
+target and the source of truth for the shared UI; desktop reuses the same
+`packages/ui` components and swaps only the platform adapter (Tauri
+commands instead of `apps/web/src/platform/`). Both carry voice over
+WebTransport to the hub (see [voice.md](voice.md)); desktop runs its audio
+pipeline in the Rust `crates/voice` crate. The Android client was removed
+2026-07-12 ([android-client.md](android-client.md)).
 
 ## What's not done
 
-- Plugin system / theme marketplace
+- Plugin system (a skin gallery exists: [custom-themes.md](custom-themes.md) §11)

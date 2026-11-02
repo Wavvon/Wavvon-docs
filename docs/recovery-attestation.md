@@ -37,9 +37,9 @@ identity-recovery.md):
   can't be own contact).
 - Requester: `POST /recovery/rotate-key` opens a request;
   `GET /recovery/requests` lists own requests.
-- Admin: `GET /admin/recovery/pending`, `POST /admin/recovery/:id/approve`
+- Review: `GET /admin/recovery/pending`, `POST /admin/recovery/{id}/approve`
   (transfers non-owner roles to the new key, deletes old sessions),
-  `.../deny`.
+  `.../deny`. Owner-only (`require_owner`), not an admin permission.
 
 Three defects made the feature inert end to end. **All three are closed** —
 if you are reading this to decide whether the feature works, it does:
@@ -87,7 +87,11 @@ requester's say-so (that would let anyone spam "I'm Alice, vouch for me" at
 Alice's contacts). The requester shares the request id over an existing
 trust channel (DM, in person). An optional best-effort in-app pending list
 for contacts who are online on the hub is a convenience, never the proof.
-(See decision point below.)
+(See decision point below.) **That list shipped later**:
+`GET /recovery/requests/to-attest` returns open requests naming the caller,
+a `recovery_attestation_requested` WebSocket event announces new ones, and
+clients branch on the `recovery.attest.requests` capability. It only lets a
+contact *find* the request; judging it is still theirs.
 
 **How a contact attests.**
 - `GET /recovery/rotation-request/:id` → `{hub_pubkey, old_pubkey,
@@ -100,7 +104,7 @@ for contacts who are online on the hub is a convenience, never the proof.
   `pending → ready_for_review` when the count reaches `threshold`.
 
 **Collection, threshold, finalize — unchanged.** Threshold only routes the
-request into the admin queue; a human admin approves/partial/denies;
+request into the owner's review queue; the hub owner approves or denies;
 approval transfers non-owner roles and kills old sessions; owner role needs
 the separate successor path. Community-axis only, per hub, no cross-hub
 propagation — two-axis and no-central-authority preserved.
@@ -114,7 +118,7 @@ propagation — two-axis and no-central-authority preserved.
   produces one real attestation — below threshold for `K ≥ 2`. An attacker
   holding the *owner's* key doesn't need recovery. An attacker holding
   neither must forge `K` distinct contact signatures (cryptographically
-  infeasible) *and* fool a human admin.
+  infeasible) *and* fool the hub owner.
 - **Compromised hub.** A malicious hub can invent attestation rows — but it
   already fully controls its own roles ([threat-model.md](threat-model.md):
   "hub admin abuse of own users — not defended"). No new trust assumption;
@@ -126,14 +130,13 @@ propagation — two-axis and no-central-authority preserved.
   request lingers.
 - **Why threshold holds.** It is a *filter to earn admin attention*, not an
   authorization. K colluding/compromised contacts still can't grant
-  anything; the admin scopes the transfer and the owner role never rides
-  along. Consistent with identity-recovery.md §"threshold-then-human".
+  anything; the hub owner decides and the owner role never rides along. Consistent with identity-recovery.md §"threshold-then-human".
 
 ## 4. Decisions — DECIDED 2026-07-20 (user calls, all four)
 
-- **Notification channel: out-of-band request id** for v1. The hub never
-  pushes vouch requests (anti-spam stance holds); a best-effort in-app
-  pending list is a possible later nicety.
+- **Notification channel: out-of-band request id** for v1. The in-app
+  pending list followed (`/recovery/requests/to-attest` plus a WS event,
+  above); it tells a contact a request exists, nothing more.
 - **Threshold: default `K = 2`, `K = 1` allowed.** The human admin review
   is the backstop; owners with a single trustworthy contact aren't locked
   out.
@@ -148,18 +151,18 @@ propagation — two-axis and no-central-authority preserved.
 Wire-format changes are cross-repo: the identity crate and TS
 `packages/core` must match **byte-for-byte**, with a shared test vector.
 
-1. **Identity crate** (Wavvon-server `identity/src/`, mirrored in
+1. **Identity crate** (Wavvon-server `crates/identity/src/`, mirrored in
    Wavvon-clients `packages/core/src/identity/wire.ts`): add
    `recovery-attestation/v1` signing-bytes helper; add its hex test vector
    to [wire-format.md](wire-format.md) and `wire.test.ts`.
-2. **Hub** (Wavvon-server `hub/src/`): `ALTER TABLE key_rotation_requests
+2. **Hub** (Wavvon-server `crates/hub/src/`): `ALTER TABLE key_rotation_requests
    ADD COLUMN nonce`; generate + return nonce in `post_rotate_key` (drop
    the inline-attestation requirement); add `GET
    /recovery/rotation-request/:id` and `POST
    /recovery/rotation-request/:id/attest` (Ed25519 verify + contact-set
    check) to `routes/recovery.rs`; register both in `server.rs`. Happy-path
    + bad-signature + non-contact rejection tests in
-   `hub/tests/*_flow.rs`.
+   `crates/hub/tests/*_flow.rs`.
 3. **Clients** (Wavvon-clients; web leads per
    [client-parity.md](client-parity.md)): requester status view (poll
    `GET :id`, show count/K, shareable id); **contact review card** (paste
@@ -171,8 +174,8 @@ bytes.
 
 ## What's deferred
 
-- Reliable in-app push to contacts, QR-assisted hand-off, contact-set
-  rotation history, cross-hub propagation — all as in
+- QR-assisted hand-off, contact-set rotation history, cross-hub
+  propagation (in-app surfacing shipped, see §2) — all as in
   [identity-recovery.md](identity-recovery.md) §"What's deferred".
 - Reconciling the drifted table names (`key_rotation_requests` vs the
   doc's `recovery_rotation_requests`) is cosmetic; leave as-is to avoid a

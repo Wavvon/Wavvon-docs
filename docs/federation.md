@@ -13,8 +13,8 @@ the same challenge-response primitive used for users
 ([identity.md](identity.md)), just acting as itself rather than on behalf
 of a user.
 
-Code: `hub/src/federation/client.rs` (outbound, Wavvon-server),
-`hub/src/federation/handlers.rs` (inbound, Wavvon-server).
+Code: `Wavvon-server: crates/hub/src/federation/client.rs` (outbound),
+`crates/hub/src/federation/handlers.rs` (inbound).
 
 ## Federated DMs
 
@@ -25,7 +25,7 @@ User on Hub A sends DM to User on Hub B
   ↓
 Hub A writes to its outbox table
   ↓
-dm_worker (hub/src/dm_worker.rs in Wavvon-server) picks it up
+dm_worker (Wavvon-server: crates/hub/src/dm_worker.rs) picks it up
   ↓
 Hub A POSTs to Hub B's federation endpoint, signed as Hub A
   ↓
@@ -37,8 +37,8 @@ Hub B pushes via WebSocket if recipient is online
 Retry logic and failover live in the worker. The outbox survives
 restarts because it's a database table.
 
-Routes: `hub/src/routes/dms/` (Wavvon-server). Models:
-`hub/src/routes/dm_models.rs` (Wavvon-server).
+Routes: `Wavvon-server: crates/hub/src/routes/dms/`. Models:
+`crates/hub/src/routes/dm_models.rs`.
 
 ### Why outbox-style
 
@@ -51,8 +51,8 @@ Routes: `hub/src/routes/dms/` (Wavvon-server). Models:
 
 When Hub B reads messages from Hub A's shared alliance channel, Hub B
 gets the messages *and* their reactions in one shot.
-`hub/src/routes/alliances/::get_alliance_channel_messages` in
-Wavvon-server loads reactions for both local and remote rows by
+`get_alliance_channel_messages` (Wavvon-server:
+`crates/hub/src/routes/alliances/`) loads reactions for both local and remote rows by
 reusing `messages::load_reactions` (made `pub(crate)` for this).
 
 ## Cross-hub friends
@@ -64,8 +64,8 @@ created already-accepted (no federated request flow exists yet, so
 leaving them pending forever would be misleading) and DMs to them
 route through the existing federated DM outbox using the stored URL.
 
-Code: `hub/src/routes/friends.rs` (Wavvon-server). Schema in
-`hub/src/db/migrations.rs`.
+Code: `Wavvon-server: crates/hub/src/routes/friends.rs`. Schema in
+`crates/hub/src/db/migrations.rs`.
 
 **v1 limitation**: cross-hub adds are one-sided. Bob doesn't get a
 notification when Alice adds him; he has to add her back manually if
@@ -95,7 +95,7 @@ re-derived; it reuses machinery that already ships.
 (`PublicHubProfile` in `server/crates/identity/src/wire.rs`, spec in
 [wire-format.md](wire-format.md)) already carries a master-signed list of
 hubs and is stored/verified on the hub via `GET`/`PUT /profile/{pubkey}`
-(`hub/src/routes/profile.rs`, table `public_hub_profiles`). Today the
+(`crates/hub/src/routes/profile.rs`, table `public_hub_profiles`). Today the
 desktop context menu is its only consumer; the web Hubs tab uses a
 separate, *unsigned* per-hub `favorite_hubs` column instead. The work is
 to reconcile these, not to add a primitive.
@@ -122,22 +122,26 @@ to reconcile these, not to add a primitive.
 
 ## What federation does **not** do
 
-- **No global directory**. There's no DHT or seed-list mechanism in active
-  use. The `seed/` crate in Wavvon-server is a scaffold; users connect by URL.
+- **No global directory**. There's no DHT or seed list; the `seed` crate
+  scaffold was deleted. Users connect by URL, and the optional
+  Wavvon-discovery directory is opt-in ([hub-discovery.md](hub-discovery.md)).
 - **No automatic peer discovery**. Alliance members are added explicitly
   via invite tokens.
 - **No cross-hub user identity sync**. Your pubkey is the same; your
   membership rows on each hub are independent.
-- **No multi-device account sync** (today — see [decisions.md](decisions.md)).
+- **No membership sync between community hubs.** Multi-device is built
+  ([multi-device.md](multi-device.md)), but the personal axis replicates
+  only across *your* home hubs ([home-hub.md](home-hub.md)), not across the
+  communities you join.
 
 ## Where to look in code
 
-All paths below live in the `hub/` crate of Wavvon-server.
+All paths below live in `Wavvon-server: crates/hub/src/`.
 
 | Concern              | File |
 |----------------------|------|
-| Outbound HTTP client | `hub/src/federation/client.rs` |
-| Inbound handlers     | `hub/src/federation/handlers.rs` |
-| DM outbox worker     | `hub/src/dm_worker.rs` |
-| Wire models          | `hub/src/federation/models.rs` |
-| Alliance routes      | `hub/src/routes/alliances/` |
+| Outbound HTTP client | `federation/client.rs` |
+| Inbound handlers     | `federation/handlers.rs` |
+| Module root          | `federation/mod.rs` |
+| DM outbox worker     | `dm_worker.rs` |
+| Alliance routes      | `routes/alliances/` |

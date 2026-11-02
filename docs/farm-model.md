@@ -33,7 +33,8 @@ Bottom to top:
 1. **Identity** — Ed25519 keypair (today)
 2. **Hub** — a community: channels, users, voice (today)
 3. **Hub federation** — peers, alliances, federated DMs (today, partial)
-4. **Farm** — one server hosting many hubs, operator-set policy (future)
+4. **Farm** — one server hosting many hubs, operator-set policy (partially
+   built: `crates/farm`, `crates/agent`)
 5. **Farm clusters / cross-farm discovery** — operator-claimed clusters
    (future). The `seed` crate that was to carry the open-network half was
    built and then deleted: nothing ever read it, and the directory's
@@ -72,7 +73,7 @@ Auth moves from per-hub to per-farm:
 - Farm exposes `/auth/challenge` and `/auth/verify`.
 - User keypair signs a farm-issued challenge → farm-issued session token.
 - Hubs verify the **farm's signature** on the token. No re-auth per hub.
-- Security level proof (PoW, see [future-features.md](future-features.md))
+- Security level proof (PoW, see [lobby-survey.md](lobby-survey.md))
   also lives at the farm — prove once, applies to every hub.
 - Each hub still owns its own user record (roles, per-hub display name,
   bans). Auth is factored out; per-hub state stays.

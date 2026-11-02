@@ -14,9 +14,9 @@ self-hosted, for a reader who has not run one. Then read in this order:
 2. [identity.md](identity.md) — keypairs, recovery, auth
 3. [federation.md](federation.md) — how hubs talk to each other
 4. [alliances.md](alliances.md) — multi-hub groups (Wavvon's differentiator)
-5. [voice.md](voice.md) — Opus + UDP relay + denoise pipeline
+5. [voice.md](voice.md) — Opus over WebTransport, the hub relay, the denoise pipeline
 6. [data-model.md](data-model.md) — DB schema map
-7. [client.md](client.md) — Tauri + React desktop client
+7. [client.md](client.md) — the clients: Tauri + React desktop, the web build, shared packages
 8. [decisions.md](decisions.md) — design rationale, most recent entries (why federated, why no central server, etc.); older entries live in [decisions-archive.md](decisions-archive.md)
 9. [threat-model.md](threat-model.md) — what we defend against, what we don't
 10. [glossary.md](glossary.md) — terms
@@ -55,44 +55,44 @@ had a "recently shipped" section, whatever this line used to claim):
     - [hub-certifications.md](hub-certifications.md) — anti-spam Layer 2: hub-signs-user reputation certs, portable PoW credit
     - [moderation-enhancements.md](moderation-enhancements.md) — federated ban lists (signed, opt-in), auto-moderation webhook (fail-open), content reporting queue
 16. [browser-client.md](browser-client.md) — second client (no Tauri), platform adapter, IndexedDB identity
-17. [android-client.md](android-client.md) — Tauri 2 Android wrapper around the browser platform layer, side-loaded APK
-    - [install-android.md](install-android.md) — end-user guide: enable unknown sources, download APK, Play Protect warning
-    - [client-monorepo.md](client-monorepo.md) — **shipped (2026-06-13)**: the three client repos were consolidated into the one pnpm-workspace Wavvon-client monorepo (`packages/core|ui|platform|i18n` + `apps/*`); staged migration, git-subtree history preservation, CI/release/updater cutover. Hub server stays separate. See [decisions.md](decisions.md).
-    - [client-parity.md](client-parity.md) — **living tracker** of feature gaps across web / desktop (web leads; the Android client was removed 2026-07-12). Current: desktop does not read hub `capabilities`.
+17. [android-client.md](android-client.md) — **removed 2026-07-12**: the Tauri 2 Android wrapper design; no APK was ever published. Kept for the reasoning
+    - [install-android.md](install-android.md) — **obsolete**: the end-user APK guide for the removed Android client
+    - [client-monorepo.md](client-monorepo.md) — **shipped (2026-06-13)**: the three client repos were consolidated into the one pnpm-workspace Wavvon-client monorepo (`packages/core|ui|i18n` + `apps/*`; the planned `packages/platform` was never created); staged migration, git-subtree history preservation, CI/release/updater cutover. Hub server stays separate. See [decisions.md](decisions.md).
+    - [client-parity.md](client-parity.md) — **living tracker** of feature gaps across web / desktop (web leads; the Android client was removed 2026-07-12). Both clients read hub `capabilities`.
     - [state-access-design.md](state-access-design.md) — how App.tsx and the shared components get their state: **decided 2026-09-05**, containers only — `packages/ui` stays prop-only, React Context rejected, the store deferred behind a named trigger. Read it before proposing a state library
 18. [apps.md](apps.md) — a program is a client: `apps.register`, slash commands, webhook dispatch, mini-apps, hub events. Replaced the three bot documents on 2026-09-26
-19. [accessibility.md](accessibility.md) — keyboard navigation, ARIA / screen-reader support, i18n strategy across desktop / web / Android
-20. [forum.md](forum.md) — forum channel type: post-list variant, posts + reply threads, `create_posts`/`manage_posts` permissions, FTS search; §9 designs alliance federation (read-through proxy, owning hub authoritative — designed, not built)
+19. [accessibility.md](accessibility.md) — keyboard navigation, ARIA / screen-reader support, i18n strategy across desktop / web
+20. [forum.md](forum.md) — forum channel type: post-list variant, posts + reply threads, `forum.posts.create`/`forum.posts.manage` permissions, full-text search; §9 alliance federation (read-through proxy, owning hub authoritative — shipped 2026-07-19)
 21. [banner-channels.md](banner-channels.md) — banner channel type: full-width image rows in the hub sidebar (decorative chrome, hub-uploaded or external URL), drag-drop ordered like regular channels
-22. [screen-share-webrtc.md](screen-share-webrtc.md) — screen share v2: WebRTC P2P, hub as SDP/ICE signaler, optional TURN, v1-relay fallback floor, multi-sharer
+22. [screen-share-webrtc.md](screen-share-webrtc.md) — screen share v2: WebRTC P2P, hub as SDP/ICE signaler, optional TURN, v1-relay fallback floor, multi-sharer. **Built, then no longer used by any client** — screen share runs over the hub relay
 23. [block-mute-ignore.md](block-mute-ignore.md) — user-level block / ignore / quiet-hours (DND): personal-axis prefs-blob state, client-side filtering, server-enforced DM block
-24. [discovery-v2.md](discovery-v2.md) — Wavvon-discovery enhancements: hub uptime tracking, farm browsing, global search, anonymous aggregate analytics
+24. [discovery-v2.md](discovery-v2.md) — Wavvon-discovery enhancements: global search and the skin gallery remain; uptime tracking, farm browsing and aggregate analytics shipped and were removed 2026-08-28
 25. [invite-directory.md](invite-directory.md) — **designed, not built** — listing an identity that wants to be found and invited: one signed document for a person or a program, consent by publishing, and the open question of how the invite reaches them
 25. [pubkey-bound-invites.md](pubkey-bound-invites.md) — **designed, not built** — an invite that names the key it admits, and why redeeming one is the admission challenge already answered. The companion to the directory above: it makes an identity findable, this makes the invite it receives exact
 25. [client-qol.md](client-qol.md) — client quality-of-life: global search, drafts, custom emojis, events, polls, thread collapse, notification grouping
-26. [store-trait-design.md](store-trait-design.md) — database abstraction: the `HubStore` trait split and its PostgreSQL implementation (the SQLite backend it was written around is gone — PostgreSQL is the only one)
-27. [custom-themes.md](custom-themes.md) — user-created skins: CSS token system, .wavvonskin file format, export/import, persistence
+26. [store-trait-design.md](store-trait-design.md) — **historical**: the `HubStore` trait and `store` crate, since removed — the hub queries PostgreSQL directly (`AppState.db` is a `PgPool`). Kept for the reasoning
+27. [custom-themes.md](custom-themes.md) — user-created skins over the two built-in themes (dark / light): CSS token system, .wavvonskin file format, export/import, persistence
 28. [brand.md](brand.md) — motto, one-liner, logo brief and asset checklist (final logo asset still pending)
 
-### Future direction (designed, not built)
+### Recent and future designs (status per entry)
 
-- [screen-share-modal.md](screen-share-modal.md) — unified desktop screen-share picker: Tauri `list_capture_sources` command, thumbnail grid, single-modal UX replacing the current two-step OS overlay
-- [permissions.md](permissions.md) — the permission model rebuilt: `admin` deleted in favour of owner-as-property, two role-scoped axes (hub + channel) and no per-user axis, dotted permission ids, the ~40-entry catalog and what each replaces
-- [nested-channels-ux.md](nested-channels-ux.md) — nested-channel UX gaps: channel permalinks (breadcrumb resolution), deep-nesting sidebar strategy (capped indent + drill-in), and channel permission overwrites (net-new file-system-style cascade — data model, resolver, routes, UI)
+- [screen-share-modal.md](screen-share-modal.md) — unified desktop screen-share picker: Tauri `list_capture_sources` command, thumbnail grid, single-modal UX replacing the current two-step OS overlay. **Partly built**: the modal and the command exist, but the chosen source is not yet used, so the OS picker still appears
+- [permissions.md](permissions.md) — **built 2026-09-16**: the permission model rebuilt: `admin` deleted in favour of owner-as-property, two role-scoped axes (hub + channel) and no per-user axis, dotted permission ids, the ~40-entry catalog and what each replaces
+- [nested-channels-ux.md](nested-channels-ux.md) — **built**: nested-channel UX gaps: channel permalinks (breadcrumb resolution), deep-nesting sidebar strategy (capped indent + drill-in), and channel permission overwrites (net-new file-system-style cascade — data model, resolver, routes, UI)
 - [settings-ia.md](settings-ia.md) — **implemented 2026-07-20** — unified Settings information architecture + profile model: one tab structure both clients render from `packages/ui`, converging desktop off the deleted profile-pool and onto multi-account (decided 2026-07-20); unblocks the `ProfileTab` + `IdentityBackupSection` parity passes
 - [future-features.md](future-features.md) — intent settled, design pending: hub-menu entries, desktop parity, visibility push, language packs (the three single-piece entries became `help wanted` issues on 2026-09-16)
 - [mini-apps.md](mini-apps.md) — the sandboxed webview an app opens in a channel: scoped session token, opaque relay, hub stays dumb about games
 - [sdk.md](sdk.md) — **proposal, not yet built**: SDKs in TypeScript, Rust, Python, C#, Java, Go, one repo each; tier 1 is programs (auth, REST generated from `openapi.yaml`, hub events, slash commands, webhooks, mini-apps), the full client waits; one shared JSON conformance suite owned by the identity crate
-- [stickers.md](stickers.md) — **designed 2026-11-01, not built**: admin-managed sticker packs, and a personal collection kept on the home hub as a list without the images. When you send a sticker, the hub you post on fetches a deduplicated, origin-verified copy from the hub that published it, so a reader never contacts another hub. `stickers.packs.manage`, `stickers.external` and `stickers.moderate`, plus the stored-sticker admin page with hash blocking. There is deliberately no GIF feature (see decisions.md)
+- [stickers.md](stickers.md) — **built 2026-11-01**: admin-managed sticker packs, and a personal collection kept on the home hub as a list without the images. When you send a sticker, the hub you post on fetches a deduplicated, origin-verified copy from the hub that published it, so a reader never contacts another hub. `stickers.packs.manage`, `stickers.external` and `stickers.moderate`, plus the stored-sticker admin page with hash blocking. There is deliberately no GIF feature (see decisions.md)
     - [sticker-storage.md](sticker-storage.md) — the hub side: normalize to WebP and then hash, dedup on the exact hash, two disk budgets (packs refuse additions at their cap; chat copies evict orphans and then least-recently-used ones, so a send is never refused), and every limit a hub setting with none per member
-- [attachments.md](attachments.md) — **designed 2026-11-01, not built** ([Wavvon-server#249](https://github.com/Wavvon/Wavvon-server/issues/249)): attachments leave the `messages` row for disk. One upload route and one table (the existing `POST /channels/{id}/upload`, folded), hub-computed SHA-256 with dedup, magic-byte sniffing, images re-encoded to WebP (EXIF gone) unless sent as a file, everything else (executables and SVG included) always a download under `nosniff` and a sandbox CSP, operator retention, a disk budget that expires the oldest attachments instead of refusing anyone, and the fix for encrypted-DM attachments travelling in the clear
-- [alliance-member-discovery.md](alliance-member-discovery.md) — **proposal, not yet decided** ([Wavvon-server#36](https://github.com/Wavvon/Wavvon-server/issues/36)): finding *people* on allied hubs — an opted-in listing served read-through by each member's own hub, two consent switches, DM via the member's designation; also flags that `GET /users` is open to any peer hub today
+- [attachments.md](attachments.md) — **built 2026-11-01** ([Wavvon-server#249](https://github.com/Wavvon/Wavvon-server/issues/249)): attachments leave the `messages` row for disk. One upload route and one table (the existing `POST /channels/{id}/upload`, folded), hub-computed SHA-256 with dedup, magic-byte sniffing, images re-encoded to WebP (EXIF gone) unless sent as a file, everything else (executables and SVG included) always a download under `nosniff` and a sandbox CSP, operator retention, a disk budget that expires the oldest attachments instead of refusing anyone, and the fix for encrypted-DM attachments travelling in the clear
+- [alliance-member-discovery.md](alliance-member-discovery.md) — **built** (decided 2026-10-17, [Wavvon-server#36](https://github.com/Wavvon/Wavvon-server/issues/36); capability `alliance.people`): finding *people* on allied hubs — an opted-in listing served read-through by each member's own hub, two consent switches, DM via the member's designation
 
 ### Archived designs
 
 Kept for history; superseded by recorded decisions:
 
-- [hub-admin-panel.md](hub-admin-panel.md) — **archived**: the hub web admin panel (`/admin/panel`) was removed; the admin CLI and farm console remain. See [decisions.md](decisions.md) ("Hub admin panel removed").
+- [hub-admin-panel.md](hub-admin-panel.md) — **archived**: the hub web admin panel (`/admin/panel`) was removed; the `wavvon-hub admin` CLI remains. See [decisions.md](decisions.md) ("Hub admin panel removed").
 - [admin-panel-auth.md](admin-panel-auth.md) — **archived**: the Ed25519+TOTP web-panel auth design was built, then reverted along with the panel itself. See [decisions.md](decisions.md).
 - [monetization.md](monetization.md) — **superseded in part**: missions, sparks, and the cosmetic catalog were removed; Wavvon operates no monetization infrastructure. See [decisions.md](decisions.md) ("Missions, sparks, and cosmetic catalog removed").
 
@@ -125,7 +125,7 @@ Reading order is for learning the system end-to-end. This section is for
 - **Replies / threading** — [data-model.md](data-model.md)
 - **Mentions** — [data-model.md](data-model.md)
 - **Edit / delete messages** — [data-model.md](data-model.md)
-- **Attachments (inline ≤3 MB) + file uploads (≤25 MB)** — [data-model.md](data-model.md); the move to disk (dedup, content checks, retention, disk budget; designed) — [attachments.md](attachments.md)
+- **Attachments (on disk: dedup, content checks, retention, disk budget)** — [attachments.md](attachments.md)
 - **Search per channel** — [data-model.md](data-model.md)
 - **Forum channels (posts + reply threads)** — [forum.md](forum.md)
 - **Typing indicators (channel + DM)** — [client.md](client.md)
@@ -134,9 +134,8 @@ Reading order is for learning the system end-to-end. This section is for
 - **E2E encrypted DMs (1:1 + group sender keys)** — [e2e-encryption.md](e2e-encryption.md)
 - **Friends (local + cross-hub via stored hub URL)** — [federation.md](federation.md)
 
-### Voice (in any channel — every channel is unified text + voice)
-- **Opus codec + UDP relay (desktop / Android)** — [voice.md](voice.md)
-- **Web voice via WebSocket Opus relay (browser)** — [voice.md](voice.md), [browser-client.md](browser-client.md), [decisions.md](decisions.md)
+### Voice (in `voice` channels; capability `channels.voice`)
+- **Opus over WebTransport, web and desktop** — [voice.md](voice.md), [voice-transport-v2.md](voice-transport-v2.md); code in Wavvon-server: `crates/hub/src/voice_wt.rs`
 - **RNNoise denoise + VAD** — [voice.md](voice.md)
 - **Push-to-talk** — [voice.md](voice.md)
 - **Audio quality profiles (Standard / Music / Custom)** — [voice-advanced-settings.md](voice-advanced-settings.md)
@@ -149,8 +148,8 @@ Reading order is for learning the system end-to-end. This section is for
 - **Voice transport v2 (WebTransport + E2E, shipped 2026-08-07)** — [voice-transport-v2.md](voice-transport-v2.md)
 - **Cross-hub voice in alliance channels (shipped: hub 2026-08-22, web 2026-08-29)** — [alliances.md](alliances.md)
 - **Networked voice fix + voice encryption plan** (Phase 1 shipped; Phases 1.5/2 superseded by voice-transport-v2) — [voice-networking-design.md](voice-networking-design.md)
-- **Screen share** — [screen-share.md](screen-share.md) (v1 transport), [screen-share-webrtc.md](screen-share-webrtc.md) (v2 WebRTC)
-- **Screen share unified modal (desktop, designed)** — [screen-share-modal.md](screen-share-modal.md)
+- **Screen share** — [screen-share.md](screen-share.md) (hub relay, in use), [screen-share-webrtc.md](screen-share-webrtc.md) (v2 WebRTC, no longer used)
+- **Screen share unified modal (desktop, partly built)** — [screen-share-modal.md](screen-share-modal.md)
 
 ### Federation
 - **Hub-to-hub auth** — [identity.md](identity.md), [federation.md](federation.md)
@@ -168,7 +167,7 @@ Reading order is for learning the system end-to-end. This section is for
 - **Setting a hub up** — `wavvon-hub setup` on your own machine, or `WAVVON_TEMPLATE_FILE`/`WAVVON_TEMPLATE` on first run — [hub-operator-guide.md](hub-operator-guide.md). The web wizard that once did this is superseded ([hub-creation-wizard.md](hub-creation-wizard.md))
 - **Hub discovery (search, provider listings)** — [hub-discovery.md](hub-discovery.md), [discovery-v2.md](discovery-v2.md), [invite-directory.md](invite-directory.md) (the other direction: an identity listing itself). Uptime probing was built and removed; see [decisions.md](decisions.md)
 - **Server tags & portable badges** — [server-tags.md](server-tags.md); **user-configurable trust roots (designed, not built)** — same doc, Part 4
-- **Database abstraction layer (trait-based store)** — [store-trait-design.md](store-trait-design.md)
+- **Database abstraction layer (trait-based store; removed, historical)** — [store-trait-design.md](store-trait-design.md)
 - **Apps & integrations (`apps.register`, slash commands, mini-apps, hub events)** — [apps.md](apps.md), [mini-apps.md](mini-apps.md)
 - **Gaming platform** — [gaming.md](gaming.md), [apps.md](apps.md)
 - **Protocol contract (REST + WebSocket)** — [`../openapi.yaml`](../openapi.yaml) (REST), [ws-protocol.md](ws-protocol.md) (full WS message reference)
@@ -178,7 +177,7 @@ Reading order is for learning the system end-to-end. This section is for
 - **Quiet hours / DND (notification downgrade)** — [block-mute-ignore.md](block-mute-ignore.md)
 - **System tray + OS notifications + sound** — [client.md](client.md)
 - **Window title unread count** — [client.md](client.md)
-- **Themes (Calm / Classic / Linear / Light)** — [client.md](client.md)
+- **Themes (dark / light)** — [client.md](client.md), [custom-themes.md](custom-themes.md)
 - **Custom user skins** — [custom-themes.md](custom-themes.md)
 - **Quick channel switcher (Ctrl+K)** — [client.md](client.md)
 - **Hub drag-drop reorder, /info preview, clear local data** — [client.md](client.md)
@@ -189,14 +188,12 @@ Reading order is for learning the system end-to-end. This section is for
 ### Future direction (designed, not built)
 - **Anti-spam proof-of-work** — [future-features.md](future-features.md), [hub-certifications.md](hub-certifications.md)
 - **Home hub list (personal-axis state, DM canonicalization)** — [home-hub.md](home-hub.md)
-- **Screen share unified modal (desktop)** — [screen-share-modal.md](screen-share-modal.md)
-- **Gaming tails** — [apps.md](apps.md) §10–§11. (This line used to name a "Gaming Tier 3 (persistent shared world)" wishlist item; `gaming.md` no longer has a tier model and the roadmap had no such entry.)
+- **Screen share unified modal (desktop, partly built)** — [screen-share-modal.md](screen-share-modal.md)
 
 ## How to use this wiki
 
 - **For LLMs**: each file is self-contained and small enough to read whole.
-  File:line pointers (e.g. `hub/src/routes/messages.rs:42` in
-  Wavvon-server) lead to authoritative code. Don't copy code from the
+  File:line pointers (e.g. `Wavvon-server: crates/hub/src/routes/messages.rs:42`) lead to authoritative code. Don't copy code from the
   wiki — read the source.
 - **For humans**: same, but you can also follow the markdown cross-links.
 

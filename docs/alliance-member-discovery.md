@@ -1,10 +1,14 @@
 # Alliance member discovery: finding people on allied hubs
 
-> **Decided 2026-10-17** — every open question at the end took its
+> **Decided 2026-10-17, built** — every open question at the end took its
 > recommended answer: browse and search, a per-hub switch, no viewer passed,
 > reachable members only, step zero first (already shipped). See
 > [decisions.md](decisions.md), "Alliance member discovery". Drafted
 > 2026-10-04 for [Wavvon-server#36](https://github.com/Wavvon/Wavvon-server/issues/36).
+> Hub side: Wavvon-server `crates/hub/src/routes/alliances/people.rs`
+> (`GET /alliances/{id}/people`, `PUT /alliances/{id}/people-visibility`).
+> Because the viewer is **not** passed, the `viewer` parameter and the
+> ban subtraction it enabled (§4) were not built.
 
 [alliances.md](alliances.md) makes an allied hub's *channels* reachable and its
 *member hubs* browsable (`GET /alliances/{id}`). The people on those hubs have
@@ -85,12 +89,13 @@ forum §9 ([forum.md](forum.md)). **No replication**: A never pushes a list.
 
 ```
 client (on B) ── GET /alliances/{id}/people?hub={A_pubkey}&q&limit&cursor ──▶ hub B
-hub B ── same route, B's peer token, + viewer={client pubkey} ──▶ hub A
+hub B ── same route, B's peer token (viewer deliberately not sent) ──▶ hub A
 hub A ── array of entries ──▶ B ──▶ client
 ```
 
-One route in `hub/src/routes/alliances/people.rs` (new, Wavvon-server), two
-branches like `get_alliance_channel_messages`:
+One route in `crates/hub/src/routes/alliances/people.rs` (Wavvon-server), plus
+`PUT /alliances/{id}/people-visibility` (alliance manager) for the alliance
+switch. Two branches like `get_alliance_channel_messages`:
 
 - **Remote** (`hub` ≠ self, caller is a local member of B): B checks its own
   alliance rows name A, then calls A. B rate-limits per viewer.
@@ -107,10 +112,10 @@ spelled out in the query struct (no `#[serde(flatten)]`), and the opt-in,
 `is_member`, ban and designation filters (§5) **in the SQL before `LIMIT`**, so a
 page is never short. `q` is capped like `/users`' search.
 
-**`viewer`** is hub-vouched, like `display_name` in the voice grant: A cannot
-verify it, only use it to subtract — a viewer banned on A, or on a
-`block`-policy federated ban source, gets an empty array. It can never add
-anyone.
+~~**`viewer`**~~ — not built (open question 3 answered "no viewer"; see
+`people.rs`: the answering hub must not learn who browses its people). As
+designed it was hub-vouched and could only subtract — a viewer banned on A
+would have got an empty array.
 
 ## 5. Reaching a discovered person
 
@@ -135,8 +140,9 @@ not pull it forward.
 ## 6. Abuse
 
 - **Scraping.** What can be scraped is what members opted to show allies —
-  that is the consent, said honestly. Bounded by a per-viewer limiter on B and a
-  per-peer-hub limiter on A, both in `hub/src/rate_limit.rs`; A's manager can
+  that is the consent, said honestly. Bounded by a per-caller limiter (60 per
+  minute) on each hub the request passes — the viewer on B, B's peer key on
+  A — in `routes/alliances/people.rs`; A's manager can
   turn the hub switch off or leave the alliance.
 - **Harassment.** Blocks are enforced where they always were: the recipient's
   home hub drops a blocked sender's DM with a success-shaped reply
@@ -144,7 +150,7 @@ not pull it forward.
   the viewers they blocked — the block set is on the home hub, and B's word
   about the viewer is only advisory — so the listing does not pretend to. DM
   rate limits apply as usual.
-- **Hostile allied hub.** It can ignore `viewer`, lie to its own clients, or
+- **Hostile allied hub.** It can lie to its own clients, or
   scrape A's opted-in list. It cannot read non-opted members, forge entries
   (the designation is master-signed), or see who on A is online.
 

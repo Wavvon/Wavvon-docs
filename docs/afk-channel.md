@@ -12,7 +12,7 @@ in the Hub admin → Overview tab:
 
 | Key | Meaning |
 |---|---|
-| `afk_channel_id` | Destination channel. Must reference an existing non-category channel. Empty/unset = feature disabled. |
+| `afk_channel_id` | Destination channel. Must reference an existing `voice` channel. Empty/unset = feature disabled. |
 | `afk_timeout_secs` | Idle threshold in seconds. Minimum 60, default 300. |
 
 Both surface in `GET /hub/settings` (`afk_channel_id` null when unset).
@@ -38,9 +38,11 @@ Each pass, when an AFK channel is configured:
 
 1. Snapshot voice participants outside the AFK channel whose stamp is
    older than the timeout.
-2. Skip anyone without effective `READ_MESSAGES` on the AFK channel —
-   same gate as the manual event-less move (a move must not reveal a
-   hidden channel).
+2. Skip anyone without effective `voice.join` on the AFK channel. A
+   manual move is authorized by the mover's `voice.move_members` and
+   mints a voice-only grant when the target lacks `voice.join`; the AFK
+   sweep has no mover to stand in, so it mints none and skips instead
+   (Wavvon-server `crates/hub/src/afk_worker.rs`).
 3. Push the existing `voice_move` control message (events.md §7.1) with
    `auto: true` — the client runs its normal leave-and-join immediately
    with the rejoin-escape-hatch toast; the hub never yanks anyone

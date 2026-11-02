@@ -9,20 +9,23 @@
 Five enhancements to the Wavvon-discovery service (the Next.js directory
 described in [hub-discovery.md](hub-discovery.md), Layer 2): hub uptime
 tracking, farm browsing, global search, anonymous aggregate analytics, and the
-skin gallery. They began as wishlist items in
-[`../ROADMAP.md`](../ROADMAP.md) under "Discovery enhancements."
+skin gallery. They began as wishlist items (the wishlist file was deleted
+2026-09-16; open work is GitHub issues).
 
 These extend the existing stack — Next.js route handlers, `better-sqlite3`
-for storage (`discovery/src/lib/db.ts` in Wavvon-discovery), and
-`@noble/ed25519` for signed self-listings (`discovery/src/lib/verify.ts`).
+for storage (`src/lib/db.ts` in Wavvon-discovery; SQLite is correct for the
+directory, the PostgreSQL rule is the hub's), and `@noble/ed25519` for signed
+self-listings (`src/lib/signed-listing.ts` over `src/lib/verify.ts`).
 No new infrastructure, no new service.
 
 The constraint that shapes every decision here is **sovereignty**:
 discovery is a catalog, not a surveillance layer. It knows what operators
 choose to publish about their hubs, farms, games and templates —
 nothing about who uses them, what they say, or who looks them up.
-Discovery probes hubs; hubs do not report to discovery, and users are
-never an entity discovery tracks.
+Hubs do not report to discovery, and users are never an entity discovery
+tracks. (As written, discovery also probed hubs; since the 2026-08-28
+removal of Feature 1 it never does — it reads a hub's `/info` only when that
+hub submits or updates its own listing.)
 
 ---
 
@@ -129,7 +132,7 @@ capacity, and a **Join** button. Capacity is refreshed periodically by
 the same probe mechanism as Feature 1, pinging `GET {farm_url}/farm/info`.
 
 The Join button links to the hub creation wizard at `/new?farm={farm_url}`
-(the wishlist's "Hub creation wizard on discovery"), or to the farm's own
+(a hub-creation wizard that was later dropped), or to the farm's own
 `join_url` when it provides one.
 
 **Alternative considered.** Model farms as hub listings with a `farm`
@@ -155,7 +158,7 @@ primitive is shared.
   nonce/signature/`/info`-match validation into `lib/verify.ts` so hubs
   and farms don't drift.
 - `app/farms/page.tsx` plus a `FarmCard` component.
-- Farm side (Wavvon-server, `seed/` crate — the farm controller): farms
+- Farm side (Wavvon-server, `seed/` crate, since deleted): farms
   must expose `GET /farm/info` returning at least `{ public_key, name,
   description, icon, pricing_tiers, capacity_available }`, and sign the
   registration payload with the farm key. This contract is owned by the
@@ -171,7 +174,10 @@ or ratings, and capacity reservations/holds during the join flow.
 > **Shipped, with a changed shape.** It searches hubs and clients (the bot
 > listing went on 2026-09-26 with the subsystem).
 > Templates went with the hub-creation wizard; clients did not exist when this
-> was written.
+> was written. As built (Wavvon-discovery `src/app/api/search/route.ts`):
+> `types` accepts only `hubs,clients`, each is a plain `LIKE` capped at 5, no
+> ranking, no FTS5, no `lib/search.ts` and no `GlobalSearchBar` component;
+> skins are not a search type. The text below is the original design.
 
 **Decision.** One search box across all discovery catalogs.
 `GET /api/search?q=<query>&types=hubs,clients,games,farms,templates` — the
@@ -292,6 +298,13 @@ principle), and downloadable historical datasets.
 
 ## Feature 5 — Skin gallery
 
+> **Shipped, with a changed shape.** Routes are `GET/POST /api/skins` and
+> `GET/DELETE /api/skins/:id` (no `/register` path). There is no nonce: the id
+> is the payload's content hash, so a replay re-publishes the same bytes. A
+> delete signs `wavvon-directory/delete/v1:skin:<id>:<listed_at>`. The
+> directory has no skins page; browsing lives in the clients
+> (Wavvon-clients `packages/ui/src/components/SkinsGallery.tsx`).
+
 **Decision.** A catalog of user-submitted skins (the `.wavvonskin` files
 from [custom-themes.md](custom-themes.md) §11), self-listed with the same
 signed primitive as hubs and farms. A new `skins` table:
@@ -376,13 +389,16 @@ an explicit curation queue, and skin version updates (re-listing a new
 
 ## Contracts summary (who owns what)
 
+As designed; only the skins and search rows were built, and Android was
+removed 2026-07-12.
+
 | Piece | Repo | Owner |
 |---|---|---|
 | `hub_pings`, `farms`, `analytics_cache` tables + helpers | Wavvon-discovery (`discovery/src/lib/db.ts`) | frontend-engineer |
 | Ping/prune/analytics scheduler | Wavvon-discovery (`scripts/` or `api/cron/`) | frontend-engineer |
 | `/api/farms`, `/api/search`, `/api/analytics` routes + pages | Wavvon-discovery (`discovery/src/app/`) | frontend-engineer |
 | Shared signed-listing validation | Wavvon-discovery (`discovery/src/lib/verify.ts`) | frontend-engineer |
-| `GET /farm/info` + signed farm registration | Wavvon-server (`seed/` crate) | backend-engineer |
+| `GET /farm/info` + signed farm registration | Wavvon-server (`seed/` crate, deleted; never built) | backend-engineer |
 | `skins` table + helpers, `/api/skins` routes + page | Wavvon-discovery (`discovery/src/lib/db.ts`, `discovery/src/app/`) | frontend-engineer |
 | `platform.skins` adapter (`browse`, `fetchSkin`) in clients | Wavvon-desktop / Wavvon-web / Wavvon-android | frontend-engineer |
 

@@ -45,15 +45,15 @@ remembering the other five.
 Everything [apps.md](apps.md) describes, and nothing beyond it:
 
 - **Auth.** `POST /auth/challenge`, sign, `POST /auth/verify`, with an invite
-  code on an `invite_only` hub. When the challenge response names
-  `scheme: "tagged-v1"`, sign `b"wavvon/auth-challenge/v1\0" || challenge`
-  (vector `auth_challenge` in Wavvon-server:
-  `crates/identity/wire-vectors.json`). With no `scheme` field (an older
-  hub), sign the raw challenge, and **only** if it is exactly 32 bytes — the
-  rule the federation client follows (`AUTH_CHALLENGE_LEN` in Wavvon-server:
-  `crates/hub/src/auth/handlers.rs`); anything else is refused, so an SDK can
-  never be used as a signing oracle for arbitrary bytes. An unknown `scheme`
-  value is an error, not a fallback to raw.
+  code on an `invite_only` hub. Sign `b"wavvon/auth-challenge/v1\0" ||
+  challenge` (vector `auth_challenge` in Wavvon-server:
+  `crates/identity/wire-vectors.json`), and only over a challenge of exactly
+  `AUTH_CHALLENGE_LEN` (32) bytes. The hub verifies the tagged form only
+  (`verify_auth_challenge` in `crates/identity/src/wire.rs`); the raw-challenge
+  fallback for hubs without a `scheme` field is gone, and the federation
+  client likewise refuses a challenge that does not name the scheme. So a
+  missing or unknown `scheme` is an error, never a fallback, and an SDK can
+  never be used as a signing oracle for arbitrary bytes.
 - **REST** — the generated client, plus a pager that walks the keyset
   `cursor` to exhaustion (one page is not the list; see the server
   `CLAUDE.md` on pagination).
@@ -83,10 +83,10 @@ six can ship tier 1 before any of the heavy crypto exists.
 
 **Two webhook signatures.** Slash and component dispatch is Ed25519 by the
 hub key (Wavvon-server: `crates/hub/src/apps/dispatch.rs`); outgoing webhooks
-are HMAC. Both now also send `X-Wavvon-Signature-V1` over
-`tag || timestamp || body`, which is what an SDK verifier checks, with the
-300-second window (§10, question 6). The older body-only signature is for
-receivers written before it.
+are HMAC. Both send only `X-Wavvon-Signature-V1` over
+`tag || timestamp || body` (with `X-Wavvon-Timestamp`), which is what an SDK
+verifier checks, with the 300-second window (§10, question 6). The older
+body-only `X-Wavvon-Signature` is no longer sent.
 
 ## 3. REST clients generated from the spec
 
@@ -229,8 +229,9 @@ All answered on 2026-10-18.
    linking it would have handed every program the AGPL, undoing question 2;
    for a few hours the Rust SDK carried its own copy of the primitives. The
    crate was relicensed the same day (decisions.md, "The wire-format crate
-   is Apache-2.0"); the hub stays AGPL. Publishing it to crates.io, which a
-   published Rust SDK needs, is still to do.
+   is Apache-2.0"); the hub stays AGPL. It is published on crates.io:
+   `release.yml` in Wavvon-server publishes it with each hub release whose
+   crate version is new.
 5. **Maintainers**: TypeScript, Rust, Python and C# are maintained in-house
    (C# has a reviewer). Java and Go ship marked **community / experimental**
    in their README until someone outside volunteers to maintain them; they
@@ -240,4 +241,4 @@ All answered on 2026-10-18.
    (wire-format.md, "Webhook delivery"; capability `webhooks.signedtimestamp`;
    [Wavvon-server#160](https://github.com/Wavvon/Wavvon-server/issues/160)).
    SDK verifiers check that header and the 300 s window; the body-only
-   signature is for receivers written before it.
+   signature has since been dropped.

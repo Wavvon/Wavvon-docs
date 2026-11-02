@@ -1,5 +1,17 @@
 # Whisper
 
+> **Status (2026-11-02):** built. The design below was written against
+> the raw-UDP relay, which voice transport v2 deleted on 2026-08-07
+> ([voice-transport-v2.md](voice-transport-v2.md)). What holds now:
+> whisper routing lives in the WebTransport relay, Wavvon-server
+> `crates/hub/src/voice_wt.rs` (`relay_datagram`), which sends a
+> whispering sender's datagrams only to the resolved set with
+> `packet_type = 0x01`. The resolved set is pubkeys, not addresses
+> (`whisper_target_pubkeys`, `crates/hub/src/state.rs`). The downlink
+> header is `[sender_id:u16][packet_type:u8][uplink packet]`, the uplink
+> packet being the sealed `[key_id][ctr][ts][ciphertext]`. The Android
+> client was removed 2026-07-12. Read the UDP sections as history.
+
 Speak to a specific set of targets — users, channels, or roles — across
 the hub without anyone else hearing, **including your own channel**.
 Recipients hear the whisper layered on top of whatever channel audio they
@@ -50,20 +62,17 @@ reserves a packet-type value for it (see Decision 2). Deferred to v2.
 
 ---
 
-## Decision 2 — a `packet_type` byte in the UDP header
+## Decision 2 — a `packet_type` byte in the fan-out header
 
-**Current fan-out header** (stamped by the hub, per
-[`voice-volume.md`](voice-volume.md)):
-
-```
-[sender_id: u16][seq: u16][timestamp: u32][opus_data]   = 8-byte header
-```
-
-**New fan-out header**:
+Originally a 9th byte in the UDP header. Since voice transport v2 the
+hub-stamped downlink header is:
 
 ```
-[sender_id: u16][packet_type: u8][seq: u16][timestamp: u32][opus_data]   = 9-byte header
+[sender_id: u16 BE][packet_type: u8][key_id: u32][ctr: u64][ts: u32][AEAD ciphertext+tag]
 ```
+
+(the part after `packet_type` is the client's uplink packet, unchanged;
+see [voice-transport-v2.md](voice-transport-v2.md)).
 
 `packet_type` values:
 
@@ -73,12 +82,10 @@ reserves a packet-type value for it (see Decision 2). Deferred to v2.
 | `0x01` | whisper (hub-routed) |
 | `0x02` | **reserved** — private whisper via WebRTC (v2; hub relays signaling only) |
 
-**Backward compatibility**: a receiver that understands the 9-byte header
-treats `0x00` as normal voice, so the byte is transparent to existing
-gain/mix logic. Old clients that don't recognise the bumped protocol
-version ignore the packet — the standard protocol-version gating in
-`voice/src/protocol.rs` (Wavvon-desktop). The protocol version is bumped
-there.
+A receiver treats `0x00` as normal voice, so the byte is transparent to
+the gain/mix logic. The desktop parse lives in Wavvon-clients
+`crates/voice/src/protocol.rs`, the web one in
+`apps/web/src/platform/voiceDatagram.ts`.
 
 The receiving client reads `packet_type`; for `0x01` it shows the
 whisper indicator on the sender's tile and routes the audio through the
@@ -91,12 +98,12 @@ gain — see [Client receive path](#client-receive-path)).
 
 ```
 WhisperTarget:
-  { type: "user",    pubkey: string }      — a specific user currently in voice
-  { type: "channel", channel_id: string }  — everyone currently in voice in this channel
-  { type: "role",    role_id: string }     — everyone with this role currently in voice
+  { type: "user",    id: pubkey }      — a specific user currently in voice
+  { type: "channel", id: channel_id }  — everyone currently in voice in this channel
+  { type: "role",    id: role_id }     — everyone with this role currently in voice
 ```
 
-Targets are resolved at whisper-start time into a set of `SocketAddr`s,
+Targets are resolved at whisper-start time into a set of pubkeys,
 then **kept live**: as users join or leave voice, the hub re-resolves the
 affected sessions so a player who joins a target channel mid-callout
 starts hearing the whisper, and one who leaves stops.
@@ -109,12 +116,12 @@ an offline or text-only user is out of scope (see
 
 ## Hub state additions
 
-In `hub/src/state.rs` (Wavvon-server), alongside `voice_channels` and the
+In `crates/hub/src/state.rs` (Wavvon-server), alongside `voice_channels` and the
 proximity `voice_zones`:
 
 ```rust
-/// Active whisper sessions: sender_pubkey -> set of destination SocketAddrs.
-whisper_targets: RwLock<HashMap<String, HashSet<SocketAddr>>>,
+/// Active whisper sessions: sender_pubkey -> set of recipient pubkeys.
+whisper_target_pubkeys: RwLock<HashMap<String, HashSet<String>>>,
 
 /// Reverse index: sender_pubkey -> original target descriptors,
 /// kept so the hub can re-resolve on any voice join/leave.
@@ -124,7 +131,7 @@ whisper_target_defs: RwLock<HashMap<String, Vec<WhisperTargetDef>>>,
 `WhisperTargetDef` carries the original spec (the `type` + id, not the
 resolved addresses). On any `VoiceJoin` or `VoiceLeave` event, the hub
 walks the active sessions whose target set could be affected and rebuilds
-the `whisper_targets` entry from the stored defs. Re-resolution is cheap:
+the `whisper_target_pubkeys` entry from the stored defs. Re-resolution is cheap:
 the candidate set is "sessions targeting the channel/role the user joined
 or left," not every session.
 
@@ -172,25 +179,26 @@ notifies the previously-resolved recipients.
 
 ---
 
-## UDP relay change
+## Relay change
 
-In the `hub/src/` UDP relay loop (Wavvon-server), after the sender lookup
-that already produces `sender_id`:
+In the relay (originally the UDP loop; now `relay_datagram` in
+`crates/hub/src/voice_wt.rs`), after the sender lookup that produces
+`sender_id`:
 
 ```
-if whisper_targets contains sender_pubkey:
-    targets = whisper_targets[sender_pubkey]
-    packet  = [sender_id(2)] + [0x01(1)] + rest_of_header_and_opus
+if whisper_target_pubkeys contains sender_pubkey:
+    targets = whisper_target_pubkeys[sender_pubkey]
+    packet  = [sender_id(2)] + [0x01(1)] + uplink_packet
 else:
     targets = voice_channels[channel_id].all_except(sender)
-    packet  = [sender_id(2)] + [0x00(1)] + rest_of_header_and_opus
+    packet  = [sender_id(2)] + [0x00(1)] + uplink_packet
 ```
 
 **The type byte is inserted by the hub fan-out, not by the client.** The
 client's send path is unchanged: it sends the same frame it always has,
 and the hub stamps `sender_id` and `packet_type` when relaying — exactly
 as it already stamps `sender_id` for normal voice. This keeps the whole
-client send pipeline (`voice/src/transport.rs`, Wavvon-desktop) untouched;
+client send pipeline untouched;
 whisper is a routing decision the hub makes from WS state.
 
 A whisperer's frames go **only** to the whisper target set — they are not
@@ -201,11 +209,11 @@ inaudible to the channel the whisperer is sitting in.
 
 ## Client receive path
 
-In `voice/src/playback.rs` (Wavvon-desktop), extending the per-sender
+In `crates/voice/src/playback.rs` (Wavvon-clients, desktop), extending the per-sender
 pipeline from [`voice-volume.md`](voice-volume.md):
 
 ```
-on incoming UDP packet:
+on incoming datagram:
   sender_id   = header.sender_id
   packet_type = header.packet_type
   entry = per_sender.entry(sender_id)         // same per-sender state
@@ -277,8 +285,7 @@ push-to-talk; global background hotkeys need the desktop app. The
 `WhisperList.keybind` / `keybindMode` fields ride the existing per-hub
 list persistence.
 
-**Target selection UI** (Wavvon-desktop, mirrored in Wavvon-web /
-Wavvon-android):
+**Target selection UI** (shared web + desktop UI in Wavvon-clients):
 
 - Right-click a user in the voice participants list -> **Whisper**.
 - Right-click a channel header -> **Whisper to channel**.
@@ -316,13 +323,16 @@ hub; the client persists it per account and re-sends on every reconnect.
 
 **Tauri commands** (Wavvon-desktop): `start_whisper(targets)` and
 `stop_whisper()` send `voice_whisper_start` / `voice_whisper_stop` over
-the active hub WS via `send_hub_ws_raw`. No new UDP path on the client —
+the active hub WS via `send_hub_ws_raw`. No new datagram path on the client —
 the whisper distinction is entirely a hub-routing decision driven by these
 WS messages.
 
 ---
 
 ## What changes on the implementation side
+
+The plan as written (pre-v2 paths and repo names; see the status note
+for where the pieces live now):
 
 | Piece | Repo / file |
 |---|---|

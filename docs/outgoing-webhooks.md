@@ -194,8 +194,9 @@ badge. Filterable by event type and success/failure.
   true` flag is added to the envelope.
 - **Hub-side rate**: hub limits outbound delivery throughput to 50
   events/s across all webhooks combined (internal, not configurable by
-  admin). Excess events are queued; the queue depth is logged if it
-  exceeds 1 000 entries.
+  admin). Events over the cap are **dropped** for that webhook (logged), not
+  queued; a warning is logged if in-flight deliveries exceed 1 000
+  (`outgoing_webhooks/worker.rs`).
 - **Secret entropy**: 32 bytes from `rand::thread_rng` (ChaCha-based
   CSPRNG). Stored as `secret_hash = HKDF(secret, "wavvon-webhook-signing")`
   — the raw secret is never persisted.
@@ -203,6 +204,12 @@ badge. Filterable by event type and success/failure.
 ---
 
 ## 8. DB changes
+
+Original sketch, SQLite-typed. As built (Postgres, `crates/hub/src/db/migrations.rs`):
+`signing_key TEXT`, booleans are `BOOLEAN`, integers `BIGINT`, and
+`outgoing_webhook_subscriptions.channel_id` is `NOT NULL DEFAULT ''` (hub
+scope = empty string) so the plain primary key works. The migration is
+authoritative.
 
 ```sql
 -- outgoing_webhooks (hub/src/db/migrations.rs)
@@ -246,8 +253,8 @@ CREATE INDEX IF NOT EXISTS idx_owd_webhook ON outgoing_webhook_deliveries(webhoo
 
 ## 9. Routes
 
-All under `/admin/outgoing-webhooks`. Auth: `manage_hub` permission
-(same gate as other admin routes).
+All under `/admin/outgoing-webhooks`. Auth: `webhooks.outgoing.manage`
+(`crates/hub/src/permissions.rs`).
 
 | Method | Path | Description |
 |---|---|---|
@@ -277,7 +284,7 @@ All under `/admin/outgoing-webhooks`. Auth: `manage_hub` permission
   `outgoing_webhook_subscriptions` for matching webhooks and spawns a
   delivery task per match so the caller isn't blocked on HTTP calls.
   Respects the 50 events/s internal rate cap.
-- **`routes.rs`** — implements the 8 admin routes (§9).
+- **`routes.rs`** — implements the 9 admin routes (§9).
 - **`models.rs`** — `OutgoingWebhook`, `WebhookSubscription`,
   `DeliveryRecord`, `WebhookEventEnvelope` structs.
 
@@ -294,7 +301,7 @@ separate broadcast subscriber needed.
 
 ## 11. Client — admin UI
 
-**Desktop and web** (`HubOutgoingWebhooksSection.tsx`):
+**Desktop and web** (shared `packages/ui/src/components/admin/OutgoingWebhooksSection.tsx`):
 
 - **List view**: table of webhooks — name, URL (host only), subscriptions
   summary ("5 event types"), status badge (Active / Failed / Disabled),
@@ -309,7 +316,8 @@ separate broadcast subscriber needed.
   badge in the list. Clicking it opens the per-webhook panel.
 
 No new Tauri commands needed — the admin routes cover all operations.
-Web client's `hubAdmin.ts` adds the new route functions.
+The web client's route functions are in
+`apps/web/src/platform/commands/outgoingWebhooks.ts`.
 
 ---
 

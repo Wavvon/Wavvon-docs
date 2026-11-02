@@ -4,8 +4,9 @@ This is the complete wire contract for the hub's WebSocket endpoint. Together
 with [`openapi.yaml`](../openapi.yaml) (REST) it is sufficient to implement a
 client in any language without reading the hub's Rust source.
 
-Source of truth: `hub/src/routes/chat_models.rs` (`WsClientMessage`,
-`WsServerMessage`) and `hub/src/routes/ws/` (dispatch loop). Every field
+Source of truth: Wavvon-server `crates/hub/src/routes/chat_models.rs`
+(`WsClientMessage`, `WsServerMessage`) and `crates/hub/src/routes/ws/`
+(dispatch loop in `connection.rs`, handlers in `handlers/`). Every field
 listed here matches the serde wire output exactly.
 
 ---
@@ -139,9 +140,13 @@ forwarded to the authoring app's HTTP webhook (not over WS).
 > [`voice_key_request`](#voice_key_request). See [voice.md](voice.md).
 
 #### `voice_join`
-Join a voice channel. May be rejected with an [`error`](#error) (context
-`voice_join`) when the user is voice-muted hub-wide or voice-muted in the
-channel. A `min_talk_power` the member does not meet is **not** a rejection:
+Join a voice channel. Only `voice` channels carry voice (and a `spawner`,
+which is swapped for a fresh temp voice room — see
+[temp-voice-channels.md](temp-voice-channels.md)); any other channel type is
+rejected. Requires `voice.join` on the channel, unless a voice-move grant or
+an alliance-voice visit covers it. Also rejected with an [`error`](#error)
+(context `voice_join`) when the user is voice-muted hub-wide or in the
+channel, or for a mini-app session. A `min_talk_power` the member does not meet is **not** a rejection:
 they join and listen, and the relay drops what they send until a moderator
 grants them the floor ([permissions.md](permissions.md), "Talk power is not
 this").
@@ -210,12 +215,51 @@ locally and re-send it on every (re)connect. No reply message.
 |---|---|---|
 | `enabled` | boolean | `true` = stop receiving whispers |
 
+#### `voice_watch`
+Watch a voice room's speaking events without joining it (the channel list's
+"who is talking" indicator). Requires `voice.join` or `messages.read` on the
+channel; silently ignored otherwise. No reply message.
+
+| field | type | notes |
+|---|---|---|
+| `channel_id` | string | |
+
+#### `voice_unwatch`
+Stop watching. No payload fields: `{"type":"voice_unwatch"}`.
+
+#### `voice_move`
+Ask the hub to move `target_pubkey` into the voice channel
+`target_channel_id` ([events.md](events.md) §7.1). Requires
+`voice.move_members` on the destination, which must be a `voice` channel. The
+hub never forces the move: it pushes [`voice_move`](#voice_move-1) to the
+target, whose own client runs its normal join. If the target lacks
+`voice.join` there, the hub mints a one-off voice-only grant so the join
+passes. With `event_id` and the target not in voice, the move is queued for
+their next join. Failures produce an [`error`](#error); success sends nothing
+to the mover.
+
+| field | type | notes |
+|---|---|---|
+| `target_pubkey` | string | |
+| `target_channel_id` | string | |
+| `event_id` | string | optional; set by an event staging panel |
+
+### Connection probe
+
+#### `ping`
+Round-trip probe. The hub echoes `nonce` in a [`pong`](#pong) and keeps no
+state; clients use their send timestamp as the nonce.
+
+| field | type | notes |
+|---|---|---|
+| `nonce` | integer (i64) | opaque, echoed verbatim |
+
 ### Proximity voice (zones)
 
 #### `voice_zone_create`
 Create a proximity-voice zone in the sender's current voice channel. Requires
-the `manage_voice` or `admin` permission, **or** being the host of the game
-session named in `session_id`. Must be in voice. Failures produce an
+hub-level `channels.manage` (the error text still says "manage_voice", the
+pre-dotted name it absorbed). Must be in voice. Failures produce an
 [`error`](#error) with context `voice_zone_create`. Success broadcasts
 [`voice_zone_created`](#voice_zone_created) to the channel.
 
@@ -225,12 +269,12 @@ session named in `session_id`. Must be in voice. Failures produce an
 | `name` | string | |
 | `coordinate_system` | string | optional, default `"2d"` |
 | `attenuation` | [Attenuation](#attenuation) | required object; its fields each have defaults |
-| `auth_mode` | string | optional, default `"any_channel_member"`; also `"creator_only"`, `"session_roster"` |
-| `session_id` | string | optional; links the zone to a game session |
+| `auth_mode` | string | optional, default `"any_channel_member"`; also `"creator_only"`; `"session_roster"` (game sessions are gone) now refuses every position update |
+| `session_id` | string | optional; stored opaquely, nothing checks it |
 
 #### `voice_zone_destroy`
 Destroy a zone in the sender's current voice channel. Allowed for the zone
-creator or anyone with `manage_voice`/`admin`. Silently ignored otherwise.
+creator or anyone with hub-level `channels.manage`. Silently ignored otherwise.
 Success broadcasts [`voice_zone_destroyed`](#voice_zone_destroyed).
 
 | field | type | notes |
@@ -432,7 +476,8 @@ Delivery rules worth knowing:
 
 - Channel-scoped events go to all connections subscribed to that channel.
 - Voice events (`voice_participant_*`, `voice_roster_update`) go only to
-  connections currently **in that voice channel**, and a participant's own
+  connections currently **in that voice channel** (or watching it with
+  [`voice_watch`](#voice_watch)), and a participant's own
   join/leave/speaking events are not echoed back to them.
 - Messages described as *targeted* are delivered only to the named recipient
   even though they carry a channel id.
@@ -455,6 +500,54 @@ hint matching the originating message type (e.g. `voice_join`,
 |---|---|---|
 | `context` | string | |
 | `message` | string | human-readable description |
+
+#### `pong`
+Reply to [`ping`](#ping), to the sending connection only.
+
+| field | type | notes |
+|---|---|---|
+| `nonce` | integer (i64) | echoed from the `ping` |
+| `outbound_loss_pct` | number (f32) | omitted when absent; your outbound voice packet loss, present only once you are in voice and have sent enough packets to measure |
+
+#### `lagged`
+The hub dropped events for this connection because it read the broadcast
+channel too slowly. Re-fetch recent state for whatever you care about.
+
+| field | type | notes |
+|---|---|---|
+| `count` | integer (u64) | events dropped since the last delivery |
+
+### Hub-wide signals
+
+Delivered to every connection regardless of channel subscription. No payload
+fields; refetch over REST.
+
+#### `channels_updated`
+The channel list changed (created, updated, deleted, reordered, or a temp
+room spawned). Refetch `GET /channels`.
+
+#### `hub_updated`
+Hub branding or settings changed. Refetch `GET /info`.
+
+#### `webhook_disabled`
+An outgoing webhook was auto-disabled after too many consecutive delivery
+failures ([outgoing-webhooks.md](outgoing-webhooks.md)). Hub-wide; the admin
+settings UI is the consumer.
+
+| field | type | notes |
+|---|---|---|
+| `webhook_id` | string | |
+| `reason` | string | |
+| `last_error` | string | omitted when absent |
+
+#### `recovery_attestation_requested`
+*Targeted* to a recovery contact: a rotation request naming you just opened.
+Refetch `GET /recovery/requests/to-attest`
+([recovery-attestation.md](recovery-attestation.md)).
+
+| field | type | notes |
+|---|---|---|
+| `request_id` | string | |
 
 ### Chat
 
@@ -577,8 +670,9 @@ Direct reply to a successful `voice_join`.
 
 | field | type | notes |
 |---|---|---|
-| `channel_id` | string | |
-| `participants` | array of [VoiceParticipant](#voiceparticipant) | current participants (including you — your own `sender_id` is your entry) |
+| `channel_id` | string | may differ from the requested id when you joined a spawner |
+| `sender_id` | integer (u16) | your own relay id (also in your `participants` entry) |
+| `participants` | array of [VoiceParticipant](#voiceparticipant) | current participants, including you |
 | `voice_token` | string | 64 hex chars, single-use, 30 s TTL. Open the WebTransport session at `voice_wt_url?token=<voice_token>` — accepting the session consumes the token and binds it to (channel, you). **No audio is relayed to or from you until the session is accepted.** |
 | `voice_wt_url` | string | absolute `https://host:port/voice` of the hub's WebTransport voice endpoint |
 | `voice_cert_hash` | string \| null | SHA-256 (hex) of the endpoint's self-signed cert for `serverCertificateHashes` / desktop pinning; `null` when the hub serves a CA-signed cert |
@@ -633,7 +727,7 @@ Broadcast to the voice channel (not echoed to the speaker).
 | `speaking` | boolean | |
 
 #### `voice_roster_update`
-Full roster (with UDP `sender_id` mappings) broadcast after every voice join
+Full roster (with the relay `sender_id` mappings) broadcast after every voice join
 and leave. Replace local state with this list.
 
 | field | type | notes |
@@ -661,6 +755,32 @@ the grantee included. Behind `voice.hands`.
 |---|---|---|
 | `channel_id` | string | |
 | `public_key` | string | |
+
+#### `voice_move`
+*Targeted* to the member being moved (see the client
+[`voice_move`](#voice_move)). `auto: true` (they claimed a slot or RSVP'd
+"going" on `event_id`) means leave-and-join at once; `false` means prompt.
+Declining is client-side only; the hub is never told.
+
+| field | type | notes |
+|---|---|---|
+| `target_channel_id` | string | |
+| `target_channel_name` | string | for labelling a room the target may not see in its channel list |
+| `source_channel_id` | string | nullable |
+| `event_id` | string | nullable |
+| `auto` | boolean | |
+
+#### `soundboard_played`
+Attribution after `POST /soundboard/{id}/played`, to the channel's
+subscribers. Informational only: the hub cannot verify the clip was mixed into
+the sender's audio ([soundboard.md](soundboard.md)).
+
+| field | type | notes |
+|---|---|---|
+| `channel_id` | string | |
+| `clip_id` | string | |
+| `clip_name` | string | |
+| `public_key` | string | who played it |
 
 #### `voice_whisper_started`
 *Targeted*: delivered only to the resolved whisper recipients.
@@ -976,11 +1096,12 @@ The same shape as the REST `Message` schema in `openapi.yaml`.
 | `content` | string | |
 | `created_at` | integer | |
 | `edited_at` | integer | nullable |
-| `attachments` | array | `{ name, mime, data_b64 }` per entry |
+| `attachments` | array | references, not bytes: `{ id, url, name, mime, kind, size, width, height, state }`; fetch from `url` (`/uploads/{id}`), see [attachments.md](attachments.md) |
 | `reactions` | array of [ReactionSummary](#reactionsummary) | |
 | `reply_to` | object | nullable; `{ message_id, sender, sender_name (nullable), content_preview }` |
 | `visible_to_pubkey` | string | omitted when absent; when set, only that user receives/should display the message |
 | `reply_count` | integer (i64) | direct replies (non-zero only on thread roots) |
+| `embeds`, `game`, `components`, `masquerade`, `sticker` | object/array | each omitted when absent; shapes as in `openapi.yaml` |
 
 ### ReactionSummary
 
@@ -995,13 +1116,15 @@ The same shape as the REST `Message` schema in `openapi.yaml`.
 | field | type | notes |
 |---|---|---|
 | `public_key` | string | |
-| `display_name` | string | nullable |
+| `display_name` | string | nullable; for a visitor, hub-asserted, not proven |
+| `sender_id` | integer (u16) | nullable; relay id carried in every downlink datagram header |
+| `visiting_from` | string | omitted when absent; set only for an alliance-voice visitor, the name of the hub that vouched for them. Render as "name · HubName", never as a local member ([alliances.md](alliances.md)) |
 
 ### VoiceRosterEntry
 
 | field | type | notes |
 |---|---|---|
-| `sender_id` | integer (u16) | id used in UDP voice packets |
+| `sender_id` | integer (u16) | id carried in the WebTransport voice datagram header |
 | `public_key` | string | |
 | `display_name` | string | omitted when absent |
 

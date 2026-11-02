@@ -71,7 +71,7 @@ For alliances/farms, "game launch/lobby federation across an alliance"
 is explicitly out of scope today ([alliances.md](alliances.md), [mini-apps.md](mini-apps.md),
 [apps.md](apps.md)). It stopped being a
 backlog entry on 2026-09-14: nothing can federate a lobby that does not exist
-single-hub, and item 4 above is undesigned. A game session is single-hub first; cross-hub multiplayer is
+single-hub, and item 2 above (the lobby) is undesigned. A game session is single-hub first; cross-hub multiplayer is
 a later, harder problem tied to the [farm layer](farm-model.md).
 
 ## Sequencing

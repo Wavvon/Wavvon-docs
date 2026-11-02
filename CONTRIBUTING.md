@@ -101,10 +101,13 @@ After the PR is merged to `main`:
 
 1. **`auto-tag.yml`** reads the version from the config file, creates and
    pushes the tag `v0.3.0` (skips if the tag already exists).
-2. **`release.yml`** fires on the new tag, generates the changelog with
-   `git-cliff`, builds all packages, and publishes the GitHub Release.
-   Versions containing `-` (e.g. `v0.3.0-beta.1`) are automatically marked
-   as pre-releases.
+2. The release workflows fire on the new tag. In Wavvon-server,
+   **`release.yml`** generates the changelog with `git-cliff`, builds the
+   images and binaries, and publishes the GitHub Release. In Wavvon-clients
+   the work is split between **`release-desktop.yml`** (installers) and
+   **`release-web.yml`** (the web `dist`). Versions containing `-` (e.g.
+   `v0.3.0-beta.1`) are marked as pre-releases. Wavvon-discovery tags but
+   has no release workflow.
 
 You do not need to create tags manually.
 
@@ -138,7 +141,7 @@ separate hotfix branch unnecessary overhead.
 |---------|----------|--------------|
 | Push to `develop` or `main`; PR to either | `build.yml` | Typecheck, tests, cargo check |
 | Push to `main` | `auto-tag.yml` | Tags `v{version}` if the version is new |
-| New `v*` tag | `release.yml` | Builds packages, creates GitHub Release |
+| New `v*` tag | `release.yml` (server), `release-desktop.yml` + `release-web.yml` (clients) | Builds packages, creates GitHub Release |
 
 ---
 

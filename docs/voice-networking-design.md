@@ -1,13 +1,17 @@
 # Networked Voice — Design Note
 
-> **Status:** Phase 1 (token-gated bind) SHIPPED — the VXRG flow in
-> `hub/src/main.rs`. Phases 1.5 and 2 are **superseded** by
-> [voice-transport-v2.md](voice-transport-v2.md) (2026-08-06):
-> WebTransport replaces raw UDP (making the UDP-over-WS fallback moot)
-> and E2E AEAD ships with the new transport. Written 2026-06-11 in
-> response to audit finding H7 ([code-audit-2026-06-11.md](../code-audit-2026-06-11.md)).
+> **Status (2026-11-02):** historical. Phase 1 (token-gated bind)
+> shipped as the VXRG flow, and its single-use token survives as
+> `voice_token`; VXRG itself, the raw-UDP relay and every file path
+> below are **gone**, deleted by
+> [voice-transport-v2.md](voice-transport-v2.md) (shipped 2026-08-07),
+> which also supersedes Phases 1.5 and 2: a WebTransport session is
+> bound to `(channel, pubkey)` at the QUIC handshake, in Wavvon-server
+> `crates/hub/src/voice_wt.rs`, and E2E AEAD ships with it. Written
+> 2026-06-11 in response to audit finding H7
+> ([code-audit-2026-06-11.md](../code-audit-2026-06-11.md)).
 
-For how voice works today (Opus, UDP relay, denoise pipeline), see
+For how voice works today (Opus, WebTransport relay, denoise pipeline), see
 [voice.md](voice.md). For the federated/farm addressing context, see
 [farm-server-architecture.md](farm-server-architecture.md).
 

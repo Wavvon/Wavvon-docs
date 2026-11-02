@@ -23,22 +23,13 @@ follow.
 
 ### URI scheme
 
-The Wavvon client registers a `wavvon://` custom URI scheme with the OS
-via Tauri's deep-link plugin. Two forms:
-
-```
-wavvon://join/<host>              # public hub — no invite required
-wavvon://join/<host>/<invite>     # private hub — invite code pre-filled
-```
-
-`<host>` is `hostname` or `hostname:port`. HTTPS is assumed; HTTP is
-tried as a fallback for local/dev hosts.
-
-Examples:
-```
-wavvon://join/hub.example.com
-wavvon://join/hub.example.com:8080/xK9pQ3r
-```
+The desktop client registers a `wavvon://` custom URI scheme with the OS
+via Tauri's deep-link plugin (the web client has no protocol handler). The
+host comes first: `wavvon://<host>[:port]/<invite>`, `wavvon://<host>/join/<invite>`,
+plus channel and message permalinks. The accepted grammar, including
+`https://` invite links and path-prefixed farm hubs (`/hub/<serial>`), is
+Wavvon-clients `packages/core/src/parseHubInput.ts`. (The original design
+here was `wavvon://join/<host>/<invite>`; it never shipped in that form.)
 
 ### Manual address entry
 
@@ -81,16 +72,17 @@ API contract documented here is the boundary between repos.
 
 ### What the website is
 
-A public-facing web application. Key pages:
+A public-facing web application. Hub pages (the site also lists clients,
+identities and hosting providers; Wavvon-discovery `src/app/`):
 
-- **`/`** — browseable, searchable hub listings (tag, language, name).
-- **`/hub/<pubkey>`** — individual hub page with full listing, "Open in
-  Wavvon" button (the `wavvon://` deep link), and a web-visible preview
-  for users without the client.
+- **`/hubs`** — browseable, searchable hub listings (tag, language, name).
+- **`/hubs/<pubkey>`** — individual hub page with full listing and a
+  "Report a broken listing" link.
 - ~~**`/submit`**~~ — removed 2026-08-28. A hub publishes its own listing
   (the owner's client pushes a payload the hub signs), so a web form for an operator to do it
   by hand was a second path to the same row.
-- **`/about`** — what Wavvon is, download links.
+- ~~**`/about`**~~ — never built; `/` is the landing page and `/docs` serves
+  selected wiki pages.
 
 The same listing data is served as a JSON API (see endpoints below) so
 the desktop client can embed the directory natively.
@@ -113,7 +105,7 @@ Fields stored per listing:
 | `tags` | Operator-supplied | Array of strings, e.g. `["gaming","en"]` |
 | `language` | Operator-supplied | BCP-47 code, e.g. `"en"`, `"it"` |
 | `listed_at` | Server-assigned | Submission timestamp |
-| `last_verified_at` | Server-assigned | Last successful `/info` scrape |
+| `last_verified_at` | Server-assigned | Last time `/info` was read (on submit/update; the directory never polls) |
 
 `hub_pubkey` (from `/info`) is the primary key — a listing is
 permanently tied to the hub's cryptographic identity regardless of URL
@@ -143,9 +135,11 @@ The hub signs this with its private key. The directory service:
 3. Rejects if the nonce is more than 5 minutes old (replay protection).
 4. Stores the listing, keyed on `hub_pubkey`.
 
-**Update / delete**: same scheme — operator signs a new payload (update)
-or a `{"action":"delete","hub_pubkey":"...","nonce":"..."}` payload
-(delete). No account recovery, no password reset — if you lose the hub
+**Update / delete**: an update is a newly signed payload. A delete signs
+the string `wavvon-directory/delete/v1:hub:<pubkey>:<listed_at>`
+(Wavvon-discovery `src/lib/signed-listing.ts`) — naming `listed_at` so a
+captured delete dies with that listing instead of removing a later
+re-publication. No account recovery, no password reset — if you lose the hub
 key you lose listing ownership.
 
 ### Signing flow from the admin UI
@@ -154,7 +148,7 @@ Hub settings → Overview → **Submit to directory** button. On click:
 
 1. Desktop client calls a new Tauri command `sign_directory_listing`.
 2. Command POSTs to the hub's own new endpoint
-   `POST /admin/directory-sign` (authenticated, admin only) with the
+   `POST /admin/directory-sign` (authenticated, `directory.publish`) with the
    operator-supplied fields (tags, language, bio, invite code).
 3. Hub signs the canonical payload with its private key and returns
    `{ signature, hub_pubkey, canonical_payload }`.
@@ -166,15 +160,17 @@ The hub's private key never leaves the server.
 
 ### Anti-spam
 
-- Submissions require solving a PoW puzzle (same SHA-256 primitive
-  already in `identity/src/pow.rs` in Wavvon-server). Level TBD — high
-  enough to deter bulk fake listings, low enough that a single legit
-  submission takes under a second.
-- The directory service re-verifies (`/info` scrape) listings on a
-  schedule (e.g. every 24 h). Listings whose hub URL stops responding
-  are flagged, then removed after a grace period.
-- Abuse reporting UI on each listing page; flagged listings are hidden
-  pending manual review.
+What is built: the signature (only the hub's key can list it) and a
+**Report a broken listing** link on each hub page that opens a GitHub
+issue on Wavvon-discovery. Not built, deliberately:
+
+- No PoW on submission — the hub-key signature plus the live `/info`
+  check already bound a listing to a running hub.
+- **The directory never probes hubs.** Scheduled re-verification and
+  uptime tracking were built and removed (cost of the aggregate table, and
+  nobody browses by uptime); a stale listing is reported by whoever
+  noticed.
+- No in-site moderation queue.
 
 ### API contract
 
@@ -182,12 +178,12 @@ All endpoints return `application/json`.
 
 ```
 GET  /api/hubs
-     ?q=<search>          full-text search across name + bio
+     ?q=<search>          substring match (LIKE) on name + bio
      &tag=<tag>           filter by tag (repeatable: &tag=gaming&tag=en)
      &language=<bcp47>    filter by language
-     &page=<n>            pagination (default 1, 20 per page)
+     &page=<n>            pagination (default 1)
 
-→ { hubs: HubListing[], total: number, page: number }
+→ { hubs: HubListing[], total: number }
 
 GET  /api/hubs/:pubkey
 → HubListing | 404
@@ -195,11 +191,11 @@ GET  /api/hubs/:pubkey
 POST /api/hubs
      body: { hub_url, tags, language, bio, invite_code?,
              canonical_payload, hub_pubkey, signature }
-→ 201 HubListing | 400 | 409 (already listed, use PUT)
+→ 201 { ok: true } | 400 | 403   (upserts; no 409)
 
 PUT  /api/hubs/:pubkey
      body: same as POST
-→ 200 HubListing | 400 | 403 (signature mismatch)
+→ 200 HubListing | 400 | 403 | 404
 
 DELETE /api/hubs/:pubkey
      body: { hub_pubkey, signature }
@@ -312,14 +308,9 @@ client verify the list was produced by the user, not the hub operator.
 ## Open questions
 
 - **Official directory URL** — `discovery.wavvon.io`? Needs a domain.
-- **PoW level for submissions** — balance against "legit submission
-  should be instant". Start at level 10 (under 1 second), raise if
-  spammed.
-- **Scrape frequency for live data** — member counts aren't in `/info`
-  today. Add them, or leave member count out of listings?
-- **Hub-initiated delisting** — if a hub goes private after listing,
-  should the `/info` scrape automatically remove it? Probably yes if
-  `invite_only` flips to true and no invite code is stored.
+- ~~PoW level for submissions~~ / ~~scrape frequency~~ / ~~delisting by
+  scrape~~ — moot: no PoW, and the directory never probes hubs (see
+  Anti-spam). A hub delists itself with a signed delete.
 - **Tech stack for `Wavvon-discovery`** — Next.js (TypeScript, SSR,
   easy Vercel deploy) is what the repo ships with, a natural fit given
   the desktop client is already TypeScript/React.

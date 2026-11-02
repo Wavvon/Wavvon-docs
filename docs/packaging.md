@@ -1,15 +1,16 @@
 # Packaging & Release
 
-How Wavvon ships to end users across Windows and Linux (the current active
-targets), and how the hub server is distributed to operators. The Tauri 2
-bundler does the heavy lifting; this doc captures what surrounds it —
-signing, updates, CI, and the secrets matrix.
+How Wavvon ships to end users on Windows, Linux and macOS, and how the hub
+server is distributed to operators. The Tauri 2 bundler does the heavy
+lifting; this doc captures what surrounds it — signing, updates, CI, and
+the secrets matrix.
 
-macOS is **deferred** — the Apple Developer Program ($99/year) is a
-barrier for a zero-income open-source project. macOS users can build from
-source. The Android and browser clients have shipped (see
-[android-client.md](android-client.md), [browser-client.md](browser-client.md));
-all three apps now live in the Wavvon-client monorepo.
+macOS builds (`.dmg`) are produced but **not signed or notarized** — the
+Apple Developer Program ($99/year) is a barrier for a zero-income
+open-source project. The browser client has shipped
+([browser-client.md](browser-client.md)); desktop and web live in the
+Wavvon-clients monorepo. The Android client was removed 2026-07-12 and
+never shipped an APK ([android-client.md](android-client.md)).
 
 ---
 
@@ -21,17 +22,14 @@ Tauri 2's bundler produces these via `tauri build`. No custom packaging scripts.
 |---|---|---|---|
 | Windows | `.exe` (NSIS) | `.msi` (WiX) | NSIS gives a friendlier installer UX |
 | Linux | `.AppImage` | `.deb` | AppImage works on every distro without installation |
+| macOS | `.dmg` | `.app.tar.gz` (updater) | Unsigned; Gatekeeper warns until a Developer ID is affordable |
 
-**macOS** — deferred. Apple Developer ID + notarization required for Gatekeeper;
-costs $99/year. Build from source works fine in the meantime.
-
-**Android** — shipped. Tauri 2 Android shell, side-loaded APK signed with a
-self-signed release keystore (Android keystore, not Apple). See
-[android-client.md](android-client.md) and [install-android.md](install-android.md).
+**Android** — none. A Tauri Android shell existed until 2026-07-12 but no
+APK was ever released; see [android-client.md](android-client.md).
 
 **Browser client** — shipped. The React frontend runs as a web app with
-Tauri `invoke` calls replaced by direct HTTP/WebSocket calls to the hub
-(including voice over the `/voice/ws` relay). See [browser-client.md](browser-client.md).
+Tauri `invoke` calls replaced by direct HTTP/WebSocket calls to the hub,
+and voice over WebTransport. See [browser-client.md](browser-client.md).
 
 ---
 
@@ -55,11 +53,11 @@ payload signature so the auto-updater can verify downloads.
   `tauri.conf.json`. All prior timestamped releases remain valid — no
   re-release needed.
 
-### macOS — deferred
+### macOS — unsigned
 
 Apple Developer Program ($99/year) is out of reach for a zero-income
-open-source solo project. macOS users can build from source (`cargo tauri
-build`). Revisit when the project gains sponsorship.
+open-source solo project, so the released `.dmg` is unsigned and
+un-notarized. Revisit when the project gains sponsorship.
 
 ### Linux — optional GPG
 
@@ -72,10 +70,11 @@ verify. Distro packages (PPA, COPR) are out of scope for now.
 
 ### Wire-up
 
-- Add `tauri-plugin-updater` to `Cargo.toml` and register it in
-  `tauri.conf.json` under `plugins.updater`.
-- Endpoint: `https://releases.wavvon.io/latest.json` (cuttable to GitHub
-  Releases API in development).
+- `tauri-plugin-updater` is registered in `tauri.conf.json` under
+  `plugins.updater`.
+- Endpoint: a `latest.json` asset on the GitHub Releases "latest"
+  download URL, assembled by `release-desktop.yml`. (The original plan was
+  `https://releases.wavvon.io/latest.json`; never set up.)
 
 ### Update manifest shape
 
@@ -88,7 +87,8 @@ Tauri 2 updater JSON, served from the endpoint:
   "pub_date": "2026-06-01T12:00:00Z",
   "platforms": {
     "windows-x86_64": { "url": "...", "signature": "..." },
-    "linux-x86_64":   { "url": "...", "signature": "..." }
+    "linux-x86_64":   { "url": "...", "signature": "..." },
+    "darwin-...":     { "url": "...", "signature": "..." }
   }
 }
 ```
@@ -114,14 +114,16 @@ Tauri 2 updater JSON, served from the endpoint:
 
 ## 4. GitHub Actions CI/CD
 
-Two workflows. **Describe their structure; do not write the YAML here.**
+**Describe their structure; do not write the YAML here.** The workflow
+files in Wavvon-clients `.github/workflows/` are authoritative; this
+section is the shape.
 
-Each repo carries its own workflows. The client workflows below live in
-the Wavvon-client monorepo and cover all three apps (`apps/desktop`,
-`apps/web`, `apps/android`) — `build.yml` is a single workflow across
-them rather than one per former repo.
+Each repo carries its own workflows. The client ones live in the
+Wavvon-clients monorepo: `build.yml` and `rust.yml` for PRs,
+`release-desktop.yml` and `release-web.yml` on a version tag (set by
+`auto-tag.yml` when a release PR merges to `main`).
 
-### `release.yml` — on `git tag v*`
+### `release-desktop.yml` — on `v*` tag
 
 | Step | Notes |
 |---|---|
@@ -157,24 +159,30 @@ macOS notarization secrets are not used today.
 
 ## 5. Hub server distribution
 
-The hub (the `hub/` crate in Wavvon-server) is a separate Rust binary
-with its own release shape — no Tauri, no updater. Two artifacts per
+The hub (`crates/hub` in Wavvon-server) is a separate Rust binary
+with its own release shape — no Tauri, no Tauri updater. Two artifacts per
 release, produced by Wavvon-server's own CI:
 
 ### Docker image
 
-- `hub/Dockerfile` in Wavvon-server: multi-stage build.
-  - Stage 1: `rust:1-slim` builds the binary.
-  - Stage 2: `gcr.io/distroless/cc` runs it. Distroless = no shell,
-    no package manager, tiny attack surface.
-- Exposes port `3000` (HTTP/WS) and `3001/udp` (voice).
+- `crates/hub/Dockerfile` in Wavvon-server: multi-stage build.
+  - `web-builder` (`node:22-slim`) builds the hub build of the web client
+    (`apps/web/dist-hub`) when the clients checkout is in the context.
+  - `rust:1-slim-trixie` builds the binary.
+  - `debian:trixie-slim` runs it, with `postgresql-client` (backup/restore)
+    and `libxml2` (bundled PostgreSQL), as uid 10001. Builder and runtime
+    are pinned to the same Debian release so glibc matches. (The original
+    plan was distroless; it cannot carry `pg_dump` or the bundled
+    database.)
+- Exposes port `3000` (HTTP/WS) and `3001/udp` (WebTransport voice).
 - Pushed to `ghcr.io/wavvon/hub:<version>` and `:latest` on tag.
 
 ### Static binary
 
 - `cargo build --release --target x86_64-unknown-linux-musl` for a
   portable single-file binary. Drops into `/usr/local/bin/wavvon-hub` on
-  any Linux distro without runtime deps.
+  any Linux distro. Caveat: bundled PostgreSQL does not work on musl, so a
+  musl binary needs an external database (`WAVVON_DATABASE_URL`).
 
 ### Environment
 
@@ -201,8 +209,8 @@ TLS terminate it in a reverse proxy (Caddy / nginx); see `hosting.md`.
 ## 6. Versioning
 
 - **Semver**. `v0.x.y` until the wire protocol stabilises.
-- **Each repo tags independently**. Wavvon-server, Wavvon-client (one
-  version for desktop/web/Android together), and Wavvon-discovery each
+- **Each repo tags independently**. Wavvon-server, Wavvon-clients (one
+  version for desktop and web together), and Wavvon-discovery each
   carry their own version. Wire-compat is the contract; the openapi.yaml
   in the docs repo is the authoritative shape. Mismatched client/hub
   versions are an operator concern only when wire-compat is broken.
@@ -215,36 +223,24 @@ TLS terminate it in a reverse proxy (Caddy / nginx); see `hosting.md`.
 
 ---
 
-## 7. `tauri.conf.json` additions
+## 7. `tauri.conf.json`
 
-Fields to add when packaging lands. Described, not written:
-
-- `bundle.active: true` — enable the bundler in `tauri build`.
-- `bundle.targets: ["nsis", "appimage"]` — Windows NSIS installer and Linux AppImage.
-- `bundle.icon` — paths to platform-specific icons
-  (`icons/icon.ico`, `icons/icon.png`).
-- `plugins.updater.pubkey` — public half of the updater signing key (already set).
-- `plugins.updater.endpoints` — array containing the
-  `releases.wavvon.io/latest.json` URL.
-
-The `identifier` (`com.wavvon.desktop`), `productName` (`Wavvon`), and
-`version` already exist and don't change.
+Done: `bundle` is active with targets `nsis`, `appimage` and `dmg`, icons
+set, and `plugins.updater` carries the pubkey and the GitHub Releases
+endpoint. See Wavvon-clients `apps/desktop/src-tauri/tauri.conf.json`.
+The `identifier` (`com.wavvon.desktop`) and `productName` (`Wavvon`) don't
+change.
 
 ---
 
 ## 8. Open questions
 
-- **macOS**: deferred until budget allows Apple Developer Program ($99/year).
-  Users on macOS can `cargo tauri build` from source.
-- **Android**: Tauri 2 supports Android with no cost barrier (Android
-  keystore signing is free). Requires Android SDK/NDK setup in CI. Planned
-  after Windows/Linux desktop is stable.
-- **Browser client**: the existing React frontend can run as a web app by
-  replacing `invoke(...)` calls with direct HTTP/WebSocket to the hub.
-  No Tauri dependency — planned as a lightweight companion to the desktop client.
+- **macOS signing**: deferred until budget allows Apple Developer Program ($99/year).
+- **Android**: removed 2026-07-12; a rewrite waits until mobile is
+  prioritized ([android-rewrite-notes.md](android-rewrite-notes.md)).
 - **Hub auto-update**: Tauri updater doesn't apply to the hub binary.
-  Options: `systemd` unit with `ExecStartPre` pulling a new Docker image;
-  Watchtower for container hosts; or fully manual. Deferred.
+  `wavvon-hub update [--check]` exists for Linux x86_64; container hosts
+  pull a new image.
 - **Windows Store / App Stores**: store sandboxing breaks `wavvon://` deep
   links and unrestricted filesystem access. Not worth pursuing.
 - **Delta updates**: Tauri downloads the full installer each time. Acceptable

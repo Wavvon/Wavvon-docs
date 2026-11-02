@@ -54,9 +54,6 @@ than a given:
   editor for the hub under the cursor.
 - **Show all channels** — meaningful only once there is something hiding
   channels beyond `hide_silenced`.
-- **Copy hub address** — the equivalent of "copy server ID" is the hub's URL or
-  its pubkey, and which one to copy depends on what the person is about to
-  paste it into. Both, labelled, is the likely answer.
 
 None of it is blocking. Adding one is now a single edit in `HubMenuItems`
 rather than two that have to agree.
@@ -75,7 +72,7 @@ the Windows code-signing blocker, which is an issue on
 
 ## Project visibility push
 
-Hosted demo hub, directory listings, launch post. Needed for adoption and for
+Directory listings, launch post. Needed for adoption and for
 the code-signing re-application ([code-signing.md](code-signing.md)). Not a
 feature and not designed as a campaign.
 
@@ -123,9 +120,10 @@ does. Two things have to be true first, and neither is today: the language list
 must derive from what actually shipped instead of the hardcoded
 `supportedLangs` array duplicated in web and desktop `main.tsx`, or the
 switcher offers a language whose chunk is missing; and the multi-hub coupling
-has to be faced — the client served by hub A talks to hubs B and C, so
-"the hub decides" means whichever hub you *loaded from* decides, and an Italian
-user landing on a German operator's hub silently falls back to English.
+has to be faced — the hub build serves one hub, but the user build (decisions.md,
+"Two web clients") talks to many, so "the hub decides" means whichever hub you
+*loaded from* decides, and an Italian user landing on a German operator's hub
+silently falls back to English.
 
 **Gated on desktop delivery** (2026-08-29 decision). Web is the only delivery
 target today, and a downloaded-and-installed pack is a desktop shape — on web
@@ -143,19 +141,17 @@ invite links and open in the *sender's* language.
 ---
 
 > Demand-gated tails of shipped features live in their own docs, not here:
-> forum federation ([forum.md](forum.md) §9 deferred list), gaming/bots
-> ([apps.md](apps.md) §10–§11), LAN
+> forum federation ([forum.md](forum.md) §9 deferred list), gaming
+> ([gaming.md](gaming.md)), LAN
 > federation ([lan-mode.md](lan-mode.md) §6), farm follow-ups
 > ([farm-model.md](farm-model.md)).
 
 **Game launch / lobby federation across an alliance used to sit here and does
-not belong** (removed 2026-09-14). Games arrive as bots, and three docs
-already rule cross-hub sessions out: a mini-app session is scoped to one hub
-and one channel ([mini-apps.md](mini-apps.md)), alliance game sessions
-are out of scope ([apps.md](apps.md) §9), and
-a game session is single-hub first ([gaming.md](gaming.md)). Underneath that,
-the multiplayer lobby does not exist single-hub either — it is `gaming.md`
-item 4, undesigned — so federating it was a plan for the tail of something
-unbuilt. The one cross-hub idea with substance is **game-bot recommendation
-over an alliance**, and it is already filed deferred-until-demand in
-[apps.md](apps.md) §11.
+not belong** (removed 2026-09-14). A game is an app ([apps.md](apps.md)), and
+cross-hub sessions are already ruled out: a mini-app session is scoped to one
+hub and one channel ([mini-apps.md](mini-apps.md)), and a game session is
+single-hub first ([gaming.md](gaming.md)). Underneath that, the multiplayer
+lobby does not exist single-hub either — it is `gaming.md` "What's needed"
+item 2, undesigned — so federating it was a plan for the tail of something
+unbuilt. (Game-bot recommendation over an alliance was filed in the old
+`apps.md` §11, which went with the bot docs on 2026-09-26; it is unclaimed.)

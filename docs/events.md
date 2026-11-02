@@ -8,9 +8,21 @@ the guild delta: **role-slot sign-ups**, **reminders**, and a
 **Status: baseline + role-slot sign-ups + reminders SHIPPED
 server-side** (hub `825b0da`, 2026-07-04); **web UI for slots +
 reminders SHIPPED** (clients, 2026-07-04, see §2's implementation note
-below); **calendar view DESIGNED, not implemented** (client-only,
-lowest priority — full design §9, 2026-07-19). Desktop/Android UI for
-slots + reminders is queued next; see ROADMAP.
+below); **calendar view SHIPPED 2026-07-19** (§9, `EventCalendar.tsx`).
+All event UI now lives once in `packages/ui/src/components/events/`
+(Wavvon-clients), shared by web and desktop; the Android client was
+removed 2026-07-12.
+
+> **Read with today's code (2026-11-02).** Permission names below are the
+> pre-rename ones: `CREATE_EVENTS` → `EVENTS_CREATE` (`events.create`),
+> manage → `EVENTS_MANAGE` (`events.manage`), `READ_MESSAGES` →
+> `MESSAGES_READ`, `MOVE_MEMBERS` → `VOICE_MOVE_MEMBERS`
+> (`voice.move_members`), all in `crates/hub/src/permissions.rs`. The voice
+> join gate is now `voice.join`, not read, and the staging grant bypasses
+> that gate (`routes/ws/handlers/voice.rs`). Voice is WebTransport on web and
+> desktop (`crates/hub/src/voice_wt.rs`); the UDP relay, `/voice/ws` and
+> `voice_ws.rs` referenced in §7 are gone. The design rationale is
+> unchanged.
 
 **Guild-scale delta DESIGNED 2026-07-18:** **hub-level events** (§5),
 **propagation to sub-channels** (§6), and **slot-based participant
@@ -37,7 +49,7 @@ grant are also recorded in [decisions.md](decisions.md).
   (`post_event_card`), which is how members learn about it via the
   normal message/WS push path.
 - Clients: `EventsPanel.tsx`, `EventCard.tsx`, `EventComposer.tsx`
-  (web; desktop/android have parallel copies).
+  (one shared copy in `packages/ui/src/components/events/`).
 
 > **Known gap — FIXED 2026-07-04 (hub `efbf17b`)**: the events routes
 > were not switched to channel-scoped permission resolution when
@@ -133,7 +145,7 @@ the ~200-line convention — then extract `EventSlotList.tsx`.
 > `POST`/`PATCH`/`DELETE /events/:id/slots...` routes but aren't wired
 > to any UI yet — no post-creation slot-management surface exists
 > (composer is create-time only); that's the natural next follow-up.
-> Desktop/Android UI is not yet built — still server + web shapes only.
+> *(Since then the UI moved to `packages/ui`, so desktop has it too.)*
 
 **Exact shapes shipped:**
 
@@ -376,9 +388,10 @@ voice-move consent model + voice-only presence grant are recorded in
 
 ### 7.1 The move primitive (Phase 1)
 
-Voice join is **always client-initiated** on both transports — desktop
-sends UDP after a `voice_join` WS handshake, web opens a `/voice/ws`
-relay socket. Neither can be "yanked" server-side. So a move is: the hub
+Voice join is **always client-initiated** — originally desktop sent UDP
+after a `voice_join` WS handshake and web opened a `/voice/ws` relay
+socket; today both open a WebTransport session after `voice_join`
+(`voice_wt.rs`). Neither can be "yanked" server-side. So a move is: the hub
 **asks** the target's client to leave its current channel and join a new
 one; the client runs its normal leave-and-join. One mechanism works
 identically for UDP and WS because both already leave-and-join
@@ -715,8 +728,8 @@ the spawned rooms live under the event's anchor channel.
 
 ## 9. Calendar view — design (2026-07-19)
 
-**Scope.** A **Month / List toggle** in `EventsPanel.tsx` (Wavvon-clients,
-`apps/web`). List is today's upcoming list, unchanged; Month renders the
+**Status: shipped 2026-07-19.** **Scope.** A **Month / List toggle** in
+`EventsPanel.tsx` (Wavvon-clients, now `packages/ui/src/components/events/`). List is today's upcoming list, unchanged; Month renders the
 **same** hub-scoped, already-read-gated event set on a 6×7 grid, localized
 to the viewer's timezone like the list. Community-axis, hub-scoped:
 `list_events` already aggregates every event the caller can read across the
@@ -773,8 +786,8 @@ when past-month browsing is actually requested.
 - **Multi-day spanning** — an event with a later-day `ends_at` is bucketed by
   its **start** day only, not drawn across cells.
 - **Past / far-future browsing** — bounded by the server gap above.
-- **Desktop/Android calendar** — web first (desktop is still RSVP-only,
-  ROADMAP).
+- ~~Desktop calendar~~ — moot: the component lives in `packages/ui`, so
+  desktop has it.
 - Recurring events (already deferred, §8).
 
 ---
@@ -812,6 +825,6 @@ when past-month browsing is actually requested.
 - **A voice move is a hub-requested client leave-and-join, not a
   server-side yank.** Voice join is client-initiated on both transports;
   a request-to-join is the only mechanism that works identically for UDP
-  and WS without a second control path. `voice_move` mirrors the shipped
+  and WS (today: WebTransport on both) without a second control path. `voice_move` mirrors the shipped
   whisper control-message + targeted-`ChatEvent` pattern. Full consent +
   voice-only-presence rationale in [decisions.md](decisions.md).

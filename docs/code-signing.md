@@ -1,9 +1,10 @@
 # Windows Code Signing (Authenticode)
 
-How the Wavvon desktop app (Wavvon-desktop) will eventually earn Windows'
-trust so users stop seeing SmartScreen's "Windows protected your PC" on
-first run. Today the NSIS `.exe` installer is unsigned; the documented
-workaround is "More info → Run anyway" (see Wavvon-desktop's README).
+How the Wavvon desktop app (Wavvon-clients `apps/desktop`) will eventually
+earn Windows' trust so users stop seeing SmartScreen's "Windows protected
+your PC" on first run. Today the NSIS `.exe` installer is unsigned; the
+documented workaround is "More info → Run anyway" (see the Wavvon-clients
+README).
 
 The **updater payload signature** (`TAURI_SIGNING_PRIVATE_KEY`, Ed25519,
 documented in `packaging.md` section 3) is a separate concern and is fully
@@ -56,7 +57,7 @@ In rough order of preference:
 
 ## Current CI state
 
-The release workflow builds and uploads **unsigned** Windows installers.
+The release workflow (`release-desktop.yml`) builds and uploads **unsigned** Windows installers.
 No signing steps or signing-service secrets remain in CI; when a provider
 is chosen, the signing step slots in between the Tauri build and the
 release-asset upload, signing the NSIS installer (and ideally deep-signing

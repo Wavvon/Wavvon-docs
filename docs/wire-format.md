@@ -1,15 +1,15 @@
 # Wire Format Specification
 
 Canonical byte-level reference for every signed binary envelope produced by
-the `identity` crate (`identity/src/wire.rs` in Wavvon-server). This spec
+the `identity` crate (`crates/identity/src/wire.rs` in Wavvon-server). This spec
 spans three feature areas: multi-device identity (SubkeyCert, Pairing*,
 RevocationEntry, HomeHubList), E2E encrypted DMs (EncryptedDmEnvelope,
 GroupEncryptedEnvelope, group key distribution), and identity verification
 (DhKeyRecord, PublicHubProfile, SignedPrefsBlob).
 
 Client implementations **must** reproduce these exact byte sequences to
-interoperate. The vectors are data, in `identity/wire-vectors.json` in
-Wavvon-server; `identity/tests/wire_vectors.rs` there only loads that file
+interoperate. The vectors are data, in `crates/identity/wire-vectors.json` in
+Wavvon-server; `crates/identity/tests/wire_vectors.rs` there only loads that file
 and asserts the crate reproduces it, and every other implementation asserts
 the same file. The hex below is copied from it — the spec and the code must
 stay in sync.
@@ -452,7 +452,7 @@ signature (master):
 Not a signed envelope — an AEAD construction (sender authenticity comes
 from the static-static X25519 DH; only the claimed sender's static key
 can derive the wrap key). Canonical impl:
-`identity/src/voice.rs` (Wavvon-server); design in
+`crates/identity/src/voice.rs` (Wavvon-server); design in
 [voice-transport-v2.md](voice-transport-v2.md).
 
 ```

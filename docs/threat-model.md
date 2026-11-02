@@ -20,7 +20,7 @@ DMs, voice transport v2 and device revocation, and said so wrongly.
   ([hub-certifications.md](hub-certifications.md)).
 - **Recovery** has three paths ([identity-recovery.md](identity-recovery.md)):
   the phrase (canonical), a `.wavvon-backup` file (Argon2id + AES-256-GCM),
-  and per-hub recovery contacts who vouch for a new key while an admin
+  and per-hub recovery contacts who vouch for a new key while the hub owner
   decides ([recovery-attestation.md](recovery-attestation.md)).
 
 ## What we defend against
@@ -61,7 +61,7 @@ Known gaps, each shaping a future decision.
   does not.
 - **Master key compromise.** Device subkeys revoke; the master does not. A
   leaked phrase is the whole identity. The way out is a new identity, carried
-  over per hub through recovery contacts and an admin's decision.
+  over per hub through recovery contacts and the hub owner's decision.
 - **Your own DMs on another device.** A device cannot decrypt DMs you sent
   from a different device, and says so instead of guessing. See
   [e2e-encryption.md](e2e-encryption.md).

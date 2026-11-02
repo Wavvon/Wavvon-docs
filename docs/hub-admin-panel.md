@@ -1,8 +1,10 @@
 # Hub admin tooling — Archived
 
 > **Superseded: the hub web admin panel (`/admin/panel`) was removed.**
-> Hub management belongs in the desktop client; hub ownership is set at
-> hub-creation time through the client wizard. See
+> Hub management belongs in the client. Hubs are self-hosted and no client
+> creates one: ownership comes from the first-boot owner invite the hub
+> prints, `WAVVON_OWNER_PUBKEY`, or `wavvon-hub admin users set-owner`
+> ([hub-operator-guide.md](hub-operator-guide.md#hub-ownership)). See
 > [decisions.md](decisions.md) ("Hub admin panel removed — hub
 > management moves to desktop client") and
 > [admin-panel-auth.md](admin-panel-auth.md) (also archived). The

@@ -6,6 +6,9 @@
 > `screenshare.v2` capability was dropped before 1.0 (Wavvon-server#198).
 > The hub's signalling relay described below was removed too
 > (Wavvon-server#210); this doc is kept as the design record.
+> Also stale below: there is no hub "Allow screen share" switch and no
+> `can_screen_share` flag (sharing is gated by `voice.join` on the
+> channel), and the Android client in §3 was removed 2026-07-12.
 
 v2 of screen share. The user-visible feature is identical to v1
 ([`screen-share.md`](screen-share.md)); the transport changes from

@@ -3,8 +3,10 @@
 **Status**: partly shipped. The designation, device registry, revocations,
 pairing and the encrypted prefs blob exist on the hub
 (`crates/hub/src/routes/identity.rs`) and in both clients; federated DM
-delivery walks the designation list. The canonical DM inbox the clients read
-from, and the friend list, are still design. This doc supersedes the
+delivery walks the designation list, the accepting hub mirrors to the
+others, and clients read DM history from their home hub (all four steps of
+[DM delivery](#dm-delivery--list-based-failover) are built). The friend list
+is still design. This doc supersedes the
 "Client connects directly to many hubs" stance in
 [decisions.md](decisions.md) for personal-axis state. Community traffic
 (channel messages, voice, alliances) is unchanged: clients still
@@ -65,7 +67,7 @@ members; reads can hit any.
 |---|---|---|
 | Device registry (subkey certs + revocations) | Plaintext, master-signed | Signatures only — entries are public-by-design |
 | Prefs blob (hub list, voice settings, theme, blocked users) | Opaque ciphertext | AEAD with key derived from master seed |
-| DM inbox (canonical, dedup'd by message id) | Plaintext today, E2E later (see [threat-model.md](threat-model.md)) | None today |
+| DM inbox (canonical, dedup'd by message id) | Ciphertext envelopes when both sides have a DH key; cleartext otherwise | Client-side E2E ([e2e-encryption.md](e2e-encryption.md)) |
 | Friend list (canonical, future) | Plaintext, master-signed | None |
 | Notification settings, read cursors (future) | Inside the prefs blob | Inherits prefs encryption |
 | Pairing-protocol short-lived state (offers, claims) | Plaintext, TTL'd | None — bound to one-shot tokens |
@@ -73,13 +75,13 @@ members; reads can hit any.
 Identity-bearing entries (certs, revocations, friend list) are signed
 by the **master** so any home hub can serve them without being
 trusted to fabricate them. Content-bearing entries (prefs, DMs) are
-either encrypted to the user or accepted as plaintext-on-trust until
-E2E ships.
+either encrypted to the user or, where no DH key exists, accepted as
+plaintext-on-trust.
 
 ## What does NOT live on the home hub list
 
 - Channel messages, members, permissions — community hub.
-- Voice traffic — direct UDP between client and community hub.
+- Voice traffic — WebTransport (QUIC over UDP) between client and community hub.
 - Alliances — community-hub-to-community-hub.
 - Hub-to-hub federation auth — every hub still has its own keypair.
 - Anything about communities the user is *not* a member of.
@@ -185,8 +187,8 @@ that list — it just happens to also hold devices, prefs, etc.
 4. If every home hub is unreachable, the sender's hub queues in its
    outbox (existing behavior in `dm_worker.rs`) and retries.
 
-The mirror-forward step reuses `FederationClient::post_dm` with a
-`mirror=true` flag so receiving hubs distinguish "I'm an inbox copy"
+The mirror-forward step reuses `FederationClient::post_federated_dm` with a
+`mirror=true` flag (persisted as `dm_outbox.mirror`) so receiving hubs distinguish "I'm an inbox copy"
 from "I'm the original recipient." A peer hub that sees a duplicate
 `message_id` short-circuits.
 
@@ -336,24 +338,22 @@ Devices and friends learn about a new `HomeHubList` through:
 
 ## Files this will touch
 
-Pointers, not code copies — wiki convention. Paths under `hub/` live in
-Wavvon-server; paths under `desktop/` live in Wavvon-desktop.
+Pointers, not code copies — wiki convention. Server paths are Wavvon-server
+`crates/hub/src/`; client paths are Wavvon-clients. As landed:
 
-- `hub/src/routes/identity.rs` (new, Wavvon-server) — device registry,
-  revocations, pairing endpoints, prefs blob, designation storage.
-- `hub/src/routes/home_hub_dms.rs` (new, Wavvon-server) — canonical DM
-  inbox endpoints distinct from the federation DM endpoints.
-- `hub/src/dm_worker.rs` (Wavvon-server) — list-walking failover, plus
-  mirror-forward step for DMs accepted by any home hub.
-- `hub/src/db/migrations.rs` (Wavvon-server) — `subkey_certs`,
-  `revocations`, `pairing_offers`, `prefs_blobs`,
-  `home_hub_designations`, `dm_inbox_canonical`, `dm_mirror_forwards`.
-- `hub/src/federation/handlers.rs` (Wavvon-server) — accept
-  designation refreshes from peer hubs.
-- `desktop/src-tauri/src/lib.rs` (Wavvon-desktop) — home hub list
-  setting, designation cache, write-to-all replication.
-- `desktop/src/` (Wavvon-desktop) — list editor UI, divergence alert
-  UI, per-slot status indicator.
+- `routes/identity.rs` — device registry, revocations, prefs blob,
+  designation storage; `routes/pairing.rs` — pairing endpoints.
+- `routes/dms/` — DM routes; there is no separate `home_hub_dms.rs`, the
+  inbox is the ordinary `dm_messages` table.
+- `dm_worker.rs` — list-walking failover, plus the mirror-forward step
+  (`dm_outbox.mirror`).
+- `db/migrations.rs` — `subkey_certs`, `subkey_revocations`,
+  `pairing_offers`, `prefs_blobs`, `home_hub_designations`, `dm_messages`,
+  `dm_outbox`.
+- Clients: the home-hub list editor lives under Settings → Manage accounts
+  (shared UI in `packages/ui`); the web client publishes the designation
+  from `apps/web/src/platform/commands/identity.ts`
+  (`ensureHomeHubDesignation`).
 
 ## Consumers — what reads/writes the home hub list
 

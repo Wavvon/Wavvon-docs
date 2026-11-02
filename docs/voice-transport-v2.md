@@ -8,6 +8,12 @@
 > Phase 1.5 and Phase 2 (Phase 1's token-gated bind shipped and its
 > token/flow is reused here). Alpha rule applies: the old transports
 > are DELETED, not kept as fallbacks — no two versions.
+> Where it lives now: Wavvon-server `crates/hub/src/voice_wt.rs`
+> (endpoint, cert rotation, relay); Wavvon-clients `crates/voice/`
+> (desktop) and `apps/web/src/platform/voice.ts` (web). The "Why"
+> section below describes the pre-v2 state; its paths are historical.
+> Since shipping, the web jitter buffer ceiling noted at the end is
+> closed (`voicePlayout.ts`, 2026-08-21).
 
 ## Why
 
@@ -44,7 +50,7 @@ https://<host>:<port>/voice?token=<hex>
 `voice_joined` reply — alpha, no compat). Accepting a session consumes
 the token and binds the session to `(channel_id, pubkey)` — the
 same `voice_pending_binds` map; VXRG/VXRA and `voice_addr_map` are
-deleted. Session close = unbind (WS `leave_voice` still authoritative
+deleted. Session close = unbind (WS `voice_leave` still authoritative
 for roster).
 
 ### Certificates
@@ -186,5 +192,6 @@ port per hub next to `process_port`, pass it at spawn.
 - Spoofed-source amplification: gone with UDP — WT sessions are
   authenticated at CONNECT by the single-use token.
 - Ceilings accepted: no skipped-key store (drop on unknown key until
-  next rotation); no jitter buffer added on web (pre-existing);
+  next rotation); no jitter buffer added on web (pre-existing; since
+  added, 2026-08-21);
   ScriptProcessorNode capture on web kept as-is (separate concern).

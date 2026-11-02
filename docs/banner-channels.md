@@ -11,24 +11,24 @@ as regular channels.
 
 ## Schema
 
-Two nullable columns added to `channels` via `ALTER TABLE` in
-`hub/src/db/migrations.rs` in Wavvon-server:
+Two nullable columns on `channels` (`crates/hub/src/db/migrations.rs` in
+Wavvon-server):
 
 - `banner_url TEXT` — external HTTPS image URL; the hub stores the string
   only and never fetches it. The client loads it directly.
-- `banner_file_id TEXT REFERENCES upload_files(id)` — id of a hub-uploaded
-  image served from `GET /uploads/:filename`.
+- `banner_file_id TEXT` (no FK) — id of an `attachments` row, served from
+  `GET /uploads/{id}` ([attachments.md](attachments.md)). `upload_files` was
+  dropped on 2026-11-01 and existing banners were reset to NULL.
 
 Invariant: at most one of the two may be set on a banner channel. Enforced in
-the API layer, not the DB — SQLite cannot express the XOR cheaply and the
-validation already lives next to the other field checks. For non-banner
+the API layer next to the other field checks (`routes/channels.rs`). For non-banner
 channels both columns stay NULL.
 
 ---
 
 ## API
 
-All in the `hub` crate of Wavvon-server. No `upload_files` schema change.
+All in the `hub` crate of Wavvon-server.
 
 `CreateChannelRequest` / `UpdateChannelRequest` gain:
 - `banner_url: Option<String>`
@@ -42,9 +42,9 @@ Validations (applied when `channel_type == 'banner'`):
   transiently so step 1 of the upload flow can create the channel before
   the file exists.)
 - `banner_url`, if present, must parse as an absolute `https://` URL.
-- `banner_file_id`, if present, must reference an `upload_files` row whose
-  `channel_id` is this banner channel and whose `mime_type` is one of
-  `image/png`, `image/jpeg`, `image/gif`, `image/webp`.
+- `banner_file_id`, if present, must reference a live (not removed or
+  expired) `attachments` row uploaded to this banner channel whose
+  `attachment_blobs.kind` is `image`.
 - Hub-uploaded banner size cap: 512 KB (tighter than the generic 25 MB
   upload limit; enforced on the banner upload path). Same four image
   formats only.
@@ -57,7 +57,7 @@ but is never displayed in the sidebar for banner channels.
 
 ## Upload flow
 
-For hub-uploaded mode, `upload_files.channel_id` is NOT NULL, so the channel
+For hub-uploaded mode, an attachment belongs to a channel, so the channel
 must exist before the file. Three steps:
 
 1. Admin creates the banner channel: `POST /channels` with
@@ -65,24 +65,26 @@ must exist before the file. Three steps:
    in which case stop here).
 2. Admin uploads the image to that channel:
    `POST /channels/:id/upload` (multipart, reuses existing infra, 512 KB
-   cap, image MIME check). Response returns the new `upload_files.id`.
+   cap, sniffed image check). Response returns the new attachment id.
 3. Admin patches the channel: `PATCH /channels/:id` with
    `banner_file_id` = the returned id.
 
 External-URL mode is a single step: `POST /channels` with `banner_url` set.
 
-The Tauri command `patch_channel_banner_file` handles step 3, and
-`CreateChannelModal` in `apps/desktop/src/` orchestrates all three steps
+The client's channel-create flow (desktop: `useChannelCrud.ts` plus the
+Tauri command `patch_channel_banner_file`) orchestrates all three steps
 without exposing the intermediate file id to the user.
 
 ---
 
 ## Frontend
 
-In `ChannelSidebar.tsx` in the desktop app, a node with
-`channel_type === 'banner'` renders a distinct branch:
-- A full-width `<img>` (`src` = `banner_url`, or `/uploads/<filename>`
-  resolved from `banner_file_id`), `width: 100%`, `height: auto`.
+In `packages/ui` (Wavvon-clients: `components/layout/ChannelSidebar.tsx`,
+`SortableItems.tsx`; editing in `components/channels/BannerEditModal.tsx`),
+shared by web and desktop, a node with `channel_type === 'banner'` renders a
+distinct branch:
+- A full-width `<img>` (`src` = `banner_url`, or `/uploads/{banner_file_id}`),
+  `width: 100%`, `height: auto`.
 - No `onClick`/navigation handler, no unread dot, no voice participant
   list, no hover affordances.
 - The node remains a sortable item so drag-and-drop reordering works
@@ -99,7 +101,7 @@ collected but labeled as an internal identifier.
 ## Permissions
 
 Create / edit / delete of banner channels is restricted to the hub owner
-and members holding `manage_channels` — identical to the gate on regular
+and members holding `channels.manage` — identical to the gate on regular
 channel mutation. Regular members receive the banner in `ChannelResponse`
 and render the image; they have no controls.
 

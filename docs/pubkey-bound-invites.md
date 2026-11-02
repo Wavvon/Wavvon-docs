@@ -104,6 +104,10 @@ below it reads no state at all. One more value out of the same call.
 
 ## 4. Delivery is already designed
 
+(Designed, not wired: as of 2026-11-02 only the directory side of
+invite-directory.md is built, so delivering a bound invite is still the
+admin's job — paste the code wherever the recipient reads.)
+
 Getting the code to its recipient is [invite-directory.md](invite-directory.md)
 §3, unchanged: a person's listing names a home hub and the invite arrives as a
 federated DM; a program's names an https endpoint and the hub POSTs to it with

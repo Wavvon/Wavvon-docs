@@ -97,8 +97,9 @@ All in `hub/src/routes/alliances/` (Wavvon-server):
 | `POST   /alliances/:id/push-invite`                  | manager of this alliance | Push invite directly to a target hub |
 | `GET    /alliances/pending-invites`                  | `alliances.manage` | List pending push invites received |
 | `POST   /alliances/pending-invites/:id/accept`       | `alliances.manage` | Accept a pending push invite |
-| `POST   /alliances/pending-invites/:id/decline`      | `alliances.manage` | Decline a pending push invite |
-| `POST   /alliances/:id/join`                         | `alliances.manage` | Use invite token to join (hub-to-hub) |
+| `DELETE /alliances/pending-invites/:id`              | `alliances.manage` | Decline a pending push invite |
+| `POST   /alliances/join`                             | `alliances.manage` | Joining side: paste an invite; calls the inviter and mirrors the alliance locally |
+| `POST   /alliances/:id/join`                         | peer session | Inviter side: a remote hub redeems its token (hub-to-hub) |
 | `DELETE /alliances/:id/leave`                        | `alliances.manage` | Leave alliance             |
 | `GET    /alliances/:id/managers`                     | manager of this alliance, or `roles.manage` | Roles on this alliance's grant list |
 | `PUT    /alliances/:id/managers/:role_id`            | `roles.manage` | Add a role to the grant list     |
@@ -108,6 +109,13 @@ All in `hub/src/routes/alliances/` (Wavvon-server):
 | `GET    /alliances/:id/channels`                     | any auth | Effective shared set (local + remote)|
 | `GET    /alliances/:id/channels/:ch_id/messages`     | any auth | Read messages (local or via peer)    |
 | `POST   /alliances/:id/channels/:ch_id/messages`     | sender   | Post (federated to owning hub)       |
+| `/alliances/:id/channels/:ch_id/posts/...`           | see code | Forum federation: posts, replies, reactions, deletes |
+| `GET    /alliances/:id/uploads/:upload_id`           | public   | Stream an attachment from the member hub holding it |
+| `GET    /alliances/:id/people`                       | alliance members | Member discovery ([alliance-member-discovery.md](alliance-member-discovery.md)) |
+| `PUT    /alliances/:id/people-visibility`            | manager of this alliance | Alliance-level opt-in switch for member discovery |
+| `POST   /alliances/:id/voice-grant`                  | see Voice | Mint a cross-hub voice grant (see Voice below) |
+
+Code (`server.rs` route table) is authoritative; this table is the map.
 
 ## Join flow
 
@@ -139,7 +147,7 @@ Hub B: row in pending_alliance_invites; admins see card in
        Settings → Alliance invites (Accept / Decline)
 Accept → same POST /alliances/:id/join as the pull flow,
          reusing the stored invite_token
-Decline → row deleted, no callback
+Decline → DELETE /alliances/pending-invites/:id; row deleted, no callback
 ```
 
 The receiving hub **polls `/alliances/pending-invites` on mount** of
@@ -208,7 +216,7 @@ No per-descendant rows are materialized — see
 
 **Response shape.** `GET /alliances/:id/channels` entries gain:
 
-- `channel_type` — `"text"` | `"forum"` | `"banner"` | `"spawner"`;
+- `channel_type` — `"text"` | `"voice"` | `"forum"` | `"banner"` | `"spawner"`;
 - `parent_id` — null unless the parent is **itself in the shared set**,
   so entries always form well-rooted trees;
 - `is_category` — whether the entry is a container.
@@ -494,18 +502,17 @@ network remains the only thing that proves a visitor is audible.
 
 ## What's not done
 
-- **Member discovery beyond invite tokens** — no way to browse an
-  alliance's membership; joining is still invite-driven. Proposal (undecided):
+- ~~Member discovery beyond invite tokens~~ — built
+  (`routes/alliances/people.rs`); see
   [alliance-member-discovery.md](alliance-member-discovery.md).
 
 **Game launch/lobby federation across an alliance** used to be listed here as
 not-done, which read as a plan. It is a **refusal**, not a backlog entry: a
 mini-app session is scoped to one hub and one channel
-([mini-apps.md](mini-apps.md)), alliance game sessions are out of scope
-([apps.md](apps.md) §9), and the multiplayer
-lobby it would federate is itself undesigned ([gaming.md](gaming.md) item 4).
-The surviving cross-hub idea is game-bot *recommendation* between allies,
-deferred-until-demand in [apps.md](apps.md) §11.
+([mini-apps.md](mini-apps.md)), and the multiplayer lobby it would federate is
+itself undesigned ([gaming.md](gaming.md), "What's needed" item 2). The
+game-bot *recommendation* idea lived in the bot docs replaced by
+[apps.md](apps.md) on 2026-09-26 and is unclaimed.
 
 (Forum post/reply/reaction federation over alliance-shared channels
 **shipped 2026-07-19** — [forum.md](forum.md) §9. This section used to

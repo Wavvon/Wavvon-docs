@@ -1,9 +1,12 @@
 # Hub Certifications
 
 **Status**: SHIPPED (`cert_issuances`, `user_certs`, the issuance sweep
-in `hub/src/cert_worker.rs`, `GET /identity/:pubkey/certs`, the
-`cert_mode` admission gate, achievement badges). §11 — relay across the
-hubs of one farm — is designed, not built. Anti-spam **Layer 2** — the
+in `crates/hub/src/cert_worker.rs`, `GET /identity/{pubkey}/certs`, the
+`cert_mode` admission gate, the `GET /certs/revocations` poll target and
+its poller `cert_revocation_worker.rs`, achievement badges). §11 — relay
+across the hubs of one farm — is built too (2026-08-29). §9 below is the
+plan; where the code differs, the code is right (notes inline, 2026-11-02).
+Anti-spam **Layer 2** — the
 reputation layer that sits on top of the proof-of-work layer
 ([future-features.md](future-features.md) "Anti-spam"). Layer 1 (PoW)
 has primitives in `identity/src/pow.rs` (Wavvon-server) and is enforced
@@ -37,12 +40,13 @@ server-tags.md established the shared signer for the hub-subject case
 and explicitly deferred the user-subject case to "the
 future-features.md anti-spam Layer 2." This doc is that case. The two
 must not be conflated: a badge says "hub A trusts hub B"; a cert says
-"hub A has hosted user U well." They share `hub/src/federation/`
-signing code and nothing else.
+"hub A has hosted user U well." They share the hub identity key and
+nothing else.
 
-> The shared signer lives in `hub/src/federation/` (Wavvon-server) with
-> a `subject_kind: "hub" | "user"` discriminant, exactly as
-> server-tags.md "Relationship to user certifications" specifies.
+> Planned as a shared signer in `hub/src/federation/` with a
+> `subject_kind: "hub" | "user"` discriminant. As built, `subject_kind`
+> exists only on the cert payload in `crates/hub/src/routes/certs.rs`
+> (always `"user"`); badges sign through their own code.
 
 ## 1 — Certification shape
 
@@ -101,8 +105,9 @@ Key points:
 **Default: automatic on a standing threshold, admin-tunable.** A hub
 issues (and renews) a cert for a member when **all** hold:
 
-1. The member has existed for at least `cert_min_age_days` (hub
-   setting, default 30).
+1. The member has existed for at least `cert_standing_days` (hub
+   setting, default 30; the settings API also spells it
+   `cert_min_age_days`).
 2. The member is not banned, not muted, `approval_status = 'approved'`,
    and `standing = 'good'`.
 3. The member has logged in at least once since issuance window opened
@@ -234,9 +239,9 @@ rule shapes, combinable:
   ≥ 15`" or whose `member_since` is at least 90 days ago. This lets a
   hub accept reputation it can't enumerate by name.
 
-The two combine with an admin-chosen mode (`cert_mode`): `off` (today's
-behaviour), `any` (satisfy either rule), or `all` (must satisfy the
-trusted-issuer list). The gate composes with the existing
+The two combine with an admin-chosen mode (`cert_mode`): `none` (the
+default), `any` (satisfy either rule), or `trusted` (must satisfy the
+trusted-issuer list). (Planned as `off`/`any`/`all`.) The gate composes with the existing
 `min_security_level` lobby: a hub can require *both* a cert *and* a PoW
 level, or accept a cert's carried `pow_level` in lieu of local
 computation (§8).
@@ -278,9 +283,11 @@ coordination:
    closes the *push-at-auth* gap, where the user simply wouldn't present
    a revoked cert.
 
-v1 relies on **expiry + re-issue-as-revoked on pull**. The polled
-revoke-check endpoint is deferred until early retraction before expiry
-is a demonstrated need — identical to the badge decision.
+v1 planned to rely on **expiry + re-issue-as-revoked on pull** and defer
+the poll. Both shipped anyway: `GET /certs/revocations?since=` lists
+revoked `cert_issuances` rows (a `revoked_at` column, no separate
+`cert_revocations` table), and `cert_revocation_worker.rs` polls every
+issuer found in `user_certs` every 6 h and deletes revoked copies.
 
 ## 8 — Cross-hub portable PoW credit
 
@@ -315,12 +322,21 @@ local to hub B, exactly as the sovereignty pillar demands.
 
 Note the asymmetry the cert makes safe: a bot *could* burn PoW once and
 get a level-20 cert, but to get a *good-standing* cert it must also
-survive `cert_min_age_days` of not-being-banned on a real hub — the
+survive `cert_standing_days` of not-being-banned on a real hub — the
 behavioural cost PoW alone can't impose. The two layers compose: PoW
 gates the cheap-key flood, the standing claim gates the patient-bot
 case.
 
 ## 9 — Data model & route changes (all Wavvon-server unless noted)
+
+> **As built (2026-11-02)** — routes in `crates/hub/src/server.rs`:
+> `GET /admin/certs`, `POST`/`DELETE /admin/certs/{pubkey}` (issue /
+> revoke), `POST /admin/certs/{pubkey}/badge`,
+> `GET`/`PATCH /admin/settings/certs`, `GET /identity/{pubkey}/certs`,
+> `GET /certs/revocations`. There is no `GET /certs/me` and no
+> `PUT /identity/{pubkey}/certs`; `user_certs` is filled by the §11 pull.
+> No `cert_revocations` table (see §7). Paths below read `crates/hub/src/…`
+> for `hub/src/…`. The plan follows.
 
 **Shared signer** (`hub/src/federation/`):
 - Extend the badge signer with the `subject_kind: "user"` arm and the
@@ -336,7 +352,7 @@ case.
 - New `hub_settings` rows: `cert_auto_issue` (bool, default `1`),
   `cert_min_age_days` (default `30`), `cert_validity_days`
   (default `90`), `cert_min_pow_level` (nullable), and the admission
-  side `cert_mode` (`off`/`any`/`all`, default `off`),
+  side `cert_mode` (built as `none`/`any`/`trusted`, default `none`),
   `cert_trusted_issuers` (JSON), `cert_require` (JSON).
 
 **Home hub DB** (`hub/src/routes/identity.rs`, the home-hub identity
@@ -375,7 +391,7 @@ store from [home-hub.md](home-hub.md)):
 - `GET /info` (`routes/health.rs`) gains `cert_requirement` (§6) so the
   client knows what to present pre-auth.
 
-**Client** (`Wavvon-desktop`, mirrored `Wavvon-web` / `Wavvon-android`):
+**Client** (plan; the clients are now one Wavvon-clients workspace, and Android was removed 2026-07-12):
 - `desktop/src-tauri/src/lib.rs` — store/cache the portfolio in
   `identity.json`; fetch-and-deposit on the home hub list.
 - Tauri commands: `fetch_my_cert(hub_url)`, `list_my_certs()`,
@@ -394,10 +410,7 @@ store from [home-hub.md](home-hub.md)):
   admin-decided. A property rule satisfied by any signed cert plus an
   explicit trusted-issuer list covers the real needs without a global
   trust graph.
-- **Issuer revoke-check polling** (`GET /certs/revocations` as a live
-  poll target). v1 leans on expiry + re-issue-as-revoked on the pull
-  path. Build the poll only if early retraction before expiry becomes a
-  real need — same posture as the badge revoke-check.
+- ~~**Issuer revoke-check polling**~~ — built after all (§7).
 - **Cross-*farm* relay** (farm A's certs recognised on farm B, or a farm
   issuing certs itself) — reintroduces multi-authority coordination and
   waits until farms are stable. The **intra-farm** case is designed in
@@ -594,7 +607,8 @@ right answer for a same-box call.
 
 The cert primitive now doubles as **named achievement badges** — the
 federated answer to the "OAuth verification badge" idea in
-[future-features.md](future-features.md), done without any central
+[decisions.md](decisions.md) ("OAuth account linking — rejected as an auth
+mechanism; deferred as a social badge"), done without any central
 authority (the issuer is a hub with a verifiable pubkey).
 
 - `CertPayload` gained optional `label` / `description` / `icon`

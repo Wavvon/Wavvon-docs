@@ -7,13 +7,26 @@
 > project no longer runs. The axes and the method survive; the figures do
 > not.
 >
+> **Also stale (2026-11-02):** the raw-UDP voice relay this doc measures
+> was deleted by voice transport v2 on 2026-08-07
+> ([voice-transport-v2.md](voice-transport-v2.md)); voice is
+> WebTransport datagrams through Wavvon-server
+> `crates/hub/src/voice_wt.rs`, where each session is bound to
+> `(channel, pubkey)` at the handshake, so the O(total participants)
+> source-address scan in §3 no longer exists. Two §1 optimizations have
+> landed: events are pre-serialised once into an `Arc<str>`, and
+> capacities are 4096 (chat) and 1024 (voice events, DMs, screen share),
+> set in `crates/hub/src/main.rs`. A lagging client now receives a
+> `lagged { count }` WS message ([ws-protocol.md](ws-protocol.md)). The
+> paths and line numbers below are pre-refactor.
+>
 > This doc covers what we expect to find
 > when we measure, what the current code makes us suspect the bottleneck
 > is, and how to attack each axis in order. No source changes happen
 > until the first round of measurements lands.
 
-Wavvon's selling point is "a community runs on one box." The wishlist
-item this doc resolves is: *what does "one box" actually mean*? Three
+Wavvon's selling point is "a community runs on one box." The question
+this doc resolves is: *what does "one box" actually mean*? Three
 subsystems decide it — WS broadcast, search, voice relay. This doc
 designs the load tests, names the suspected ceiling for each, and
 ranks them by impact-per-effort.
@@ -23,9 +36,10 @@ the answer to "more than one hub's worth of people." The goal here is
 to know the ceiling, document it, and tell hub operators which axis
 fails first.
 
-## What the code says today
+## What the code said when this was written
 
-All three subsystems live in the `hub/` crate of Wavvon-server.
+All three subsystems live in the `crates/hub/` crate of Wavvon-server.
+(See the status note for what has changed since.)
 
 - **WS broadcast** — four `tokio::sync::broadcast` channels in
   `state.rs:84-102` (chat, voice events, DMs, screen share), each
@@ -261,7 +275,7 @@ case. Beyond 10 in one room, recommend splitting the conversation.
    community hub on a VPS, CPU is the scarce resource — SFU stays.
    Documenting this here so we don't redebate it.
 5. **Jitter buffer tuning**: client-side concern, not hub-side.
-   Defer to the `voice/` crate in Wavvon-desktop. Mentioned for
+   Defer to the clients (web jitter buffer shipped 2026-08-21). Mentioned for
    completeness; not part of this work.
 
 ## 4. Recommended implementation order
@@ -282,7 +296,7 @@ Rank: **voice relay first, search second, WS broadcast third**.
   out there's nothing to do here for a year.
 
 "Good enough" gates per axis are stated under each section. When all
-three are green on the benchmarks, the wishlist item closes and the
+three are green on the benchmarks, this work is done and the
 results go into [`hosting.md`](hosting.md) as a sizing guide.
 
 ## 5. Tooling and CI integration
@@ -321,10 +335,11 @@ results go into [`hosting.md`](hosting.md) as a sizing guide.
 
 ## Files referenced
 
-- `hub/src/state.rs:84-102` (Wavvon-server) — broadcast channels
-- `hub/src/main.rs:83-86` (Wavvon-server) — channel capacity
-- `hub/src/main.rs:151-182` (Wavvon-server) — UDP voice relay loop
-- `hub/src/routes/ws/` (Wavvon-server) — fan-out loop
-- `hub/src/routes/messages.rs:355-376` (Wavvon-server) — search query
-- `hub/src/db/migrations.rs` (Wavvon-server) — where FTS5 will be added
-- `voice/` crate in Wavvon-desktop — see [voice.md](voice.md)
+Current locations (Wavvon-server unless noted):
+
+- `crates/hub/src/state.rs` — broadcast senders
+- `crates/hub/src/main.rs` — channel capacities
+- `crates/hub/src/voice_wt.rs` — WebTransport voice relay (replaced the UDP loop)
+- `crates/hub/src/routes/ws/connection.rs` — fan-out loop
+- `crates/hub/src/routes/search.rs`, `crates/hub/src/search/` — Tantivy search (replaced the LIKE query)
+- `crates/voice/` in Wavvon-clients — see [voice.md](voice.md)

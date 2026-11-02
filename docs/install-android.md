@@ -1,5 +1,12 @@
 # Installing Wavvon on Android
 
+> **There is no Wavvon Android app.** This guide was written ahead of a
+> release that never happened: no APK was ever published, and the Android
+> client was removed on 2026-07-12. On a phone, use the web client in the
+> browser. The rest of this page is kept only as the draft for a future
+> rewrite — see [android-client.md](android-client.md) and
+> [android-rewrite-notes.md](android-rewrite-notes.md).
+
 Wavvon for Android is distributed as a sideloaded APK — there is no Play
 Store listing. You install it directly from `releases.wavvon.io`.
 

@@ -6,13 +6,16 @@ hangs off the public key.
 
 ## Where identity lives
 
-- **Generation**: `identity/src/lib.rs` in Wavvon-server (Ed25519 + BIP39 phrase)
-- **Recovery phrase**: `identity/src/recovery.rs` in Wavvon-server (24 words)
-- **Storage on the desktop client**: a JSON file in Tauri's app-data dir,
-  written by the Rust side in `desktop/src-tauri/src/lib.rs` in Wavvon-desktop.
+- **Generation**: `Wavvon-server: crates/identity/src/lib.rs` (Ed25519 + BIP39 phrase)
+- **Recovery phrase**: `Wavvon-server: crates/identity/src/recovery.rs` (24 words)
+- **Storage on the desktop client**: one directory per account under
+  `~/.wavvon/accounts/`, path helpers in
+  `Wavvon-clients: apps/desktop/src-tauri/src/accounts.rs`. The web client
+  keeps identities in IndexedDB.
 
-The recovery phrase **is** the secret — entering it on a device replaces
-that device's identity. There is currently one identity per device.
+The recovery phrase **is** the secret. Both clients are multi-account: a
+device can hold several identities and switch between them; the account
+list is device-local and never synced to a hub.
 
 ## How auth works against a hub
 
@@ -24,25 +27,27 @@ Challenge-response, signature-based:
 4. Client posts the signature + public key.
 5. Hub verifies and issues a session token.
 
-Code path: `hub/src/auth/handlers.rs` and
-`hub/src/auth/middleware.rs` (both in Wavvon-server).
+Code path: `Wavvon-server: crates/hub/src/auth/handlers.rs` and
+`crates/hub/src/auth/middleware.rs`.
 
 ## Authorization (after auth)
 
 A user's pubkey is matched to their hub-local membership row, which
 carries their roles. Roles bundle permissions; see
-`hub/src/permissions.rs` in Wavvon-server for the permission set and
-`hub/src/routes/roles.rs` in Wavvon-server for role CRUD.
+`Wavvon-server: crates/hub/src/permissions.rs` for the catalog and
+`crates/hub/src/routes/roles.rs` for role CRUD.
 
-Common permissions: `manage_hub`, `manage_channels`, `manage_roles`,
-`manage_users`, `send_messages`, `attach_files`, etc.
+Permission ids are dotted (`hub.settings`, `channels.manage`,
+`roles.manage`, `messages.send`, …); there is no `admin` wildcard — the
+owner is a property of the user (`is_owner`), not a role. See
+[permissions.md](permissions.md).
 
 ## Hub-to-hub auth (federation)
 
 Same primitive, different actor: each hub also has its own Ed25519
 keypair. When Hub A talks to Hub B, A signs requests as itself; B
-verifies. See `hub/src/federation/client.rs` and
-`hub/src/federation/handlers.rs` (both in Wavvon-server).
+verifies. See `Wavvon-server: crates/hub/src/federation/client.rs` and
+`crates/hub/src/federation/handlers.rs`.
 
 ## Recovery flow
 
@@ -67,5 +72,5 @@ level a client claims (`security_level` + `security_nonce`) and, below the
 minimum, confines the session to the lobby when the lobby is on or refuses
 it with 403 when it is off. The hub owner is exempt. The level is the number
 of leading zero bits of `SHA-256(utf8(pubkey_hex) || nonce as u64 LE)`
-(Wavvon-server: `identity/src/pow.rs`, gate in `hub/src/auth/handlers.rs`).
+(Wavvon-server: `crates/identity/src/pow.rs`, gate in `crates/hub/src/auth/handlers.rs`).
 The lobby flow is in [lobby-survey.md](lobby-survey.md).

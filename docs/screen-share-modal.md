@@ -1,9 +1,15 @@
 # Unified Screen Share Modal
 
-**Status: designed, not built.** The current desktop picker uses the OS-native
-`getDisplayMedia()` overlay. This doc describes the planned replacement: a
-single Wavvon-native modal that handles both source selection (with thumbnail
-previews) and audio/webcam settings in one step.
+**Status (2026-11-02): partly built.** Wavvon-clients has the modal
+(`apps/desktop/src/components/ScreenShareModal.tsx`, replacing
+`ScreenSharePicker.tsx`) and the command (`list_capture_sources` in
+`apps/desktop/src-tauri/src/screen_share.rs`, using the `xcap` crate rather
+than per-platform APIs). The missing half is the `getDisplayMedia`
+constraint: `apps/desktop/src/hooks/useScreenShare.ts` ignores the chosen
+`sourceId` (typed in `apps/desktop/src/types.ts`), so the OS picker still
+appears after the modal. This doc describes a single Wavvon-native modal
+that handles both source selection (with thumbnail previews) and
+audio/webcam settings in one step.
 
 See [screen-share.md](screen-share.md) for the shipped v1 transport and the
 existing two-step picker it replaces.
@@ -30,8 +36,8 @@ or produce thumbnails without showing the OS picker. To display custom previews
 inside a Wavvon modal, the desktop app (Tauri) must call platform APIs directly
 via a new Tauri command.
 
-The web and Android clients cannot implement custom source enumeration — they
-fall back to the system picker. The unified modal is a **desktop-only** feature.
+The web client cannot implement custom source enumeration — it falls back
+to the system picker. The unified modal is a **desktop-only** feature.
 
 ---
 
@@ -122,8 +128,9 @@ as a full dialog.
 
 ### `getDisplayMedia` constraints
 
-`handleShareStart` in `apps/desktop/src/hooks/useVoice.ts` uses the source ID
-to constrain the picker, bypassing the OS overlay entirely:
+The screen-share hook (now `apps/desktop/src/hooks/useScreenShare.ts`;
+not done yet) should use the source ID to constrain the picker, bypassing
+the OS overlay entirely:
 
 ```typescript
 const stream = await navigator.mediaDevices.getDisplayMedia({
@@ -146,6 +153,8 @@ const stream = await navigator.mediaDevices.getDisplayMedia({
 
 ## Implementation touchpoints
 
+As planned; see the status note for what landed where.
+
 | File | Change |
 |------|--------|
 | `src-tauri/src/lib.rs` | Add `list_capture_sources` command + `CaptureSource` struct; register in `Builder` |
@@ -162,4 +171,4 @@ const stream = await navigator.mediaDevices.getDisplayMedia({
 - Live preview of the selected source inside the modal (costs a capture stream just for preview — YAGNI).
 - Audio device selection (beyond the binary include/exclude toggle already present).
 - Quality / bitrate settings in the picker — those live in voice settings.
-- Web and Android clients: they keep the current `getDisplayMedia()` system picker since no native enumeration API is available.
+- Web client: it keeps the `getDisplayMedia()` system picker since no native enumeration API is available.

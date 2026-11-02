@@ -1,21 +1,20 @@
 # Browser Client
 
-A second client living at `apps/web/` in the **Wavvon-client** monorepo
-that hosts the same React UI as the desktop ([client.md](client.md)) but
-with no Tauri shell. The hub's HTTP + WebSocket API is unchanged; what
-changes is the platform layer sitting between the UI and the network.
+The web client lives at `apps/web/` in the **Wavvon-clients** monorepo
+and hosts the same React UI as the desktop ([client.md](client.md)) with
+no Tauri shell; what differs is the platform layer between the UI and
+the network (`apps/web/src/platform/`). It is now the delivery target
+and the source of truth for the shared UI.
 
-> Historical note: this doc was written when the web client was its own
-> `Wavvon-web` repo and voice was deferred. Both have since changed —
-> the clients consolidated into the Wavvon-client monorepo (see
-> [client-monorepo.md](client-monorepo.md) and [decisions.md](decisions.md)),
-> and **voice now works in the browser** over the hub's WebSocket relay
-> (see "Voice" below and [voice.md](voice.md)). The shared UI and platform
-> layer now live in `packages/*` rather than being aliased across repos.
-
-The browser client is now near feature-parity. Text, DMs, E2E, screen
-share, admin flows, and voice all work; the remaining gaps are
-browser-platform limits (system tray, native auto-update).
+> **Historical design doc (status 2026-11).** Written when the web client
+> was its own `Wavvon-web` repo and voice was deferred. Since then: the
+> clients consolidated into one monorepo
+> ([client-monorepo.md](client-monorepo.md)) — shared UI and the single
+> `styles.css` in `packages/ui`, identity crypto in
+> `packages/core/src/identity/`; voice runs over **WebTransport**
+> (see "Voice" below); and the client ships as **two builds** (decisions.md,
+> "Two web clients: one per hub, one per user"). The layout, aliasing and
+> auth sections below describe the original plan; read them for the why.
 
 ---
 
@@ -148,9 +147,9 @@ substitutes IndexedDB and pure-TypeScript crypto.
 
 | Use | Library | Why |
 |---|---|---|
-| Ed25519 signing | `@noble/ed25519` | Audited, pure TS, no WASM. Matches the byte-level format of `ed25519-dalek` |
+| Ed25519 signing | `@noble/curves/ed25519` (planned as `@noble/ed25519`) | Audited, pure TS, no WASM. Matches the byte-level format of `ed25519-dalek` |
 | Ed25519 → X25519 conversion | `@noble/curves/ed25519` (`edwardsToMontgomeryPriv`) | The seed→scalar→clamp recipe is exposed directly; SubtleCrypto has no equivalent |
-| BIP39 recovery phrase | `bip39` | Same wordlist and entropy format as the desktop's `wavvon_identity` crate |
+| BIP39 recovery phrase | `@scure/bip39` | Same wordlist and entropy format as the desktop's `wavvon_identity` crate |
 | AES-GCM + HKDF | `@noble/ciphers` + `@noble/hashes` | See §"E2E crypto" — kept consistent with the noble stack to avoid SubtleCrypto's import ceremony |
 | IndexedDB | `idb` | Tiny Promise wrapper; the raw IndexedDB API is callback hell |
 
@@ -198,10 +197,9 @@ TypeScript reimplements step-for-step:
 | Step | Call | Body |
 |---|---|---|
 | 1 | `GET {hub_url}/info` | — | Returns `{ hub_name, hub_pubkey, ... }`. Pin `hub_pubkey` in the session record. |
-| 2 | `POST {hub_url}/auth/register` | `{ public_key, display_name }` | Idempotent; existing users get 200. |
-| 3 | `POST {hub_url}/auth/challenge` | `{ public_key }` | Returns `{ challenge: hex }`. |
-| 4 | (local) | — | `signature = ed25519.sign(challenge_bytes, seed)`. |
-| 5 | `POST {hub_url}/auth/verify` | `{ public_key, challenge, signature }` | Returns `{ token }`. Token is the session bearer. |
+| 2 | `POST {hub_url}/auth/challenge` | `{ public_key }` | Returns `{ challenge: hex }`. |
+| 3 | (local) | — | `signature = ed25519.sign(challenge_bytes, seed)`. |
+| 4 | `POST {hub_url}/auth/verify` | `{ public_key, challenge, signature }` | Returns `{ token }`. Token is the session bearer; the user row is created here (there is no separate register route). |
 
 All subsequent requests carry `Authorization: Bearer {token}` (and the
 WebSocket carries it in the query string, matching what the desktop
@@ -298,7 +296,9 @@ bundled-size delta is small; the audit-clarity delta is large.
 
 ### Module shape
 
-`src/identity/crypto.ts`:
+Originally `src/identity/crypto.ts`; now `packages/core/src/identity/crypto.ts`.
+The sketch below is the v1 shape — DMs have since moved to a Double
+Ratchet ([e2e-encryption.md](e2e-encryption.md)):
 
 ```ts
 function dhKeypairFromSeed(seedHex: string): {
@@ -330,8 +330,8 @@ function decryptDm(
 function signBytes(msg: Uint8Array, seedHex: string): string;  // hex
 ```
 
-The envelope shape matches the Rust producer in
-`apps/desktop/src-tauri/src/lib.rs` in Wavvon-client (the `encrypt_dm` Tauri command);
+The envelope shape matches the Rust producer in Wavvon-clients
+`apps/desktop/src-tauri/src/dm.rs`;
 the canonical signing bytes match the format defined in
 [e2e-encryption.md](e2e-encryption.md) §"Message authentication"
 (domain-separated prefix, length-prefixed strings).
@@ -342,30 +342,23 @@ the canonical signing bytes match the format defined in
 
 ---
 
-## Voice — WebSocket relay
+## Voice — WebTransport
 
-Voice **works in the browser**. Native clients ride Opus-over-UDP via the
-hub relay; the browser cannot open raw UDP sockets, so the hub exposes a
-parallel `/voice/ws` WebSocket relay and the browser speaks the same Opus
-wire format over it. Both transports fan out into the same channel — a
-browser user and a desktop user hear each other. Full data flow and frame
-format in [voice.md](voice.md).
+Voice **works in the browser**, over the same WebTransport (QUIC)
+transport the desktop uses, so a browser user and a desktop user hear
+each other through one relay. Design and rationale:
+[voice-transport-v2.md](voice-transport-v2.md); data flow in
+[voice.md](voice.md).
 
-We chose the WS relay over WebRTC: WebRTC would force the hub to terminate
-ICE/DTLS-SRTP and run a full SFU, whereas the WS relay reuses the existing
-Opus fan-out and hub session auth almost unchanged. See
-[decisions.md](decisions.md) ("Web voice via a WebSocket Opus relay").
+> Status 2026-11: the original design here was a parallel `/voice/ws`
+> WebSocket relay beside the native clients' raw UDP relay (decisions.md,
+> "Web voice via a WebSocket Opus relay"). Both relays were removed when
+> voice transport v2 landed. The reason WebRTC was not chosen still holds:
+> it would force the hub to terminate ICE/DTLS-SRTP and run a full SFU.
 
-**Browser specifics**:
-
-- Microphone capture is `getUserMedia`; encode/decode is `opusscript` (a
-  WASM Opus codec), framed at 960 samples / 20 ms via a
-  `ScriptProcessorNode`. No RNNoise/VAD denoise in the browser path.
-- The voice client lives in `VoiceWsSession` (`apps/web/src/platform/voice.ts`
-  in Wavvon-client); `App.tsx`'s join/leave/mute/deafen handlers drive it
-  directly (the old `showVoiceNotAvailable()` stub is gone).
-- Participant lists and `🎙️ N` badges render as on desktop; the
-  mute/deafen footer buttons are live while in voice.
+**Browser specifics**: microphone capture through `getUserMedia` and an
+`AudioWorklet`; Opus via `opusscript`; the session is in
+`apps/web/src/platform/voice.ts`.
 
 ---
 
@@ -398,27 +391,27 @@ Everything else — `getDisplayMedia`, the WebSocket frame protocol, the
 | DMs | yes | yes | |
 | E2E encrypted DMs | yes | yes | All-noble crypto stack |
 | Screen share | yes | yes | Already WebView-native |
-| Voice | yes (Opus/UDP) | yes (Opus/WS relay) | `/voice/ws`; `opusscript` WASM codec; no RNNoise denoise in browser |
+| Voice | yes | yes | WebTransport on both (originally UDP / `/voice/ws`, both removed) |
 | Voice participant list | yes | yes | `/voice/participants` |
 | Reactions | yes | yes | |
-| Attachments | yes | yes | base64 in JSON, same shape |
+| Attachments | yes | yes | Uploaded and served from hub disk ([attachments.md](attachments.md)); originally base64 in JSON |
 | Hub admin (members, roles, bans, invites) | yes | yes | |
 | Roles & permissions | yes | yes | |
 | Invites (create, revoke, accept via link) | yes | yes | Deep links land as `?invite=` URL params |
 | Alliances | yes | yes | |
 | Games (iframe) | yes | yes | Already iframed |
 | Friends (local + cross-hub) | yes | yes | |
-| Hub discovery (directory) | yes | yes | |
-| Multi-hub | yes | yes | Multiple `HubWebSocket` instances |
-| Identity: generate | yes | yes | `@noble/ed25519` keygen |
+| Hub discovery (directory) | yes | user build only | The hub build drops it |
+| Multi-hub | yes | user build only | Multiple `HubWebSocket` instances; the hub build shows one hub |
+| Identity: generate | yes | yes | `@noble/curves` keygen |
 | Identity: restore from seed | yes | yes | Hex paste, byte-identical format |
 | Identity: restore from recovery phrase | yes | yes | BIP39, same wordlist |
 | Auto-update | yes | n/a | Browser reloads; hub serves new assets |
-| Deep links (`wavvon://`) | yes | partial | Browser can register a protocol handler; falls back to query-string invites |
+| Deep links (`wavvon://`) | yes | no | No protocol handler is registered; invites arrive as URL params |
 | System tray | yes | **no** | Browser has no tray |
 | OS notifications | yes | yes | `Notification` API; needs user permission grant |
 | Window title unread count | yes | yes | `document.title` mutation |
-| Themes (Calm/Classic/Linear/Light) | yes | yes | Shared CSS, `data-theme` |
+| Themes (dark/light + custom skins) | yes | yes | Shared `packages/ui/src/styles.css`, `data-theme` |
 | Local block list | yes | yes | IndexedDB instead of JSON file |
 | Pinned channels / collapsed categories | yes | yes | IndexedDB instead of JSON files |
 
@@ -443,8 +436,8 @@ Everything else — `getDisplayMedia`, the WebSocket frame protocol, the
 - Desktop client structure and state conventions: [client.md](client.md)
 - E2E envelope format (must match byte-for-byte): [e2e-encryption.md](e2e-encryption.md)
 - Identity model and seed format: [identity.md](identity.md)
-- Voice pipeline and the WS relay the browser uses: [voice.md](voice.md)
-- Hub HTTP routes: `hub/src/routes/mod.rs` (Wavvon-server)
-- Tauri commands the adapter replaces: `apps/desktop/src-tauri/src/lib.rs` (Wavvon-client)
-- Shared types the browser also consumes: `packages/core` / `apps/desktop/src/types.ts` (Wavvon-client)
+- Voice pipeline and transport: [voice.md](voice.md), [voice-transport-v2.md](voice-transport-v2.md)
+- Hub HTTP routes: `crates/hub/src/server.rs` (Wavvon-server), spec in `openapi.yaml`
+- Tauri commands the adapter mirrors: `apps/desktop/src-tauri/src/` (Wavvon-clients)
+- Shared types: `packages/core` (Wavvon-clients)
 - Monorepo migration that consolidated the repos: [client-monorepo.md](client-monorepo.md)

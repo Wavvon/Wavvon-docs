@@ -5,8 +5,11 @@
 gates `send_dm` with a success-shaped response so the sender cannot detect
 the block), and `blocked_users` rides the encrypted prefs blob, so the
 per-device list has already moved onto personal-axis storage for that field.
-The rest of this doc — the mute/ignore distinction and its UX — is still
-design.
+**Ignore is built client-side** too: a shared settings section
+(Wavvon-clients `packages/ui/src/components/BlockIgnoreSection.tsx`), a
+context-menu action, and ignored authors' messages collapsed in
+`MessageRow`; on web the list syncs in the prefs blob
+(`wavvon.ignoredUsers`). Quiet-hours scheduling is still design.
 
 > Repo naming: what this doc calls Wavvon-desktop is now `apps/desktop/` in
 > the Wavvon-clients monorepo.
@@ -274,8 +277,9 @@ block-set check before store-and-push. Nothing else on the wire changes.
 
 ## Client UI
 
-All three are mirrored across Wavvon-desktop, Wavvon-web, Wavvon-android
-— same prefs-blob shapes, same surfaces.
+Mirrored across desktop and web (the Android client was removed
+2026-07-12) — same prefs-blob shapes, same surfaces, shared components in
+`packages/ui`.
 
 ### Where to block / ignore
 

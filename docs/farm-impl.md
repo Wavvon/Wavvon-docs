@@ -6,9 +6,11 @@ panel. The seven-step plan there is the *what*; this doc is the *how*
 for steps 1-5 (folded into three implementation phases). Phases 6-7
 are out of scope here.
 
-> Status: designed, not built. The farm layer is on the wishlist; this
-> doc exists so when the time comes a backend engineer can implement
-> straight from it without re-deriving wire shapes.
+> Status (2026-11-02): built, partially. The farm lives in Wavvon-server
+> `crates/farm` (control plane, farm SSO, reverse proxy) and `crates/agent`
+> (worker node). Code is authoritative for shapes; this doc keeps the
+> rationale. Sections marked superseded below describe surfaces that were
+> dropped.
 
 ## Resolved open questions (decisions up front)
 
@@ -112,14 +114,16 @@ lives in `farm/src/db/migrations.rs` (Wavvon-server). Configure it with
 `WAVVON_DATABASE_URL` — note the `WAVVON_` prefix, since `settings::load()`
 reads every field through `config::Environment::with_prefix("WAVVON")`.
 
-> **Per-hub database provisioning is not implemented (as of 2026-08-08).**
-> The `hubs.db_path` column still holds a SQLite-era file path
-> (`{hubs_dir}/{hub_id}.db`) and nothing consumes it. The farm passes no
-> database variable to a spawned hub, so every farm-hosted hub falls back to
-> its own default `WAVVON_DATABASE_URL` — meaning **hubs on one box share a
-> database**. `spawn_hub` logs a warning per spawn saying so.
+> **Per-hub database provisioning is implemented** (Wavvon-server:
+> `crates/farm/src/db/provision.rs`). The farm's `hub_isolation` setting picks
+> one database per hub (`database`, default) or one schema per hub inside the
+> farm's database (`schema`, for managed plans without `CREATEDB`);
+> `hub_db_role` picks a shared role or a login role per hub. A hub that cannot
+> be provisioned is refused, never started on the shared default. The
+> SQLite-era `hubs.db_path` column has been dropped.
 >
-> This was previously invisible: the farm set `WAVVON_HUB_DB`, a name the hub
+> History: until then every farm-hosted hub shared one database. This was
+> previously invisible: the farm set `WAVVON_HUB_DB`, a name the hub
 > has never read, so the code looked like it handled provisioning. It also set
 > `WAVVON_HUB_HTTP_PORT` (hub reads `WAVVON_HTTP_PORT`), so spawned hubs
 > ignored their allocated port and bound the default 3000 — the reverse proxy
@@ -127,11 +131,6 @@ reads every field through `config::Environment::with_prefix("WAVVON")`.
 > ends now take their names from the `wavvon-hub-env` crate, and
 > `wavvon_hub::settings` has a test that sets each key and asserts it reaches
 > `Settings`, so a name the hub does not read fails the build.
->
-> Closing the database half needs a decision this doc does not yet make: who
-> issues `CREATE DATABASE`, under which role, what happens on hub deletion,
-> and whether each hub gets its own credentials. It is the same prerequisite
-> the multi-node data plane lists as "per-node Postgres".
 
 #### `farms` (singleton)
 
@@ -465,8 +464,8 @@ A backend engineer implementing this should produce:
   `cached_farm_pubkey: ArcSwap<...>`.
 - **`hub/src/routes/health.rs::info`**: add `farm_url` to the JSON
   response.
-- **Client changes** (`Wavvon-desktop`, `Wavvon-web`, `Wavvon-android`):
-  the hub-detection step before `/auth/challenge` fetches `/info`;
+- **Client changes** (Wavvon-clients, shared `packages/core`; Android was
+  removed 2026-07-12): the hub-detection step before `/auth/challenge` fetches `/info`;
   if `farm_url` is set, all `/auth/*` calls target the farm; the
   resulting `Authorization` header is used against the hub
   unchanged. No new client-facing UI in Phase 1 — the user does not
@@ -495,24 +494,25 @@ routes incoming requests to the correct hub process based on
 relay state, screen-share buffers, per-channel WS subscription sets.
 Threading `hub_id` through every existing usage is invasive — every
 `state.chat_tx`, every `state.voice_channels.read().await`, every
-SQL query that today reads from `hub.db` would need to be
+SQL query that today reads the hub's database would need to be
 `hub_id`-scoped. The blast radius is the entire `hub/` crate.
 
 Multiple processes give us, for free:
-- One DB file per hub. Today's backup story (`cp hub.db
-  backup-2026-05-27.db`) keeps working unchanged.
+- One database (or schema) per hub, so per-hub backup and deletion stay
+  simple. (Originally argued as one SQLite file per hub; PostgreSQL is the
+  only backend now, and provisioning is in `crates/farm/src/db/provision.rs`.)
 - Independent crash domains. A panic in one hub doesn't kill the
   others.
 - Today's hub binary unchanged in shape — what differs is that the
   farm process spawns it (or coexists with operator-spawned
   instances) and proxies to it.
 
-**Why not "one DB with a `hub_id` column partition"**: SQLite's
-single-writer model means one busy hub stalls writes for the others.
-Cross-tenant query bugs (forgetting a `WHERE hub_id = ?`) are a class
-of vulnerability that doesn't exist with per-DB isolation. And the
-per-hub SQLite file is part of what makes the hub easy to operate
-today — combining them throws that away for nothing.
+**Why not "one DB with a `hub_id` column partition"**: cross-tenant
+query bugs (forgetting a `WHERE hub_id = ?`) are a class of
+vulnerability that doesn't exist with per-DB isolation, and it would mean
+threading `hub_id` through every hub query. (The original argument also
+cited SQLite's single-writer model; SQLite is gone, the isolation argument
+stands.)
 
 ### Routing: path prefix `/hub/<hub_id>/...`
 
@@ -645,7 +645,9 @@ processes (simple, ties their lifetime to the farm) or expect an
 operator-provided systemd unit per hub (decoupled, more flexible).
 Phase 2 ships with **operator-provided**: the `POST /farm/hubs`
 endpoint creates the row and returns instructions, the operator runs
-the hub. Auto-spawn is a Phase 3+ refinement.
+the hub. Auto-spawn is a Phase 3+ refinement. (Since built: the farm spawns
+hubs itself or through `wavvon-agent` nodes — `crates/farm/src/hub_manager.rs`,
+`crates/agent` — see [farm-server-architecture.md](farm-server-architecture.md).)
 
 This keeps Phase 2's blast radius minimal — no new process supervisor,
 no new systemd-vs-Windows-service-vs-docker-compose abstraction. The
@@ -663,7 +665,7 @@ The farm has its own `FarmAppState`:
 ```
 FarmAppState {
   farm_identity: Identity,
-  db: SqlitePool,                 // farm.db
+  db: PgPool,                     // farm's own PostgreSQL database
   pending_challenges: RwLock<HashMap<...>>,
   hubs: RwLock<HashMap<String, HubRoute>>,  // hub_id → upstream
   http_client: reqwest::Client,
@@ -799,6 +801,14 @@ of buffering the body through reqwest. Same routing key, socket-bridge
 transport. WS routing is **in** this slice — chat depends on it.
 
 ### UDP voice — not proxied, learned over the serial-routed path
+
+> **Superseded (2026-11-02 note)**: the raw-UDP relay and `voice_udp_addr`
+> are gone; voice is WebTransport/QUIC per
+> [voice-transport-v2.md](voice-transport-v2.md). The shape survived: each
+> farm-hosted hub still gets its own voice port (`hubs.voice_port`) and
+> publishes `voice_wt_url` + `voice_cert_hash` in its serial-routed `/info`;
+> the client dials that directly, bypassing the HTTP proxy. Below is the
+> original UDP text.
 
 A UDP datagram carries no host header or path, so the farm cannot
 reverse-proxy voice by serial, and multiple hub processes cannot share
@@ -953,8 +963,7 @@ GET /farm/settings
     "description": "...",
     "creation_policy": "open",
     "max_hubs_per_user": 5,
-    "max_hubs_total": 0,
-    "allow_discovery_listing": true
+    "max_hubs_total": 0
   }
 
 PATCH /farm/settings
@@ -964,19 +973,21 @@ PATCH /farm/settings
     "description": "...",
     "creation_policy": "open" | "admin_only" | "disabled",
     "max_hubs_per_user": 0..,
-    "max_hubs_total": 0..,
-    "allow_discovery_listing": true | false
+    "max_hubs_total": 0..
   }
 → 200 (full updated settings, same shape as GET)
   | 400 invalid_value
   | 403 farm_admin_only
 ```
 
-`creation_policy` and `allow_discovery_listing` are surfaced
-unauthenticated in `GET /farm/info` (the existing `policy` block grows
-the new fields) and `GET /farm/public-info` (see section D below).
+`creation_policy` is surfaced unauthenticated in `GET /farm/info` (the
+existing `policy` block). `allow_discovery_listing` and
+`GET /farm/public-info` were removed 2026-08-28 (see section D).
 
 ### B. Farm admin panel
+
+> **Client surface superseded (2026-08-28)** — see the banner before
+> section D. The farm routes below are built; the client view is not.
 
 The farm operator gets a new client surface — a **Farm Settings** view
 in the desktop client, sibling to today's per-hub Hub Settings. It
@@ -1075,29 +1086,26 @@ gets the same endpoint, also allowed. Either-or, not both required.
 Authenticated, farm-admin only. The farm-level user index.
 
 ```
-GET /farm/users?page=1&limit=50&q=<search>
+GET /farm/users?limit=50&cursor=<public_key>
 → {
     "users": [
       {
         "public_key": "<hex>",
-        "master_pubkey": "<hex>" | null,
         "first_seen_at": 1748000000,
         "last_seen_at": 1748000000,
         "hubs_owned": 2,
-        "hubs_member_of": 4,
         "active_sessions": 1
       }
     ],
-    "total": 137,
-    "page": 1,
-    "limit": 50
+    "total": 137
   }
 ```
 
+Keyset paging (the cursor is the last `public_key` seen; `limit` clamps
+to 1-200), per the one-dialect pagination rule. `master_pubkey`,
+`hubs_member_of` and the `q` search were designed and not built.
+
 `hubs_owned` counts rows in `hubs` with `owner_pubkey = public_key`.
-`hubs_member_of` is the count of hubs reporting this pubkey in their
-per-hub user list — best-effort via a periodic farm-side scrape of
-each hub's existing user-list endpoint, cached, refreshed on demand.
 `active_sessions` counts non-expired non-revoked rows in `farm_sessions`.
 
 The admin can revoke farm sessions for a user:
@@ -1125,6 +1133,11 @@ the farm" is achieved by suspending each hub they own and revoking
 their sessions; a true farm-level ban is a Phase 4+ design.
 
 ### C. User-facing hub creation flow
+
+> **Superseded (2026-08-28)** — no client creates a hub; see the banner
+> before section D and "A hub is self-hosted; no client creates one" in
+> [decisions.md](decisions.md). `POST /farm/hubs` and `/farm/me/hub-quota`
+> exist server-side; everything client-side below was never built.
 
 When `creation_policy = open`, the client renders an entry point for
 authenticated users to create a hub.
@@ -1293,7 +1306,13 @@ farm passes `owner_pubkey` to the spawned hub via a startup parameter
 or via the hub's existing first-admin bootstrap path. The client does
 not call any "make me admin" endpoint.
 
-> **Superseded (2026-08-28).** Sections D and E below are not built and will
+> **Superseded (2026-08-28).** The client halves of sections B and C above
+> (a Farm Settings view in the client, the "Create a hub" popover, farm
+> picker, known-farms store and Discover "Host your own community" tab) are
+> not built and will not be: no client creates a hub, and the hub admin panel
+> was removed. The farm-side routes they would have called exist and are
+> driven by operators directly (`/farm/settings`, `/farm/hubs`, `/farm/users`,
+> `/farm/me/hub-quota`). Sections D and E below are not built and will
 > not be: `GET /farm/public-info`, the `allow_discovery_listing` flag, the
 > `seed` crate and the directory's farm listing are all deleted. A hub is
 > self-hosted, a farm is a server-side aggregate a client never names, and the
@@ -1777,7 +1796,7 @@ the API shape is the contract, not the hostname.
 - `creation_policy TEXT NOT NULL DEFAULT 'admin_only'`
 - `max_hubs_per_user INTEGER NOT NULL DEFAULT 5`
 - `max_hubs_total INTEGER NOT NULL DEFAULT 0`
-- `allow_discovery_listing INTEGER NOT NULL DEFAULT 0`
+- ~~`allow_discovery_listing`~~ (removed 2026-08-28)
 - `admin_pubkey TEXT` (set on first start; CHECK that it parses as hex on insert)
 
 **New `hubs` table columns** (additive ALTERs to the Phase 2 shape):
@@ -1800,19 +1819,23 @@ plus a couple of additions to existing route files in Wavvon-server):
 | POST   | `/farm/users/:pubkey/revoke-sessions` | farm admin  | Revoke all or one session for user.  |
 | GET    | `/farm/me/hub-quota`                  | farm session| Current user's create-eligibility.   |
 | POST   | `/farm/hubs`                          | farm session| Extended Phase 2 shape; adds `icon`. |
-| GET    | `/farm/public-info`                   | none        | Narrow discovery probe.              |
 
 **`GET /farm/info` additions** (the existing endpoint grows):
 - `policy.creation_policy` (replaces `policy.hub_creation_open` —
   same data, more values; the old boolean stays available as
   `policy.hub_creation_open = (creation_policy == 'open')` for the
   one-release migration window).
-- `policy.allow_discovery_listing`.
+- ~~`policy.allow_discovery_listing`~~ (removed 2026-08-28).
 
 **Hub `/info` additions** (additive, used by the farm to populate
 `member_count` in the admin hub list):
 - `member_count: integer` — count of distinct member pubkeys in the
   hub's `users` table. Computed cheaply on `/info` (cached, 60s TTL).
+
+> **Superseded (2026-08-28)**: the client-side items below (known-farms
+> store, `FarmState`, creation modal, Farm Settings page) were never built
+> and will not be; see the banner before section D. Android was removed
+> 2026-07-12.
 
 **What the client must store locally** (Wavvon-desktop, Wavvon-web,
 Wavvon-android):

@@ -6,8 +6,11 @@ both roles and their categories. Kills the "fake divider role" hack
 visually split their role lists — a hack that pollutes the permission
 system, role pickers, and mention search with permissionless roles.
 
-**Status: server + web client shipped 2026-07-04** (hub `31c291b`,
-clients `a6b2d24`). Desktop/Android parity (§4, §6) not started.
+**Status: shipped 2026-07-04** (hub `31c291b`, clients `a6b2d24`), and
+on desktop too since the admin UI moved into `packages/ui`
+(`components/admin/RolesSection.tsx`, `RoleCategoryManager.tsx`; see
+[client-parity.md](client-parity.md)). The Android client was removed
+2026-07-12.
 
 ---
 
@@ -66,12 +69,12 @@ matching the existing migration pattern.)
 
 ## 3. Server API
 
-All mutations require `MANAGE_ROLES` (hub-wide — categories have no
+All mutations require `roles.manage` (hub-wide — categories have no
 channel dimension) and write `hub_audit_log` entries
 (`role_category.created` / `.updated` / `.deleted`,
 `role.appearance_updated`).
 
-### Category CRUD (new, `hub/src/routes/roles.rs` or a sibling module)
+### Category CRUD (Wavvon-server `crates/hub/src/routes/role_categories.rs`)
 
 | Method | Path | Notes |
 |---|---|---|
@@ -96,12 +99,13 @@ notification path.)
 
 ## 4. Client
 
-Web is the delivery target; desktop/Android parity is a follow-up (they
-have their own `RoleEditor.tsx`/`RoleCreator.tsx` copies).
+Shipped on web first; the components have since been hoisted into
+`packages/ui`, so desktop renders the same UI (the per-app
+`RoleEditor.tsx`/`RoleCreator.tsx` copies are gone). Paths below are the
+original plan.
 
-- **Types** (`apps/web/src/types.ts`): `RoleInfo` gains
-  `color: string | null`, `icon: string | null`,
-  `category_id: string | null`; new `RoleCategory` interface.
+- **Types**: `RoleInfo` gains `color`, `icon`, `category_id` (all
+  nullable); `RoleCategory` lives in `packages/core/src/hubWire.ts`.
 - **Platform adapter** (`apps/web/src/platform/`): four new route
   functions for category CRUD + extended role create/update payloads,
   per the adapter contract.
@@ -137,8 +141,6 @@ asset-id scheme later if ever justified.
 - **Role color in member list / message author names** — visual-noise
   tradeoff; decide after the badge tinting ships.
 - **Icon image uploads** — see §5.
-- **Desktop/Android parity** — after the web ship, port to the per-app
-  role editors.
 - **Category-scoped bulk actions** ("give everyone in these roles…") —
   categories stay display-only; any bulk tooling operates on roles.
 

@@ -39,14 +39,19 @@ crate cross-compiles for Android in isolation first; it was the long pole.
   `src-tauri/gen/android/app/build/outputs/apk/`.
 - Signing was via a `SIGNING.md` keystore config; CI signed when
   `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, and
-  `ANDROID_KEY_PASSWORD` repo secrets were set. Distribution was direct APK
-  (no Play Store) — end users allow "unknown sources" + dismiss Play Protect.
+  `ANDROID_KEY_PASSWORD` repo secrets were set. Distribution was planned as
+  a direct APK (no Play Store) — end users allow "unknown sources" + dismiss
+  Play Protect; [install-android.md](install-android.md) is that never-used
+  guide.
 
 ## Strategy for the rewrite
 
 Mobile is not "web in a small window." The convergence plan for desktop
 (thin shell over shared `packages/ui`) applies to Android's *core*, but the
 mobile UI/interaction layer should be designed for touch/small-screen from
-scratch. Reuse: the `platform` adapter contract, the shared `core`/`i18n`
-packages, and the `voice` crate — plus the NDK build knowledge above. Do not
+scratch. Reuse: the platform-adapter pattern (each app supplies the
+callbacks `packages/ui` components take; there is no `packages/platform`),
+the shared `core`/`i18n` packages, and the `voice` crate (WebTransport since
+voice transport v2, so no raw-UDP socket to port) — plus the NDK build
+knowledge above. Do not
 reuse the old React component copies.

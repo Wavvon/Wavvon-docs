@@ -7,8 +7,19 @@ follow the user across devices, are never visible to the adjusted person,
 and require no server cooperation beyond what the protocol change below
 adds.
 
-`voice.md` lists "Per-user gain / spatial audio" as not yet done. This doc
-is the design. Proximity voice (`proximity-voice.md`) builds on this
+> **Status (2026-11-02):** built (web + desktop). Written against the
+> raw-UDP relay, which voice transport v2 deleted on 2026-08-07
+> ([voice-transport-v2.md](voice-transport-v2.md)). What holds now: the
+> hub stamps `sender_id` in the WebTransport downlink header
+> `[sender_id:u16][packet_type:u8][uplink packet]`, in Wavvon-server
+> `crates/hub/src/voice_wt.rs`; there is no header protocol version
+> (alpha, no compat). The roster entries carry `sender_id`,
+> `public_key` and `display_name`, and `voice_joined.participants`
+> carries `sender_id` too ([ws-protocol.md](ws-protocol.md)). Per-sender
+> gain is in Wavvon-clients `crates/voice/src/playback.rs` (desktop) and
+> `apps/web/src/platform/voice.ts` (web). Android was removed 2026-07-12.
+
+This doc is the design for per-user gain. Proximity voice (`proximity-voice.md`) builds on this
 feature by using per-sender gain as its attenuation hook.
 
 ---
@@ -48,7 +59,7 @@ pattern in `voice/src/protocol.rs`.
 ```
 voice_roster_update {
   channel_id: String,
-  participants: [{ sender_id: u16, pubkey: String }]
+  participants: [{ sender_id: u16, public_key: String, display_name?: String }]
 }
 ```
 Sent on voice join (full roster snapshot) and on every join/leave event.
@@ -146,12 +157,14 @@ filled when at default, partially filled when reduced, outlined when muted,
 and shows an upward indicator when boosted. Keeps the list uncluttered for
 the common case (everyone at default) while surfacing active overrides.
 
-**Applies to**: Wavvon-desktop, Wavvon-web, Wavvon-android. Same behaviour,
-platform-appropriate slider implementation.
+**Applies to**: desktop and web (shared UI in Wavvon-clients
+`packages/ui`).
 
 ---
 
 ## What changes on the implementation side
+
+The plan as written (pre-v2 paths and repo names; see the status note):
 
 | Piece | Repo / file |
 |---|---|

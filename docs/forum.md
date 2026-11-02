@@ -2,9 +2,14 @@
 
 **Status**: **built** — `crates/hub/src/routes/posts.rs` +
 `post_models.rs` on the hub, covered by `forum_flow.rs`; post tags shipped
-2026-07-21 (§10). Federation across alliances is still designed-not-built
-(§9). Per-section statuses below are authoritative where they differ from
-this line.
+2026-07-21 (§10); federation across alliances is built too (§9 —
+`/alliances/{id}/channels/{cid}/posts/…` and `/federation/forum/…` in
+`server.rs`). Search is Postgres `tsvector` + `ts_headline`, not the FTS5
+sketch below; routes are all nested under `/channels/{channel_id}/posts/…`
+(only tag edit/delete take a bare `/tags/{tag_id}`); permissions are the
+dotted ids `forum.posts.create`, `forum.posts.manage`, `messages.send`
+(`crates/hub/src/permissions.rs`). Code is authoritative where the sections
+below differ (status line updated 2026-11-02).
 
 A **forum channel** is a channel whose content is an ordered list of
 titled *posts*, each carrying its own reply thread, instead of a
@@ -18,6 +23,11 @@ This supersedes the "Forum channel type" sketch in
 pre-decision exploration.
 
 ## Why a channel variant, not a new entity
+
+*(Historical framing: since "Voice lives in voice channels" in
+[decisions.md](decisions.md), voice is its own `voice` channel type, so
+`text` no longer carries voice either. The channel-property argument below
+still holds.)*
 
 Channels are unified text + voice — "joining voice is something a user
 *does* in a channel" ([decisions.md](decisions.md)). A forum breaks
@@ -137,6 +147,10 @@ NULL` so deleting a quoted reply doesn't cascade-delete its children.
 
 ### FTS mirror — new virtual table
 
+*Superseded in code:* search runs on Postgres `tsvector` + GIN with
+`ts_headline` snippets (`search_posts` in `routes/posts.rs`); there is no
+FTS5 table. The sketch below is the pre-Postgres design.
+
 Matches the planned `messages_fts` shape in
 [performance.md](performance.md) (FTS5, kept in sync by triggers).
 
@@ -155,8 +169,13 @@ tombstoned rows. See section 7.
 
 ## 2. Hub routes
 
-All under `hub/src/routes/posts.rs` (new, Wavvon-server). Permission
-gates per section 5. Every route first checks the channel exists, is
+All under `crates/hub/src/routes/posts.rs` (Wavvon-server). Permission
+gates per section 5. *As built, every post/reply path is nested under
+`/channels/{channel_id}/posts/{post_id}/…` (e.g. `…/replies/{reply_id}`,
+`…/pin`, `…/lock`, `…/read`, `…/reactions`), and the gates are
+`forum.posts.create`, `forum.posts.manage` and `messages.send`; the table
+below keeps the original short paths and names — `server.rs` is the route
+list.* Every route first checks the channel exists, is
 not a category, and is `channel_type='forum'`; a `text` channel returns
 `409 not_a_forum`.
 
@@ -275,6 +294,12 @@ Tauri commands (thin pass-throughs): `forum_list_posts`,
 
 ## 5. Permissions
 
+*As built the names are dotted: `create_posts` → `forum.posts.create`,
+`manage_posts` → `forum.posts.manage`, `send_messages` → `messages.send`
+(`crates/hub/src/permissions.rs`). There is no `admin`/`manage_hub`
+implication any more; the owner role carries everything
+([permissions.md](permissions.md)). The rationale below is unchanged.*
+
 Reuse the existing permission machinery in `hub/src/permissions.rs`
 (Wavvon-server). `manage_games` is unrelated and is **not** reused — it
 gates the game catalog, not content moderation.
@@ -341,6 +366,10 @@ are filtered client-side like message events.
 
 ## 7. Search
 
+*As built: Postgres `tsvector` + GIN with `plainto_tsquery` and
+`ts_headline` excerpts (`search_posts`), not FTS5; message search went to
+Tantivy separately. The FTS5 bullets below are the original plan.*
+
 Forum search extends the **same FTS5 direction** planned for messages
 ([performance.md](performance.md)), not a separate engine.
 
@@ -371,12 +400,12 @@ per-channel in v1, matching the current per-channel message search.
 
 Per-post read cursors, reactions on posts/replies, and attachments on
 posts/replies were originally scoped out of v1 below but have since
-shipped (`post_reads`, `post_reactions`, and a JSON `attachments`
-column on `posts`/`post_replies` all exist and are wired end-to-end).
+shipped (`post_reads`, `post_reactions`, and attachments — now rows in
+the shared `attachments` table keyed by `post_id`/`reply_id`, see
+[attachments.md](attachments.md) — all wired end-to-end).
 
-- **Federation**: posts/replies/reactions federating over alliance
-  shared channels is now designed — see section 9 below. v1 remains
-  local-only until that ships.
+- **Federation**: posts/replies/reactions over alliance shared channels
+  — built, see section 9.
 - **Rich formatting beyond the existing markdown**: forums reuse the
   message markdown subset; no forum-specific rich text, no embeds.
 - **Channel type conversion** (`text` ⇄ `forum` on an existing
@@ -384,14 +413,16 @@ column on `posts`/`post_replies` all exist and are wired end-to-end).
   "what happens to the existing message stream / posts," which is its
   own design.
 - **Post tags / categories within a forum**: designed — see section 10.
-  **Post drafts**: wishlist, not designed.
+  **Post drafts**: not designed.
 - **Cross-channel / hub-wide forum search**: per-channel only in v1.
 
 ---
 
 ## 9. Federation across alliances
 
-**Status**: designed, not built. Wishlist item, not a pillar. Supersedes
+**Status**: built — read-through `/alliances/{id}/channels/{cid}/posts/…`
+and write-forward `/federation/forum/channels/{cid}/posts/…` routes
+(`server.rs`, `routes/posts.rs`, `federation/client.rs`). Supersedes
 the earlier idea (above) of a new federation *envelope* — alliance
 content does not use an envelope, it uses a read-through proxy, and
 forums reuse that.
@@ -730,9 +761,9 @@ permit — the §10.2 surface needs **no bot-specific addition**:
 - **Read posts + tags** — `GET /channels/:cid/posts`, `GET /posts/:pid`,
   `GET /channels/:cid/tags` are gated on channel read access only. A bot
   invited to the tracker channel reads reports and their tags today. (Full
-  post *bodies* over the *push* path would ride the same
-  `can_read_message_content` redaction as messages — see the v1 stance;
-  over REST there is no redaction, same as a member reading the channel.)
+  post *bodies* over the *push* path would have ridden a
+  `can_read_message_content` redaction, which no longer exists — bots are
+  ordinary clients gated by `messages.read`; over REST there is no redaction, same as a member reading the channel.)
 - **Retag** — a bot granted a role carrying `manage_posts` retags any
   post via the §10.2 assignment path (`PATCH /posts/:pid` with `tag_ids`),
   exactly like a human moderator. This is the triage motion: bot reads a

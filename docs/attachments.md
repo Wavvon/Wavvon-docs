@@ -1,12 +1,18 @@
 # Attachments: disk, dedup, content checks, retention
 
-**Status: built 2026-11-01 on the hub** ([Wavvon-server#261](https://github.com/Wavvon/Wavvon-server/pull/261)); clients follow in Wavvon-clients#227.
+**Status: built 2026-11-01 on the hub** ([Wavvon-server#261](https://github.com/Wavvon/Wavvon-server/pull/261))
+and in the clients (Wavvon-clients#227: messages and forum send
+`attachment_ids`; `packages/ui` renders `StoredAttachment.tsx` and the admin
+`AttachmentSettingsSection.tsx`). §8's inline fix is in too: the hub refuses
+`attachments` beside an encrypted DM (`routes/dms/messages.rs`).
 Rationale is in [decisions.md](decisions.md), "Attachments move to disk; a
 full disk expires the oldest, never refuses a member". Code paths are in
 Wavvon-server unless named otherwise. It shares its ingest rules with
 [sticker-storage.md](sticker-storage.md).
 
-## 0. What is there today
+## 0. What was there before 2026-11-01
+
+History: the state this design replaced. Line references are to that code.
 
 - **Messages** carry base64 with the declared `mime` in `messages.attachments`
   (`crates/hub/src/routes/chat_models.rs:135-144`, `routes/messages.rs:112-139`);
@@ -192,6 +198,9 @@ photo.jpg". Operator step for the release notes: re-upload banners, and old
 `<uuid>.<ext>` files in the uploads directory can be deleted.
 
 ## 8. Encrypted DMs
+
+*(The inline fix below has shipped: `dms/messages.rs` answers 400
+`attachments_must_be_encrypted`. The paragraph describes the bug as found.)*
 
 **The spec is right; the code never followed it.** e2e-encryption.md,
 "Attachment encryption", puts attachments inside the encrypted plaintext

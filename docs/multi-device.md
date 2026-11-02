@@ -98,6 +98,14 @@ must remain locked out). To re-add a device, generate a new subkey.
 Existing device = **E** (already enrolled, holds master). New device =
 **N** (fresh install, no identity).
 
+> **As built (2026-11-02):** there is no WebSocket anywhere in pairing. All
+> four steps are plain HTTP on `crates/hub/src/routes/pairing.rs`:
+> `POST /identity/pairing/offer` (the offer is master-signed and verified
+> on its own signature, no session), `POST /identity/pairing/claim`,
+> `POST /identity/pairing/complete`, and both devices learn of progress by
+> polling `GET /identity/pairing/status/{token}`. Where the steps below say
+> "WebSocket" or "push", read "poll status".
+
 ### Step 1 — N declares itself
 
 N generates a fresh subkey pair `(N_pub, N_priv)`. UI: "Pair this
@@ -119,7 +127,8 @@ User taps "Pair a device" on E. E:
    }
    ```
 3. POSTs `T` + `expires_at` to **every reachable home hub** in the
-   list, at `/identity/pairing/offer`, authenticated as E's subkey.
+   list, at `/identity/pairing/offer` (the offer carries its own master
+   signature; no session is needed).
    Each home hub stores the offer in a short-lived table keyed by
    token. Posting to all of them ensures N can claim against any
    reachable home hub.
@@ -136,8 +145,7 @@ party the code exists to be independent of.
 
 N decodes the QR. It now knows: master pubkey, home hub list,
 pairing token. N tries each URL in `home_hub_list` in order until
-one responds, then opens a WebSocket to that hub at
-`/identity/pairing/claim`:
+one responds, then POSTs to that hub at `/identity/pairing/claim`:
 
 ```
 ClaimRequest {
@@ -148,9 +156,8 @@ ClaimRequest {
 }
 ```
 
-The home hub checks the token is live, holds the request, and pushes
-a notification to E over E's existing WebSocket session on any hub
-where E is online.
+The home hub checks the token is live and marks the offer `claimed`; E,
+polling `GET /identity/pairing/status/{token}`, sees the claim.
 
 ### Step 4 — E confirms
 
@@ -163,8 +170,7 @@ User taps confirm. E:
    for N_pub (X25519 ECIES — a one-shot DH using N's pubkey converted
    to its X25519 form, plus an authenticated AEAD).
 4. POSTs `{ pairing_token, cert, blob_key_share }` to the *same home
-   hub* N opened the WebSocket against, at
-   `/identity/pairing/complete`, authenticated as E.
+   hub* N claimed against, at `/identity/pairing/complete`.
 
 ### Step 5 — Home hub finalizes
 
@@ -172,9 +178,8 @@ The home hub:
 
 1. Verifies cert signature against master pubkey.
 2. Appends cert to the device registry.
-3. Forwards `{ cert, blob_key_share }` over the WebSocket N is
-   holding open.
-4. Deletes the pairing token from its own store.
+3. Hands `{ cert, blob_key_share }` to N on its next status poll.
+4. Marks the offer `complete`; the row is pruned once it expires.
 5. Replicates the cert to peer home hubs in the list (best-effort,
    with retry — eventual consistency per [home-hub.md](home-hub.md)).
 
@@ -208,7 +213,7 @@ What every hub (not just home hubs) must implement to participate:
   `subkey_sig`. Verify cert signature, check `master_pubkey` is the
   identity, check cert not expired. Cache the subkey→master mapping.
   The hub does all of this in one place, `resolve_canonical_identity`
-  (Wavvon-server: `hub/src/auth/handlers.rs`), which every sign-in goes
+  (Wavvon-server: `crates/hub/src/auth/handlers.rs`), which every sign-in goes
   through; the farm checks the same at its own `/auth/verify`.
 - **Revocation cache**: a revocation reaches a hub two ways. A client
   posts it to every hub in its home hub list (per
@@ -340,8 +345,10 @@ canonical via `resolve_canonical_identity`; this brings the DM path in
 line without ever putting a signing seed on a paired device.
 
 The delivery target today is the web client, so the client work below is
-in Wavvon-clients (`packages/core`, `apps/web`); the desktop/Android
-Tauri equivalents follow the same shape when those ship.
+in Wavvon-clients (`packages/core`, `apps/web`); the desktop Tauri
+equivalent follows the same shape (Android was removed 2026-07-12).
+Server paths below read `crates/hub/src/…` and `crates/identity/src/…`
+for `hub/src/…` and `identity/src/…`.
 
 ### Mechanism A — DH capability via a wrapped canonical scalar
 

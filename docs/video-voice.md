@@ -1,6 +1,15 @@
 # Video in Voice Channels
 
-Real-time webcam video alongside the existing UDP voice pipeline. Participants
+> **Status (2026-11-02):** voice moved from raw UDP to WebTransport
+> datagrams on 2026-08-07 ([voice-transport-v2.md](voice-transport-v2.md));
+> read "UDP" below as that pipeline, which is still separate from
+> WebRTC video, so Decision 3 holds. The planned `use_video`
+> permission was never kept: `video_enable` checks only that the
+> sender is in voice on that channel (Wavvon-server
+> `crates/hub/src/routes/ws/handlers/voice.rs`, `handle_video_enable`).
+> The Android client was removed 2026-07-12.
+
+Real-time webcam video alongside the existing voice pipeline. Participants
 who enable their webcam establish WebRTC peer connections with each other; the
 hub relays signaling but never touches media. **Audio stays on the existing
 Opus/UDP pipeline** — WebRTC carries video only.
@@ -161,13 +170,14 @@ video_ice_in      { channel_id, from_pubkey, to_pubkey, candidate } — targeted
   Same targeted-pubkey routing as screen-share v2 signals — no new hub logic.
 - On `VoiceJoin`: send `video_participants` snapshot so the joiner learns who
   has video on.
-- On `leave_voice`: if this pubkey is in `video_channels`, remove it and
+- On `voice_leave`: if this pubkey is in `video_channels`, remove it and
   broadcast `video_participant_disabled`.
 
-### New permission
+### Permission
 
-`use_video` — hub admins can restrict webcam to specific roles. Default: any
-channel member who is in voice may enable video.
+No dedicated permission: any member who is in voice on the channel may
+enable video. (A `use_video` permission was planned and dropped; voice
+admission is `voice.join`.)
 
 ### /info addition
 
@@ -271,8 +281,6 @@ commands needed.
 ## Permissions
 
 - Browser `getUserMedia` permission: prompted on first camera enable, cached.
-- Hub `use_video` permission: `video_enable` is rejected by the hub if the
-  user lacks it.
 - Video requires being in voice: hub only accepts `video_enable` from pubkeys
   currently in `voice_channels[channel_id]`.
 
@@ -286,6 +294,6 @@ commands needed.
   when SFU ships.
 - **Video-only mode** (video without joining audio) — deferred; voice
   membership is required for v1.
-- **Mobile/Android** — follows after desktop ships.
+- **Mobile** — no mobile client exists (Android was removed 2026-07-12).
 - **Video recording** — out of scope.
 - **Bandwidth adaptation** — always sends one resolution; future work.

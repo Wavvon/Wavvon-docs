@@ -45,9 +45,9 @@ Every question has `required` and a `help` text. Role mappings live on
 `choice`/`multi` options and are only honoured on an `onboarding` form; on an
 application they would hand roles to someone nobody approved yet.
 
-The present `survey_*` tables become the engine's tables, keyed by form.
-`survey_answers` holds one `choice_id` per question today, so `multi` needs an
-answer-to-choices table. The hub is alpha: the tables are reshaped, not
+The `survey_*` tables are the engine's tables, keyed by form. `multi` answers
+live in `survey_answer_choices` (one row per chosen option), so a question
+can hold several choices. The hub was alpha: the tables were reshaped, not
 migrated.
 
 ## The application flow

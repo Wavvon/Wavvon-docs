@@ -7,6 +7,19 @@ detection on create/move, `max_channel_depth` is a wired hub setting, and
 drag-drop re-parenting. See the "Nested channels" section of
 [future-features.md](future-features.md) for that shipped baseline.
 
+> **Status: all three sections built 2026-07-04.** Code is authoritative
+> where the design below differs: `parseHubInput` returns `target`
+> (`packages/core/src/parseHubInput.ts`); `INDENT_CAP = 5`, `STEP = 12`,
+> `DRILL_DEPTH = 4` and drill-in live in
+> `packages/ui/src/components/layout/channelSidebarLayout.ts` +
+> `ChannelSidebar.tsx`; overwrites are resolved by `channel_permissions` in
+> `crates/hub/src/permissions.rs`. Permission names are the dotted ids
+> (`messages.send`, `messages.read`, `channels.manage`, `channels.permissions`,
+> `forum.posts.*`); the old `admin` immunity is now `is_owner`, roles come from
+> `member_roles`, and a channel ban zeroes the effective set inside the
+> resolver. The text below describes the pre-build state it designed against
+> (status added 2026-11-02).
+
 Three gaps remained undesigned. This doc closes all three:
 
 1. **Channel permalinks** (§1) — a shareable link to a specific,
@@ -228,11 +241,14 @@ tree-walk utility, three surfaces.
 
 `hub/src/permissions.rs` (Wavvon-server): `user_permissions(db, pubkey)`
 computes a single hub-wide `HashSet<String>` of effective permissions from
-`role_permissions` joined through `user_roles`. `UserPermissions::has` /
+`role_permissions` joined through `user_roles` (today: the `member_roles`
+view). `UserPermissions::has` /
 `require` take **only** a permission string — no channel dimension. Call
 sites (`messages.rs`, `channels.rs`, `posts.rs`) do
 `perms.require(SEND_MESSAGES)` with no channel argument. `channel_bans`
 exists but is an unrelated per-user block, not a permission grant/deny.
+*(As built, the resolver folds it in: a banned non-owner gets an empty
+effective set on that channel.)*
 
 There is **no** channel-permission table. This section designs one.
 
@@ -253,7 +269,9 @@ Effective permission for a user on a channel is computed as:
    the file-system cascade: a child explicitly overrides its parent.
 4. `admin` is never removed by a channel overwrite (a hub admin can always
    administer any channel; otherwise an admin could lock themselves out of
-   a channel they own). Enforced in code, not data.
+   a channel they own). Enforced in code, not data. *(As built: the owner —
+   `is_owner`, membership of `builtin-owner` — is immune; there is no
+   `admin` permission any more.)*
 
 **Conflict rule within a single channel level** (user has two roles, one
 `allow` and one `deny` on the same permission at the same channel):
@@ -321,9 +339,12 @@ Implementation:
 Call sites that gate a **channel action** switch from
 `user_permissions(db, pk)` to `channel_permissions(db, pk, channel_id)`:
 
-- `messages.rs`: `SEND_MESSAGES`, and message read (see §3.5).
-- `posts.rs`: `CREATE_POSTS`, `MANAGE_POSTS`.
-- `channels.rs`: `MANAGE_CHANNELS` when acting on a specific channel.
+- `messages.rs`: `SEND_MESSAGES` (now `messages.send`), and message read
+  (see §3.5).
+- `posts.rs`: `CREATE_POSTS`, `MANAGE_POSTS` (now `forum.posts.create` /
+  `forum.posts.manage`).
+- `channels.rs`: `MANAGE_CHANNELS` (now `channels.manage`) when acting on a
+  specific channel.
 - Voice join (the talk-power gate lives here too — a channel `deny` on a
   voice permission means "can't join voice in this channel").
 
@@ -332,7 +353,7 @@ Hub-wide admin routes (role management, hub settings) keep using the plain
 
 ### 3.5 Read gating and the sidebar
 
-`READ_MESSAGES` becomes channel-scoped. A user without effective
+`READ_MESSAGES` (now `messages.read`) becomes channel-scoped. A user without effective
 `READ_MESSAGES` on a channel:
 
 - Does not receive that channel in the channel-list response (the list
@@ -356,7 +377,9 @@ hub ever has enough channels for this to matter, cache the resolved set per
 
 Under `/channels/:channel_id/permissions`. Auth: `MANAGE_ROLES` on that
 channel (itself resolved through `channel_permissions`, so a role granted
-`MANAGE_ROLES` on a subtree can manage overwrites within it).
+`MANAGE_ROLES` on a subtree can manage overwrites within it). *As built the
+gate is `channels.permissions`, channel-scoped
+(`routes/channel_permissions.rs`).*
 
 | Method | Path | Description |
 |---|---|---|
@@ -374,7 +397,7 @@ and the diff.
 
 ### 3.7 Client — admin UI
 
-**Web (primary), desktop/Android parity** — a "Permissions" tab in the
+**Web and desktop (shared `packages/ui`)** — a "Permissions" tab in the
 channel settings panel (`onOpenChannelSettings` already exists in
 `ChannelSidebar.tsx`):
 
@@ -392,8 +415,8 @@ channel settings panel (`onOpenChannelSettings` already exists in
 
 The web client's hub-admin command module gains three route functions
 mirroring §3.6. No new Tauri command (all HTTP). The platform adapter
-(`apps/web/src/platform/`) gets the same three functions so web/Android
-stay in sync per the adapter contract.
+(`apps/web/src/platform/`) gets the same three functions so web and
+desktop stay in sync per the adapter contract.
 
 ### 3.8 Why "allow wins" on same-level conflict
 
@@ -481,7 +504,8 @@ same channel, allow wins. The alternative (deny wins) is the stricter,
   oppositely and let a broad role's stray deny silently mask a narrow
   allow. Cross-level (child over parent) precedence is unchanged.
 
-- **`admin` is immune to channel deny.** Enforced in the resolver, not the
+- **`admin` is immune to channel deny** (as built: the owner, via
+  `is_owner`). Enforced in the resolver, not the
   data. Prevents an admin from being locked out of a channel by an
   overwrite — the sovereign-operator escape hatch.
 

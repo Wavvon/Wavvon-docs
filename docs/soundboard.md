@@ -5,9 +5,12 @@ channel**. Designed together because each constrains the other; they
 deliberately use *different* injection points, and this doc records
 why.
 
-**Status: server-side implemented** (hub routes, permissions, migration,
-voice-join gate). Client UI (soundboard popover, manage view, `played`
-chip rendering) is not yet built — see §Client UI below.
+**Status: built, hub and clients.** Hub: Wavvon-server
+`crates/hub/src/routes/soundboard.rs`. Clients (web + desktop, shared UI
+in Wavvon-clients `packages/ui`): `SoundboardPopover.tsx`,
+`SoundboardAdminSection.tsx`, `useSoundboardChips.ts`; the mix is in
+`crates/voice/src/soundboard.rs` (desktop) and
+`apps/web/src/platform/soundboardMix.ts` (web).
 
 ---
 
@@ -21,8 +24,8 @@ The clip is decoded on the triggering user's client and **mixed into
 their outgoing stream after RNNoise, before Opus encode** (the
 `crates/voice` chain; web mixes PCM before its encoder the same way).
 
-- **Zero relay changes** — the hub keeps relaying opaque frames; both
-  transports (UDP + WS) work unchanged, today.
+- **Zero relay changes** — the hub keeps relaying opaque frames (now
+  E2E-sealed WebTransport datagrams, voice transport v2).
 - Mixing after denoise means the clip isn't mangled by RNNoise; the
   user's mic stays live under it.
 - Tradeoff accepted: the clip arrives as the *user's* audio — listeners'
@@ -53,20 +56,20 @@ clients already ship Opus decoders (audiopus native, opusscript web).
 
 ### Permissions
 
-Two new constants in `permissions.rs` (they slot into the role editor
-and channel overwrites automatically, since both operate on strings):
+Two permissions in `crates/hub/src/permissions.rs`:
 
-- `use_soundboard` — play clips; channel-deniable via overwrites
-  (a serious-meeting channel can deny it on everyone).
-- `manage_soundboard` — upload/rename/delete clips.
+- `voice.soundboard.use` — play clips; hub and channel scope, so a
+  serious-meeting channel can deny it on everyone.
+- `voice.soundboard.manage` — upload/delete clips; hub scope only.
 
 ### Routes and events
 
 - `GET /soundboard` (list), `POST /soundboard` (multipart upload,
-  `manage_soundboard`), `DELETE /soundboard/:id` (`manage_soundboard`),
-  `GET /soundboard/:id/audio` (bytes, cacheable).
-- Playing: client mixes locally and POSTs `/soundboard/:id/played`
-  `{channel_id}` (`use_soundboard` resolved channel-scoped), which
+  `voice.soundboard.manage`), `DELETE /soundboard/{id}`
+  (`voice.soundboard.manage`), `GET /soundboard/{id}/audio` (bytes,
+  cacheable). No rename route.
+- Playing: client mixes locally and POSTs `/soundboard/{id}/played`
+  `{channel_id}` (`voice.soundboard.use` resolved channel-scoped), which
   broadcasts WS `soundboard_played { channel_id, clip_id, clip_name,
   public_key }` — the **attribution path**: clients show a transient
   "🔊 X played *airhorn*" chip in the voice roster. The server cannot
@@ -78,7 +81,7 @@ and channel overwrites automatically, since both operate on strings):
 ### Client UI (web first)
 
 Soundboard popover on the voice bar (grid of emoji+name buttons),
-visible only when in voice and `use_soundboard` is effective in the
+visible only when in voice and `voice.soundboard.use` is effective in the
 current channel. Manage view in hub admin. Local playback preview
 before/while uploading. Rate-limit client-side (one clip at a time; no
 overlap with your own previous clip).
@@ -96,10 +99,13 @@ No client SDK helper (`join_voice`/`send_opus`) exists yet: a program that
 wants to speak opens the transport and frames Opus packets itself, matching
 what `voice.md` documents for the browser client.
 
-**Injection point: the existing WS voice relay.** The browser client
-already proves the pattern: authenticate, `voice_join` over WS, send
-`[sender_id][packet_type][seq][ts][opus]` binary frames
-([voice.md](voice.md) §WS relay). A program is just another such session:
+**Injection point: the ordinary voice relay.** A program does what a
+client does: authenticate, `voice_join` over the WS, open the
+WebTransport session from `voice_joined`, exchange sender keys, and send
+sealed `[key_id][ctr][ts][ciphertext]` datagrams
+([voice-transport-v2.md](voice-transport-v2.md)). (This section first
+described the deleted `/voice/ws` binary-frame relay.) A program is just
+another such session:
 
 - Gate: the channel-scoped voice permissions every joiner passes. There is
   no second gate — the capability that used to sit beside them went with
@@ -113,7 +119,7 @@ already proves the pattern: authenticate, `voice_join` over WS, send
   `join_voice(channel_id)` helper; encoding is the caller's problem
   (document 48kHz/20ms mono Opus as the expected shape, same as
   clients produce).
-- No new relay machinery: fan-out, address learning, self-mute
+- No new relay machinery: fan-out, session binding, self-mute
   semantics all apply as-is. **Deliberately not designed here**: a program
   *receiving* voice (recording/STT) — that's a consent/privacy design
   (voice is currently relay-opaque and unrecorded), kept separate.
@@ -124,8 +130,6 @@ already proves the pattern: authenticate, `voice_join` over WS, send
   clips (music stingers) become a real ask.
 - **Bot voice receive** — consent design needed first (see above).
 - **Hub-configurable clip caps** and per-channel soundboard sets.
-- **Desktop/Android soundboard UI** — web first per delivery target;
-  the mix point in `crates/voice` is shared, so native lags only on UI.
 
 ---
 
@@ -142,11 +146,11 @@ already proves the pattern: authenticate, `voice_join` over WS, send
   soundboard, not a file host.
 - **`soundboard_played` is attribution UX, not enforcement.** The relay
   is audio-opaque by design; enforcement is the channel-scoped
-  `use_soundboard` check on the played-event POST plus the fact that
+  `voice.soundboard.use` check on the played-event POST plus the fact that
   mixing audio into one's own stream is already possible with a
   virtual cable — the feature adds convenience and *visibility*, not a
   new capability to abuse.
-- **Bot injection reuses the WS voice relay wholesale.** The web
-  client already proved a WS session can be a first-class voice
-  participant; a bot session differs only in auth flavor. No parallel
-  "bot audio API" to keep in sync with the relay.
+- **Bot injection reuses the voice relay wholesale.** A program is a
+  first-class voice participant on the same transport as every client
+  (originally the `/voice/ws` relay, WebTransport since voice v2). No
+  parallel "bot audio API" to keep in sync with the relay.

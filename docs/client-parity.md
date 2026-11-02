@@ -16,7 +16,7 @@ there. This doc tracks the known gaps.
 **Sharing model (changed 2026-07-18 — see
 [decisions.md](decisions.md#shared-ui-components-hoist-from-web-into-packagesui-desktop-adapts)):**
 historically each client kept its own copy of the UI components and platform
-commands (only `packages/{core,ui,platform,i18n}` were shared), so parity
+commands (only `packages/{core,ui,i18n}` were shared), so parity
 meant porting a change into each app's copy. That model is retired: **web is
 the source of truth**, new components ship straight into `packages/ui`
 (prop-only; data access via callback props each app provides), and parity
@@ -163,7 +163,7 @@ Everything here is **portable** (no native API) unless marked native-only.
 | Channel appearance (color/icon) | ✅ (2026-07-04) | ✅ |
 | Kick / Ban / Mute — right-click menu | ✅ | ✅ |
 | Presence status (away / DND / custom) | ✅ (2026-07-05) | ✅ (2026-07-11) |
-| Banner-channel rename/delete from sidebar | ❌ | ? |
+| Banner-channel rename/delete from sidebar | ✅ (2026-07-28, item 4) | ✅ |
 
 ### Where web is ahead of desktop (parity is bidirectional)
 
@@ -267,13 +267,14 @@ stage had never seen either, because its visitor owned both hubs.
 (`open_mini_app`) where web promotes it to `GameModal`. Same `app_open`
 event, different presentation — do not "fix" it.
 
-Plus one that is a bug rather than a gap: web passes `onOpenImage={() => {}}`,
-so an image attachment is a button that does nothing, while desktop opens its
-`Lightbox`.
+Plus one that was a bug rather than a gap: web passed `onOpenImage={() => {}}`,
+so an image attachment was a button that did nothing. Fixed — web now opens a
+lightbox too.
 
 **`clients/scripts/check-parity-props.mjs` now does this counting**, with
 `scripts/parity-baseline.json` holding the known gaps so CI fails on a new one
-rather than on the backlog. Porting a feature means deleting its line. That is
+rather than on the backlog. The baseline is empty as of 2026-11: every gap in
+the table above is closed. Porting a feature means deleting its line. That is
 the answer to the warning three paragraphs up: not "check the code before
 believing a row", but a check that cannot be believed without the code.
 
@@ -336,7 +337,7 @@ exist on web.
 ### 1. Role assignment via the member right-click menu
 
 - **Web — DONE (2026-07-04).** `apps/web/src/components/UserContextMenu.tsx`
-  gained a "Roles" section, gated on `manage_roles`, that toggles the hub
+  gained a "Roles" section, gated on `roles.manage` (then `manage_roles`), that toggles the hub
   endpoints `PUT`/`DELETE /users/{public_key}/roles/{role_id}` via the new
   `assignRoleToUser` / `removeRoleFromUser` / `listUserRoles` platform
   commands. It hides `everyone` and any role whose priority is ≥ the
@@ -396,9 +397,8 @@ exist on web.
   `e2e/live/16-friends.spec.ts` (two-client send → accept → remove).
   *Follow-up:* a "Message" action to open a DM directly from a friend row
   (needs a start-DM-by-pubkey path).
-- **Dead code:** `web/src/platform/webrtc.ts` `WebRtcSharerSession` is
-  defined but never instantiated — the intended outbound-screen-share path
-  was never wired (see the media gaps above).
+- ~~**Dead code:** `web/src/platform/webrtc.ts` `WebRtcSharerSession`~~ —
+  the file has since been deleted.
 
 ### 6. Client-side error handling for unreachable services (2026-07-04)
 
@@ -428,9 +428,8 @@ exist on web.
   it (`ChannelHeader`), with `sharing`/`shareKbps` state in `App.tsx`. The
   existing web viewer renders it unchanged. Covered by
   `e2e/live/15-screen-share.spec.ts` (sharer bar + second client sees the
-  panel, both on fake media). *NOT ported to WebRTC — `webrtc.ts`'s unused
-  `WebRtcSharerSession` (the `transport:"webrtc"` v2 path) still doesn't
-  interoperate with the current viewer; a follow-up could adopt it.*
+  panel, both on fake media). *(The unused WebRTC v2 sharer, `webrtc.ts`,
+  was later deleted; see [screen-share.md](screen-share.md).)*
 - **Camera video / whisper / hub-streams panel** — all DONE (2026-07-04);
   see items 11–12 below.
 
@@ -482,7 +481,9 @@ Definitive status for everything still not at parity:
 - **Whisper — DONE (2026-07-04).** Web `WhisperBar` + `voice_whisper_*`
   control, `voice.ts` now accepts 0x01 frames, and the **hub** gained
   pubkey-based whisper routing (`whisper_target_pubkeys` +
-  `voice_ws.rs` `only_to` filter) so a web whisper actually reaches only its
+  `voice_ws.rs` `only_to` filter — status 2026-11: that WS relay and the UDP
+  relay below are gone, replaced by WebTransport, see
+  [voice-transport-v2.md](voice-transport-v2.md)) so a web whisper actually reaches only its
   targets. `e2e/live/21` verifies the control plane. *Follow-ups (1) and (2)
   fixed 2026-07-23: **desktop→web** whisper audio now reaches a web target
   (the UDP relay's `0x01` branch in `main.rs` also delivers to each resolved
@@ -663,15 +664,16 @@ broadcasting it and only web listened.)*
   with the now-orphaned app-local `svgSanitize` (the shared one uses
   DOMPurify).
 
-## Capability advertising — web only (2026-08-09)
+## Capability advertising (2026-08-09; desktop closed since)
 
 `GET /info` advertises `capabilities`, and **web** reads it: per-hub, cached
 in the session and persisted in `SavedHub`, queried through
 `hubSupports(hubId, cap)` / `activeHubSupports(cap)`
-(`apps/web/src/platform/session.ts`). Desktop's `hub_session.rs` fetches
-`/info` and discards the field.
+(`apps/web/src/platform/session.ts`). **Desktop now reads it too**, for the
+active hub, through `apps/desktop/src/hooks/useHubCapabilities.ts` (unknown
+or failed reads count as absent). The original note follows.
 
-Not a bug on desktop today, and structurally less urgent there: a desktop
+It was not a bug on desktop at the time, and structurally less urgent there: a desktop
 client's version is owned by the user and inherits nothing from a hub, so it
 does not have web's problem of the client version being decided by whichever
 hub happened to serve the page. It still talks to hubs older than itself, so

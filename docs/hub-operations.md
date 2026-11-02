@@ -7,18 +7,16 @@ bounded in storage, and able to rotate its long-lived identity without
 breaking federation trust.
 
 Everything here lives in the **Wavvon-server** hub crate
-(`hub/` workspace). The CLI subcommands dispatch from `hub/src/main.rs`
-(see the `migrate` arm at `main.rs:107` for the existing pattern); the
-background jobs follow the `cert_worker` / `token_expiry` spawn pattern
-(`main.rs:273`, `main.rs:276`). None of these features require a client
-update, and none change the federation wire format except the
-`rotation` field on `/info`.
+(`crates/hub/`). The CLI subcommands dispatch from `crates/hub/src/main.rs`;
+the background jobs are `tokio::spawn` loops started there. None of these
+features require a client update, and none change the federation wire
+format except the `rotation` field on `/info`.
 
 > See also: [hosting.md](hosting.md) (the practical run guide that this
 > design backs), [data-model.md](data-model.md) (schema), and
 > [federation.md](federation.md) (why key rotation must preserve trust).
 
-> **All four features here have shipped.** This is the design record — kept
+> **All four features here have shipped** (key rotation only in part, see §4). This is the design record — kept
 > for the reasoning, not as a status board. Where the shipped behaviour
 > diverged from the plan it is called out inline. For how to actually use
 > them, go to the [operator guide](hub-operator-guide.md).
@@ -51,20 +49,6 @@ Backup produces a single portable `.tar.gz`:
 > themselves — so the command the upgrade docs told them to run before every
 > upgrade did not take a backup. Closed 2026-08-09, together with uploads,
 > which had never been in the archive at all.
-
-**What is deliberately *not* backed up**: voice packets and all
-ephemeral in-memory state — `voice_channels`, `active_game_sessions`,
-`video_channels`, screen shares, `online_users` (`state.rs:167–204`).
-These are runtime state that is cleared on every restart by design; a
-restored hub comes back with empty voice rooms, which is correct.
-
-**No encryption at rest in v1.** The archive contains
-`hub_identity.json`, which holds the hub's *signing key* — the secret
-that lets the hub speak for itself in federation. The backup file is
-therefore as sensitive as the live identity file and the operator is
-responsible for securing it (file permissions, encrypted volume, or
-piping the archive through their own `gpg`/`age`). The doc and the CLI
-output both state this loudly.
 
 **Restore behaviour** (`wavvon-hub restore <path> [--force]`). Every step
 refuses rather than half-writes, in cost order — the check that cannot be
@@ -99,8 +83,8 @@ adding; the archive would need to carry `hub_pubkey` in its metadata again.
 
 **Not backed up, deliberately**: the Tantivy search index (derived from the
 messages table; rebuild via `POST /admin/search/reindex`) and all ephemeral
-in-memory state — voice channels, game sessions, video channels, screen
-shares, online users. Those are cleared on every restart by design; a
+in-memory state — voice channels, video channels, screen shares, online
+users. Those are cleared on every restart by design; a
 restored hub comes back with empty voice rooms, which is correct.
 
 **No encryption at rest.** The archive contains `hub_identity.json` — the
@@ -109,8 +93,8 @@ identity file, and securing it is the operator's job (file permissions,
 encrypted volume, or piping it through their own `gpg`/`age`).
 
 **Implementation side** (Wavvon-server): subcommand arms in
-`hub/src/main.rs` alongside `migrate`; the dump/restore mechanism itself in
-`hub/src/db/dump.rs`, shared with the embedded↔external moves and embedded
+`crates/hub/src/main.rs` alongside `migrate`; the dump/restore mechanism itself in
+`crates/hub/src/db/dump.rs`, shared with the embedded↔external moves and embedded
 major upgrades that bundled PostgreSQL will need — see
 [decisions.md](decisions.md), "One mechanism moves the data". No new DB
 tables, no route changes.
@@ -131,21 +115,23 @@ Retention is an *unconditional purge*, not an archive.
 **Where it is stored**: a new nullable `retention_days` column on the
 `channels` table. `NULL` (the default and the migration backfill) means
 *keep forever* — existing channels are unaffected. Set it via
-`PATCH /admin/channels/:id` with `{ "retention_days": 30 }`, or
-`{ "retention_days": null }` to disable. The route gates on the hub-admin
-permission already used by the other `/admin/channels` handlers.
+`PATCH /channels/{channel_id}` with `{ "retention_days": 30 }`, or
+`{ "retention_days": null }` to disable; changing it requires
+`channels.manage`.
 
-**The sweep job**: a `tokio::spawn` interval loop started at hub boot,
-running once every 24 hours — the same pattern as `cert_worker::spawn`
-(`main.rs:276`) and `token_expiry::spawn` (`main.rs:273`). For each
+**The sweep job**: `crates/hub/src/retention_worker.rs`, a `tokio::spawn`
+interval loop started at hub boot, running once every 24 hours. For each
 channel with a non-NULL `retention_days`, it hard-deletes messages where
 `created_at < now - retention_days * 86400`. No soft-delete flag —
 retention's contract is "gone means gone," so a tombstone would only add
 storage and surprise.
 
-**Attachments**: inline attachments are base64 in the
-`messages.attachments` column and are deleted with the row. There is no
-separate blob store to garbage-collect.
+**Attachments**: legacy inline attachments are base64 in the
+`messages.attachments` column and go with the row. Uploaded files live on
+disk (`WAVVON_UPLOADS_DIR`); their blobs are reclaimed by
+`attachments::sweep` (orphans after 24 h, the hub-wide
+`attachments_retention_days`, and eviction under the disk budget) — see
+[attachments.md](attachments.md).
 
 **Forum posts**: forum channels carry a separate `posts` table (see
 [forum.md](forum.md)). A parallel sweep deletes posts older than the same
@@ -178,12 +164,9 @@ quietly recreates the storage problem retention exists to solve. An
 operator who wants long-term retention simply leaves the setting NULL
 and takes backups (feature 1).
 
-**Implementation side** (Wavvon-server): migration adding
-`channels.retention_days`; a new `hub/src/retention_worker.rs` spawned
-from `main.rs`; the `retention_days` field wired into the existing
-`PATCH /admin/channels/:id` handler and its response. No client change —
-the admin UI picks up the field through the existing channel-settings
-form once the API exposes it.
+**Implementation side** (Wavvon-server): `channels.retention_days`;
+`crates/hub/src/retention_worker.rs` spawned from `main.rs`; the field on
+`PATCH /channels/{channel_id}` (`routes/channels.rs`).
 
 **Not in scope**: per-user opt-out, legal hold / per-message exemptions,
 and any federated retention guarantee. Federation is best-effort: a
@@ -210,23 +193,18 @@ always-on endpoint told any stranger how many members were online, in voice
 and posting; the observability decision in `decisions.md` already called it
 opt-in, and the code now agrees.
 
-**Metrics in v1** (intentionally small; add more as they prove useful):
+**Metrics** (intentionally small; the list is in
+`crates/hub/src/routes/metrics.rs` and the
+[operator guide](hub-operator-guide.md#observability)): online users,
+voice participants, active video channels, messages stored, upload-disk
+usage / budget / evictions, uptime. Read live per scrape, so the endpoint
+has no background cost between scrapes.
 
-| Metric | Type | Source |
-| --- | --- | --- |
-| `wavvon_online_users` | gauge | `online_users.len()` (`state.rs:180`) |
-| `wavvon_voice_participants` | gauge | sum of participants across `voice_channels` (`state.rs:167`) |
-| `wavvon_active_game_sessions` | gauge | `active_game_sessions.len()` (`state.rs:201`) |
-| `wavvon_active_video_channels` | gauge | `video_channels.len()` (`state.rs:204`) |
-| `wavvon_messages_total` | counter | incremented when a message is stored |
-| `wavvon_uptime_seconds` | gauge | `started_at.elapsed().as_secs()` (`state.rs:209`) |
-| `wavvon_db_size_bytes` | gauge | `stat()` on the `hub.db` file |
-
-The counter (`wavvon_messages_total`) needs a process-lifetime
-`AtomicU64` on `AppState`, bumped at the message-store path; it resets on
-restart, which is correct counter semantics (Prometheus handles counter
-resets). Everything else is read live from existing `AppState` fields,
-so the endpoint has no background cost between scrapes.
+> Shipped differently from the plan (noted 2026-11-02):
+> `wavvon_messages_total` is a `SELECT COUNT(*)` per scrape, not a
+> process-lifetime counter; `wavvon_active_game_sessions` went with game
+> sessions; `wavvon_db_size_bytes` (a `stat()` on a SQLite file) was never
+> applicable to PostgreSQL.
 
 **Implementation approach — no external crate in v1.** The exposition
 format for this set is plain text (`# HELP`/`# TYPE` lines plus
@@ -235,9 +213,8 @@ in the `prometheus` crate now would add a registry abstraction for seven
 trivial values. We reach for the crate only once the metric set grows
 enough that hand-formatting becomes error-prone (labels, histograms).
 
-**Where it lives** (Wavvon-server): a new `GET /metrics` handler in
-`hub/src/server.rs`, mounted *outside* the auth middleware, reading
-`AppState` directly. No DB schema change beyond reading the file size.
+**Where it lives** (Wavvon-server): `crates/hub/src/routes/metrics.rs`,
+mounted in `server.rs` *outside* the auth middleware.
 
 **Alternative considered — OpenTelemetry OTLP as the only metrics
 path.** The codebase already emits OTLP *traces*, so reusing it for
@@ -252,7 +229,15 @@ one that unblocks the most operators with the least setup.
 
 ## 4. Hub key rotation
 
-**Status: shipped.**
+**Status: half shipped.** `rotate-key` and the `rotation` field on `/info`
+exist. As of 2026-11-02 there is no transition window (the payload is
+served for as long as `hub_rotation.json` sits in the working directory),
+no `--new-key-path` (the argument is ignored; a key is always generated),
+the signed bytes are the string `"<old>:<new>:<effective_at>"` built in
+`main.rs` rather than an `identity`-crate type. The web client follows a
+verified rotation (`followKeyRotation` in Wavvon-clients
+`apps/web/src/platform/commands/hubs.ts`); nothing on the hub's federation
+side reads the payload and re-pins peers. The text below is the design.
 
 **Problem**: the hub's Ed25519 keypair (`hub_identity.json`) is a single,
 long-lived identity. Peers, alliances, and certificate verifiers trust
@@ -328,8 +313,8 @@ keeps a human in the loop who can confirm peers have re-pinned — the same
 "operator is the authority on their own hub" stance as
 [threat-model.md](threat-model.md).
 
-**Implementation side** (Wavvon-server): `rotate-key` subcommand in
-`hub/src/main.rs`; the optional `rotation` field added to the `/info`
+**Implementation side** (Wavvon-server, as designed): `rotate-key` subcommand in
+`crates/hub/src/main.rs`; the optional `rotation` field added to the `/info`
 handler; the `HubKeyRotation` sign/verify helper placed in the
 `identity` crate next to the existing bound-bundle signer so client and
 hub agree on the canonical bytes; load `hub_rotation.json` at boot
@@ -346,8 +331,9 @@ alongside `hub_identity.json`.
   built-in passphrase-wrap (mirroring the client's `.wavvon-backup`
   envelope in [identity-recovery.md](identity-recovery.md)) is a natural
   v2.
-- **Live (no-downtime) hot backup via SQLite WAL** — deferred until a
-  farm-scale no-downtime requirement appears.
+- **Live (no-downtime) restore** — deferred until a farm-scale
+  no-downtime requirement appears. (Backup is already online: `pg_dump`
+  takes a consistent snapshot of a running database.)
 - **Retention nuance** — per-user opt-out, legal hold, and any federated
   retention coordination are out of scope; federation stays best-effort.
 - **Metrics depth** — labels, histograms, per-channel/per-route

@@ -2,6 +2,12 @@
 
 How Wavvon manages geographically distributed servers under a single farm.
 
+> Status (2026-11-02): built in Wavvon-server `crates/farm` and `crates/agent`.
+> The farm is optional: the primary deployment is a standalone, self-hosted
+> hub (see "A hub is self-hosted; no client creates one" in
+> [decisions.md](decisions.md)). Code is authoritative for message and route
+> shapes; this page keeps the model and the why.
+
 ---
 
 ## Hierarchy
@@ -15,11 +21,13 @@ Farm  (control plane — one per operator/organization)
 
 | Layer | Binary | Responsibility |
 |-------|--------|----------------|
-| Farm | `wavvon-farm` | Lifecycle, routing table, discovery, farm panel |
-| Server | `wavvon-server` | Hub process management, metrics, log forwarding |
+| Farm | `wavvon-farm` | Lifecycle, placement, reverse proxy, farm SSO |
+| Server | `wavvon-agent` | Spawns, restarts and stops hub processes on its node |
 | Hub | `wavvon-hub` | Community — channels, users, voice, messages |
 
-**A hub is never started directly.** It is always spawned and managed by a server agent. The `wavvon-hub` binary is an internal implementation detail of `wavvon-server`, not a user-facing deployment target.
+Under a farm, hubs are spawned by an agent (or by the farm's own process when
+no agent is connected). Outside a farm, `wavvon-hub` runs standalone — that is
+the primary path, not a deprecated one.
 
 ---
 
@@ -33,22 +41,13 @@ Servers connect *outbound* to the farm rather than the farm polling inward. This
 
 ### Protocol
 
-Each `wavvon-server` maintains a persistent **WebSocket** connection to its farm. The connection is authenticated (see Registration below) and multiplexes two message flows:
+Each `wavvon-agent` keeps a persistent **WebSocket** to the farm's `/ws/agent` (Wavvon-server: `crates/agent/src/agent.rs`), JSON text frames:
 
-**Server → Farm (push):**
-- `heartbeat` — sent every 15 s; includes CPU %, memory %, disk %, hub process states
-- `hub-started` / `hub-stopped` — lifecycle events with hub ID and listening address
-- `log-line` — streamed log output (throttled, farm-side ring buffer per server)
-- `metrics` — periodic extended stats (connections, voice sessions, DB size per hub)
+**Agent → Farm:** `hello` (first frame: registration token, node host, TLS mode, cert fingerprint), then replies `pong`, `hub_spawned`, `hub_restarted`, `hub_stopped`, `hub_list`, or `error` (`no_database`, `spawn_failed`, ...).
 
-**Farm → Server (commands):**
-- `hub-create` — start a new hub process (payload: hub ID, config)
-- `hub-stop` — graceful stop
-- `hub-restart` — rolling restart
-- `hub-config-update` — push a config change without restart (where supported)
-- `ping` — liveness probe
+**Farm → Agent:** `ping`, `spawn_hub`, `restart_hub`, `stop_hub`, `list_hubs`. Spawn and restart carry hub id, ports (HTTP + voice), database URL or template, owner pubkey and farm URL.
 
-The farm treats a server as **offline** if no heartbeat arrives within 45 s. Hubs on an offline server are marked unavailable in the routing table.
+There is no log or metrics stream over this socket. Liveness comes from each **hub** posting `POST /farm/heartbeat` every 60 s; three missed beats (180 s) mark it offline, and `crates/farm/src/monitor.rs` restarts hubs with auto-restart enabled.
 
 ---
 
@@ -57,49 +56,44 @@ The farm treats a server as **offline** if no heartbeat arrives within 45 s. Hub
 A server is added to a farm once, by the operator, before it is deployed.
 
 ```
-Step 1 — Operator generates a registration token on the farm:
-  wavvon-farm server add --name "eu-1" --label region=eu --label provider=hetzner
-  → Registration token: <one-time 32-byte hex>
+Step 1 — Farm admin calls POST /farm/admin/server-token {name, region?}
+  → {server_id, token}   (32-byte hex, shown once, stored as SHA-256)
 
-Step 2 — Server agent starts and presents the token:
-  wavvon-server --farm wss://farm.example.com --token <token>
+Step 2 — wavvon-agent starts with the farm URL and that token
+  (WAVVON_* env) and sends it in its `hello` frame.
 
-Step 3 — Farm verifies the token (single use), records the server,
-  and issues a long-lived server credential for subsequent reconnects.
-  The one-time token is consumed and cannot be replayed.
-
-Step 4 — All future reconnects use the long-lived credential.
-  Losing it requires re-registration (step 1–2 again).
+Step 3 — Every reconnect presents the same token. Losing it means
+  generating a new one; deleting the server row revokes it.
 ```
 
-The farm's `servers` table stores: ID, name, labels, credential hash, last-seen, status.
+The farm's CLI has only `migrate`; servers are registered through the route
+above. The `servers` table stores id, name, region, token hash, last-seen and
+a hub cap (`max_hubs`).
 
 ---
 
 ## Hub Lifecycle
 
-### Creation (from desktop client wizard)
+### Creation
+
+No client creates a hub (decisions.md, "A hub is self-hosted; no client
+creates one"). An operator calls `POST /farm/hubs`:
 
 ```
-Client wizard
-  → POST /farm/hubs/create  {name, region_preference?, template?}
-  → Farm selects a server (see Server Selection)
-  → Farm sends hub-create command to that server's agent connection
-  → Server starts the hub process, reports hub-started {id, address}
-  → Farm records hub→server mapping, sets creator pubkey as hub owner
-  → Farm returns {hub_id, hub_address} to client
-  → Client connects directly to hub_address
+POST /farm/hubs
+  → farm provisions the hub's database or schema (crates/farm/src/db/provision.rs)
+  → farm picks a node (crates/farm/src/placement.rs)
+  → spawn_hub to that agent (or spawns locally)
+  → agent replies hub_spawned; the hub claims its row on first heartbeat
 ```
 
-The creator's Ed25519 pubkey is written as the hub owner by the server at creation time — no separate setup step, no web panel, no bootstrap token.
+The owner pubkey travels in the spawn payload and is seated by the hub at
+startup — no separate setup step, no web panel.
 
-### Shutdown / Deletion
+### Shutdown / Deletion / Restart
 
-Farm sends `hub-stop` to the server. The server gracefully stops the process, archives or deletes the DB (based on farm policy), and sends `hub-stopped`. Farm removes the hub from the routing table.
-
-### Restart / Config Update
-
-Farm sends `hub-restart` or `hub-config-update`. No client disruption for config-only changes; brief reconnect on restart.
+Farm sends `stop_hub` / `restart_hub`; the agent replies `hub_stopped` /
+`hub_restarted`. There is no live config-update message.
 
 ---
 
@@ -107,73 +101,45 @@ Farm sends `hub-restart` or `hub-config-update`. No client disruption for config
 
 When a new hub is created, the farm picks a server using:
 
-1. **Region preference** — client (or operator template) can hint a region label.
-2. **Capacity** — farm skips servers above a CPU or memory threshold.
-3. **Hub count** — prefer servers with fewer existing hubs (spread load).
-4. **Round-robin** — tiebreak among equally-ranked candidates.
-
-This is intentionally simple for v1. More sophisticated placement (latency-based, cost-aware) is a future concern.
+What is built (`crates/farm/src/placement.rs`): an explicit server requested by
+the operator is honoured or refused; otherwise the node with the most free room under
+its `max_hubs` cap wins, ties going to agents over the farm's own process. Placement is **refused, never overflowed** — the cap is the
+operator's, for reasons the farm cannot see. Region hints, CPU/memory
+thresholds and latency- or cost-aware placement are future work.
 
 ---
 
 ## Client Routing
 
-The farm is **not** on the hot path for real-time traffic. After discovery:
-
-```
-1. Client asks farm: GET /farm/hubs
-   Farm returns: [{hub_id, hub_address: "s1.example.com:3000", name, ...}, ...]
-
-2. Client connects directly to hub_address for:
-   - WebSocket (messages, presence)
-   - UDP (voice)
-   - REST (API calls)
-
-3. Farm is only contacted again for:
-   - Hub list refresh
-   - Creating or leaving a hub
-   - Billing / identity lookups (future)
-```
-
-### Addressing
-
-Each server needs a stable public address reachable by clients:
-
-| Setup | Server address |
-|-------|---------------|
-| VPS / cloud VM | Public IP or A record: `s1.farm.example.com` |
-| Home lab with dynamic IP | DDNS or Tailscale funnel |
-| Strict NAT (voice) | TURN relay (voice only — see Open Questions) |
-
-The farm domain (`farm.example.com`) is control plane only. Hub addresses point directly at server hostnames/IPs and are unrelated to the farm's domain.
+HTTP and WebSocket go through the farm's reverse proxy at
+`https://farm.example.com/hub/<serial>/...` (`crates/farm/src/proxy.rs`), which
+forwards to the hub's node — so one certificate and one hostname serve every
+hub (rationale and the multi-node data plane: [farm-impl.md](farm-impl.md),
+[farm-model.md](farm-model.md)). Voice is the exception: each hub has its own
+voice port and publishes `voice_wt_url` in its `/info`; the client dials that
+WebTransport endpoint directly ([voice-transport-v2.md](voice-transport-v2.md)).
+So each node still needs a public address reachable on its voice ports.
 
 ---
 
-## Farm Panel (server operator view)
+## No farm panel
 
-A minimal web UI served by `wavvon-farm` at `/farm/admin/panel`. Protected by `web_admin_token` in `farm.toml` — the operator already has shell access; no Ed25519 ceremony needed here.
-
-**What it shows:**
-- Server list: name, region labels, status (online/offline), last heartbeat
-- Per-server: CPU / memory / disk gauges, hub count, uptime
-- Hub list: which hub is on which server, hub name, user count
-- Recent log tail per server (last N lines, streamed)
-- Config summary (farm.toml values, no secrets)
-
-**What it does NOT do:**
-- Community management (ban users, manage roles) — that is the desktop client's job
-- Hub content (messages, files) — out of scope for a server operator
+The web panel once planned here (`/farm/admin/panel`, `web_admin_token`) was
+never built and will not be. Farm administration is the farm-admin-only
+routes (`/farm/settings`, `/farm/hubs`, `/farm/users`, `/farm/admin/servers`,
+`/farm/admin/fleet`), authenticated as `WAVVON_FARM_ADMIN_PUBKEY`. Community
+management stays in the client, per hub.
 
 ---
 
 ## Open Questions / Future Work
 
-**Hub migration** — moving a hub from one server to another without losing data. Requires: pause hub, copy SQLite DB, start on new server, update routing table, unpause. Non-trivial; deferred.
+**Hub migration** — moving a hub from one server to another without losing data. Requires: pause hub, copy its PostgreSQL database, start on new server, update routing table, unpause. Non-trivial; deferred.
 
 **Server failover** — if a server crashes, its hubs are unavailable. A failover strategy would replicate hub DBs (streaming WAL to a standby) and restart hubs on another server. High complexity; out of scope for v1.
 
-**Voice and NAT traversal** — voice UDP requires the server to be reachable by clients. For servers behind strict NAT, a TURN relay is needed. STUN is already used for peer addresses; TURN integration is deferred.
+**Voice and NAT traversal** — voice (WebTransport over UDP) requires the node to be reachable by clients. A node behind strict NAT has no answer yet; deferred.
 
-**Hub clustering** — running multiple hub processes for the same hub (for scale). Requires a shared DB layer (not SQLite). Far future.
+**Hub clustering** — running multiple hub processes for the same hub (for scale). The hub keeps in-process state (broadcast channels, voice relay), so a shared PostgreSQL alone is not enough. Far future.
 
 **Server-to-server communication** — hubs on different servers have no direct link. Cross-server features (DMs between users on different hubs, federated search) are a federation problem, not a farm problem.

@@ -24,7 +24,7 @@ Sibling repos:
 
 | Repo | Contents |
 |---|---|
-| [Wavvon-server](https://github.com/Wavvon/Wavvon-server) | Rust workspace: hub, farm, identity/store crates, seed |
+| [Wavvon-server](https://github.com/Wavvon/Wavvon-server) | Rust workspace: hub, farm, agent, identity crate |
 | [Wavvon-clients](https://github.com/Wavvon/Wavvon-clients) | Web + desktop clients, shared TS packages, voice crate |
 | [Wavvon-discovery](https://github.com/Wavvon/Wavvon-discovery) | Optional public hub directory site |
 

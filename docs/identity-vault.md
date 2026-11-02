@@ -27,7 +27,10 @@ off-device — the locator derivation, the offline-brute-force bound, the
 enumeration defence — and any future proposal that puts secrets on a hub has
 to answer the same three problems. Read it as the analysis, not as a plan.
 
-**Why it is parked rather than dropped** (added 2026-09-05, decisions.md
+**Why it was parked rather than dropped** — historical, superseded by the
+rejection above the same day; nothing in this doc was built, and the
+`hub/src/…` paths below (today `crates/hub/src/…`) name files that do not
+exist (added 2026-09-05, decisions.md
 "Devices stay subkeys, and a device certifies itself at first auth"): keeping
 per-device keys is what makes this layer load-bearing rather than optional. A
 paired device holds no master seed and therefore no local entropy to derive

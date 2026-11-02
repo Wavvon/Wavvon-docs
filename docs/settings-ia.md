@@ -8,9 +8,11 @@ This doc inventories the fork, proposes one IA both clients render, records
 the settled desktop-multi-account decision, and frames the remaining product
 decisions before the engineers converge the code.
 
-Authoritative code: web `apps/web/src/components/settings/` (in
-Wavvon-clients); desktop `apps/desktop/src/components/SettingsPage.tsx` +
-sections + `apps/desktop/src-tauri/src/identity_cmd.rs`.
+> **Status: implemented 2026-07-20 (§7).** §1 is the pre-unification
+> snapshot. Today both apps' `SettingsPage.tsx` are thin shells over the
+> shared `SettingsShell` and tabs in Wavvon-clients
+> `packages/ui/src/components/settings/`; desktop's account storage is
+> `apps/desktop/src-tauri/src/accounts.rs`.
 
 ## 1. Current-state inventory
 
@@ -203,4 +205,7 @@ All of §6 shipped in one pass. Documented cuts, tracked not hidden:
 - Desktop's account-switcher table is minimal (no drag-reorder) — permanent
   divergence from web's fuller table (different account-storage models).
 - Desktop keeps `RecoveryContactsSection` in its Accounts tab (web surfaces
-  it via hub admin) until the attestation-endpoint design lands.
+  it via hub admin) until the attestation-endpoint design lands. *(Status
+  2026-11: landed — the section is shared in `packages/ui/src/components/settings/`
+  and both clients render it in the accounts tab and in hub admin;
+  [recovery-attestation.md](recovery-attestation.md).)*

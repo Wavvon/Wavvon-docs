@@ -1,6 +1,10 @@
 # The invite directory: listing an identity that wants to be found
 
-**Status: designed, not built.** Replaces the bot listing the directory
+**Status: directory side built; hub and client sides not.** Wavvon-discovery
+validates and stores listings (`src/lib/identity.ts`, `/api/identities` and
+`/api/identities/[pubkey]`, including the required `contact` route of §3).
+As of 2026-11-02 no hub delivers an invite to a listing's `home_hub` or
+`endpoint`, and no client publishes or browses listings. Replaces the bot listing the directory
 carried until 2026-09-26, and is deliberately not a rename of it — the shape
 changed with the model.
 

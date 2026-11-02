@@ -30,7 +30,7 @@ on top of it:
    wrapped in a user passphrase (`.wavvon-backup`). Pure client-side
    crypto + UX. No hub involvement.
 2. **Recovery contacts** — trusted users who can *vouch* for a key
-   rotation to a hub's admins when the owner loses their key. Hub-side,
+   rotation to a hub's owner when the user loses their key. Hub-side,
    community-axis state. Contacts never restore access automatically;
    they attest, humans decide.
 
@@ -341,7 +341,8 @@ controls now, e.g. freshly generated or restored on a new device),
    collapse to one.
 4. **Threshold reached → admin queue, not auto-grant.** When the count of
    valid attestations reaches K, the request flips from `gathering` to
-   `ready_for_review` and appears in the hub admin panel's recovery queue.
+   `ready_for_review` and appears in the hub owner's recovery queue (in the
+   client's hub settings).
    **Nothing is granted automatically.** Reaching threshold only earns the
    request a place in front of a human.
 5. **An admin decides.** The admin sees: old pubkey, new pubkey, which
@@ -444,8 +445,14 @@ recovery_attestations(
 )
 ```
 
-Per-hub DBs mean no `hub_id` column is needed (one SQLite file per hub —
-[decisions.md](decisions.md), SQLite). Requests expire after a bounded
+> **As built (2026-11-02):** the last two tables are `key_rotation_requests`
+> and `rotation_attestations` (Wavvon-server `crates/hub/src/db/migrations.rs`);
+> the code is authoritative for their columns. Contacts and attestations are
+> keyed by the pubkey the hub knows the user by (the roster pubkey), not a
+> derived master key — see [recovery-attestation.md](recovery-attestation.md).
+
+One database per hub means no `hub_id` column is needed (PostgreSQL, one
+database or schema per hub). Requests expire after a bounded
 window (e.g. 14 days) via a `status = 'expired'` sweep so a half-gathered
 request doesn't linger.
 
@@ -455,6 +462,15 @@ identity is included so an attestation gathered for one hub can't be
 replayed against another hub where the same contact relationship exists.
 
 ## Route changes
+
+> **As built (2026-11-02)**, in Wavvon-server `crates/hub/src/routes/recovery.rs`:
+> `PUT`/`GET /recovery/contacts`, `DELETE /recovery/contacts/{pubkey}`,
+> `POST /recovery/rotate-key` (opens a request), `GET /recovery/requests`,
+> `GET /recovery/requests/to-attest`, `GET /recovery/rotation-request/{id}`,
+> `POST /recovery/rotation-request/{id}/attest`, and the review side
+> `GET /admin/recovery/pending`, `POST /admin/recovery/{id}/approve|deny`.
+> Review is **owner-only** (`require_owner`), not a `manage_users`-style
+> permission. The plan below is kept as designed.
 
 All on the community hub (`hub/src/routes/` in Wavvon-server). A new
 `recovery.rs` route module:
@@ -475,7 +491,7 @@ All on the community hub (`hub/src/routes/` in Wavvon-server). A new
 - `POST /admin/recovery/requests/:id/decide` — admin approves (with the
   role set to transfer), partially approves, or rejects.
 
-**Permission**: reuse `manage_users` for the admin-side review/decide
+**Permission** (planned; shipped owner-only instead, see above): reuse `manage_users` for the admin-side review/decide
 routes — social recovery is a membership/role action, which is what
 `manage_users` already governs ([identity.md](identity.md) permission
 set). Owner-role transfer additionally gates on the owner path described
@@ -488,8 +504,8 @@ panel can poll on mount for v1.
 
 ## Client changes
 
-Mirrored across `Wavvon-desktop`, `Wavvon-web`, `Wavvon-android` (same
-wire shapes, UI parity — the established pattern):
+Web and desktop, shared UI in Wavvon-clients `packages/ui` (planned for
+Android too, which was removed 2026-07-12):
 
 - **Owner side**, Settings → Security → "Recovery contacts" (per-hub
   section, shown for hubs where the user is a member): pick contacts from
@@ -579,15 +595,14 @@ multi-device Phase 1 (master derivation) at minimum.
 
 ## What's deferred
 
-- **Backup auto-sync to the home hub list.** *(Superseded 2026-07-19 by
-  [Part 3 — Hub-hosted identity vault](#part-3--hub-hosted-identity-vault),
-  which takes up this "revisit only with a strong argument" invitation as an
-  opt-in, passphrase-locked, handle-addressed vault.)* A backup is
+- **Backup auto-sync to the home hub list.** *(Taken up 2026-07-19 as the
+  [hub-hosted identity vault](#part-3--hub-hosted-identity-vault), then
+  **rejected** 2026-09-05: a hub may hold what you signed or encrypted, never
+  what can reconstitute you. So this stays deferred — permanently.)* A backup is
   deliberately a user-placed file, not personal-axis state on the home hubs
   — putting the passphrase-wrapped seed on the home hubs is a tempting
   convenience but concentrates the highest-value secret on hubs the threat
-  model already flags as observing/withholding surfaces. Part 3 accepts that
-  residual concentration risk explicitly rather than eliminating it.
+  model already flags as observing/withholding surfaces.
 - **Cross-hub recovery propagation.** Recovering standing on every hub at
   once would need a global identity-mapping the federated model refuses.
   Per-hub, by hand, is the answer until something like portable
@@ -606,9 +621,10 @@ multi-device Phase 1 (master derivation) at minimum.
 
 ## Files this will touch
 
-Pointers, not code. Paths under `desktop/` are Wavvon-desktop; under
-`hub/`/`identity/` are Wavvon-server; client UI mirrors to Wavvon-web /
-Wavvon-android.
+Pointers, not code, as planned. Today `desktop/` is Wavvon-clients
+`apps/desktop/`, shared UI is `packages/ui/`, and `hub/`/`identity/` are
+Wavvon-server `crates/hub/`/`crates/identity/`. Tables and permission are
+as noted under Data model and Route changes above.
 
 - `desktop/src-tauri/src/lib.rs` (Wavvon-desktop) — backup export/import
   Tauri commands: Argon2id + AES-GCM seal/open over the identity file;
@@ -636,5 +652,5 @@ Moved to its own doc: **[identity-vault.md](identity-vault.md)** — the
 passphrase-encrypted master-seed blob stored on the home hub(s),
 retrievable on a device with no key material (handle + passphrase only).
 Designed 2026-07-19 as the provider-independent successor to passkey PRF
-recovery. See that doc for the locator derivation, brute-force and
-enumeration bounds, data model, API shapes, and lifecycle.
+recovery. **Rejected 2026-09-05** and never shipped (see the top of this
+doc); that doc keeps the analysis.

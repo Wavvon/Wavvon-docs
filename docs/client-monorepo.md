@@ -1,5 +1,16 @@
 # Client Monorepo
 
+> **Status: shipped 2026-06-13; this is the historical plan.** The result
+> is [Wavvon-clients](https://github.com/Wavvon/Wavvon-clients):
+> `apps/{web,desktop}` plus `packages/{core,ui,i18n}` and `crates/voice`.
+> Two parts of the plan below never happened: **`packages/platform` was
+> never created** (each app keeps its own platform layer; shared
+> components take callback props instead — see
+> [client-parity.md](client-parity.md)), and **`apps/android` was removed
+> 2026-07-12** ([android-rewrite-notes.md](android-rewrite-notes.md)).
+> Releases are `release-web.yml` and `release-desktop.yml`. Read the
+> rest for the why, not the current layout.
+
 Wavvon's three clients — desktop ([client.md](client.md)), browser
 ([browser-client.md](browser-client.md)), and Android
 ([android-client.md](android-client.md)) — consolidate into **one
@@ -167,6 +178,10 @@ modals, primitives), the `MobileShell` from
 `fetch` directly — that is what keeps them shared.
 
 ### `packages/platform` — the adapter interface
+
+> Status 2026-11: never created. Shared components went prop-only instead
+> (data access through callback/actions props), which made a shared
+> interface package unnecessary.
 
 Types only: the `platform` object surface from
 [browser-client.md](browser-client.md) (`hubs`, `channels`, `messages`,
@@ -358,8 +373,9 @@ deleted) so existing stars/links persist.
 The TypeScript identity crypto must stay **byte-compatible with the Rust
 hub** — the Ed25519 seed format and the DM envelope wire format (see
 [e2e-encryption.md](e2e-encryption.md), [identity.md](identity.md)). The
-canonical authority is the `identity/` crate in **Wavvon-server**, with
-shared test vectors (`docs/wire-format.md` in Wavvon-server).
+canonical authority is the `identity` crate in **Wavvon-server**, with
+shared test vectors (`crates/identity/wire-vectors.json`; spec in
+[wire-format.md](wire-format.md)).
 
 Two things the doc must state plainly:
 
@@ -470,5 +486,5 @@ read-only (keep their releases resolving). Update
 - Android client + keystore + on-demand CI: [android-client.md](android-client.md)
 - Repo map this changes (six → four repos): [architecture.md](architecture.md)
 - Release/updater/secrets matrix: [packaging.md](packaging.md)
-- Wire-format contract the crypto stays pinned to: [e2e-encryption.md](e2e-encryption.md), [identity.md](identity.md); `docs/wire-format.md` in Wavvon-server
+- Wire-format contract the crypto stays pinned to: [e2e-encryption.md](e2e-encryption.md), [identity.md](identity.md), [wire-format.md](wire-format.md)
 - Hub self-serving the web client (Docker web-builder checkout target): [decisions.md](decisions.md)

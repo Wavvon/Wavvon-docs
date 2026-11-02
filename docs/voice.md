@@ -5,9 +5,9 @@ detection. Since voice transport v2 (2026-08, design in
 [voice-transport-v2.md](voice-transport-v2.md)) there is **one
 transport for every client**: WebTransport (QUIC) datagrams, carrying
 E2E-encrypted packets that the hub relays without being able to read.
-The native capture/encode/playback pipeline lives in the `voice/`
-crate in Wavvon-client; the hub-side relay is
-`hub/src/voice_wt.rs` in Wavvon-server.
+The native capture/encode/playback pipeline lives in the
+`crates/voice/` crate in Wavvon-clients; the hub-side relay is
+`crates/hub/src/voice_wt.rs` in Wavvon-server.
 
 ## Pipeline (desktop)
 
@@ -29,8 +29,8 @@ AEAD open → Opus decode → per-sender gain → playback (cpal)
 
 ## Files
 
-Native pipeline (`voice/` crate, Wavvon-client, used by the desktop
-shell):
+Native pipeline (`crates/voice/` in Wavvon-clients, used by the desktop
+shell; paths below are relative to `crates/`):
 
 | Stage              | File |
 |--------------------|------|
@@ -108,8 +108,9 @@ encrypted DMs ([threat-model.md](threat-model.md)).
 
 ## Web client
 
-`VoiceWtSession` in `apps/web/src/platform/voice.ts` (Wavvon-client):
-`getUserMedia` capture, `opusscript` encode/decode at 960 samples /
+`VoiceWtSession` in `apps/web/src/platform/voice.ts` (Wavvon-clients):
+`getUserMedia` capture, a receive jitter buffer in `voicePlayout.ts`
+(shipped 2026-08-21), `opusscript` encode/decode at 960 samples /
 20 ms / 48 kHz, per-sender `GainNode` playback with proximity
 attenuation, WebTransport datagrams for transport, crypto from
 `packages/core` (`voicePacketSeal/Open`, `voiceKeyWrap/Unwrap` —
@@ -117,10 +118,12 @@ vector-pinned to the identity crate). RNNoise is not in the browser
 path; the WASM codec and the browser audio graph remain the practical
 ceiling.
 
-> Note: there's no separate "voice channel" type. Every Wavvon channel
-> is both text and voice — joining voice is something a user does
-> *in* a channel, not a property of the channel itself. See
-> [decisions.md](decisions.md).
+> Voice lives in `voice` channels only (`channel_type = 'voice'`,
+> capability `channels.voice`); the hub refuses `voice_join` anywhere
+> else, and admission is the `voice.join` permission, separate from
+> `messages.read`. The older "every channel is text and voice" model is
+> superseded — see [decisions.md](decisions.md), "Voice lives in voice
+> channels".
 
 ## Self-mute / self-deafen
 
@@ -131,15 +134,12 @@ moderation.)
 
 ## What's not done
 
-- Cross-hub voice (alliance-wide voice rooms) — **designed, not built**:
-  [alliances.md](alliances.md) "Voice in alliance channels". The relay
-  does not change; a visitor from an allied hub gets a voice-scoped
-  session on the *owning* hub and dials it directly.
-- Voice E2E on **paired desktop devices** — desktop pairing doesn't
-  provision the canonical DH scalar yet (pre-existing gap, also
-  affects desktop DMs; fix points marked in `voice_keys.rs` /
-  `dm.rs`, tracked in [client-parity.md](client-parity.md))
-- Jitter buffer on the web receive path (per-packet playback today)
+Built since this list was written: alliance voice (a visitor from an
+allied hub gets a voice-scoped session on the *owning* hub, see
+[alliances.md](alliances.md) "Voice in alliance channels"), voice E2E
+on paired desktop devices (canonical DH scalar provisioned at pairing,
+2026-08-08), and the web jitter buffer (2026-08-21).
+
 - Multiple audio output device routing (assign different
   speakers/headsets per participant or per channel; device enumeration
   is already in `voice/src/devices.rs`)

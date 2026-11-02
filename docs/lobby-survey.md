@@ -8,8 +8,10 @@ Three interlocking onboarding features.
 > whole submission goes to admin review and no roles are auto-applied —
 > stricter than the Routes section's original wording, matching the design
 > rationale ("the hub cannot mechanically decide if a free-text answer
-> earns roles"). Mappings to roles holding the `admin` permission are
-> rejected at save time.
+> earns roles"). At save time a mapping is rejected if its role carries a
+> permission the survey's author does not hold, or is the owner role (the
+> escalation ceiling of [permissions.md](permissions.md); the old `admin`
+> check went with the `admin` permission).
 
 - **Feature 1 — Security Level Lobby**: a confined entry state for users
   below the hub's `min_security_level`. They connect, run PoW in the
@@ -23,19 +25,26 @@ Three interlocking onboarding features.
 The three stack as a single flow: challenge -> lobby (PoW + survey) ->
 full member or pending review.
 
-Authoritative code targets (not yet written). Paths under `hub/` live
-in Wavvon-server; paths under `desktop/` live in Wavvon-desktop.
+**Status: all three built.** Code:
 
-- `hub/src/routes/lobby.rs` (Wavvon-server)
-- `hub/src/routes/challenge.rs` (Wavvon-server)
-- `hub/src/routes/survey.rs` (Wavvon-server)
-- `packages/ui/src/components/layout/Lobby.tsx` (Wavvon-clients)
-- `apps/desktop/src/components/AdmissionChallenge.tsx` (Wavvon-desktop)
-- `desktop/src/components/Survey.tsx` (Wavvon-desktop)
+- Wavvon-server `crates/hub/src/routes/lobby.rs`, `challenge.rs`,
+  `survey.rs` (the survey's form engine also serves the pre-join
+  application, [join-forms.md](join-forms.md)).
+- Wavvon-clients `packages/ui/src/components/layout/Lobby.tsx`,
+  `packages/ui/src/components/AdmissionChallenge.tsx`,
+  `apps/desktop/src/components/Survey.tsx`; admin editor
+  `packages/ui/src/components/admin/SurveyAdminSection.tsx`.
+
+Admin routes gate on dotted permissions: `hub.settings` for
+`/admin/settings/lobby`, `moderation.settings` for
+`/admin/settings/challenge`, `surveys.manage` for `GET`/`PUT /admin/survey`,
+`surveys.responses.read` for the responses routes. Where this doc says
+"admin only", read those. The sections below are the design; where the
+code differs, the code is right (notes inline).
 
 Cross-references: anti-spam design space in
 [future-features.md](future-features.md); PoW primitives at
-`identity/src/pow.rs` in Wavvon-server; approval flow today via
+`crates/identity/src/pow.rs` in Wavvon-server; approval flow today via
 `users.approval_status`.
 
 ---
@@ -100,16 +109,13 @@ checked by middleware on every non-lobby route.
 - `lobby_status(hub_url)` -> `LobbyStatus { status, required_level,
   current_level, welcome_md?, eta_seconds? }`. Polls
   `GET /lobby/status` and computes ETA from the local PoW progress.
-- `lobby_start_pow(hub_url, target_level)` -> `()`. Spawns the
-  background PoW worker for that hub; idempotent if already running.
-- `lobby_stop_pow(hub_url)` -> `()`. Cancels the worker (e.g. user
-  navigates away from the lobby hub).
-- `lobby_submit_proof(hub_url)` -> `LobbyStatus`. Pulls the latest
-  cached proof from the local worker, POSTs `/lobby/submit-pow`,
-  returns the resulting status.
+- `lobby_submit_proof(hub_url, pow_proof)` -> `{ promoted, new_level }`.
+  POSTs `/lobby/submit-pow`.
 
-PoW progress events are emitted via the existing Tauri event channel
-(`lobby:progress` with `{ hub_url, attempts, level }`).
+> As built there are no `lobby_start_pow` / `lobby_stop_pow` commands and
+> no `lobby:progress` Tauri event: the PoW worker runs in the shared
+> TypeScript UI, and the Tauri side only relays HTTP
+> (`apps/desktop/src-tauri/src/lobby.rs`).
 
 ### UI sketch
 
@@ -335,9 +341,8 @@ their mapped roles applied.
 New tables:
 - `surveys`:
   - `id TEXT PRIMARY KEY` (UUID).
-  - `hub_id TEXT NOT NULL` (always the local hub; a column for
-    forward-compatibility with farm model).
-  - `enabled INTEGER NOT NULL DEFAULT 0`.
+  - (A planned `hub_id` column was never added: one database per hub.)
+  - `enabled BOOLEAN NOT NULL DEFAULT FALSE`.
   - `updated_at INTEGER NOT NULL`.
   - At most one row enabled at a time. (Unique partial index.)
 - `survey_questions`:
@@ -492,7 +497,7 @@ approve/reject buttons.
 
 For a new user joining a hub where all three are enabled:
 
-1. Client fetches `/info`, sees `challenge_enabled`,
+1. Client fetches `/info`, sees `challenge_mode != 'off'`,
    `min_security_level > 0`, and `survey enabled` (via
    `/survey/current` after auth).
 2. Client calls `GET /challenge/new`, user solves it, client POSTs

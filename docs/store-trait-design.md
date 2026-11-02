@@ -1,9 +1,18 @@
 # Store trait: database abstraction for the hub
 
-**Status:** shipped (2026-06-27). The `store` crate in Wavvon-server
-implements all `HubStore` sub-traits with a PostgreSQL backend
-(`PostgresStore`). SQLite was removed entirely; Postgres is now the
-canonical and only backend.
+**Status: historical — the abstraction no longer exists (noted
+2026-11-02).** There is no `store` crate, no `HubStore`, no
+`PostgresStore`: `AppState.db` is a plain `PgPool`
+(`crates/hub/src/state.rs`) and handlers run `sqlx::query*` against it at
+runtime. The Wavvon-server workspace is `hub`, `hub-env`, `identity`,
+`farm`, `agent`, `demo-seed`. Its history: shipped 2026-06-27 with a
+Postgres backend (SQLite removed entirely); its dead `Migrate` scaffolding
+was deleted 2026-07-26 ([shipped-log.md](shipped-log.md)); the crate itself
+was deleted 2026-10-04 (Wavvon-server#88, "delete the store crate, which
+nothing has ever called"): the hub had never been moved onto the trait.
+With one backend left, the seam it existed for (§1) had nothing to swap. The design below is kept as
+the record of the reasoning; [decisions.md](decisions.md), "Database
+abstraction: trait-based store crate split", is the matching entry.
 
 ---
 

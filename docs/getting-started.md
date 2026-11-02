@@ -12,12 +12,12 @@ that is yours forever.
 The Wavvon desktop app is available for Windows, macOS, and Linux from the
 [Wavvon releases page](https://github.com/Wavvon/Wavvon-clients/releases).
 
-**Windows**: installers are currently **not code-signed** (signing for a
-young open-source project is in progress — the CI signing pipeline is
-already wired). SmartScreen will warn about an unrecognized app: click
-**More info → Run anyway**. Builds are reproducible from the public
-[Wavvon-client](https://github.com/Wavvon/Wavvon-clients) monorepo (which
-holds the desktop, web, and Android apps) via GitHub Actions.
+**Windows**: installers are currently **not code-signed** — Authenticode
+signing is deferred until the project qualifies for a signing service, and
+CI does not sign them. SmartScreen will warn about an unrecognized app: click
+**More info → Run anyway**. Builds come from the public
+[Wavvon-clients](https://github.com/Wavvon/Wavvon-clients) monorepo (which
+holds the desktop and web apps) via GitHub Actions.
 
 **macOS / Linux**: notarization and GPG signing are planned for a future
 release. On macOS, right-click the app and choose **Open** the first time;
@@ -32,8 +32,9 @@ device. The public key is your permanent identity across every hub and every
 device — it never changes and is not tied to any account. The private key never
 leaves your device.
 
-**Multi-device**: if you want the same identity on a second device, use the
-**Export identity** flow in Settings → Identity. Your identity is backed by a
+**Multi-device**: if you want the same identity on a second device, choose
+**pair** when setting it up and paste the pairing code from a device you
+already use (see [multi-device.md](multi-device.md)). Your identity is backed by a
 master key; each device gets a signed subkey certificate so the hub can
 recognise all your devices as the same user.
 
@@ -45,8 +46,9 @@ device, import the seed on a new install to recover the same key.
 ## Joining a hub
 
 A **hub** is a community server — the Wavvon equivalent of a server or
-workspace. To join one you need its URL from the hub admin (e.g.
-`https://hub.example.com`).
+workspace. To join one you need an invite link from the hub admin, or just
+its URL (e.g. `https://hub.example.com`) if the hub is open — hubs are
+invite-only by default.
 
 1. Click **Add hub** on the home screen (or **+** in the sidebar).
 2. Enter the hub URL and press **Join**.
@@ -65,8 +67,7 @@ See [hosting.md](hosting.md) for the full guide. In brief:
 
 ```bash
 # Docker Compose (recommended) — brings up the hub and its PostgreSQL
-# sidecar together. A bare `docker run` of the hub image has no database
-# to reach and will not start.
+# sidecar together.
 git clone https://github.com/Wavvon/Wavvon-server
 cd Wavvon-server
 echo "WAVVON_DB_PASSWORD=$(openssl rand -hex 16)" > .env
@@ -80,13 +81,13 @@ WAVVON_DATABASE_URL=postgres://postgres:postgres@localhost:5432/wavvon \
 ./target/release/wavvon-hub
 ```
 
-The hub generates its own Ed25519 identity on first run. It requires
-PostgreSQL — `WAVVON_DATABASE_URL` defaults to
-`postgres://postgres:postgres@localhost:5432/wavvon`, which is a local
-development server, not something a container can reach. A fresh hub has
-**no owner** —
-set yours via `owner_pubkey` in `hub.toml` / `WAVVON_OWNER_PUBKEY`, or
-`wavvon-hub admin users set-owner <pubkey>` after first boot (see the
+The hub generates its own Ed25519 identity on first run. It stores
+everything in PostgreSQL: with `WAVVON_DATABASE_URL` set it uses that
+server, and without it the hub starts and manages a bundled PostgreSQL of
+its own. A fresh hub is invite-only and has **no owner**: on first boot it
+mints a one-time owner invite, and whoever redeems it first becomes owner.
+You can instead set `WAVVON_OWNER_PUBKEY`, or run
+`wavvon-hub admin users set-owner <pubkey>` (see the
 [hub operator guide](hub-operator-guide.md)).
 
 ---
@@ -97,11 +98,11 @@ set yours via `owner_pubkey` in `hub.toml` / `WAVVON_OWNER_PUBKEY`, or
 |---------|-----------|
 | **Identity** | Your Ed25519 key pair. One per person; shared across devices via signed subkey certs. |
 | **Hub** | A community server. Self-hosted. Fully independent of other hubs. |
-| **Channel** | A text/voice room inside a hub. Organised in a tree (categories > channels). |
+| **Channel** | A room inside a hub: text, voice, forum or banner. Organised in a tree (categories > channels). |
 | **Certification** | A hub's signed attestation that a user is "in good standing." Carries across hubs when certs are recognised. |
 | **Badge** | A cosmetic award a hub admin grants a user (name, description, icon URL). |
-| **Farm** | An optional multi-hub deployment. One farm, many hubs. Users, games, and identity follow them across all hubs on the farm. |
-| **Alliance** | A voluntary federation between two hubs. Enables cross-hub mentions and (in v2) shared channels. |
+| **Farm** | An optional multi-hub deployment. One operator, many hubs, one sign-in across them. |
+| **Alliance** | A voluntary federation between hubs, sharing channels (text, forum and voice) across them. |
 | **PoW** | Proof-of-work. Some hubs require new users to compute a small hash puzzle before joining — a sybil-resistance measure with no central authority needed. |
 
 ---
@@ -111,7 +112,7 @@ set yours via `owner_pubkey` in `hub.toml` / `WAVVON_OWNER_PUBKEY`, or
 - **No telemetry.** The desktop app and hub server send no data to Wavvon HQ.
 - **No accounts.** Your identity is a local key pair; nothing is registered
   with a central authority.
-- **E2E encryption on DMs.** 1-to-1 and group DMs are end-to-end encrypted
-  using a sender-key scheme. The hub relays ciphertext only.
+- **E2E encryption on DMs.** 1-to-1 DMs use a Double Ratchet; group DMs use
+  sender keys. The hub relays ciphertext only.
 - **Hub data.** All community data lives on the hub operator's server.
   Choose a hub you trust, or run your own.

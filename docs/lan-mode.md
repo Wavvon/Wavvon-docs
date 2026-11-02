@@ -6,10 +6,13 @@ connect. "Works at a LAN party" is something centralized platforms
 structurally cannot do; it's a launch-post headline and a real use case
 (events, classrooms, air-gapped teams).
 
-**Status: designed, not implemented.** ROADMAP wishlist item. Ships
-**server-first**; native-client consumption lags (see §5 — the browser
-is the hard part, and web is the current delivery target, so this is
-partly future-facing).
+**Status: server half shipped** (Wavvon-server `crates/hub/src/lan.rs`:
+the private-address guard, self-signed cert + fingerprint, mDNS
+advertisement, the `--doctor` section; configured by `WAVVON_LAN_MODE`,
+`WAVVON_LAN_ADVERTISE_ADDR`, `WAVVON_LAN_TLS_MODE`, `WAVVON_LAN_MDNS` —
+`wavvon-hub --help` has the details). `/info` carries `lan_fingerprint`,
+and the web client checks it against the one an invite names. The native
+"hubs on your network" UX is not built (§5).
 
 ---
 
@@ -17,7 +20,7 @@ partly future-facing).
 
 A hub today assumes an internet deployment: a public DNS name, a
 CA-issued TLS cert (`WAVVON_TLS_CERT`/`WAVVON_TLS_KEY`, else plaintext
-HTTP with a loud warning — `main.rs:559`), and clients that reach it by
+HTTP with a loud warning at startup), and clients that reach it by
 typed URL or invite link. On a LAN, two things break:
 
 1. **Discovery** — no DNS, so "what's the hub's address" has no answer.
@@ -40,7 +43,8 @@ your network" list.
 - New optional hub component behind the LAN-mode flag; a small mDNS
   responder (e.g. an `mdns-sd`-class crate) — no dependency added to
   the default build path if feature-gated.
-- **Native clients (desktop/Android)** can browse mDNS directly.
+- **Native clients (desktop)** can browse mDNS directly (Android, also
+  planned here, was removed 2026-07-12).
 - **Browsers cannot do mDNS.** The web client can't auto-discover; a
   LAN hub still reaches web users via a typed `http://192.168.…:port`
   URL or a QR code the operator displays. Documented limitation, not a
@@ -54,17 +58,17 @@ your network" list.
 | **Self-signed + fingerprint pinning** | Hub generates a self-signed cert on first run; its SHA-256 fingerprint goes in the mDNS `fp` TXT record and the invite/QR. Native clients pin it TOFU-style, verified against the out-of-band fingerprint. | Native clients only (browsers reject self-signed). |
 | **Plaintext HTTP** | No TLS; the existing plaintext path, but gated to private networks | Native clients, and web **only if the web client is itself served over plain `http` from the LAN** (http page → http hub = no mixed-content block). |
 
-The self-signed cert is generated once and persisted (e.g.
-`~/.wavvon/lan-cert.{pem,key}`); its fingerprint is stable so the
-invite/QR stays valid across restarts.
+The self-signed cert is generated once and persisted (as built:
+`lan_cert.pem` / `lan_cert.key` in the hub's working directory); its
+fingerprint is stable so the invite/QR stays valid across restarts.
 
 ## 4. The safety invariant (threat model)
 
 **The no-CA paths must be impossible to enable accidentally on a
 public hub.** [threat-model.md](threat-model.md). Enforcement:
 
-- LAN mode is an **explicit opt-in** — `WAVVON_LAN_MODE=1` (or a config
-  key). Never inferred, never default.
+- LAN mode is an **explicit opt-in** — `WAVVON_LAN_MODE=true` (or
+  `lan_mode` in `hub.toml`). Never inferred, never default.
 - When LAN mode is on, the hub **refuses to serve on a non-private
   address**: it checks its bind/advertised address is loopback,
   RFC 1918 (`10/8`, `172.16/12`, `192.168/16`), or link-local
@@ -72,7 +76,7 @@ public hub.** [threat-model.md](threat-model.md). Enforcement:
   bind a public/routable address. So a self-signed or plaintext hub
   physically cannot be exposed to the internet through this flag.
 - Conversely, the self-signed and plaintext-on-private paths are
-  **only** reachable with `WAVVON_LAN_MODE=1` — a normal (public) hub
+  **only** reachable with `WAVVON_LAN_MODE=true` — a normal (public) hub
   with no TLS still just gets today's plaintext-with-warning behavior,
   unchanged, and never advertises over mDNS.
 - Loud startup banner: `LAN MODE — serving <scheme> on <private addr>;
@@ -97,8 +101,8 @@ rejected, mixed-content blocked. So:
   self-host setups do exactly this) — no code change needed beyond the
   server guard. The self-signed tier does **not** help browsers.
 - **Full LAN UX** (in-app "hubs on your network" list, fingerprint
-  pinning, QR scan) is **native-client work** — lands when desktop/
-  Android are back in scope. Tracked as the client half.
+  pinning, QR scan) is **native-client work** for the desktop client
+  (Android was removed 2026-07-12). Not built.
 
 This split is deliberate: the valuable, safety-critical part (a hub
 that runs correctly and un-exposably on a LAN) is server-only and
@@ -108,7 +112,7 @@ ship-able now; the native discovery UX is a later client pass.
 
 - **LAN federation** — two hubs on the same LAN federating via
   mDNS-discovered addresses. v1 is single-hub-on-a-LAN + clients.
-- **Native discovery UI** — desktop/Android "nearby hubs" browser and
+- **Native discovery UI** — desktop "nearby hubs" browser and
   QR/fingerprint pinning; client-era.
 - **Sync-on-reconnect** — a LAN hub that later gains internet and wants
   to federate its accumulated state; out of scope.
@@ -121,7 +125,7 @@ ship-able now; the native discovery UX is a later client pass.
 
 - **mDNS for discovery, no central registry.** DNS-SD is the standard
   zero-config LAN discovery mechanism and needs no server component —
-  consistent with the no-central-authority pillar. The seed registry
+  consistent with the no-central-authority pillar. The public directory
   ([discovery-v2.md]) is for internet hubs and is untouched.
 - **Explicit `WAVVON_LAN_MODE` flag with a hard private-address guard.**
   The one thing that must never happen is a self-signed or plaintext

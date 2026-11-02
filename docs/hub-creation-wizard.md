@@ -2,7 +2,15 @@
 > somebody ran the binary on their own server. No client creates one, so the
 > template catalogue, the wizard at `/new` and the bootstrap-token handshake
 > designed here are all gone from the code. The first-run bootstrap the hub does
-> for *itself* survives. Kept for the reasoning, not as a plan — see
+> for *itself* survives, in Wavvon-server `crates/hub/src/bootstrap.rs` (not
+> in migrations): `WAVVON_TEMPLATE_URL`, then `WAVVON_TEMPLATE_FILE`, then a
+> built-in `WAVVON_TEMPLATE` preset (`gaming`, `community`, `minimal`), with
+> no signature check and no bootstrap token. The document shape is §1's minus
+> the signing fields; permission ids are now dotted (`messages.read`, see the
+> presets there), not the strings in the example below. The CLI wizard
+> deferred at the end shipped as `wavvon-hub setup`. The owner comes from the
+> first-boot owner invite ([hub-operator-guide.md](hub-operator-guide.md#hub-ownership)).
+> Kept for the reasoning, not as a plan — see
 > "A hub is self-hosted; no client creates one" in [decisions.md](decisions.md).
 
 # Hub Creation Wizard

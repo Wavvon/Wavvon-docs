@@ -46,7 +46,8 @@ All paths in the **Wavvon-clients** repo.
   adds ~20 platform-action props on top.
 - **No `createContext`, no store library anywhere in `clients/`** —
   verified by grep. React is 19, so `useSyncExternalStore` is stdlib.
-- **`packages/ui` has no component render tests** — only pure util suites
+- **`packages/ui` has no component render tests** (true when written; see
+  the render-test trigger under "Recommendation" — it has some now) — only pure util suites
   (`src/utils/__tests__/*`, `components/layout/__tests__/channelSidebarLayout.test.ts`).
   So "providers make components harder to test" is a theoretical cost
   here, not one we'd actually pay.
@@ -209,7 +210,10 @@ storage differs (`accountScope` on web, `local_store.rs` on desktop).
 - If Phase 1 alone lands App.tsx somewhere the user is happy with, stop
   there and skip Phase 2 — the ref mirroring is a papercut, not a fire.
 - If we ever adopt render tests in `packages/ui`, re-check: providers
-  would then have a harness cost that today they don't.
+  would then have a harness cost that today they don't. *(2026-11-02: this
+  trigger has fired — `packages/ui/src/components/__tests__/` now holds
+  render tests (`VoiceStage`, `AddHubModal`, `IdentityBackupSection`,
+  `EventCard`). Not yet re-checked.)*
 
 ## Deferred
 

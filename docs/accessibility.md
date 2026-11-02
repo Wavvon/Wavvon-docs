@@ -1,11 +1,18 @@
 # Accessibility & Internationalization
 
-Wavvon's three clients (desktop, web, Android) share a React UI but
-target different input surfaces. This doc defines the keyboard, screen
-reader, and localization strategy for all three. Scope is the React UI
+Wavvon's clients (desktop and web; Android was removed 2026-07-12) share a
+React UI but target different input surfaces. This doc defines the
+keyboard, screen reader, and localization strategy. Scope is the React UI
 only — the Rust shell and the hub APIs are unaffected.
 
-Today's baseline (audited 2026-05): four global key bindings
+> **Status 2026-11.** Built since this was written: a shared `FocusTrap`
+> (Wavvon-clients `packages/ui/src/components/FocusTrap.tsx`, focus-first,
+> Tab cycling, restore on close — used by most modals), a shortcut
+> cheat-sheet (`KeyboardShortcuts.tsx`), and full i18n in four locales
+> (`packages/i18n`, en/it/es/de). The audit and baseline below are the
+> original May 2026 snapshot, kept for the reasoning.
+
+Original baseline (audited 2026-05): four global key bindings
 (`Ctrl+K` palette, `Esc` close on Settings/HubAdmin/BotCard, `Enter` to
 send/submit), `outline: none` on most inputs, zero `aria-*` attributes,
 no `role`s beyond what HTML implies, no i18n library, all strings
@@ -84,29 +91,16 @@ Every modal must:
 3. Close on `Esc`.
 4. On close, restore focus to the element that opened it.
 
-Audit (desktop and web share the same component files):
-
-| Modal                    | Esc closes? | Focus trap? | Focus restore? |
-|--------------------------|-------------|-------------|----------------|
-| `AddHubModal`            | yes         | no          | no             |
-| `CreateChannelModal`     | unverified  | no          | no             |
-| `CreateHubWizard`        | unverified  | no          | no             |
-| `ChannelSettingsModal`   | unverified  | no          | no             |
-| `ChannelAppearanceModal` | unverified  | no          | no             |
-| `ChannelBansModal`       | unverified  | no          | no             |
-| `EditDescriptionModal`   | unverified  | no          | no             |
-| `FriendsModal`           | unverified  | no          | no             |
-| `ChannelContextMenu`     | yes (click-out) | no      | no             |
-| `UserContextMenu`        | yes (click-out) | no      | no             |
-| `ChannelPalette`         | yes         | partial     | no             |
-| `Lightbox`               | unverified  | no          | no             |
-| `ReactionPicker`         | unverified  | no          | no             |
-| `BotCard`                | yes         | no          | no             |
-
-Implementation note: a single `<FocusTrap>` wrapper component (built on
-`focus-trap-react` or rolled by hand — ~40 lines) eliminates the
-duplication. The restore-on-close behaviour fits naturally as a
-`useEffect` cleanup that calls `.focus()` on a ref captured on mount.
+The May 2026 audit found no modal trapping or restoring focus. The fix was
+the one proposed then: a single hand-rolled `<FocusTrap>` wrapper (~50
+lines, no dependency) whose `useEffect` cleanup restores focus to the
+element captured on mount. It now wraps `AddHubModal`,
+`ChannelSettingsModal` (bans live there as `ChannelBansTab`),
+`EditDescriptionModal`, `FriendsModal`, `Lightbox`, `ReactionPicker` and
+most other modals in `packages/ui` — grep `<FocusTrap` for the current
+list. Several modals in the original audit (`CreateChannelModal`,
+`CreateHubWizard`, `ChannelAppearanceModal`, `ChannelBansModal`, `BotCard`)
+no longer exist. Context menus close on click-out and do not trap.
 
 ### Visible focus indicator
 
@@ -122,7 +116,7 @@ to maintain WCAG 2.1 contrast 3:1 against its background.
 ## 2. Screen reader support
 
 Wavvon runs inside a Tauri webview on desktop and a normal browser on
-web/Android. All three expose the DOM accessibility tree to platform
+web. Both expose the DOM accessibility tree to platform
 screen readers. We design once for the DOM tree; the host webview does
 the bridging.
 
@@ -225,9 +219,9 @@ Picked over Lingui and a custom solution.
 - Custom solution: rejected on cost; pluralization and ICU date
   formatting alone justify a library.
 
-Same library in all three clients. Catalogs live in the shared workspace
-package `packages/i18n` in the Wavvon-client monorepo; desktop, web, and
-Android all consume it as a workspace dependency.
+Same library in both clients. Catalogs live in the shared workspace
+package `packages/i18n` in the Wavvon-clients monorepo, consumed by desktop
+and web as a workspace dependency.
 
 ### String catalog layout
 
@@ -237,8 +231,11 @@ packages/i18n/
   it.json
   es.json
   de.json
-  schema.json        # JSON schema for tooling
 ```
+
+(No `schema.json` was ever added; the coverage, ICU-parse and
+hardcoded-string checks in the clients repo do that job, with baselines
+beside the catalogs.)
 
 Flat keys, dot-namespaced by feature, ICU MessageFormat values:
 
@@ -259,8 +256,8 @@ file per locale beats the overhead of per-feature namespacing.
 
 Resolution order on startup:
 
-1. **Stored user preference** (`prefs.json` on desktop, `localStorage`
-   on web, Tauri store on Android) — wins if present.
+1. **Stored user preference** (local store on desktop, `localStorage`
+   on web) — wins if present.
 2. **OS locale** — Tauri exposes via `tauri-plugin-os`; browser via
    `navigator.languages`.
 3. **Fallback to English**.
@@ -357,8 +354,8 @@ Prioritized flows:
 
 Test matrix: **NVDA + Firefox** (Windows, web), **NVDA + WebView2**
 (Windows, desktop), **VoiceOver + Safari** (macOS, web),
-**VoiceOver + WKWebView** (macOS, desktop), **TalkBack + Chrome
-WebView** (Android). One full pass per major release.
+**VoiceOver + WKWebView** (macOS, desktop). One full pass per major
+release.
 
 ### i18n
 
@@ -378,5 +375,4 @@ WebView** (Android). One full pass per major release.
 
 - [client.md](client.md) — component tree and state layout
 - [browser-client.md](browser-client.md) — platform adapter and shared components
-- [android-client.md](android-client.md) — Tauri Android wrapper
 - [decisions.md](decisions.md) — design rationale log

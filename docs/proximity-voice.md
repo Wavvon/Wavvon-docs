@@ -1,5 +1,22 @@
 # Proximity Voice
 
+> **Status (2026-11-02):** hub zone protocol and client attenuation
+> built; the game-SDK surface below is not. What differs from this
+> design: zones need hub-level `channels.manage` (it absorbed
+> `manage_voice`; the hub's error text still says "manage_voice"), with
+> no game-session host bypass, because game sessions were removed with
+> the bot/game model ([decisions.md](decisions.md), "A bot is a client
+> like any other"); `session_id` is stored but nothing checks it, and
+> `auth_mode: "session_roster"` now refuses every position update. No
+> per-user position rate limit is enforced. Voice itself moved from UDP
+> to WebTransport on 2026-08-07
+> ([voice-transport-v2.md](voice-transport-v2.md)). Attenuation lives in
+> Wavvon-clients `apps/desktop/src-tauri/src/ws.rs` (desktop) and
+> `apps/web/src/platform/voice.ts` (web). Hub handlers:
+> Wavvon-server `crates/hub/src/routes/ws/handlers/voice.rs`. The
+> `wavvon:createVoiceZone` / `wavvon:setVoicePosition` SDK calls do not
+> exist.
+
 A platform-level feature that attenuates each speaker's volume based on
 their distance from the listener in a shared coordinate space. Volume fades
 as distance grows; speakers out of range go silent.
@@ -47,8 +64,8 @@ receive pipeline. This matches the hub's existing posture as a pure relay.
 WebSocket as new envelope variants, not a separate socket.
 
 **Alternative considered**: a dedicated UDP channel for position updates
-(low-latency, no framing overhead). Rejected: the hub already has a UDP
-listener for voice packets, but adding a second multiplexed stream there
+(low-latency, no framing overhead). Rejected: the hub already had a UDP
+listener for voice packets (since replaced by WebTransport), but adding a second multiplexed stream there
 requires sender authentication and channel membership validation — all
 solved concerns on the WS. The WS's ~1–2 ms extra latency vs. UDP is
 imperceptible for positional audio attenuation; the gain curve is smooth,
@@ -59,8 +76,8 @@ decision in `gaming.md` — the chat WS already solves auth, membership,
 channel routing, and reconnect. Position events ride the same infrastructure
 at near-zero protocol cost.
 
-**Rate**: the hub rate-limits `voice_position_update` to 30 updates/second
-per user per zone (configurable). Most use cases are well under this.
+**Rate**: designed as a 30 updates/second per user per zone limit. Not
+implemented — the hub accepts and fans out every valid update.
 
 ---
 
@@ -149,8 +166,8 @@ channel-scoped (include `channel_id`).
 
 | Message | Auth | Purpose |
 |---|---|---|
-| `voice_zone_create` | `manage_voice` permission or game session host | Create a zone; body is the zone definition |
-| `voice_zone_destroy { zone_id }` | zone creator or `manage_voice` | Destroy a zone and stop sending positions |
+| `voice_zone_create` | hub-level `channels.manage` | Create a zone; body is the zone definition |
+| `voice_zone_destroy { zone_id }` | zone creator or `channels.manage` | Destroy a zone and stop sending positions |
 | `voice_position_update { zone_id, position: [f32] }` | per `auth_mode` | Update the sender's position (2- or 3-element array) |
 
 **Hub → Client:**
@@ -170,8 +187,8 @@ message shape, the sender's membership and auth_mode, and fans out
 
 ## Hub state
 
-In `hub/src/state.rs` (Wavvon-server), alongside the existing
-`voice_channels` and `game_sessions` maps:
+In `crates/hub/src/state.rs` (Wavvon-server), alongside the existing
+`voice_channels` map:
 
 ```
 voice_zones: HashMap<(ChannelId, ZoneId), VoiceZone>
@@ -193,16 +210,13 @@ same optional-durability pattern game sessions use for snapshots.
 
 ---
 
-## New hub permission
+## Permission
 
-A new `manage_voice` permission is required to create zones directly (i.e.
-outside a game session). Hub admins have it by default. Non-admin uses
-(custom spatial channels, virtual offices) require a hub admin to grant
-`manage_voice` to the relevant role.
-
-Game session hosts create zones inside their session without `manage_voice`
-because the game session host check gates the `voice_zone_create` call when
-`session_id` is set.
+Creating a zone requires hub-level `channels.manage` (originally a new
+`manage_voice` permission, since folded into `channels.manage`; see
+[permissions.md](permissions.md)). Non-admin uses (custom spatial
+channels, virtual offices) need a role carrying it. The planned
+game-session-host bypass was never kept: game sessions are gone.
 
 ---
 
@@ -250,8 +264,8 @@ other players in its own world state):
 
 ## Non-gaming uses
 
-Proximity voice is not gated on the gaming system. Any feature with
-`manage_voice` can create zones:
+Proximity voice is not gated on the gaming system. Anyone with
+`channels.manage` can create zones:
 
 - **Virtual office channels** — hub admin creates a persistent zone where
   your desk location (dragged in a canvas UI) sets your voice position.
@@ -268,8 +282,9 @@ pipeline does not change.
 
 ## Client-side receive logic
 
-In `voice/src/playback.rs` (Wavvon-desktop), extending the per-sender
-pipeline from `voice-volume.md`:
+Designed for `voice/src/playback.rs`; built in the client WS layers
+named in the status note, extending the per-sender pipeline from
+`voice-volume.md`:
 
 ```
 // on voice_zone_state / voice_position_updated events:
@@ -293,6 +308,8 @@ is heard at full manual-gain volume.
 ---
 
 ## What changes on the implementation side
+
+The plan as written (pre-v2 paths and repo names; see the status note):
 
 | Piece | Repo / file |
 |---|---|

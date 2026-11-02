@@ -10,7 +10,8 @@ Communities run their own **hubs** (a single Rust binary backed by
 PostgreSQL) that federate with each other. Your identity is an Ed25519 keypair that
 belongs to you — no accounts, no e-mail, no phone number, no company in
 the middle. DMs are end-to-end encrypted; hubs only ever relay
-ciphertext. Everything is open source under AGPL-3.0.
+ciphertext. Everything is open source: the hub under AGPL-3.0, the
+identity crate and the SDKs under Apache-2.0.
 
 Looking for an open-source, self-hostable alternative to Discord or
 TeamSpeak? See the [feature comparison](COMPARISON.md) for how Wavvon
@@ -18,7 +19,7 @@ stacks up — including its honest limitations.
 
 ![Joining a Wavvon hub: create an identity, join, start chatting — in seconds, with no signup](assets/join-flow.gif)
 
-![A Wavvon community: unified text + voice channels, voice participants in the sidebar, live member presence](assets/screenshot-channel.png)
+![A Wavvon community: text and voice channels, voice participants in the sidebar, live member presence](assets/screenshot-channel.png)
 
 ## Get started
 
@@ -37,12 +38,13 @@ stacks up — including its honest limitations.
 
 ## Features
 
-- **Channels** — unified text + voice in every room. Categories,
+- **Channels** — text, voice, forum and banner channels. Categories,
   drag-drop reorder, markdown, attachments, reactions, replies,
   mentions, edit/delete, pins, polls, events, forum channels, search.
-- **Voice** — Opus over UDP with RNNoise denoise, voice activity
-  detection, push-to-talk, per-participant volume, whisper, proximity
-  voice; webcam video and multi-sharer screen share via WebRTC.
+- **Voice** — Opus over WebTransport, end-to-end encrypted, in voice
+  channels; RNNoise denoise, voice activity detection, push-to-talk,
+  per-participant volume, whisper, proximity voice; webcam video and
+  multi-sharer screen share.
 - **Direct messages** — end-to-end encrypted (1:1 and group), federated
   delivery across hubs with retry, attachments, typing indicators.
 - **Alliances** — multi-hub groups sharing channels and messages via
@@ -54,16 +56,16 @@ stacks up — including its honest limitations.
   channel bans, approval queue, content reporting, federated ban lists.
 - **Security lobby** — PoW-gated entry, bot challenge, onboarding
   questionnaire — sybil resistance without a central authority.
-- **Bots & games** — self-service bot creation, slash commands,
-  webhook delivery; a sandboxed game SDK for community-built games.
+- **Apps** — a program is a client like any other: slash commands,
+  webhook delivery, hub events, and sandboxed mini-apps in a channel.
 
 ## Repositories
 
 | Repo | Local path | Contents |
 |---|---|---|
 | [Wavvon-docs](https://github.com/Wavvon/Wavvon-docs) *(this repo)* | `docs/` | Architecture docs, ROADMAP, design decisions, API spec |
-| [Wavvon-server](https://github.com/Wavvon/Wavvon-server) | `server/` | Hub server, farm tooling, seed server, identity crate |
-| [Wavvon-clients](https://github.com/Wavvon/Wavvon-clients) | `clients/` | All clients (desktop / web / Android) + shared packages + voice crate |
+| [Wavvon-server](https://github.com/Wavvon/Wavvon-server) | `server/` | Hub server, farm and agent, identity crate |
+| [Wavvon-clients](https://github.com/Wavvon/Wavvon-clients) | `clients/` | Desktop and web clients + shared packages + voice crate |
 | [Wavvon-discovery](https://github.com/Wavvon/Wavvon-discovery) | `discovery/` | Optional public hub directory |
 
 ## Documentation
@@ -98,7 +100,9 @@ rationale before proposing big changes.
 
 [GNU Affero General Public License v3.0](LICENSE). Network use of a
 modified version requires offering the corresponding source to users —
-deliberately chosen for a federated platform.
+deliberately chosen for a federated platform. The exceptions are the
+server's `identity` crate and the SDKs, Apache-2.0 so third-party clients
+and programs can link them.
 
 ## Built with AI assistance
 

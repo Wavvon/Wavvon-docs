@@ -1,30 +1,31 @@
 # Custom Themes (User Skins)
 
 **Status:** **built on web** — `apps/web/src/components/settings/
-CustomThemesSection.tsx`, reached from the Appearance tab; the theme library
-and the active selection are account-scoped in the per-account store since
-2026-07-19 (shipped log). Personal-axis, v1. **Not yet in the prefs blob**, so
-themes do not follow the user to another device — that is the remaining piece
-of this design, and it is why the archive still carries `themes` as its own
-section ([data-export.md](data-export.md) §2).
+CustomThemesSection.tsx` over the shared `SkinEditor` (`packages/ui`),
+reached from the Appearance tab; the theme library and the active selection
+are account-scoped since 2026-07-19 (shipped log). Personal-axis. **The
+library rides in the prefs blob** on web (`wavvon.customThemes` and
+`wavvon:appearance` in `apps/web/src/utils/syncedSettings.ts`), so it
+follows the identity across devices. The discovery skin gallery (§11) is
+built too.
 
-> Paths in this doc predate the client monorepo. The clients now live in
-> the Wavvon-client monorepo: read `Wavvon-desktop/desktop/` as
-> `apps/desktop/`, `Wavvon-web/web/` as `apps/web/`, and shared CSS tokens
-> as a candidate for `packages/ui`. See [architecture.md](architecture.md).
+> Paths in this doc predate the client monorepo. Read `Wavvon-desktop/desktop/`
+> as Wavvon-clients `apps/desktop/` and `Wavvon-web/web/` as `apps/web/`;
+> tokens and skin validation are shared in `packages/ui`.
 
-Wavvon ships four built-in themes — Calm, Classic, Linear, Light — driven
-entirely by CSS custom properties set on `[data-theme="..."]` in each
-client's `styles.css` (desktop: `apps/desktop/src/styles.css`;
-web: `apps/web/src/styles.css`). A skin is just a fifth, user-owned
-set of values for those same tokens. No new rendering path — we reuse the
-token cascade that already paints the whole app.
+Wavvon ships two built-in themes — dark and light — driven entirely by CSS
+custom properties set on `[data-theme="..."]` in the single shared
+stylesheet, Wavvon-clients `packages/ui/src/styles.css`. (Originally four:
+Calm, Classic, Linear, Light; status 2026-11: two, per the client redesign.)
+A skin is a user-owned set of values for those same tokens on top of one of
+them. No new rendering path — we reuse the token cascade that already
+paints the whole app.
 
 ---
 
 ## Why / Where
 
-**Why tokens, not CSS.** The four themes prove the token set already spans
+**Why tokens, not CSS.** The built-in themes prove the token set already spans
 the visible surface. Letting users override token *values* gets full
 re-skinning for free while keeping the blast radius to a known, safe list.
 Arbitrary CSS injection would let a shared `.wavvonskin` file run layout or
@@ -85,7 +86,7 @@ Notes:
   "version": 1,
   "name": "Midnight Moss",
   "author_pubkey": "ed25519:abc123…",
-  "base": "calm",
+  "base": "dark",
   "tokens": {
     "--bg": "#10130f",
     "--accent": "#9cc79a",
@@ -101,7 +102,8 @@ Notes:
 - `author_pubkey` is **optional** and **decorative** in v1 — shown as
   attribution, not verified or signed. Signing belongs to a future gallery;
   we don't want a half-trust signal now.
-- `base` names which built-in theme fills any token the skin omits. A skin
+- `base` names which built-in theme fills any token the skin omits —
+  `"dark"` or `"light"` (the client validator rejects anything else). A skin
   need only override the tokens it wants to change; everything else
   inherits from `base`. This keeps files tiny and forward-compatible when
   new tokens are added.
@@ -112,12 +114,11 @@ Notes:
 
 ## 3. The "Custom" theme slot
 
-`THEMES` (`Wavvon-desktop/desktop/src/constants.ts:175`, web equivalent)
-gains a fifth entry with `id: "custom"`. The union type widens from
-`"calm" | "classic" | "linear" | "light"` to include `"custom"` everywhere
-it is used — `ThemePicker`, `App` state, and the persisted profile field.
+The theme id type is `"dark" | "light" | "custom"` (`ThemeId` in Wavvon-clients
+`packages/ui/src/skinValidation.ts`), used by the picker, app state and the
+persisted selection.
 
-The Custom card behaves differently from the four built-ins:
+The Custom card behaves differently from the built-ins:
 
 - When no skin is loaded it reads "Custom — none yet" and selecting it
   opens the editor seeded from the current `base`.
@@ -128,12 +129,14 @@ The Custom card behaves differently from the four built-ins:
 The custom slot holds exactly **one** active skin in v1. Importing a second
 skin replaces it (with a confirm dialog). A multi-skin library is deferred.
 
-**Application mechanism:** the custom slot sets `data-theme="custom"` and
-writes the skin's token overrides as inline properties on
-`document.documentElement` (e.g. `el.style.setProperty("--bg", val)`). A
-`[data-theme="custom"]` block in `styles.css` carries the `base` fallback
-values; inline overrides win by specificity. Switching away from the custom
-slot clears all inline properties.
+**Application mechanism:** applying a skin sets `data-theme` to the skin's
+**base** (`dark` or `light`) and writes its token overrides as inline
+properties on `document.documentElement` (e.g.
+`el.style.setProperty("--bg", val)`); inline overrides win by specificity,
+and the base theme's block supplies every token the skin omits. Switching
+away clears all inline properties. (The original design used a dedicated
+`data-theme="custom"` block; status 2026-11: the code uses the base theme
+instead, so there is no custom block to keep in sync.)
 
 ---
 
@@ -143,7 +146,7 @@ Below the existing `.theme-cards` grid an editor panel appears only when
 Custom is the active slot:
 
 - **Skin name field** — text input bound to `name`, max 48 chars.
-- **Base selector** — dropdown of the four built-ins; changing it
+- **Base selector** — dark or light; changing it
   re-seeds unset tokens and updates the live preview immediately.
 - **Token controls**, grouped by the table in §1. Each row: label, a
   native `<input type="color">` plus a hex text field for paste, and a
@@ -179,6 +182,13 @@ differs (see §8).
 ---
 
 ## 6. Persistence
+
+> Status 2026-11: the paths below are the original plan. Desktop now keeps
+> per-account state under `~/.wavvon/accounts/<id>/`: the appearance slot is
+> device-global, the skin itself per-account (Wavvon-clients
+> `apps/desktop/src-tauri/src/local_store.rs`);
+> web's synced keys are listed in `apps/web/src/utils/syncedSettings.ts`.
+> The migration note at the end of this section has happened on web.
 
 The active skin and the slot selection persist to
 `~/.wavvon/appearance.json`, following the `voice.json` pattern in
@@ -230,18 +240,17 @@ Forbidden in any value (checked before the allow-list): the substrings
 external fetches (`url()`), token-chaining loops (`var()`), declaration
 breakout (`;` / `}`), and comment/markup injection.
 
-Validation runs in a **shared TS module** imported by all three clients so
-the rule cannot drift between platforms.
+Validation runs in a **shared TS module** (`packages/ui/src/skinValidation.ts`)
+imported by both clients so the rule cannot drift between platforms.
 
 ---
 
 ## 8. Cross-client parity
 
-**Identical across desktop / web / android** (shared TS): token taxonomy,
-the `.wavvonskin` schema, the validation rule (§7), the editor React
-components, the `setProperty` apply/clear logic, and the
-`[data-theme="custom"]` CSS block (kept in sync between both `styles.css`
-files).
+**Identical across desktop / web** (shared TS in `packages/ui`): token
+taxonomy, the `.wavvonskin` schema, the validation rule (§7), the editor
+React components, and the `setProperty` apply/clear logic. (The Android row
+below is historical; that client was removed 2026-07-12.)
 
 **Differs — file I/O transport only:**
 
@@ -265,11 +274,17 @@ personal skin, with the user always able to opt out. That is a separate
 design: it lives on the community hub, needs operator permissions and
 federation of the token blob, and must reconcile with the personal custom slot.
 
-A **skin gallery in Wavvon-discovery** is now designed — see §11.
+A **skin gallery in Wavvon-discovery** is built — see §11.
 
 ---
 
 ## 11. Discovery skin gallery
+
+> **Status: built.** Discovery: `src/app/api/skins/route.ts` (list +
+> register) and `api/skins/[id]/route.ts` (detail + delete), verified
+> through `src/lib/signed-listing.ts`. Client: the shared
+> `packages/ui/src/components/SkinsGallery.tsx`. Where the design below
+> differs from the code, the code wins; the differences are noted inline.
 
 A browsable gallery of self-submitted skins in Wavvon-discovery, reusing
 the same signed-listing primitive hubs, farms, bots, and games already use
@@ -283,14 +298,16 @@ their Ed25519 key — the same key used for hub federation, via the same
 body must match the signing key.
 
 ```
-POST /api/skins/register
+POST /api/skins
 { "payload": "<full .wavvonskin JSON, the canonical signed bytes>",
   "sig":     "<base64url Ed25519 signature over payload>" }
 ```
 
-Discovery verifies `sig` against the `author_pubkey` inside `payload`,
-checks the ≤5-minute nonce/replay guard, then upserts. It does **not**
-validate token values (§7 is client-side on import).
+Discovery verifies `sig` against the `author_pubkey` inside `payload` and
+upserts (there is no nonce/replay guard: the id is the payload's hash, so a
+replay re-lists the same skin). It checks the envelope (format, version,
+name, base, size, token count) but does **not** validate token values (§7
+is client-side on import).
 
 **Discovery schema.** A `skins` table:
 
@@ -299,7 +316,7 @@ validate token values (§7 is client-side on import).
 | `id` | content hash of the payload (primary key) |
 | `author_pubkey` | signer; also the delete authority |
 | `name` | display label (≤48) |
-| `base` | built-in theme the skin extends |
+| `base` | built-in theme the skin extends (known mismatch, 2026-11: discovery still accepts only the old `calm`/`classic`/`linear`/`light` names, while clients accept only `dark`/`light`) |
 | `swatch_bg` / `swatch_surface` / `swatch_accent` | `--bg` / `--surface` / `--accent` values — so the browse list ships no full JSON per card |
 | `payload` | full `.wavvonskin` JSON, served only by the detail endpoint |
 | `featured` | INTEGER sort hint, operator-set |
@@ -310,9 +327,10 @@ validate token values (§7 is client-side on import).
 - `GET /api/skins?q=<text>&base=<theme>&page=<n>` → `{ skins: [...], total }`, each item carrying id, name, author_pubkey, base, the three swatches, featured — never the full payload.
 - `GET /api/skins/:id` → the full `.wavvonskin` body.
 
-**Delete.** `DELETE /api/skins/register` carries a signed withdrawal;
-discovery verifies the signature against the stored `author_pubkey` and
-removes the row. Same pattern as hub de-listing.
+**Delete.** `DELETE /api/skins/{id}` carries a signature over the shared
+delete message (names the id and its `listed_at`); discovery verifies it
+against the stored `author_pubkey` and removes the row. Same pattern as hub
+de-listing.
 
 **Browse UI in the client.** A **Browse** tab in Settings → Appearance
 shows a card grid: skin name, truncated author pubkey, base theme, three
@@ -340,19 +358,16 @@ runs client-side on import, never server-side on register.
 - Arbitrary shadow strings (currently guided control only).
 - Light/dark *auto* skins that follow OS `prefers-color-scheme`.
 - Custom fonts and typographic tokens.
-- Syncing the skin across devices before the personal-prefs blob exists.
 
 ---
 
 ## Cross-references
 
-- `Wavvon-desktop/desktop/src/styles.css` — canonical token definitions (`[data-theme]` blocks)
-- `Wavvon-desktop/desktop/src/constants.ts:175` — `THEMES` array to extend
-- `Wavvon-desktop/desktop/src/components/ThemePicker.tsx` — picker component to extend
-- `Wavvon-desktop/desktop/src/App.tsx:1884` — theme apply/persist on startup
-- `Wavvon-desktop/desktop/src-tauri/src/lib.rs:640` — `voice_settings_path` pattern for `appearance_settings_path`
-- `Wavvon-web/web/src/styles.css` — web token source (keep in sync with desktop)
-- `Wavvon-web/web/src/platform/storage.ts` — web persistence layer
+- Wavvon-clients `packages/ui/src/styles.css` — canonical token definitions (`[data-theme]` blocks)
+- Wavvon-clients `packages/ui/src/skinValidation.ts` — schema, validation, `ThemeId`
+- Wavvon-clients `packages/ui/src/components/SkinEditor.tsx`, `SkinsGallery.tsx` — editor and gallery
+- Wavvon-clients `apps/desktop/src-tauri/src/local_store.rs` — desktop persistence
+- Wavvon-clients `apps/web/src/utils/syncedSettings.ts` — what syncs in the prefs blob
 - [home-hub.md](home-hub.md) — personal-axis prefs blob that eventually absorbs the skin
 - [discovery-v2.md](discovery-v2.md) — signed-listing catalog pattern the skin gallery (§11) mirrors
 - [decisions.md](decisions.md) — rationale log

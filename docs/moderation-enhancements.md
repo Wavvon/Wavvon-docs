@@ -43,8 +43,10 @@ hub badges and session tokens
 subscriber that holds the issuer's public key can verify the list came
 from that hub and was not tampered with in transit.
 
-Subscription is config on the consuming hub: `hub_settings` gains
-`banlist_sources` (a list of hub URLs). On startup and every 6 hours the
+Subscription is config on the consuming hub: a `federated_ban_sources`
+table (url, per-source `policy`, `issuer_pubkey`) — built as a table, not
+the `hub_settings` list first sketched; local overrides are
+`federated_ban_overrides`. On startup and every 6 hours the
 hub fetches each source's `/federation/banlist`, verifies the signature
 against the source's known pubkey, and upserts entries into a local
 `federated_bans(source_hub_pubkey, target_master_pubkey, reason,
@@ -101,12 +103,13 @@ and keeps the positive and negative reputation channels separate.
   `/info` badge serving) in `hub/src/routes/moderation/`; the 6-hour
   sync job in `hub/src/banlist_worker.rs`; the `/auth/verify` gate
   change; migration for
-  `federated_bans` and the `banlist_sources` + per-source policy +
+  `federated_bans` and the `federated_ban_sources` + per-source policy +
   publish-enabled settings.
-- *Client* (Wavvon-desktop, mirrored web/Android): admin UI to add/remove
+- *Client* (Wavvon-clients, `packages/ui`): admin UI to add/remove
   sources, set per-source policy, view synced entries, and apply local
-  overrides; a soft-flag review surface in the admin area. Gate on the
-  existing admin permission (`manage_users`).
+  overrides; a soft-flag review surface in the admin area. Gated by the
+  dotted `banlist.read`, `banlist.sources.manage`, `banlist.overrides`,
+  `banlist.settings` (`crates/hub/src/permissions.rs`; was `manage_users`).
 
 ---
 
@@ -171,12 +174,12 @@ attachment scanning is deferred.
 **Implementation contract:**
 
 - *Hub* (Wavvon-server): the pre-store dispatch in the message-create
-  path of `hub/src/routes/channels.rs` (or wherever message create lives),
+  path (`crates/hub/src/routes/messages.rs`),
   HMAC signing, the 500ms timeout, the circuit-breaker state, and the
   `PATCH /admin/settings` fields. The dispatch shape mirrors bot webhook
   dispatch ([apps.md](apps.md)) — reuse that HTTP client and signing
   helper rather than adding a second.
-- *Client* (Wavvon-desktop, mirrored web/Android): an admin settings panel
+- *Client* (Wavvon-clients, `packages/ui`): an admin settings panel
   to set/clear the URL and secret and to see circuit-breaker state. The
   external moderation service itself is **not** a Wavvon repo — operators
   bring their own; document the request/response contract above for them.
@@ -202,7 +205,8 @@ context. The admin acts via `POST /admin/reports/:id/review` with
 `{ "action": "dismiss" | "delete_message" | "ban_user", "note"?: "..." }`.
 The action applies immediately (reusing the existing
 `hub/src/routes/moderation/` delete/ban paths) and the report flips to
-`reviewed`. Admin permission required (`manage_users`).
+`reviewed`. Built in `crates/hub/src/routes/reports.rs`, gated by
+`moderation.reports.read` (queue) and `moderation.reports.review` (act).
 
 **Reporter privacy.** Reporters are stored (needed for dedup) but never
 shown to the message author or any non-admin. The reported user is not
@@ -239,7 +243,7 @@ they do.
 - *Hub* (Wavvon-server): `POST /messages/:id/report`, the admin queue and
   review routes, and the `message_reports` migration. Review actions call
   into existing moderation handlers — no duplicate ban/delete logic.
-- *Client* (Wavvon-desktop, mirrored web/Android): a "Report message"
+- *Client* (Wavvon-clients, `packages/ui`): a "Report message"
   item on the message context menu with a reason prompt; an admin
   "Reports" tab listing the pending queue with preview and the
   dismiss / delete / ban actions.

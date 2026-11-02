@@ -24,30 +24,30 @@ live**. The answers split cleanly:
   syncing. localStorage on the clients; no hub involvement.
 
 > See also: [data-model.md](data-model.md) for the existing schema,
-> [forum.md](forum.md) for the FTS5 pattern these features reuse, and
+> [forum.md](forum.md) for forum search, and
 > [decisions.md](decisions.md) for the two-axis principle.
 
 The hub side of all five server-touching features lives in Wavvon-server
-(`hub/` crate). The client side lives in Wavvon-desktop (`desktop/` React
-UI, `src-tauri/` for native notifications) and is mirrored to Wavvon-web
-(`web/`) and Wavvon-android (`android/`) through the shared platform
-adapter.
+(`crates/hub/`). The client side lives in Wavvon-clients: shared UI in
+`packages/ui`, wired by `apps/web` and `apps/desktop` (Android was removed
+2026-07-12). "Wavvon-desktop, mirrored" in the sections below predates the
+monorepo and means "both clients".
 
 ---
 
 ## 1. Global message search — **SHIPPED**
 
-**Decision**: search runs hub-side over an FTS5 index; the client
-fan-outs the query to every connected hub in parallel and merges. We
-extend the proven `posts_fts` pattern (Wavvon-server `hub/src/routes/posts.rs`,
-the forum's full-text search) from forum posts to regular channel
-messages.
+**Decision**: search runs hub-side over a full-text index; the client
+fan-outs the query to every connected hub in parallel and merges.
+(Originally designed as an SQLite FTS5 table; status 2026-11: the hub
+uses a Tantivy index — Wavvon-server `crates/hub/src/search/tantivy_search.rs`,
+route in `routes/search.rs`. Forum search is separate, on PostgreSQL
+`tsvector`.)
 
 **Alternative considered**: client-side full scan. Rejected — the client
 doesn't hold full message history (it pages from each hub on demand), so
 it can't scan what it doesn't have, and pulling everything to search it
-would be enormous and slow. FTS5 is already in the codebase and proven;
-extending it is cheap.
+would be enormous and slow.
 
 **Tradeoff**: each hub owns its own index, so there's no single ranked
 result set across hubs — the client merges N independent result lists by
@@ -55,34 +55,15 @@ timestamp, not by relevance score. Accepted: cross-hub relevance ranking
 would require a global coordinator, which violates the federated pillar.
 Timestamp-descending merge is predictable and good enough.
 
-**Data model** (community-axis, per hub, Wavvon-server migration):
+**Data model**: no new persistent table; the index (`hub.search/` in the
+hub's working directory) is a derived view of `messages`.
 
-```sql
-CREATE VIRTUAL TABLE messages_fts USING fts5(
-  content, content=messages, content_rowid=rowid
-);
--- plus AFTER INSERT / AFTER UPDATE / AFTER DELETE triggers that mirror
--- the row into messages_fts — identical shape to the posts_fts triggers
--- already in the forum migration.
-```
+**Wire**: `GET /search?q=<query>&limit=<n>` (limit capped at 100; no
+`before` paging). Candidates are filtered through the same channel read
+permission as the message list, so results never leak messages the
+caller can't read.
 
-No new persistent state beyond the index; it's a derived view of
-`messages`.
-
-**Wire** (Wavvon-server, new route):
-
-```
-GET /search?q=<query>&limit=20&before=<ts>
--> [ { message_id, channel_id, channel_name, sender,
-       content_preview, created_at } ]
-```
-
-The route runs the FTS5 MATCH query, then filters every candidate row
-through the same `can_view_channel` check the message-list route uses, so
-results never leak messages the authenticated user can't read. `before`
-paginates by `created_at` for "load more."
-
-**Client side** (Wavvon-desktop `desktop/`, mirrored web/Android): a
+**Client side** (both clients): a
 search input in the top nav. On submit it dispatches parallel
 `hubFetch("/search?q=...")` calls to all connected hubs, merges the
 result arrays, sorts by `created_at` descending, and renders a list —
@@ -161,10 +142,11 @@ lands.
 
 ## 3. Custom emojis — **SHIPPED**
 
-**Decision**: a per-hub emoji library. Hub admins (`manage_channels`
-permission) upload SVG/PNG emoji stored inline as base64 in SQLite;
-members use them in messages as `:name:` and as reactions. This is
-community-axis state — it belongs to the hub, not the user.
+**Decision**: a per-hub emoji library. Holders of `hub.appearance` upload
+PNG/WebP/GIF/JPEG emoji (magic bytes checked; SVG refused) stored inline
+as base64 in the database; members use them in messages as `:name:` and
+as reactions. This is community-axis state — it belongs to the hub, not
+the user. Code: Wavvon-server `crates/hub/src/routes/emojis.rs`.
 
 **Alternative considered**: external object storage / CDN URLs.
 Rejected — that pushes a storage dependency onto every self-hoster for
@@ -173,37 +155,17 @@ base64 in SQLite keeps a hub a single-file deployment, consistent with
 how attachments already live inline on `messages`
 ([data-model.md](data-model.md)).
 
-**Tradeoff**: base64 in SQLite bloats the row and the DB file, and isn't
-cacheable by a CDN. Bounded by a hard cap — 64 KB per emoji, 200 emoji
-per hub — so worst case is ~13 MB of emoji in the DB. The image route
-sets cache headers so clients cache aggressively after first fetch.
+**Tradeoff**: base64 in the database bloats the row and isn't cacheable
+by a CDN. Each emoji is capped at 90,000 base64 characters (~66 KB);
+there is no per-hub count cap today. The image route sets cache headers
+so clients cache aggressively after first fetch. (Status 2026-11: since
+attachments moved to disk — [attachments.md](attachments.md) — the
+"consistent with inline attachments" argument above no longer holds; see
+the storage note at the top.)
 
-**Data model** (community-axis, Wavvon-server migration):
-
-```sql
-CREATE TABLE hub_emojis (
-  id             TEXT PRIMARY KEY,
-  name           TEXT UNIQUE NOT NULL,   -- shortcode, e.g. "parrot"
-  uploader_pubkey TEXT NOT NULL,
-  mime           TEXT NOT NULL,          -- image/png | image/svg+xml
-  data_b64       TEXT NOT NULL,          -- <= 64 KB
-  created_at     INTEGER NOT NULL
-);
-```
-
-**Wire** (Wavvon-server):
-
-```
-GET    /emojis              -> [ { id, name, url: "/emojis/:id/image" } ]   (public)
-GET    /emojis/:id/image    -> raw bytes, correct Content-Type, cacheable    (public)
-POST   /admin/emojis        { name, mime, data_b64 }   (manage_channels)
-DELETE /admin/emojis/:id                               (manage_channels)
-GET    /info                -> ... + emoji_count        (existing route, new field)
-```
-
-`POST` enforces the 64 KB and 200-emoji caps and the `name` uniqueness.
-`emoji_count` on `/info` lets a client decide whether to fetch the list
-at all.
+**Wire**: `GET /emojis` and `GET /emojis/{id}/image` (public), plus
+`POST`/`DELETE` admin routes gated on `hub.appearance`. Exact paths and
+shapes: `openapi.yaml`.
 
 **Reactions**: custom emoji reuse the existing reactions system
 ([data-model.md](data-model.md), `reactions` table). The stored `emoji`
@@ -244,8 +206,8 @@ notification on, and no RSVP state the hub can enforce against
 double-booking or count reliably. A native type is what lets the hub own
 the timestamp (for the start reminder) and the RSVP tally.
 
-**Tradeoff**: a new table, two new routes' worth of surface, and a new
-`create_events` permission — more weight than a bot card. Justified by
+**Tradeoff**: a new table, two new routes' worth of surface, and new
+`events.create` / `events.manage` permissions — more weight than a bot card. Justified by
 the structured data (RSVP + timestamp) needing server enforcement and a
 notification trigger.
 
@@ -271,24 +233,19 @@ CREATE TABLE event_rsvps (
 );
 ```
 
-New permission `create_events`, seeded for `everyone` by default (same
-seeding pattern as `create_posts` in the forum migration).
+The table sketch above is the original design; the schema has grown
+(organizer slots, staging) — read Wavvon-server `crates/hub/src/routes/events.rs`.
 
-**Wire** (Wavvon-server):
-
-```
-POST   /events                 (requires send_messages in the channel)
-GET    /events?upcoming=true&limit=20
-GET    /events/:id
-PUT    /events/:id             (creator or admin)
-DELETE /events/:id             (creator or admin)
-POST   /events/:id/rsvp        { status }
-GET    /events/:id/rsvps
-WS:    event_created { channel_id, event_id }   (same shape as post_created)
-```
+**Wire**: `/events` CRUD plus `/events/{id}/rsvp` and `/rsvps`. Creating
+needs `events.create` resolved through the target channel (and at hub
+level); editing or deleting someone else's event needs `events.manage`;
+reading needs `messages.read` on the event's channel. Exact routes:
+`openapi.yaml`.
 
 On create, the hub also writes a normal `messages` row into the channel
-that embeds the event card, so the event appears inline in the timeline.
+that embeds the event card, so the event appears inline in the timeline;
+that card message is the live signal (there is no separate
+`event_created` WS event).
 
 **Client side** (Wavvon-desktop, mirrored): event cards render as a
 distinct message type in the channel. An "Events" button in the channel
@@ -358,10 +315,10 @@ CREATE TABLE poll_votes (
 **Wire** (Wavvon-server):
 
 ```
-POST   /channels/:id/polls     { question, options, ends_at?, max_choices? }  (send_messages)
-GET    /polls/:id              -> { question, options, your_vote, totals }
+POST   /channels/:id/polls     { question, options, ends_at?, max_choices? }  (messages.send)
+GET    /polls/:id              -> { question, options, your_vote, totals }    (messages.read)
 POST   /polls/:id/vote         { option_ids: [string] }
-DELETE /polls/:id              (creator or admin)
+DELETE /polls/:id              (creator, or messages.manage)
 WS:    poll_vote_updated { channel_id, poll_id, totals: { [option_id]: count } }
 ```
 
@@ -463,8 +420,8 @@ search.
 **Decision**: batch OS notifications per hub with a 3-second debounce, so
 a burst of messages produces one toast instead of ten. A single message
 with nothing buffered fires immediately. Entirely client-local — the
-debounce lives in the Tauri notification helper (Wavvon-desktop
-`src-tauri/src/lib.rs`).
+debounce lives in the desktop React side (Wavvon-clients
+`apps/desktop/src/hooks/useChannelMessages.ts`, `pendingNotifsRef`).
 
 **Alternative considered**: hub-side notification coalescing. Rejected —
 the hub already pushes per-message WS events and shouldn't grow
@@ -477,11 +434,11 @@ path means quiet channels still notify instantly, and only an active
 burst (the annoying case) pays the debounce.
 
 **Data model**: none. In-memory per-hub (and per-DM-conversation) pending
-buffers in the notification helper.
+buffers.
 
 **Wire**: none — client-side only, no hub changes.
 
-**Client side / behaviour** (Wavvon-desktop `src-tauri/`): maintain a
+**Client side / behaviour** (desktop): maintain a
 per-hub pending buffer with a 3-second debounce. While messages arrive,
 hold them; after 3 seconds of quiet, fire one toast — e.g.
 **"Acme Hub — 5 new messages in #general, #gaming."** If the burst spans

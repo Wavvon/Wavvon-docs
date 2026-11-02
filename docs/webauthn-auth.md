@@ -23,6 +23,17 @@
 > `apps/web/src/platform/prfIdentity.ts` from git history (clients `9afe8b0`
 > reverses cleanly) and re-running the provider matrix; the thirty lines that
 > were just deleted are the trivial part of that.
+>
+> **Status 2026-11, what the rest of this doc gets wrong.** The PRF sections
+> below are historical. The web client's passkey code is hand-rolled on
+> `navigator.credentials` (Wavvon-clients `apps/web/src/platform/webauthn.ts`),
+> with no `@simplewebauthn/browser`. A passkey only works from the page the
+> hub serves itself — the hub's rp_id is its own hostname, so the user build
+> on our domain cannot use one (`passkeysUsableWith`). `/info` carries no
+> `webauthn_enabled`. The keypair flow is `/auth/challenge` + `/auth/verify`
+> (the `/auth/register` + `/auth/login` pair this plan names does not exist). Desktop's
+> passkey command is `apps/desktop/src-tauri/src/passkey_cmd.rs`. The
+> Android sections describe a client removed 2026-07-12.
 
 Today Wavvon generates an Ed25519 keypair from a random seed, stores
 the seed in `localStorage` (web) or `~/.wavvon/identity.json`
@@ -154,8 +165,8 @@ verifies whichever one signed the assertion.
 | PATCH | `/me/credentials/:id` | Rename a passkey |
 | DELETE | `/me/credentials/:id` | Remove a passkey |
 
-The existing `/auth/register` + `/auth/login` keypair flow is not
-removed — it stays as the fallback path.
+The existing keypair flow (`/auth/challenge` + `/auth/verify`) is not
+removed — it stays as the primary path.
 
 ### AppState additions
 
@@ -181,19 +192,15 @@ On `localhost` it is `"localhost"`. Configurable via `WAVVON_PUBLIC_URL`.
 The browser's `navigator.credentials` API handles the ceremony
 directly.
 
-**New package:**
-```
-pnpm --filter wavvon-web add @simplewebauthn/browser
-```
+**Platform module** (`apps/web/src/platform/webauthn.ts`): hand-rolled
+over `navigator.credentials` — `registerPasskey`, `authenticateWithPasskey`,
+list/rename/delete, and `passkeysUsableWith(hubUrl)`, which hides every
+passkey affordance unless the page's origin can use the hub's rp_id. (The
+plan was `@simplewebauthn/browser`; not adopted.)
 
-**New platform module (`apps/web/src/platform/webauthn.ts`):**
-```ts
-export async function startRegistration(options: PublicKeyCredentialCreationOptionsJSON): Promise<RegistrationResponseJSON>
-export async function startAssertion(options: PublicKeyCredentialRequestOptionsJSON): Promise<AuthenticationResponseJSON>
-```
-
-**Auth flow in `WelcomeScreen` / `AddHubModal`:**
-1. User enters hub URL → `GET /hub-info` (`webauthn_enabled: true`).
+**Auth flow in `WelcomeScreen` / `AddHubModal`** (original plan; there is
+no `webauthn_enabled` flag — availability is decided by origin):
+1. User enters hub URL.
 2. "Sign in with passkey" button → assert/begin → biometric tap →
    assert/finish → session token.
 3. First time on this device → begin → biometric tap → finish.
@@ -283,6 +290,9 @@ all three platforms) once WebAuthn ships.
 ---
 
 ### Android (`apps/android`, Tauri Android)
+
+> Historical: the Android client was removed 2026-07-12 and never shipped.
+> Kept as notes for a rewrite.
 
 Android 9+ (API 28+) supports passkeys via the **Credential Manager**
 API (`androidx.credentials`).
@@ -421,12 +431,12 @@ Constraints:
 
 ## Migration path
 
-Existing users (seed-phrase identity) keep working — `/auth/register`
-+ `/auth/login` are not removed. They can add a passkey at
+Existing users (seed-phrase identity) keep working — `/auth/challenge`
++ `/auth/verify` are not removed. They can add a passkey at
 **Settings → Account → Add passkey** while logged in, which calls
 `POST /auth/webauthn/begin` on their current session and links the new
 credential to their existing `public_key`. From that point they can
-authenticate with the passkey on any client.
+authenticate with the passkey — on web, only from the hub's own origin.
 
 ---
 
@@ -434,8 +444,8 @@ authenticate with the passkey on any client.
 
 WebAuthn is blocked on plain HTTP except `localhost`. The first external
 pilot hub terminates TLS at Cloudflare — it works.
-Any hub that wants passkeys needs TLS; add a note to `hosting.md`
-and a startup warning when `webauthn_enabled = true` but TLS is off.
+Any hub that wants passkeys needs TLS (there is no `webauthn_enabled`
+switch; the routes are always mounted).
 
 ---
 
