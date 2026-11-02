@@ -232,7 +232,7 @@ one that unblocks the most operators with the least setup.
 **Status: half shipped.** `rotate-key` and the `rotation` field on `/info`
 exist. As of 2026-11-02 there is no transition window (the payload is
 served for as long as `hub_rotation.json` sits in the working directory),
-no `--new-key-path` (the argument is ignored; a key is always generated),
+the command takes no arguments and always generates the new key, and
 the signed bytes are the string `"<old>:<new>:<effective_at>"` built in
 `main.rs` rather than an `identity`-crate type. The web client follows a
 verified rotation (`followKeyRotation` in Wavvon-clients
@@ -273,9 +273,11 @@ existing primitives.
   identity. Because the endorsement is signed by the key they already
   trust, no out-of-band channel is needed.
 
-**CLI flow**: `wavvon-hub rotate-key [--new-key-path <path>]`
+**CLI flow**: `wavvon-hub rotate-key`
 
-1. Generate a new Ed25519 keypair (or load one from `--new-key-path`).
+1. Generate a new Ed25519 keypair. (The design also allowed loading one
+   from a path; the argument was never read and was dropped,
+   Wavvon-server#267.)
 2. Build the `HubKeyRotation` payload and sign it with the *old* key.
 3. Write the payload to `hub_rotation.json` and replace
    `hub_identity.json` with the new key.
