@@ -7082,7 +7082,7 @@ paths:
               properties:
                 body: { type: string }
                 reply_to_id: { type: string, description: Optional parent reply within the same post }
-                attachment_ids: { type: array, items: { type: string }, description: Uploads to this channel; see POST /channels/{channel_id}/posts. }
+                attachment_ids: { type: array, items: { type: string }, description: "Uploads to this channel; see POST /channels/{channel_id}/posts." }
       responses:
         "201":
           description: Created
