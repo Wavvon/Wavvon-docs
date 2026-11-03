@@ -6,6 +6,69 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Client layout: hub tabs with pinned folders, a stage and an audience in voice, media on request
+
+**Decision** (2026-11-03): the clients get one layout, designed in a single
+session and recorded here so the issues that implement it can point at one
+place.
+
+- **Hubs are tabs in a top bar, not a rail.** A member pins hubs *and
+  folders of hubs*; pinned items are icon tabs (only the active one shows
+  its name), a folder tab sums its hubs' notifications and opens a list
+  ordered by most recent notification. Everything unpinned lives behind one
+  "Hubs · N" button that behaves as the folder of the unpinned: it carries
+  their notification total and opens a drawer listing them first, then
+  folders and pinned hubs for management. **A notification is counted in
+  exactly one place in the bar.** Global search (Ctrl K) and the member's
+  avatar sit at the right of the same bar.
+- **The avatar opens the user menu**: presence and custom status, one entry
+  per settings section (the backup attention marker moves here from the
+  gear), the device's accounts, help, about, shortcuts. The gear goes.
+- **The channel sidebar starts with the hub's banner card** (name, members,
+  online), then the channels, then the voice core: mic, deafen, leave. The
+  member list groups people by role with a status line.
+- **A voice channel shows people and media only**: no messages, events or
+  composer. Pinned people and opened media form the *stage*; everyone else
+  is the *audience*, in a fixed order (friends, then arrival), whose tiles
+  shrink to a floor and then scroll. Nobody moves when they speak; the
+  speaker lights up in place. The stage enlarges a tile in place (mosaic)
+  and a separator gives the stage more room, down to an audience strip. With
+  nothing pinned, there is no stage and no "audience" label.
+- **Screen shares never open by themselves.** A "Live" tray of fixed width
+  lists them, with search and filters past what fits; opening one puts it on
+  the stage. Cameras open by themselves for pinned people, and for everyone
+  only while the channel is small.
+- **Controls have one home each**: mic, deafen and leave in the sidebar
+  (they must work while reading another channel); share, camera, whisper
+  and soundboard as icon-only buttons with tooltips in the voice view.
+  Fullscreen exists only on a stream tile.
+- **Sharing quality is the sharer's choice** of resolution and frame rate,
+  with the estimated upload shown; a hub may cap it.
+- **Forum posts show as a list or a grid**, the member's choice.
+
+**Why.** Each rule came from a failure of the alternative. The old voice
+view reused the text-channel layout and cramped the share under the tabs.
+Auto-opening every stream is a flood vector: forty accounts sharing a fake
+screen fill everyone's view and bandwidth, so *opening* has to be a
+member's act, and *sharing* needs its own permission (today `voice.join`
+is enough). A list that reorders around whoever speaks is unreadable at
+forty people. Tabs read better than a rail and show notifications in
+place, but forty tabs do not fit, which is what pinning and folders solve.
+
+**Alternatives.** Separate host and viewer layouts (rejected: the sharer
+should see what everyone sees). A dedicated "speaking now" row (rejected:
+people jump between rows). Recent-hub tabs plus an "all hubs" panel, and
+folders as the only tabs (both kept in part: the drawer is the former, the
+pinned folder the latter). Mic and leave only in the voice view (rejected:
+unreachable from a text channel).
+
+**Tradeoff.** Opt-in media needs the hub to forward a stream only to the
+members who opened it; today every subscriber to the channel receives every
+stream's bytes. That is server work before the client rule pays off.
+
+**Outcome.** Open. Implemented through Wavvon-clients and Wavvon-server
+issues that link here.
+
 ## Attachments move to disk; a full disk expires the oldest, never refuses a member
 
 **Decision** (2026-11-01): message and forum attachments leave the database
