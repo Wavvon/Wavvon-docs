@@ -45,6 +45,16 @@ place.
 - **Sharing quality is the sharer's choice** of resolution and frame rate,
   with the estimated upload shown; a hub may cap it.
 - **Forum posts show as a list or a grid**, the member's choice.
+- **Onboarding puts the place first.** Arriving from an invite, the inviting
+  hub fills the left half of every step; the hub chooses its image and
+  colours, and the client keeps a scrim under the text so any image stays
+  readable. Arriving with no invite, that half explains Wavvon instead.
+  The profile step is the full profile card, edited in place, and becomes
+  the default profile every hub copies. A member with no invite picks
+  interests and languages, kept on the device, and gets hubs from the
+  public directory matched on tags and language, ordered by latency the
+  client measures; each suggestion says why it was suggested. "Later"
+  lands on an empty home with the same suggestions.
 
 **Why.** Each rule came from a failure of the alternative. The old voice
 view reused the text-channel layout and cramped the share under the tabs.
