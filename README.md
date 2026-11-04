@@ -19,7 +19,9 @@ stacks up — including its honest limitations.
 
 ![Joining a Wavvon hub: create an identity, join, start chatting — in seconds, with no signup](assets/join-flow.gif)
 
-![A Wavvon community: text and voice channels, voice participants in the sidebar, live member presence](assets/screenshot-channel.png)
+![A Wavvon community: pinned hubs in the top bar, channels with who is in voice, members grouped by role with what they are doing](assets/screenshot-channel.png)
+
+![A voice room: people and media only, the people you pinned on the stage and everyone else in the audience](assets/screenshot-voice.png)
 
 ## Get started
 
