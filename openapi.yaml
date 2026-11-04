@@ -9050,7 +9050,7 @@ paths:
                   hub_name: { type: string }
                   description: { type: string, nullable: true }
                   member_count: { type: integer, format: int64 }
-                  online_count: { type: integer, format: int64, description: Connected members, not counting invisible ones. }
+                  online_count: { type: integer, format: int64, description: "Connected members, not counting invisible ones." }
                   landing: { $ref: "#/components/schemas/Landing" }
                   code: { type: string }
         "404":
