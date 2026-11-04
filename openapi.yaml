@@ -555,6 +555,20 @@ components:
         timezone: { type: string, description: Omitted unless set. }
         birthdays_enabled: { type: boolean }
         max_attachment_bytes: { type: integer, format: int64 }
+        stream_limits: { $ref: "#/components/schemas/StreamLimits" }
+
+    StreamLimits:
+      type: object
+      description: >-
+        The most a screen share or camera may declare in `screen_share_start`
+        (hubs advertising `screenshare.limits`). Each field is omitted when
+        uncapped. Read-only on `/info` and `GET /hub/settings`; in `PATCH /hub`
+        the object replaces all four, and a field left out or 0 clears it.
+      properties:
+        max_width: { type: integer }
+        max_height: { type: integer }
+        max_fps: { type: integer }
+        max_kbps: { type: integer }
 
     MeInfo:
       type: object
@@ -1427,6 +1441,7 @@ paths:
                 afk_timeout_secs: { type: integer }
                 max_attachment_bytes: { type: integer, format: int64 }
                 max_upload_bytes: { type: integer, format: int64 }
+                stream_limits: { $ref: "#/components/schemas/StreamLimits" }
                 max_attachments_per_message: { type: integer, description: "1 to 25, default 10. That message is refused." }
                 attachments_cap_bytes: { type: integer, format: int64, description: "64 MB to 10 TB, default 10 GB. Whole blobs, orphans first and then least recently linked (banners excepted), expire; the upload succeeds. Never per member." }
                 attachments_warn_percent: { type: integer, description: "50 to 99, default 90. Sets attachments_usage.warning." }
@@ -1453,6 +1468,7 @@ paths:
         Besides the settings, `attachments_usage` is `{used_bytes, cap_bytes, warning, evictions}`:
         disk used by attachment blobs against `attachments_cap_bytes`, whether it is at
         `attachments_warn_percent`, and the blobs evicted for space since the hub started.
+        `stream_limits` is the same object as on `/info`.
       tags: [Hub]
       responses:
         "200":
