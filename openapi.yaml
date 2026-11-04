@@ -123,6 +123,7 @@ components:
         status: { type: string, description: Presence status. Omitted unless set. }
         status_custom: { type: string, description: Custom status text. Omitted unless set. }
         group_role: { type: string, nullable: true }
+        group_role_priority: { type: integer, format: int64, description: "Priority of group_role; omitted when there is none." }
         birthday: { type: string, nullable: true }
         name_color: { type: string, nullable: true }
 
