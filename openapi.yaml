@@ -782,6 +782,7 @@ components:
         channel_id: { type: string }
         author_pubkey: { type: string, nullable: true, description: "Null on tombstoned posts for non-moderators" }
         title: { type: string, nullable: true }
+        excerpt: { type: string, description: "The body on one line, at most 240 characters and an ellipsis when cut. Omitted on a deleted post." }
         created_at: { type: integer, format: int64 }
         edited_at: { type: integer, format: int64, description: "Omitted when never edited" }
         is_pinned: { type: boolean }
