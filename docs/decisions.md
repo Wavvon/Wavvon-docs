@@ -6,6 +6,29 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Settings open as a modal over the app
+
+**Decision** (2026-11-04): user settings and hub settings open in one large
+dialog over the dimmed app (about 1100 by 860 pixels at most, full screen
+under 768 pixels), on both clients. Escape, a click on the backdrop or the
+close buttons dismiss it, and the app behind it stays where it was.
+
+**Alternative considered**: settings as a full page in place of the app, as
+before. Web drew it as a fixed overlay and desktop by swapping the layout
+out, so the two clients already disagreed; and the web overlay was a child
+of the main layout, whose height rule for the columns under the top bar
+cut it 48 pixels short, with the composer showing underneath.
+
+**Tradeoff**: less room than a full page for the widest hub settings
+(members, roles, bans), which scroll inside the dialog. A backdrop click
+can close it by accident. Almost every section saves as it goes; the
+survey editor has a Save button, and a stray click drops an unsaved draft
+there exactly as the close button always did.
+
+**Outcome**: one `SettingsModal` frame in `Wavvon-clients: packages/ui`,
+mounted on `document.body` so no layout rule reaches it, wrapping both
+`SettingsShell` pages and `HubAdminPage`.
+
 ## Client layout: hub tabs with pinned folders, a stage and an audience in voice, media on request
 
 **Decision** (2026-11-03): the clients get one layout, designed in a single
