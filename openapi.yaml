@@ -570,6 +570,19 @@ components:
         max_fps: { type: integer }
         max_kbps: { type: integer }
 
+    Landing:
+      type: object
+      description: >-
+        How the invite landing looks (hubs advertising `hub.landing`). Each
+        field is omitted when unset.
+      properties:
+        image: { type: string, description: "Path of the image on this hub: /hub/landing-image." }
+        colors:
+          type: array
+          items: { type: string, pattern: "^#[0-9a-fA-F]{6}$" }
+          minItems: 2
+          maxItems: 2
+
     MeInfo:
       type: object
       required:
@@ -1442,6 +1455,11 @@ paths:
                 max_attachment_bytes: { type: integer, format: int64 }
                 max_upload_bytes: { type: integer, format: int64 }
                 stream_limits: { $ref: "#/components/schemas/StreamLimits" }
+                landing_image: { type: string, description: "Invite landing image as a base64 data: URL, at most 1 MB decoded, re-encoded by the hub. Empty clears it. 413 when too large, 400 when not an image." }
+                landing_colors:
+                  type: array
+                  items: { type: string, pattern: "^#[0-9a-fA-F]{6}$" }
+                  description: Two colours for the invite landing; an empty array clears them.
                 max_attachments_per_message: { type: integer, description: "1 to 25, default 10. That message is refused." }
                 attachments_cap_bytes: { type: integer, format: int64, description: "64 MB to 10 TB, default 10 GB. Whole blobs, orphans first and then least recently linked (banners excepted), expire; the upload succeeds. Never per member." }
                 attachments_warn_percent: { type: integer, description: "50 to 99, default 90. Sets attachments_usage.warning." }
@@ -1468,11 +1486,27 @@ paths:
         Besides the settings, `attachments_usage` is `{used_bytes, cap_bytes, warning, evictions}`:
         disk used by attachment blobs against `attachments_cap_bytes`, whether it is at
         `attachments_warn_percent`, and the blobs evicted for space since the hub started.
-        `stream_limits` is the same object as on `/info`.
+        `stream_limits` is the same object as on `/info`, and `landing` the one
+        on the invite preview.
       tags: [Hub]
       responses:
         "200":
           description: Hub settings object
+
+  /hub/landing-image:
+    get:
+      operationId: getHubLandingImage
+      summary: The invite landing image (public)
+      security: []
+      tags: [Hub]
+      responses:
+        "200":
+          description: The image, as re-encoded by the hub
+          content:
+            image/*:
+              schema: { type: string, format: binary }
+        "404":
+          description: No landing image set
 
   /hub/members:
     get:
@@ -9012,7 +9046,10 @@ paths:
                 type: object
                 properties:
                   hub_name: { type: string }
+                  description: { type: string, nullable: true }
                   member_count: { type: integer, format: int64 }
+                  online_count: { type: integer, format: int64, description: Connected members, not counting invisible ones. }
+                  landing: { $ref: "#/components/schemas/Landing" }
                   code: { type: string }
         "404":
           description: Invite not found
