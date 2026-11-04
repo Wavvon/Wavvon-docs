@@ -276,7 +276,9 @@ here", and that is the gap `voice.join` closes.
 
 | Permission | Scope | Replaces | Covers |
 |---|---|---|---|
-| `voice.join` | H C | — (**new gate**, see below) | Entering voice on a channel, screen share |
+| `voice.join` | H C | — (**new gate**, see below) | Entering voice on a channel |
+| `voice.screen_share` | H C | — (split from `voice.join`, 2026-11-04) | Starting a screen share, on top of `voice.join` |
+| `voice.camera` | H C | — (split from `voice.join`, 2026-11-04) | Turning a camera on in voice, on top of `voice.join` |
 | `voice.soundboard.use` | H C | `use_soundboard` | Playing a clip |
 | `voice.soundboard.manage` | H | `manage_soundboard` | Uploading and deleting clips |
 | `voice.move_members` | H C | `move_members` | Moving a participant; resolved against the **destination** channel |
@@ -299,6 +301,14 @@ there are no surviving deny rows to be opened. What independence actually
 costs is that "private channel" becomes two denials rather than one. That is
 the correct price, because it is two questions.
 
+**Screen share and camera are separate grants** (2026-11-04, Wavvon-server
+#277). Talking and streaming are different acts: a raid of accounts all
+sharing a fake screen met no gate while `voice.join` covered both. Both are
+granted to @everyone on a new hub and by a one-time step on an existing one,
+so nothing changes until an admin restricts them; a hub advertises
+`voice.media.permissions` so clients can hide the buttons where they are
+refused.
+
 #### The split that must not be got wrong
 
 `channels_with_permission(READ_MESSAGES)` is called in two places today with
@@ -319,7 +329,8 @@ Individual gates move with the act, not with the channel:
 | Site | Gate |
 |---|---|
 | `ws/handlers/voice.rs:127` — voice join | `voice.join` |
-| `ws/handlers/screen.rs:205` — start a screen share | `voice.join` |
+| `ws/handlers/screen.rs` — start a screen share (and the apps HTTP share) | `voice.join` **and** `voice.screen_share` |
+| `ws/handlers/voice.rs` — `video_enable` | `voice.camera` (and being in the call) |
 | `ws/handlers/screen.rs:32` — subscribe to a channel's events | `messages.read` |
 | Message history, posts, pins, search | `messages.read` |
 
