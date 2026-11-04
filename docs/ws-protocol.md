@@ -25,6 +25,13 @@ Upgrade: websocket
 - The token is checked with the same rules as HTTP requests: session expiry,
   revocation, approval status, and bans all apply. Failure rejects the upgrade
   with an HTTP error status before the WebSocket is established.
+- Optional `streams=on_request` (hubs advertising `screenshare.onrequest`):
+  stream bytes reach this connection only for streams it opened with
+  [`stream_subscribe`](#stream_subscribe), in its own channels too. It is
+  still told when a share starts and stops, and no init chunk is replayed
+  until it opens the stream. Without it, every stream of every subscribed
+  channel is pushed. A query parameter, not a message, because in-progress
+  shares are replayed before the hub reads from the socket.
 
 On successful connect the hub immediately:
 
@@ -374,7 +381,8 @@ connection. No payload fields: `{"type":"stream_list"}`. The hub replies with
 [`hub_streams`](#hub_streams).
 
 #### `stream_subscribe`
-Subscribe to chunks of a stream in a channel the client is not in voice on.
+Subscribe to chunks of a stream in a channel the client is not in voice on,
+or, on a `streams=on_request` connection, to any stream it wants to watch.
 Success: a [`stream_subscribed`](#stream_subscribed) ack, then the cached init
 chunk (if any), then live chunks. Failure: [`error`](#error) with context
 `stream_subscribe`.
@@ -385,6 +393,7 @@ chunk (if any), then live chunks. Failure: [`error`](#error) with context
 | `stream_id` | string | |
 
 #### `stream_unsubscribe`
+Stop receiving a stream opened with `stream_subscribe`.
 
 | field | type | notes |
 |---|---|---|
