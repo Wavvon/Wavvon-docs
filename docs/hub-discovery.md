@@ -181,6 +181,8 @@ GET  /api/hubs
      ?q=<search>          substring match (LIKE) on name + bio
      &tag=<tag>           filter by tag (repeatable: &tag=gaming&tag=en)
      &language=<bcp47>    filter by language
+     &sort=recent|members|online   default recent; a hub with no count
+                          sorts after every hub that has one
      &page=<n>            pagination (default 1)
 
 → { hubs: HubListing[], total: number }
@@ -219,6 +221,9 @@ interface HubListing {
   language: string;
   listed_at: string;       // ISO-8601
   last_verified_at: string;
+  member_count: number | null;  // read at each verification from the
+  online_count: number | null;  // hub's public invite preview, GET /join/{invite_code};
+  counts_at: string | null;     // null when there is no invite or no answer
 }
 ```
 
