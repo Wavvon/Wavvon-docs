@@ -6,6 +6,40 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## A hub that changes key without its old key's signature is a new hub
+
+**Decision** (2026-11-07): a hub is its Ed25519 key. When a saved hub's
+address answers with a different key, the client follows only if the old key
+signed the new one (the `rotate-key` endorsement in `/info`). Without that
+signature it is a new hub at a familiar address: the old entry is dropped,
+the client says the hub was reinstalled, and joining it is an explicit act
+of the member's through the normal join flow, never automatic. Operators keep
+the same identity across a reinstall by keeping `hub_identity.json`; a hub
+already restarted under a new key can still be endorsed from the old file.
+
+**Alternatives considered**: the new hub declaring "I used to be X". Anyone
+who controls the address can say that, an expired domain bought back or a
+hijacked DNS record, and would inherit the old hub's members and their trust;
+only the old key can vouch for the new one. Following any new key at a known
+address silently has the same flaw without even the declaration. Keeping the
+old entry with whatever refusal the new hub returns (today's behaviour) is
+safe but reads as a broken membership: the member sees "this hub requires an
+invite" for a hub they were in, with nothing saying the hub itself changed.
+
+**Tradeoff**: an operator who loses the key loses continuity, and every
+member joins again; no support process can recover it, by design. An
+endorsement keeps the hub in members' lists but does not restore membership
+if the database was wiped too.
+
+**Outcome**: the endorsement path exists (`Wavvon-server: rotate-key`,
+`Wavvon-clients: rotationAppliesTo`). Planned:
+[Wavvon-server#342](https://github.com/Wavvon/Wavvon-server/issues/342) for
+the operator side and
+[Wavvon-clients#312](https://github.com/Wavvon/Wavvon-clients/issues/312) for
+the client side. Operator guidance: [hub-operator-guide.md](hub-operator-guide.md),
+"Reinstalling or moving a hub". Found when a real hub was reinstalled
+with a fresh key and a browser that had joined before it could not get in.
+
 ## Settings open as a modal over the app
 
 **Decision** (2026-11-04): user settings and hub settings open in one large

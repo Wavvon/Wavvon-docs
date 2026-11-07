@@ -672,6 +672,27 @@ Don't memorize an env table here — `--help` is authoritative.
   breaks entirely, and federation peers see Cloudflare's fingerprint
   instead of the hub's. Use a **grey-cloud / DNS-only** record, or no
   Cloudflare at all, for the hub's hostname.
+  - **A wildcard record counts.** A hub with no record of its own is served
+    by `*.example.org`, and switching that wildcard to proxied takes the
+    hub behind Cloudflare with it, with nothing changed on the hub. Give
+    the hub an explicit DNS-only record; an explicit record wins over the
+    wildcard, so the rest of the zone can stay proxied.
+  - **What it looks like.** Everything over HTTP keeps working, the
+    WebSocket included, so members log in, chat, and the hub even logs
+    `Voice join`. Only the voice transport never arrives: the client gives
+    up with "Voice transport closed before it was ready". Cloudflare also
+    injects its own scripts into the page, which the hub's
+    Content-Security-Policy blocks, so the browser console fills with CSP
+    errors that are a symptom, not the cause.
+  - **How to check.** Resolve the hub's name (`nslookup hub.example.org.`)
+    and compare it with the server's address. Cloudflare addresses
+    (`104.16.0.0/13`, `172.64.0.0/13`, `188.114.96.0/20` and the others it
+    publishes) mean the proxy is on. To confirm without touching DNS, map
+    the name to the server's real address in your own `hosts` file and
+    join voice: if it works that way, the proxy is the whole problem.
+  - A separate, DNS-only host for voice, so the site itself can stay
+    proxied, is tracked in
+    [Wavvon-server#338](https://github.com/Wavvon/Wavvon-server/issues/338).
 - Outbound: the hub initiates HTTPS to peer hubs for federation (alliance
   reads, DM delivery). Egress rules must allow it.
 

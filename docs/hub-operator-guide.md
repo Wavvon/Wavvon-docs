@@ -214,6 +214,39 @@ install, or from wherever `WAVVON_PG_BIN_DIR` points.
 
 ---
 
+## Reinstalling or moving a hub
+
+A hub **is** its key. Clients file every hub they know under the public key
+in `hub_identity.json`, so the key decides whether members see the same hub
+after a reinstall, not the address and not the database.
+
+- **Same key, same hub.** Restore `hub_identity.json` into the working
+  directory before the first start (`wavvon-hub restore` does it from a
+  backup). Clients notice nothing; with the database restored too, nobody
+  has to do anything at all.
+- **A planned key change** goes through `wavvon-hub rotate-key`: the old key
+  signs the new one, `/info` serves that endorsement, and clients move the
+  hub across on their own.
+- **A new key with no endorsement is a different hub.** That is what happens
+  when the file is lost, or when a reinstall starts without it and the hub
+  generates a fresh one. Clients refuse to treat it as the hub they knew:
+  anyone who controls an address (an expired domain bought back, a hijacked
+  DNS record) could otherwise inherit its members. Every member has to join
+  again, with an invite if the hub is invite-only. See
+  [decisions.md](decisions.md), "A hub that changes key without its old
+  key's signature is a new hub".
+
+Two things are planned to soften the last case:
+[Wavvon-server#342](https://github.com/Wavvon/Wavvon-server/issues/342)
+(warn loudly when a hub generates a new identity, and
+`rotate-key --endorse-from` for a hub already restarted under a new key while
+the old file survived) and
+[Wavvon-clients#312](https://github.com/Wavvon/Wavvon-clients/issues/312)
+(the client says the hub was reinstalled and offers to join it as new,
+instead of showing "this hub requires an invite").
+
+---
+
 ## Moving the database
 
 `db move` copies a hub's database from one PostgreSQL to another. It is the
@@ -333,7 +366,9 @@ the check and do not refuse; the backup is still the way back.)
   **Raise both if your members share an address** (an office, a school, a
   campus, CGNAT): the limiter cannot tell them apart, and to someone who is
   rate-limited the hub looks like one that will not have them. For additional
-  protection put a WAF in front (Cloudflare, or rate-limit at nginx).
+  protection rate-limit at nginx. **Not** behind an HTTP proxy such as
+  Cloudflare's orange cloud: it drops the UDP that voice runs on, see
+  [hosting.md, Firewall and UDP](hosting.md#firewall-and-udp).
 - [ ] **Webhook targets**: outgoing webhooks and an app's `webhook_url` must
   be `https://` to a public host; the hub refuses `localhost`, loopback and
   private ranges, so a member who can register an app cannot aim the hub at
