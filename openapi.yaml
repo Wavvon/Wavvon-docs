@@ -509,6 +509,12 @@ components:
             never by its address: you change *where* you look, not who you
             believe you are talking to. Absent when the hub has no public
             address.
+        landing:
+          allOf: [{ $ref: "#/components/schemas/Landing" }]
+          description: >-
+            The invite landing look, the same value as the invite preview's.
+            `image` is present only when an image is set, so a client can skip
+            requesting it. Absent on hubs that predate the field.
         invite_only: { type: boolean }
         min_security_level: { type: integer }
         min_pow_level: { type: integer }
@@ -2522,13 +2528,20 @@ paths:
             schema:
               type: object
               properties:
-                max_uses: { type: integer, format: int64, nullable: true }
+                max_uses:
+                  type: integer
+                  format: int64
+                  minimum: 1
+                  description: Omitted means unlimited. Below 1 is a 400.
+                  nullable: true
                 expires_in_seconds:
                   type: integer
                   format: int64
+                  minimum: 1
                   description: >-
                     Lifetime in seconds from now. Omitted means no expiry, except as noted under
-                    `grant_role_id`.
+                    `grant_role_id`. Below 1, or large enough to overflow the expiry timestamp,
+                    is a 400.
                   nullable: true
                 grant_role_id:
                   type: string

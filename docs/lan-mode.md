@@ -11,7 +11,10 @@ the private-address guard, self-signed cert + fingerprint, mDNS
 advertisement, the `--doctor` section; configured by `WAVVON_LAN_MODE`,
 `WAVVON_LAN_ADVERTISE_ADDR`, `WAVVON_LAN_TLS_MODE`, `WAVVON_LAN_MDNS` —
 `wavvon-hub --help` has the details). `/info` carries `lan_fingerprint`,
-and the web client checks it against the one an invite names. The native
+and the web client checks it against the one an invite names. That check
+is not a verification: a browser cannot see the certificate it was handed,
+and the value is one the hub reports about itself, so it only catches an
+invite pasted against the wrong hub and is never shown as a success. The native
 "hubs on your network" UX is not built (§5).
 
 ---
