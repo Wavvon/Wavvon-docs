@@ -115,6 +115,47 @@ components:
           maximum: 10000
           description: Joins per minute that raise a raid alert; 0 is off
         auto_lockdown: { type: boolean }
+    WidgetSettings:
+      type: object
+      required: [mode]
+      properties:
+        mode:
+          type: string
+          enum: ["off", counts, names, voice]
+          description: off (default), the online count, names too, or names plus who is in which voice room
+        invite_code:
+          type: string
+          nullable: true
+          description: The invite the widget's Join button opens; empty or absent for none
+    WidgetData:
+      type: object
+      description: >-
+        What the public widget shows. Never a public key; invisible members and members
+        with `widget_hidden` are not counted.
+      required: [name, online_count]
+      properties:
+        name: { type: string }
+        icon: { type: string }
+        online_count: { type: integer }
+        members:
+          description: In `names` and `voice` modes.
+          type: array
+          items:
+            type: object
+            required: [name]
+            properties:
+              name: { type: string }
+              avatar: { type: string }
+        voice:
+          description: In `voice` mode, the occupied voice rooms.
+          type: array
+          items:
+            type: object
+            required: [channel, members]
+            properties:
+              channel: { type: string }
+              members: { type: array, items: { type: string } }
+        invite_url: { type: string }
     SignedMemberChange:
       type: object
       description: >-
@@ -625,6 +666,7 @@ components:
         - favorite_hubs
         - show_hubs
         - findable_by_allies
+        - widget_hidden
         - approval_status
         - roles
         - birthday
@@ -650,6 +692,9 @@ components:
               icon: { type: string, nullable: true }
         show_hubs: { type: boolean }
         findable_by_allies: { type: boolean }
+        widget_hidden:
+          type: boolean
+          description: Left out of the hub's public online widget. Hubs advertising `hub.widget`.
         approval_status: { type: string, enum: [approved, pending] }
         roles:
           type: array
@@ -1203,6 +1248,45 @@ paths:
                     type: string
                     description: "`ok`, or `error: ` followed by the reason the database did not answer."
 
+  /public/widget.json:
+    get:
+      operationId: getPublicWidget
+      summary: Who is online, for a community's own website
+      description: >-
+        Public, unauthenticated, rate limited per address, cached for ten seconds and
+        served with `Access-Control-Allow-Origin: *`. Capability `hub.widget`.
+      tags: [Hub]
+      security: []
+      responses:
+        "200":
+          description: The widget's data.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WidgetData' }
+        "404":
+          description: The widget is off.
+  /widget:
+    get:
+      operationId: getWidgetPage
+      summary: The online widget as a page for an iframe
+      description: >-
+        Script-free HTML whose Content-Security-Policy allows any site to frame it.
+        Capability `hub.widget`.
+      tags: [Hub]
+      security: []
+      parameters:
+        - name: theme
+          in: query
+          required: false
+          schema: { type: string, enum: [light, dark] }
+      responses:
+        "200":
+          description: The page.
+          content:
+            text/html:
+              schema: { type: string }
+        "404":
+          description: The widget is off.
   /info:
     get:
       operationId: getInfo
@@ -1391,6 +1475,9 @@ paths:
                     List me to members of allied hubs (see `GET /alliances/{alliance_id}/people`).
                     Per hub, off by default; only takes effect while the alliance's own
                     `people_visible` switch is on. Hubs advertising `alliance.people`.
+                widget_hidden:
+                  type: boolean
+                  description: Leave me out of the public online widget. Hubs advertising `hub.widget`.
                 birthday: { type: string }
                 name_color: { type: string }
       responses:
@@ -5295,6 +5382,35 @@ paths:
               schema: { $ref: '#/components/schemas/LockdownSettings' }
         "400":
           description: A value out of range.
+  /admin/settings/widget:
+    get:
+      operationId: getWidgetSettings
+      summary: Public online widget settings (hub.settings)
+      tags: [Admin]
+      responses:
+        "200":
+          description: Current settings.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WidgetSettings' }
+    put:
+      operationId: putWidgetSettings
+      summary: Replace the public online widget settings (hub.settings)
+      description: Capability `hub.widget`.
+      tags: [Admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WidgetSettings' }
+      responses:
+        "200":
+          description: The settings now in force.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WidgetSettings' }
+        "400":
+          description: An unknown mode or a malformed invite code.
   /admin/settings/moderation:
     get:
       operationId: getAdminSettingsModeration
