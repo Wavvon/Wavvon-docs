@@ -103,6 +103,18 @@ components:
       scheme: bearer
 
   schemas:
+    LockdownSettings:
+      type: object
+      required: [enabled, freeze_minutes, raid_join_threshold, auto_lockdown]
+      properties:
+        enabled: { type: boolean }
+        freeze_minutes: { type: integer, minimum: 0, maximum: 1440 }
+        raid_join_threshold:
+          type: integer
+          minimum: 0
+          maximum: 10000
+          description: Joins per minute that raise a raid alert; 0 is off
+        auto_lockdown: { type: boolean }
     SignedMemberChange:
       type: object
       description: >-
@@ -5249,6 +5261,40 @@ paths:
         "200":
           description: OK
 
+  /admin/settings/lockdown:
+    get:
+      operationId: getLockdownSettings
+      summary: Raid lockdown settings (moderation.settings)
+      tags: [Admin]
+      responses:
+        "200":
+          description: Current settings.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LockdownSettings' }
+    put:
+      operationId: putLockdownSettings
+      summary: Replace the raid lockdown settings (moderation.settings)
+      description: |
+        While `enabled`, no identity that is not already a member is admitted
+        (sign-in, farm token or invite). With `freeze_minutes`, members who
+        joined within that window cannot post; moderators are exempt. Reaching
+        `raid_join_threshold` joins in a minute publishes `raid.suspected` and,
+        with `auto_lockdown`, turns lockdown on. Capability `hub.lockdown`.
+      tags: [Admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LockdownSettings' }
+      responses:
+        "200":
+          description: The settings now in force.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LockdownSettings' }
+        "400":
+          description: A value out of range.
   /admin/settings/moderation:
     get:
       operationId: getAdminSettingsModeration
