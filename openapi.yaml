@@ -2866,6 +2866,35 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Role' }
+  /roles/order:
+    put:
+      operationId: reorderRoles
+      summary: Reorder every role below the caller in one call (roles.manage)
+      description: >-
+        `role_ids` must name exactly the roles the caller may move: every role except the
+        built-ins whose priority is below the caller's highest. They keep the priorities they
+        held between them, handed out in the new order (equal ones nudged apart), in one
+        transaction. Capability `roles.order`.
+      tags: [Roles]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role_ids]
+              properties:
+                role_ids: { type: array, items: { type: string }, description: highest first }
+      responses:
+        "200":
+          description: Every role, highest first.
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Role' } }
+        "400":
+          description: The list is not exactly the roles below the caller.
+        "403":
+          description: The caller lacks roles.manage.
   /roles/{role_id}:
     patch:
       operationId: updateRole
