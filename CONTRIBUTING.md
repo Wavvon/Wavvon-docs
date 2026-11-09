@@ -108,8 +108,17 @@ After the PR is merged to `main`:
    **`release-web.yml`** (the web `dist`). Versions containing `-` (e.g.
    `v0.3.0-beta.1`) are marked as pre-releases. Wavvon-discovery tags but
    has no release workflow.
+3. The jobs that publish anything (images, binaries, crates.io, signed
+   desktop updates) run in the repository's **`release` environment** and
+   wait for an owner to approve the deployment in the Actions tab. A release
+   whose tag is not on `main` stops before that, at the changelog job.
+4. Every hub and farm binary in a server release carries a `.sig`: an Ed25519
+   signature by the release key over the asset name and its bytes.
+   `wavvon-hub update` installs nothing without a valid one. The private key
+   is the `RELEASE_SIGNING_KEY` secret of the server's `release` environment.
 
-You do not need to create tags manually.
+You do not need to create tags manually, and you cannot move or delete a
+`v*` tag once it exists.
 
 ### Versioning
 
