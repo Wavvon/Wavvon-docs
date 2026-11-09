@@ -124,16 +124,23 @@ not by account:
   "tags": ["gaming", "en"],
   "language": "en",
   "bio": "...",
+  "invite_code": "<only when the listing carries one>",
   "nonce": "<ISO-8601 timestamp, rounded to the minute>"
 }
 ```
 
-The hub signs this with its private key. The directory service:
+Keys are serialised in alphabetical order with tags sorted; `invite_code` is
+included only when present, so nobody but the hub can change a listing's
+invite link. The hub signs this with its private key. The directory service:
 
-1. Fetches `GET {hub_url}/info` to get the hub's `public_key`.
-2. Verifies the signature against the canonical payload.
-3. Rejects if the nonce is more than 5 minutes old (replay protection).
-4. Stores the listing, keyed on `hub_pubkey`.
+1. Validates every field's type and size, and requires a public `https` hub URL
+   with no query or fragment.
+2. Rejects if the nonce is more than 5 minutes off (replay protection).
+3. Verifies the signature against the canonical payload — before fetching
+   anything, so an unsigned caller cannot make the directory fetch a URL.
+4. Fetches `GET {hub_url}/info` (no redirects, no private address, bounded
+   body) and requires its `public_key` to be the signing key.
+5. Stores the listing, keyed on `hub_pubkey`.
 
 **Update / delete**: an update is a newly signed payload. A delete signs
 the string `wavvon-directory/delete/v1:hub:<pubkey>:<listed_at>`
