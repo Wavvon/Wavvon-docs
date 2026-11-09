@@ -2771,6 +2771,13 @@ paths:
                           type: string
                           description: Dotted prefix, for grouping without re-splitting the id.
                           example: moderation
+                        category:
+                          type: string
+                          description: >-
+                            The section a roles screen shows it under: messages, voice,
+                            moderation, members, channels, events, hub, integrations,
+                            federation. Hubs advertising `permissions.categories`.
+                          example: moderation
 
   /users/{pubkey}/permissions/why:
     get:
