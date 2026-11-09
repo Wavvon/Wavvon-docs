@@ -548,8 +548,9 @@ release, unpack it (it must contain `index.html`), and point
 [Serving the web client](#serving-the-web-client).
 
 **Self-update**: `wavvon-hub update` replaces the binary in place from
-the latest GitHub release (Linux x86_64 only). Stop the service, run it,
-start the service — see [Upgrades](#upgrades-per-method).
+the latest GitHub release (Linux x86_64 only), after checking the release
+key's signature on it; a binary without a valid signature is not installed.
+Stop the service, run it, start the service — see [Upgrades](#upgrades-per-method).
 
 ---
 
