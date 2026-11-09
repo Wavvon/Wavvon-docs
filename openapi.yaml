@@ -2406,8 +2406,21 @@ paths:
                 plaintext_signature:
                   type: string
                   description: >-
-                    Hex Ed25519 signature over the federated plaintext DM bytes (wire-format.md). A
-                    recipient on another hub refuses an unsigned plaintext DM.
+                    Hex Ed25519 signature over the federated plaintext DM bytes (wire-format.md,
+                    v2 on a hub advertising dms.plaintext.v2). A recipient on another hub refuses
+                    an unsigned plaintext DM.
+                message_id:
+                  type: string
+                  format: uuid
+                  description: >-
+                    With a v2 plaintext_signature: the id the client chose and signed. The hub
+                    adopts it. Required alongside a signature on a dms.plaintext.v2 hub.
+                created_at:
+                  type: integer
+                  format: int64
+                  description: >-
+                    With a v2 plaintext_signature: the unix time the client signed, within five
+                    minutes of the hub's clock. The hub adopts it.
                 plaintext_signer_cert:
                   allOf: [{ $ref: '#/components/schemas/SubkeyCert' }]
                   description: >-

@@ -588,7 +588,34 @@ signature:
 
 ---
 
-### Federated plaintext DM
+### Federated plaintext DM (v2)
+
+```
+prefix          : "wavvon/federated-dm/v2\0"   (23 bytes incl. NUL)
+conversation_id : write_str(conversation_id)
+conv_type       : write_str(conv_type)
+content         : write_str(content)
+message_id      : write_str(message_id)        a UUID the sender's client chose
+created_at      : u64 LE, unix seconds         the time the client signed
+members         : u32 LE count, then write_str(member) for each,
+                  sorted lexicographically, duplicates removed
+```
+
+What a client signs when the hub advertises `dms.plaintext.v2`, sending
+`message_id` and `created_at` beside `plaintext_signature`; the hub adopts
+both (`created_at` within five minutes of its own clock) and verifies against
+the conversation's current members, so a client signs the member set as it
+stands at send time. A receiving hub verifies against the members the
+delivery names, refuses a message more than 30 days old or five minutes in the
+future, and ignores a message id it already holds, so v1's replay and
+re-membering (Wavvon-server#311) are closed. Vector
+`federated_plaintext_dm_v2` in Wavvon-server:
+`crates/identity/wire-vectors.json`.
+
+### Federated plaintext DM (v1, superseded)
+
+Signed by clients for a hub without `dms.plaintext.v2`; an upgraded hub
+refuses it.
 
 ```
 prefix          : "wavvon/federated-dm/v1\0"   (23 bytes incl. NUL)
