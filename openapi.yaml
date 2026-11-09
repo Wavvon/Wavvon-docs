@@ -186,6 +186,9 @@ components:
           type: boolean
           description: Forum channels — posts must carry at least one tag. Always false elsewhere.
         nsfw: { type: boolean, description: NSFW flag for this channel specifically }
+        slowmode_secs:
+          type: integer
+          description: Seconds a member must wait between messages here; 0 is off (capability channels.slowmode)
         can_move_members:
           type: boolean
           description: >-
@@ -1982,6 +1985,11 @@ paths:
                 banner_file_id: { type: string }
                 forum_require_tag: { type: boolean }
                 nsfw: { type: boolean }
+                slowmode_secs:
+                  type: integer
+                  minimum: 0
+                  maximum: 21600
+                  description: Seconds between one member's messages here, 0 to turn slowmode off. Needs channels.manage.
                 channel_type:
                   type: string
                   enum: [text, voice]

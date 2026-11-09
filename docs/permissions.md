@@ -240,6 +240,7 @@ lives in a channel. There is no channel-scoped hub administration.
 | `messages.send` | H C | `send_messages` | Posting, polls, reactions |
 | `messages.manage` | H C | `manage_messages`, `admin` on `delete_poll` | Deleting and editing others' messages, pinning, deleting a poll |
 | `messages.masquerade` | H C | — | Posting a message under another name and avatar (bridges); the real sender stays visible |
+| `messages.slowmode.bypass` | H C | — | Posting in a channel with slowmode without waiting between messages |
 
 ### Forum
 
