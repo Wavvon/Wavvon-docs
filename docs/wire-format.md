@@ -536,7 +536,33 @@ signature (master):
 
 ---
 
-### Auth challenge answer (`tagged-v1`)
+### Auth challenge answer (`tagged-v2`, bound to the server)
+
+```
+prefix      : "wavvon/auth-challenge/v2\0"   (25 bytes incl. NUL)
+server key  : u32 LE length, then the server's public key as lowercase hex
+challenge   : the 32 challenge bytes, raw (no length prefix)
+```
+
+What a hub or farm naming `"scheme": "tagged-v2"` in its `POST /auth/challenge`
+response accepts, and the only answer a current one accepts. The server key is
+the one the **client** already holds for the server it means to sign in to (a
+saved hub's id, the key that hub's `/info` presented, a farm's `/farm/info`),
+never anything the challenge response supplies. The v1 answer below named no
+server, so a hostile hub could pass another server's challenge through, collect
+the answer and sign in there as the user (Wavvon-server#294); a v2 answer
+relayed that way names the relaying hub and fails. A hub offering v2 refuses v1
+answers outright, since a relaying hub could otherwise downgrade the scheme it
+shows the client.
+
+Vector `bound_auth_challenge` in Wavvon-server:
+`crates/identity/wire-vectors.json` (server key: the `new_pub` fixture,
+challenge `0x00 … 0x1f`, master seed).
+
+### Auth challenge answer (`tagged-v1`, superseded)
+
+Still answered by clients to a server that only names `tagged-v1` (an older
+hub); no current hub or farm accepts it.
 
 ```
 prefix      : "wavvon/auth-challenge/v1\0"   (25 bytes incl. NUL)

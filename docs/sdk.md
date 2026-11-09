@@ -45,9 +45,12 @@ remembering the other five.
 Everything [apps.md](apps.md) describes, and nothing beyond it:
 
 - **Auth.** `POST /auth/challenge`, sign, `POST /auth/verify`, with an invite
-  code on an `invite_only` hub. Sign `b"wavvon/auth-challenge/v1\0" ||
+  code on an `invite_only` hub. A current hub names `tagged-v2`: sign the v2
+  answer bound to the hub's public key as its `/info` presents it (vector
+  `bound_auth_challenge`, layout in [wire-format.md](wire-format.md)); an older
+  hub names `tagged-v1`: sign `b"wavvon/auth-challenge/v1\0" ||
   challenge` (vector `auth_challenge` in Wavvon-server:
-  `crates/identity/wire-vectors.json`), and only over a challenge of exactly
+  `crates/identity/wire-vectors.json`). Either way only over a challenge of exactly
   `AUTH_CHALLENGE_LEN` (32) bytes. The hub verifies the tagged form only
   (`verify_auth_challenge` in `crates/identity/src/wire.rs`); the raw-challenge
   fallback for hubs without a `scheme` field is gone, and the federation
