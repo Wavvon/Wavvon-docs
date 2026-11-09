@@ -385,6 +385,32 @@ draggable overlay on top of the screen share, **inside the same
 panel**. The viewer can hide the webcam overlay without affecting
 the screen share.
 
+### Floating over a game (single monitor)
+
+With two monitors, moving the Wavvon window to the second screen is
+enough. On one monitor, the shares can float over the game:
+
+- **Desktop:** each watched share has a pop-out button that opens its
+  own always-on-top window, so several can float at once, each moved
+  and resized on its own. Each window has an opacity slider (the last
+  value is remembered) and a click-through button that lets the mouse
+  fall to the game underneath. A click-through window cannot be
+  clicked to turn that off, so the share in the main window shows a
+  button that makes its pop-out clickable again. On macOS the window
+  is not transparent, so the slider only dims it.
+- **Web:** where the browser has Document Picture-in-Picture (Chrome
+  and Edge 116+, Firefox desktop 151+) the Picture-in-Picture button
+  floats every watched share in one small grid window. Safari and
+  mobile browsers lack it and keep the single-video
+  Picture-in-Picture, one share at a time.
+
+An always-on-top window sits above games running in **borderless
+windowed** mode, not above **exclusive fullscreen**. Covering exclusive
+fullscreen would mean injecting into the game's renderer, as in-game
+overlays do, and anti-cheat systems (Riot Vanguard among them) treat
+injection as hostile, so Wavvon does not. Switch the game to borderless
+windowed to see the shares over it.
+
 ### Volume slider
 
 Standard slider, 0–100%, persisted per channel. Muted by default
