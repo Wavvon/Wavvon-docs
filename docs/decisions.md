@@ -6,6 +6,31 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## A peer's DH key is pinned on first use; a change blocks sending until accepted
+
+**Decision** (2026-11-09): each client remembers the first verified DH key it
+sees for a peer (per account, on the device). A different key later, even one
+the peer's identity key validly signed, is treated as a change: the
+conversation shows a warning asking the user to check with the peer another
+way, sending is off, and only "Accept the new key" lets it resume. Elsewhere a
+changed key is refused rather than trusted: voice key distribution skips that
+peer and their messages do not decrypt until it is accepted.
+
+**Alternatives considered**: a warning that does not block sending, or a
+prompt only at send time. Both leave the first message after a change going
+to a key nobody looked at, and that message is the one an attacker who
+obtained the identity key is waiting for. Not pinning at all, which is where
+the signed record (Wavvon-clients#295) left things, stops the hub from
+substituting a key but not anyone holding the peer's identity key.
+
+**Tradeoff**: a false alarm costs a manual check. It should be rare: the DH
+key is derived from the identity seed, so for one pubkey it never changes
+legitimately, and restoring from the recovery phrase restores the same key.
+A pin lives on one device, so a new device trusts on first use again. A peer
+seated under different pubkeys on different hubs has one pin per pubkey.
+
+**Outcome**: Wavvon-clients#349, both clients.
+
 ## A hub that changes key without its old key's signature is a new hub
 
 **Decision** (2026-11-07): a hub is its Ed25519 key. When a saved hub's
