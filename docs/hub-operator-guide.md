@@ -18,7 +18,7 @@ image. Newest first; the release notes have the full detail.
 | Version | What to do |
 |---|---|
 | **0.8.0** (one-time steps) | **Back up before upgrading: the upgrade is one-way.** The database now records a schema version and runs steps 1 to 10 once each (Wavvon-server: `crates/hub/src/db/migrations.rs`); rolling back means restoring that backup, and a v0.7.0 binary, which does not check the version, must never be started on the upgraded database. Step 10 grants @everyone the new `voice.screen_share` and `voice.camera` permissions, so streaming keeps working until you restrict it. Step 7 nulls the cleartext attachments older clients stored beside encrypted DMs. Step 9 moves channel attachments to disk ([attachments.md](attachments.md)): every existing message and forum attachment shows as expired, channel banners must be uploaded again, and the old `<uuid>.<ext>` files in the uploads directory can be deleted (keep `attachments/` and the `sticker_*`, `soundboard_*` and `remote-*` files). Both are irreversible. After upgrading, switch each voice room to the `voice` channel type in its settings: voice now joins only voice channels, and only temporary rooms and the AFK channel convert themselves ([#188](https://github.com/Wavvon/Wavvon-server/issues/188)). If anything scrapes `/metrics`, set `WAVVON_METRICS=true`: it now answers 404 by default. Clients older than 0.7.0 can no longer sign in. |
-| **0.8.0** (settings and behaviour) | New hub settings, all with working defaults: `max_preview_image_bytes` (4 MB); `max_attachments_per_message`, `attachments_cap_bytes` (10 GB; when full the oldest attachments expire, no upload is refused), `attachments_warn_percent` and `attachments_retention_days` (0 keeps them forever); seven `stickers_*` settings plus `sticker_packs_per_hub` ([sticker-storage.md](sticker-storage.md)). `max_attachment_bytes` now limits DMs only. The @everyone defaults are seeded only on a fresh database, so a revoked permission stays revoked across restarts, and @everyone's permissions can now be edited; step 8 grants it `stickers.external` once. Every response carries `X-Content-Type-Options: nosniff`, the web client a Content-Security-Policy, everything else `default-src 'none'; sandbox`; a custom emoji whose bytes do not match its type is now downloaded instead of shown, so re-upload it. The web client's voice uses the browser's WebCodecs Opus: a browser without `AudioEncoder`/`AudioDecoder` cannot join voice there. `wavvon-hub rotate-key` takes no arguments. Behind a reverse proxy, the new ban-evasion flag sees real addresses only with `WAVVON_TRUSTED_PROXY=true`. `wavvon-identity` goes from 0.1.0 to 0.3.0, a breaking API change for code that links it. Screen shares and cameras can be capped with `stream_limits` (`max_width`, `max_height`, `max_fps`, `max_kbps` via `PATCH /hub`; unset means no cap), worth setting on a small VPS since the hub relays every live to everyone who opens it. The HTTP listener now binds `::` and answers IPv6 and IPv4; `WAVVON_BIND_ADDR=0.0.0.0` restores IPv4 only. |
+| **0.8.0** (settings and behaviour) | New hub settings, all with working defaults: `max_preview_image_bytes` (4 MB); `max_attachments_per_message`, `attachments_cap_bytes` (10 GB; when full the oldest attachments expire, no upload is refused), `attachments_warn_percent` and `attachments_retention_days` (0 keeps them forever); seven `stickers_*` settings plus `sticker_packs_per_hub` ([sticker-storage.md](sticker-storage.md)). `max_attachment_bytes` now limits DMs only. The @everyone defaults are seeded only on a fresh database, so a revoked permission stays revoked across restarts, and @everyone's permissions can now be edited; step 8 grants it `stickers.external` once. Every response carries `X-Content-Type-Options: nosniff`, the web client a Content-Security-Policy, everything else `default-src 'none'; sandbox`; a custom emoji whose bytes do not match its type is now downloaded instead of shown, so re-upload it. The web client's voice uses the browser's WebCodecs Opus: a browser without `AudioEncoder`/`AudioDecoder` cannot join voice there. `wavvon-hub rotate-key` takes no arguments (since 0.9.0, optionally `--endorse-from`). Behind a reverse proxy, the new ban-evasion flag sees real addresses only with `WAVVON_TRUSTED_PROXY=true`. `wavvon-identity` goes from 0.1.0 to 0.3.0, a breaking API change for code that links it. Screen shares and cameras can be capped with `stream_limits` (`max_width`, `max_height`, `max_fps`, `max_kbps` via `PATCH /hub`; unset means no cap), worth setting on a small VPS since the hub relays every live to everyone who opens it. The HTTP listener now binds `::` and answers IPv6 and IPv4; `WAVVON_BIND_ADDR=0.0.0.0` restores IPv4 only. |
 | **v0.7.0** | The image runs as the unprivileged `wavvon` user (uid 10001). Before starting it, give it the data volume: `docker compose run --rm --no-deps --user root --entrypoint chown hub -R 10001:10001 /data` (a bind-mounted host directory: `sudo chown -R 10001:10001 <dir>`). Also: the bundled PostgreSQL needs glibc 2.36; `WAVVON_DATABASE_READ_URL` is gone. See the [v0.7.0 release](https://github.com/Wavvon/Wavvon-server/releases/tag/v0.7.0). |
 
 ## Security advisories
@@ -236,14 +236,15 @@ after a reinstall, not the address and not the database.
   [decisions.md](decisions.md), "A hub that changes key without its old
   key's signature is a new hub".
 
-Two things are planned to soften the last case:
-[Wavvon-server#342](https://github.com/Wavvon/Wavvon-server/issues/342)
-(warn loudly when a hub generates a new identity, and
-`rotate-key --endorse-from` for a hub already restarted under a new key while
-the old file survived) and
-[Wavvon-clients#312](https://github.com/Wavvon/Wavvon-clients/issues/312)
-(the client says the hub was reinstalled and offers to join it as new,
-instead of showing "this hub requires an invite").
+Two things soften the last case. The hub logs a loud warning whenever it
+generates a new identity, naming the file to back up. And if the old file
+survived but the hub was already restarted under a new key,
+`wavvon-hub rotate-key --endorse-from <old hub_identity.json>` has the old
+key endorse the current one (it writes `hub_rotation.json` and leaves the
+live identity alone); after a restart, clients that knew the old key follow
+it. That keeps the hub in members' lists as the same hub; it does not bring
+back memberships a lost database took with it. With no old key at all, the
+clients say the hub was reinstalled and offer to join it as a new hub.
 
 ---
 
