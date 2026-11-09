@@ -369,6 +369,12 @@ the check and do not refuse; the backup is still the way back.)
   protection rate-limit at nginx. **Not** behind an HTTP proxy such as
   Cloudflare's orange cloud: it drops the UDP that voice runs on, see
   [hosting.md, Firewall and UDP](hosting.md#firewall-and-udp).
+  If the site has to stay proxied, give voice its own DNS-only name and set
+  `WAVVON_VOICE_PUBLIC_HOST` to it: clients then dial voice there while
+  everything else keeps using the proxied host. The voice certificate is
+  pinned by hash from `/info`, so that name needs no certificate of its own.
+  `wavvon-hub --doctor` warns when the public host resolves into
+  Cloudflare's proxy and this is unset.
 - [ ] **Webhook targets**: outgoing webhooks and an app's `webhook_url` must
   be `https://` to a public host; the hub refuses `localhost`, loopback and
   private ranges, so a member who can register an app cannot aim the hub at
