@@ -1104,9 +1104,12 @@ paths:
       summary: Realtime WebSocket endpoint
       description: |
         Upgrades to a WebSocket carrying all realtime traffic. Authenticate
-        with the `token` query parameter (the session token); the
-        upgrade is rejected with `401`/`403` on invalid, expired, or banned
-        credentials.
+        with a single-use `ticket` from `POST /ws/ticket` (hubs advertising
+        the `ws.ticket` capability), or with the `token` query parameter
+        (the session token itself, which then sits in the URL). The upgrade
+        is rejected with `401`/`403` on invalid, expired, or banned
+        credentials, and `429` when the identity already holds the maximum
+        number of open sockets.
 
         The full message catalogue — every client→server and server→client
         JSON message with exact field names and types — is documented in
@@ -1115,16 +1118,46 @@ paths:
       security: []
       tags: [WebSocket]
       parameters:
+        - name: ticket
+          in: query
+          required: false
+          schema: { type: string }
+          description: Single-use ticket from `POST /ws/ticket`, valid 30 seconds.
         - name: token
           in: query
-          required: true
+          required: false
           schema: { type: string }
-          description: Session token from `POST /auth/verify`.
+          description: Session token from `POST /auth/verify`, when no ticket is used.
       responses:
         "101":
           description: Switching Protocols — WebSocket established.
         "401":
-          description: Invalid or expired token.
+          description: Invalid or expired token or ticket.
+        "429":
+          description: Too many open sockets for this identity.
+
+  /ws/ticket:
+    post:
+      operationId: createWsTicket
+      summary: Trade the session token for a WebSocket ticket
+      description: |
+        Returns a ticket for `GET /ws?ticket=`, so the session token never
+        appears in a URL. Single use, valid for `expires_in` seconds.
+        Advertised as the `ws.ticket` capability.
+      tags: [WebSocket]
+      responses:
+        "200":
+          description: A fresh ticket.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ticket, expires_in]
+                properties:
+                  ticket: { type: string }
+                  expires_in: { type: integer }
+        "401":
+          description: Missing or invalid session token.
 
   # ── Health ────────────────────────────────────────────────────────────────
 
