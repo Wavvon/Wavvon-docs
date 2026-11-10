@@ -4,6 +4,40 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **A room map for voice (2026-11-10)**: the hub had relayed voice zones
+  and both clients had attenuated by them for months, but no client ever
+  sent a zone or a position. A voice room now has a map: someone with
+  `channels.manage` turns it on, everyone clicks it (or uses the arrow
+  keys) to stand somewhere, and voices fade with distance
+  (Wavvon-clients#375, [proximity-voice.md](proximity-voice.md)). Building
+  it found that web had never applied anyone's position: it read the member
+  as `public_key` where the hub sends `pubkey`. Live spec P79 now proves a
+  position crosses from one real client to another. The program side waits
+  for voice in the SDKs ([sdk.md](sdk.md) §8).
+
+- **Group DMs on both clients (2026-11-10)**: web had no sender keys, so it
+  could not send in a group and showed every group message as "upgrade
+  client to read", and neither client could change a group's members. Web
+  now runs the same sender-key ratchet as desktop, pinned to one shared
+  vector, keeps a peer's chain per version so a rotation leaves history
+  readable, and rotates on every membership change; both clients gained
+  "Add people" (a 1:1 becomes a new group) and "Leave group", signed where
+  the hub takes it (Wavvon-clients#372,
+  [e2e-encryption.md](e2e-encryption.md)). Live spec P78 sends a group
+  message across three real clients and checks the hub holds no plaintext.
+
+- **Onboarding asks for the whole profile (2026-11-10)**: the profile step
+  is now the full profile card edited in place, on web and on desktop, which
+  had no profile step at all (Wavvon-clients#374). The rest of the
+  onboarding redesign (interests, hubs for you) reads the public directory
+  and waits for it to be hosted.
+
+- **Smaller pieces the same day**: desktop syncs the top bar's pinned hubs
+  and folders across devices through the prefs blob, like web
+  (Wavvon-clients#371); web announces voice joins and leaves to screen
+  readers, as desktop did (#370); the `packages/ui` suite runs in CI, where
+  it had been absent long enough to hide a failing test (#373).
+
 - **SDKs in six languages, tier 1 (2026-10-18)**: TypeScript, Rust, Python,
   C#, Go and Java libraries for programs — bots and apps — one repo each under
   the organization, Apache-2.0, design in [sdk.md](sdk.md). Each generates

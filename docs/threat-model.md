@@ -32,7 +32,7 @@ DMs, voice transport v2 and device revocation, and said so wrongly.
 | Strangers joining | Invite-only by default for a fresh hub; admission challenges; join approval. |
 | Members reaching channels they should not | Role permissions, channel overrides, channel bans, hub bans. |
 | Unwanted voice | Hub-wide voice mute, per-channel minimum talk power, channel ban. |
-| Hub operator reading DMs | **E2E**: 1:1 DMs use a Double Ratchet; group DMs use per-sender keys on desktop, and the web client refuses to send one rather than send it unencrypted ([e2e-encryption.md](e2e-encryption.md)). The hub stores and relays ciphertext. A recipient with no published DH key gets cleartext only after the sender is asked. |
+| Hub operator reading DMs | **E2E**: 1:1 DMs use a Double Ratchet; group DMs use per-sender keys on both clients, and a member with no published DH key gets no key and cannot read the group (never a plaintext fallback) ([e2e-encryption.md](e2e-encryption.md)). The hub stores and relays ciphertext. A recipient with no published DH key gets cleartext only after the sender is asked. |
 | Hub operator listening to voice | **E2E** since voice transport v2: per-sender AES-256-GCM keys wrapped with X25519; the relay forwards headers only ([voice-transport-v2.md](voice-transport-v2.md)). |
 | Lost or stolen device | The master revokes that device's subkey; hubs refuse it at auth ([multi-device.md](multi-device.md), Revocation). |
 | Harassment from a member | Block, mute and ignore, held on your home hub, applied by your client ([block-mute-ignore.md](block-mute-ignore.md)). Notification modes per hub and channel. |

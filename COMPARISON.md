@@ -19,6 +19,7 @@ feature. Kept factual and up to date as features land.
 | **E2E encrypted DMs (1:1)** | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |
 | **E2E encrypted group DMs** | ✅ sender-key | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |
 | **E2E encrypted voice** | ✅ per-packet AEAD, relay can't listen | ❌ | ❌ | ⚠️ via Element Call | ❌ | ❌ | ❌ |
+| **Positional voice** | ✅ room map | ❌ | ❌ | ❌ | ❌ | ⚠️ 3D sound, set by game plugins | ⚠️ via game plugins |
 | **Multi-device** | ✅ QR pairing | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Account recovery without email** | ✅ phrase, backup file, recovery contacts | ❌ email reset | ❌ email reset | ⚠️ recovery key | ❌ email reset | ❌ | ⚠️ cert backup |
 | **Cross-community federation** | ✅ Alliances | ❌ | ❌ | ✅ rooms | ❌ | ❌ | ❌ |
