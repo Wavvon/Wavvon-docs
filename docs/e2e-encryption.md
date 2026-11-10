@@ -260,9 +260,22 @@ and stored in `group_sender_key_distributions` on the hub.
 
 Members are added and removed with `POST /conversations/{id}/members` and
 `DELETE /conversations/{id}/members/{pubkey}`; the hub emits a
-`dm_member_changed` WS event, and the desktop client answers it by calling
-`rotate_group_sender_key`. The web client has no sender keys yet
-(Wavvon-clients#190), so it only reloads the conversation list.
+`dm_member_changed` WS event, and both clients answer it by rotating their
+own sender key (desktop `rotate_group_sender_key`, web
+`rotateGroupSenderKey`). Rotation is the one rule for an add too: a fresh
+chain for the new membership is simpler than re-wrapping the current one, and
+costs the new member nothing they could read anyway. The device that made the
+change rotates without waiting for the event, which may not reach it.
+
+The client UI offers "Add people" and "Leave group". A 1:1 conversation never
+grows (the hub refuses), so adding people to one starts a new group with the
+peer and them. Where the hub advertises `dms.group.signedmembers`, every
+change carries the actor's signature over `dm_member_change_signing_bytes`, so
+members on other hubs apply it too.
+
+Web keeps a peer's chain per sender key version rather than only the newest,
+so a rotation leaves the messages before it readable; desktop keeps only the
+newest version.
 
 ---
 
@@ -373,13 +386,14 @@ holds `EncryptedDmEnvelope`; when `is_group_encrypted=1` it holds
 | Local chain-key state file `group_sender_keys.json` (per account, `~/.wavvon/accounts/<id>/`) | managed by Tauri commands |
 | Group DM send path uses `encrypt_group_dm` | `apps/desktop/src/hooks/useDms.ts` |
 | `get_dm_messages` decrypts group envelopes inline | `dm.rs` |
-| Group DM banner replaced by lock icon once all keys are available | shared `ContentArea` in `packages/ui` |
+| The same ratchet, wrap and signing bytes in TypeScript, pinned to one shared vector | `packages/core/src/identity/crypto.ts` |
+| Web distribution, encryption, key fetch and rotation | `apps/web/src/platform/commands/groupDms.ts` |
+| Group messages show the lock; the old "not end-to-end encrypted" banner is gone | shared `DmView` in `packages/ui` |
 
 ---
 
 ### What's deferred
 
-- Key rotation on membership change in the web client (it has no sender keys yet)
 - Federation of key distributions to remote recipient hubs
   (v2 delivers to members on the same hub; cross-hub distribution is handled
   by the same outbox/retry path as DM messages once that is extended)
