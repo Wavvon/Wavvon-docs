@@ -1,14 +1,20 @@
 # Proximity Voice
 
-> **Status (2026-11-02):** hub zone protocol and client attenuation
-> built; the game-SDK surface below is not. What differs from this
-> design: zones need hub-level `channels.manage` (it absorbed
-> `manage_voice`; the hub's error text still says "manage_voice"), with
+> **Status (2026-11-10):** hub zone protocol, client attenuation and a
+> UI built; the game-SDK surface below is not. The UI is the **room map**
+> (Wavvon-clients#375, `packages/ui` `VoiceRoomMap`): someone with
+> `channels.manage` turns it on for a voice room, which creates one 2D
+> `linear` zone with `max_radius` 60 over a 0..100 square, and everyone in
+> the room clicks it, or uses the arrow keys, to stand somewhere. The
+> program surface waits for voice in the SDKs ([sdk.md](sdk.md) §8): the
+> hub takes positions only from a member in voice. What differs from this
+> design: zones need `channels.manage` (it absorbed `manage_voice`), with
 > no game-session host bypass, because game sessions were removed with
 > the bot/game model ([decisions.md](decisions.md), "A bot is a client
 > like any other"); `session_id` is stored but nothing checks it, and
-> `auth_mode: "session_roster"` now refuses every position update. No
-> per-user position rate limit is enforced. Voice itself moved from UDP
+> `auth_mode: "session_roster"` now refuses every position update. A
+> member's position updates are dropped when closer than 30 ms apart, and
+> the clients send one per click. Voice itself moved from UDP
 > to WebTransport on 2026-08-07
 > ([voice-transport-v2.md](voice-transport-v2.md)). Attenuation lives in
 > Wavvon-clients `apps/desktop/src-tauri/src/ws.rs` (desktop) and
