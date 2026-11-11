@@ -6,6 +6,47 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Interim web hosting: the pilot on Cloudflare Pages, the nightly on GitHub Pages
+
+**Decision** (2026-11-11): until there is a VPS and a final domain, the user
+build ("Two web clients", below) runs as a **pilot** at `wavvon.pages.dev`,
+built by Cloudflare Pages from Wavvon-clients `main`, so it follows releases.
+A **nightly** of `develop` is published on every merge to GitHub Pages at
+`wavvon.github.io/Wavvon-clients/`. Each carries a banner: the pilot says it
+is a trial and that moving to the final client means bringing the identity
+across; the nightly says it may break and wants a throwaway identity. The hub
+build's handover points at the pilot (`USER_CLIENT_ORIGIN`).
+
+This reverses a call made the day before, never written here, to leave the
+user build undeployed until the VPS: a client people can open is worth more
+for demos than one home for every public surface.
+
+**Alternatives considered**: both channels on GitHub Pages. Every Pages site
+of an organization shares the origin `wavvon.github.io`, so the nightly's
+`develop` code would read and write the pilot's IndexedDB, where the
+identity keys live. With no client data migrations in alpha, one schema
+change on `develop` could corrupt pilot identities. Namespacing storage per
+channel avoids the corruption but not the shared origin, and touches every
+stored key. Two hosts give two origins for free. Cloudflare takes the pilot
+because it can send headers (`_headers`, so the pilot gets the hub's CSP,
+`frame-ancestors` included) and serves the app on every path, so it needs no
+base-path support; the nightly accepts a `<meta>` CSP and a subpath. A
+`*.workers.dev` address was rejected because it carries the account's
+subdomain.
+
+**Tradeoff**: identity storage is per origin, so the pilot's users must move
+to the final domain explicitly: a banner pointing there, the existing
+`postMessage` handover with the pilot as sender, the backup file as the
+fallback, and a redirect only after a grace period, since an early redirect
+strands anyone who has not moved. Hub images released meanwhile have
+`wavvon.pages.dev` baked in as their handover target, so that host stays up
+and forwards. Buying the final domain now and putting it in front of
+Cloudflare would have avoided the move entirely; there is no name yet.
+
+**Outcome**: pilot deployed 2026-11-11. Work in Wavvon-clients#38 (banner,
+CSP, handover target), #379 (nightly) and #380 (the move to the final
+domain).
+
 ## A peer's DH key is pinned on first use; a change blocks sending until accepted
 
 **Decision** (2026-11-09): each client remembers the first verified DH key it
