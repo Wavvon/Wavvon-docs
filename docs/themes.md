@@ -66,6 +66,10 @@ Every block is optional except `format`, `version`, `name` and `colors`.
   each mapped to an audio file in the zip. The user's sound volume and
   on/off settings still apply.
 
+The loader, the install and switch flow, the hub default and the directory
+download are written once for both themes and [language packs](language-packs.md),
+which use the same mechanism with a different package.
+
 ## 2. Limits
 
 Zip at most 8 MB; background at most 2 MB; each icon at most 64 KB; each

@@ -6,6 +6,43 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Language packs ride the theme mechanism, with the security strings locked
+
+**Decision** (2026-11-14): a hub owner or a user can add a language to the
+official client without a release. A `.wavvonlang` package carries one
+language's strings; it installs, switches, is offered by a hub and is listed
+in the directory exactly as a theme is, as a separate package. Design:
+[language-packs.md](language-packs.md).
+
+**Why now.** The entry in future-features.md waited for a fifth language and
+for desktop delivery, because the measured cost of shipping catalogues was
+small. That measured the bundle, not the feature: what an owner wants is to
+offer the language of their community, and the theme work builds the whole
+mechanism a pack needs.
+
+**Why separate from themes.** The choices are independent (one theme, any
+language), and a theme is safe precisely because it cannot change what the
+interface says. Folding strings into themes would give every gallery theme
+that power.
+
+**The rules that make text safe**: the strings of the recovery phrase, backup,
+key confirmation, pairing and security warnings are locked to the official
+catalogue; a translation is never rendered as HTML; a translated string must
+keep the English placeholders. *Found while designing it*: the client renders
+seven translated strings as HTML today (`dangerouslySetInnerHTML` over
+`t(...)`, Wavvon-clients `packages/ui`), harmless with catalogues we ship
+and an injection point with one we do not. Those go first.
+
+*Alternatives considered*: (a) **strings inside themes** — rejected above;
+(b) **a hub setting that only picks among the shipped languages** — covers
+nobody whose language we do not ship, which is the person this is for;
+(c) **review packs before listing them** — the directory does not gatekeep
+(decisions.md, "Every listing on the directory is signed"); the locked keys
+are what make an unreviewed pack safe.
+
+*Tradeoff*: a community translation can be wrong or stale. Missing keys fall
+back to English and the picker shows coverage, so it degrades visibly.
+
 ## Themes are packages for the official client; the directory lists them in two sections
 
 **Decision** (2026-11-14): a **theme** replaces the skin entirely: the skin,
