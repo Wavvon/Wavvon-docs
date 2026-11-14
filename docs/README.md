@@ -72,6 +72,7 @@ had a "recently shipped" section, whatever this line used to claim):
 25. [client-qol.md](client-qol.md) — client quality-of-life: global search, drafts, custom emojis, events, polls, thread collapse, notification grouping
 26. [store-trait-design.md](store-trait-design.md) — **historical**: the `HubStore` trait and `store` crate, since removed — the hub queries PostgreSQL directly (`AppState.db` is a `PgPool`). Kept for the reasoning
 27. [custom-themes.md](custom-themes.md) — user-created skins over the two built-in themes (dark / light): CSS token system, .wavvonskin file format, export/import, persistence
+27. [themes.md](themes.md) — **designed, not built** — themes for the official client: one package of colours, icons, background, layout and font, no code; a hub default; the directory's two theme sections
 28. [brand.md](brand.md) — motto, one-liner, logo brief and asset checklist (final logo asset still pending)
 
 ### Recent and future designs (status per entry)
@@ -179,6 +180,7 @@ Reading order is for learning the system end-to-end. This section is for
 - **Window title unread count** — [client.md](client.md)
 - **Themes (dark / light)** — [client.md](client.md), [custom-themes.md](custom-themes.md)
 - **Custom user skins** — [custom-themes.md](custom-themes.md)
+- **Themes (colours, icons, background, layout)** — [themes.md](themes.md)
 - **Quick channel switcher (Ctrl+K)** — [client.md](client.md)
 - **Hub drag-drop reorder, /info preview, clear local data** — [client.md](client.md)
 - **Client QoL (search, drafts, emojis, events, polls, threads)** — [client-qol.md](client-qol.md)

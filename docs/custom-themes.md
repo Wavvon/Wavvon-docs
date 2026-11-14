@@ -1,5 +1,8 @@
 # Custom Themes (User Skins)
 
+> **2026-11-14**: a skin is now the colours part of a theme ([themes.md](themes.md)).
+> A `.wavvonskin` still imports, as a colours-only theme.
+
 **Status:** **built on web** — `apps/web/src/components/settings/
 CustomThemesSection.tsx` over the shared `SkinEditor` (`packages/ui`),
 reached from the Appearance tab; the theme library and the active selection
@@ -280,9 +283,9 @@ A **skin gallery in Wavvon-discovery** is built — see §11.
 
 ## 11. Discovery skin gallery
 
-> **Superseded 2026-11-14**: removed from the directory and the clients;
-> skins travel as `.wavvonskin` files (decisions.md, "The directory drops
-> the skin gallery; skins travel as files"). Kept below as the record.
+> **Superseded 2026-11-14** by the theme gallery in [themes.md](themes.md) §4
+> (decisions.md, "Themes are packages for the official client"). Kept below
+> as the record.
 
 > **Status: built.** Discovery: `src/app/api/skins/route.ts` (list +
 > register) and `api/skins/[id]/route.ts` (detail + delete), verified

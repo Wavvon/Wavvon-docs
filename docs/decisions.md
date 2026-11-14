@@ -6,7 +6,55 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Themes are packages for the official client; the directory lists them in two sections
+
+**Decision** (2026-11-14): a **theme** replaces the skin as what a user
+installs. It is a `.wavvontheme` package (colours, icons, background, layout
+options, font) for the **official Wavvon client**, with no code and no free
+CSS. A user installs it, switches it and shares it as a file; a hub owner can
+set one as the hub's default, and the user's own choice always wins. The
+directory lists themes in two sections: **themes for the Wavvon client**,
+which that client installs after checking a pinned hash, and **themes for
+other clients**, which the author describes in free text and the directory
+only lists. Design: [themes.md](themes.md).
+
+**Why.** Colours alone do not let somebody make the client theirs: what people
+mean by a theme (TeamSpeak calls them user themes) also moves icons, changes
+how the channel and member lists look and puts an image behind the
+interface. We want people on the official client, so the format targets it,
+and the directory still lists themes made for other clients rather than
+pretending they do not exist.
+
+**No code is the line.** A theme from a stranger runs in the window that
+holds the user's keys. Free CSS can draw "type your recovery phrase here" over
+the interface or hide a warning; script can read the key. A theme therefore
+picks values from closed sets the client defines, and layout changes only
+among the variants the client implements. A layout no option covers is a
+variant of the client, not a theme.
+
+*Alternatives considered*: (a) **colours only, files only** (the entry below,
+same day) — superseded within hours: it removed the gallery because skins
+could not say which client they fit, and it answered a smaller question than
+the one being asked; (b) **free CSS with a sanitiser** — rejected: a CSS
+sanitiser that blocks overlays, `content:` and every exfiltration trick is a
+moving target, and one miss is a phishing kit; (c) **themes for any client**,
+with a vocabulary every client declares — rejected for now: it designs a
+protocol for clients that do not exist, and it serves the goal of people
+using the official client worse.
+
+*Tradeoff*: a theme can only do what the client exposes. Every new layout
+option is client work, and every theme gains it at once.
+
+*Also found*: the skin gallery being replaced had been broken: discovery
+accepted only the old base names (`calm`, `classic`, `linear`, `light`)
+while the clients accept only `dark` and `light`.
+
+*Supersedes* "The directory drops the skin gallery; skins travel as files"
+(below) and [custom-themes.md](custom-themes.md) §11.
+
 ## The directory drops the skin gallery; skins travel as files
+
+> **Superseded the same day** by "Themes are packages for the official client; the directory lists them in two sections" (above). Kept as the record.
 
 **Decision** (2026-11-14): the discovery skin gallery is removed:
 `/api/skins` in Wavvon-discovery and `SkinsGallery` in both clients. A skin
