@@ -38,15 +38,6 @@ items, different order).
 What is left is which entries to add at all, each its own small question rather
 than a given:
 
-- **Mute with a duration** (15 min / 1 h / until tomorrow) — today notification
-  mode is a permanent choice. The mechanism it needs now exists: presence
-  stores an absolute `until` beside the status and applies it on load
-  (`packages/ui/src/utils/presenceExpiry.ts`, 2026-09-05), so a timed mute is
-  that shape pointed at `hubNotifyMode` rather than a new one. Copy the
-  deadline, not the timer — a timer alone is what made timed presence
-  permanent across a reload. What is left is where it lives: notify mode is
-  per hub *and* per channel, so an expiry per entry is a different storage
-  question from presence's one per user.
 - **Create category** and **create event** — both exist elsewhere in the UI;
   the question is only whether the hub menu is a second door to them.
 - **Per-hub profile** — Wavvon has hub profiles already
