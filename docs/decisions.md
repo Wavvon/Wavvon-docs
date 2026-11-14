@@ -6,6 +6,57 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## An operator chooses the web client a hub serves, from a pinned download
+
+**Decision** (2026-11-14): the hub can serve a web client it fetches from the
+internet, not only one already on its disk. Two settings name it:
+`WAVVON_WEB_CLIENT_URL` (an `https` archive of a built client) and
+`WAVVON_WEB_CLIENT_SHA256` (its hash). The hash is **required**: without it
+the hub refuses to start. At boot the hub downloads the archive, checks the
+hash, unpacks it into a cache keyed by that hash and serves it exactly as it
+serves `WAVVON_WEB_CLIENT_DIR` today. A failed download or a mismatched hash
+is an error, never a silent fallback to something else. Docker needs no
+code: an image that copies its client into a shared volume, with the hub's
+`WAVVON_WEB_CLIENT_DIR` pointing at that volume, is a compose example in the
+operator guide.
+
+**Why.** "Two web clients" (below) put the invite link on the hub's own
+origin so the operator owns how people arrive. A directory setting already
+let an operator serve any client, but only one they had built and copied onto
+the box, which in practice meant only ours. Letting an operator pick a client
+someone else publishes gives client authors a reason to build and advertise
+one, and every such client advertises Wavvon with it.
+
+**The constraint that shapes it.** A web client holds its users' private keys.
+A hub that fetched "whatever is at this URL" would hand every identity on the
+hub to whoever controls that URL, today or on any later boot. Pinning the hash
+makes the operator's choice an exact build: the author cannot change the code
+under them, and an upgrade is the operator changing URL and hash together.
+
+*Alternatives considered*: (a) **a URL without a hash**, trusting TLS and the
+host — rejected: it moves the trust from a build to a domain, and a compromised
+release page would ship itself to every hub at its next restart; (b) **a
+signature by the client's author instead of a hash** — deferred, not rejected:
+it lets an operator follow a trusted author's releases, but it needs the key
+distribution the directory catalogue below provides, and a hash works on day
+one; (c) **only document the volume approach** — it covers Docker operators
+and nobody running the binary.
+
+*What stays the hub's*: the Content-Security-Policy. A third-party client must
+run under the hub's CSP (Wavvon-server: `crates/hub/src/web_client.rs`, `HTML_CSP`), which is a security
+floor, not a styling choice: inline scripts beyond the pinned hash, remote
+script origins and framing stay forbidden. A client that needs more is a
+client to change, not a policy to relax.
+
+*Tradeoff*: an operator who pins a hash also pins every bug in that build
+until they update it. Accepted; that is already the deal with the bundled
+client and the image tag.
+
+*Later*: a catalogue of clients in the directory (clients already publish
+signed `.wavvonclient` listings), from which an admin panel picks a build and
+the hub downloads and verifies it as above. Built when there is a third-party
+client to put in it.
+
 ## Interim web hosting: the pilot on Cloudflare Pages, the nightly on GitHub Pages
 
 **Decision** (2026-11-11): until there is a VPS and a final domain, the user

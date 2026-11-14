@@ -138,6 +138,18 @@ learns the language list. The path is also already spoken for — `/join/{code}`
 `/adopt`, `/hub/{slug}` — so a language segment would ride along on shared
 invite links and open in the *sender's* language.
 
+## A client catalogue the admin panel picks from
+
+A hub already serves a pinned third-party web client from a URL and hash
+(decisions.md, "An operator chooses the web client a hub serves, from a pinned
+download"). The intent is that an operator picks one from a list instead of
+pasting a hash: client authors publish builds in the directory next to their
+signed `.wavvonclient` listing, the admin panel shows them, and the hub downloads
+and verifies the chosen one. Open questions: whether the listing carries the
+hash or an author signature over each build, and how a hub follows an author
+releases without auto-updating to code the operator never chose. Gated on a
+third-party client existing to put in it.
+
 ---
 
 > Demand-gated tails of shipped features live in their own docs, not here:
