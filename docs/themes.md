@@ -2,9 +2,9 @@
 
 **Status: designed, not built** (2026-11-14). Rationale in
 [decisions.md](decisions.md), "Themes are packages for the official client;
-the directory lists them in two sections". Supersedes the skin as the unit a
-user installs; a `.wavvonskin` keeps importing as a colours-only theme
-([custom-themes.md](custom-themes.md)).
+the directory lists them in two sections". Replaces skins entirely: the skin, the `.wavvonskin` format and its
+import are removed, not kept alongside ([custom-themes.md](custom-themes.md)
+is the record of what they were).
 
 A theme changes how the official Wavvon client looks: colours, icons,
 background, layout and font, installed and switched in one click, shared as a
@@ -37,8 +37,8 @@ it names.
 
 Every block is optional except `format`, `version`, `name` and `base`.
 
-- **`tokens`**: the skinnable colour tokens and their value rules, exactly as
-  for a skin ([custom-themes.md](custom-themes.md) §1, §7).
+- **`tokens`**: the colour tokens and their value rules, carried over from the
+  retired skins ([custom-themes.md](custom-themes.md) §1, §7).
 - **`icons`**: a closed set of icon names, each mapped to an SVG or a raster
   image in the zip. An unknown name is ignored. Icons are always rendered as
   images (`<img>` or a CSS mask), never inlined: inline SVG can run script.
@@ -64,11 +64,10 @@ server who uses it.
 ## 3. Where a theme comes from
 
 - **The user** imports a file, installs one from the directory, or builds one
-  in the editor (today's skin editor, grown tabs for icons, background and
+  in the editor (the skin editor becomes the theme editor, with tabs for icons, background and
   layout). Export writes a `.wavvontheme`. Installed themes live on the
-  device and in the full backup; a colours-only theme keeps syncing through
-  the settings as skins do today, and syncing packages with images through
-  the home hub comes later.
+  device and in the full backup; syncing them through the home hub comes later.
+  Skins saved today are not migrated (alpha: no client data migrations).
 - **The hub owner** uploads a theme in the admin panel. The hub validates it
   with the same rules, stores it and serves it publicly; the client served by
   that hub applies it before first paint. **The user's own choice always wins**

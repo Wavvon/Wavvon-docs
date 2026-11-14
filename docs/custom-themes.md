@@ -1,7 +1,8 @@
 # Custom Themes (User Skins)
 
-> **2026-11-14**: a skin is now the colours part of a theme ([themes.md](themes.md)).
-> A `.wavvonskin` still imports, as a colours-only theme.
+> **Superseded 2026-11-14 by [themes.md](themes.md).** Skins and the `.wavvonskin`
+> format are replaced entirely by themes, with no import path. Kept as the
+> record; the token taxonomy (§1) and value rules (§7) carry over into themes.
 
 **Status:** **built on web** — `apps/web/src/components/settings/
 CustomThemesSection.tsx` over the shared `SkinEditor` (`packages/ui`),

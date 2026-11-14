@@ -8,8 +8,8 @@ so this file stays small enough to read whole.
 
 ## Themes are packages for the official client; the directory lists them in two sections
 
-**Decision** (2026-11-14): a **theme** replaces the skin as what a user
-installs. It is a `.wavvontheme` package (colours, icons, background, layout
+**Decision** (2026-11-14): a **theme** replaces the skin entirely: the skin,
+the `.wavvonskin` format and its import go, with no migration (alpha). It is a `.wavvontheme` package (colours, icons, background, layout
 options, font) for the **official Wavvon client**, with no code and no free
 CSS. A user installs it, switches it and shares it as a file; a hub owner can
 set one as the hub's default, and the user's own choice always wins. The
