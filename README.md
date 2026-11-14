@@ -1,5 +1,8 @@
 # Wavvon
 
+[![Docs check](https://github.com/Wavvon/Wavvon-docs/actions/workflows/check-docs.yml/badge.svg)](https://github.com/Wavvon/Wavvon-docs/actions/workflows/check-docs.yml)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
+
 **Built for players. Owned by no one.**
 
 A decentralized platform where players can hang out, talk, and play
