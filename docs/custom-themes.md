@@ -284,7 +284,7 @@ A **skin gallery in Wavvon-discovery** is built — see §11.
 
 ## 11. Discovery skin gallery
 
-> **Superseded 2026-11-14** by the theme gallery in [themes.md](themes.md) §4
+> **Superseded 2026-11-14** by the theme gallery in [themes.md](themes.md) §5
 > (decisions.md, "Themes are packages for the official client"). Kept below
 > as the record.
 
