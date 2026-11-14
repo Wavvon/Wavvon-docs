@@ -146,7 +146,7 @@ download"). The intent is that an operator picks one from a list instead of
 pasting a hash: client authors publish builds in the directory next to their
 signed `.wavvonclient` listing, the admin panel shows them, and the hub downloads
 and verifies the chosen one. Open questions: whether the listing carries the
-hash or an author signature over each build, and how a hub follows an author
+hash or an author signature over each build, and how a hub follows an author’s
 releases without auto-updating to code the operator never chose. Gated on a
 third-party client existing to put in it.
 
