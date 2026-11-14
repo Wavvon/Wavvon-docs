@@ -55,9 +55,11 @@ whatever the source:
 - **Text only.** A translation is never rendered as HTML. Formatting in a
   string (bold, a key name) uses i18n components with fixed tags supplied by
   the code, not markup inside the value.
-- **Same placeholders.** A translated string must carry exactly the
-  `{{placeholders}}` of the English one; a value that does not is dropped and
-  falls back.
+- **Same placeholders, valid ICU.** Messages are ICU (`{name}`, one brace;
+  plurals as `{count, plural, …}`). A translated string must parse as ICU and
+  carry exactly the arguments of the English one, the rule `check-i18n`
+  already applies to the shipped catalogues; a value that does not is dropped
+  and falls back.
 
 ## 3. Where a language comes from
 
