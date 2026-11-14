@@ -6,6 +6,33 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## The directory drops the skin gallery; skins travel as files
+
+**Decision** (2026-11-14): the discovery skin gallery is removed:
+`/api/skins` in Wavvon-discovery and `SkinsGallery` in both clients. A skin
+is shared the way it already could be: Export writes a `.wavvonskin` file,
+Import validates it and previews it before applying, the synced settings carry
+it to the user's other devices, and the full backup keeps it.
+
+**Why.** Once a hub can serve a third-party client (the entry below), a skin
+stops being universal: it is a map of the official client's CSS tokens, and
+on a client with other tokens it does nothing or applies half. A gallery would
+have to know which client every skin fits, and a client listing has no stable
+id to point at (its id is the hash of its signed document, new on every
+republish). That machinery buys a browse page few people used; a file passed
+in a chat buys the same sharing.
+
+*Alternatives considered*: (a) **tag skins with a token vocabulary**
+(`"tokens": "wavvon/1"`) that client listings declare they accept: workable,
+and the right shape if a gallery comes back, but a protocol for a feature with
+no demand; (b) **keep the gallery for the official client only**: a directory
+that silently means "for our client" is the gatekeeping the directory avoids.
+
+*Tradeoff*: no place to browse skins strangers made. Accepted until somebody
+asks for one; option (a) is the way back.
+
+*Supersedes* [custom-themes.md](custom-themes.md) §11 "Discovery skin gallery".
+
 ## An operator chooses the web client a hub serves, from a pinned download
 
 **Decision** (2026-11-14): the hub can serve a web client it fetches from the

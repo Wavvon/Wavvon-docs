@@ -280,6 +280,10 @@ A **skin gallery in Wavvon-discovery** is built — see §11.
 
 ## 11. Discovery skin gallery
 
+> **Superseded 2026-11-14**: removed from the directory and the clients;
+> skins travel as `.wavvonskin` files (decisions.md, "The directory drops
+> the skin gallery; skins travel as files"). Kept below as the record.
+
 > **Status: built.** Discovery: `src/app/api/skins/route.ts` (list +
 > register) and `api/skins/[id]/route.ts` (detail + delete), verified
 > through `src/lib/signed-listing.ts`. Client: the shared
