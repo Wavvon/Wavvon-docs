@@ -174,6 +174,32 @@ once the iframe has loaded, so the token never appears in the URL.
 (An Android section planned a Tauri Android `WebviewWindow`; that client
 was removed 2026-07-12.)
 
+## Multiplayer input: what exists
+
+Every player who clicks Join gets **their own frame**, with their own scoped
+token and socket. A player's keyboard and mouse act in their own frame only;
+nothing is shared between frames directly. A frame sends its input or state
+to the app as `mini_app_message`, and the app fans out to each player with
+`to_pubkey` (one send per player; there is no channel-wide broadcast). So a
+multiplayer game works today with the app as the authority, which is also
+where cheating is checked. The hub relays and inspects nothing.
+
+What a game frame lacks, and is **clients work needed** (no issue yet):
+
+- **Focus on open (web).** `GameModal` does not focus the iframe, so
+  keystrokes go to the host page until the player clicks into the game.
+  Focus `iframe.contentWindow` on `load`. Desktop opens a window that takes
+  focus already.
+
+Deferred until a game asks: `allow-pointer-lock` in the sandbox and
+`allow="fullscreen; gamepad"` on the iframe.
+
+## Host bridge
+
+A frame can ask its own client to move its user in a proximity voice room:
+`wavvon:setVoicePosition`, specified in [mini-app-bridge.md](mini-app-bridge.md).
+It is the only thing a frame may ask of the client.
+
 ## App author experience
 
 An app author ships two things:
@@ -216,7 +242,7 @@ is a deployment concern for whoever runs the app, not a hub concern.
 ## Example: shared whiteboard
 
 Simpler than Gartic Phone: no game state, no turns. The app just fans
-every stroke event out to all channel members. Bot process could be a
+every stroke event out to all channel members. The app process could be a
 ~50-line Node.js script; the mini-app is a plain HTML canvas. No hub
 changes needed beyond the mini-app registration.
 
@@ -235,9 +261,9 @@ changes needed beyond the mini-app registration.
 
 ## Open questions
 
-- **Token delivery on web** — `postMessage` from the parent frame is what
-  shipped, but it posts with target origin `"*"` and no handshake; pinning
-  the target origin to the `mini_app_url` origin is still open.
+- **Token delivery on web** — settled: `GameModal` posts the context to the
+  `mini_app_url` origin only, so a frame that navigated elsewhere gets
+  nothing.
 - **Mini-app URL allow-listing** — should hub operators restrict which
   `mini_app_url` domains are permitted? A per-hub allow-list in
   `hub.toml` seems right; default open.

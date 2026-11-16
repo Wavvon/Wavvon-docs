@@ -142,6 +142,15 @@ Joining and leaving a voice channel are `voice.joined` / `voice.left`, with
 the `channel_id`. A hub advertises `events.member.joined` in its capabilities;
 on an older hub `member.joined` still meant a voice join.
 
+**Gap:** a live push and an outgoing webhook carry only `payload`, and the
+payload of `member.joined` and `voice.joined` (`{ display_name }`) names
+nobody, so a live subscriber
+learns that someone joined but not who; only a replay or a poll, which read
+`actor_pubkey` from the audit row, can say. Wavvon-server
+`crates/hub/src/apps/events.rs` `publish_hub_event` builds the live
+`HubEvent` without the row's `actor_pubkey` / `target_pubkey` /
+`channel_id`; the fix is to send them live as well.
+
 `GET /admin/audit-log` is the same stream as an admin view, gated on
 `audit.read`.
 

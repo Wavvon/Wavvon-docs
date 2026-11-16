@@ -1,7 +1,8 @@
 # SDKs
 
-**Tier 1 built, 0.1.0, not yet published to any registry.** Libraries that let
-a third party write a program that talks to a hub, in six languages:
+**Tier 1 built and published to every registry (2026-11-13).** Thin libraries
+for anyone writing a program that talks to a hub, whether that program is a
+bot or a brand-new third-party client, in six languages:
 [TypeScript](https://github.com/Wavvon/Wavvon-sdk-js),
 [Rust](https://github.com/Wavvon/Wavvon-sdk-rust),
 [Python](https://github.com/Wavvon/Wavvon-sdk-python),
@@ -18,6 +19,13 @@ shape and the boundaries.
 An SDK adds no concept the hub does not have. A program is a client
 ([apps.md](apps.md)): a keypair, the same challenge, the same session, the
 same permissions. There is no bot account to model and no flag to set.
+
+**Mechanism, never policy.** An SDK exposes what the hub offers (the API,
+chat, DMs including E2E, voice, mini-app frames, admin, integrations,
+webhooks, events) and decides nothing a program might want to decide
+differently: when to answer, whom to trust beyond the protocol, what to
+persist, how to react to a moderator. Where a choice exists, the SDK raises
+an event or takes a hook with a plain default, and the program sets it.
 
 ---
 
@@ -40,7 +48,7 @@ change is six PRs. The conformance suite is what makes that price bearable:
 drift fails CI in the repo that drifted, instead of relying on someone
 remembering the other five.
 
-## 2. Tier 1: programs (bots and apps)
+## 2. Tier 1: the community axis, in cleartext
 
 Everything [apps.md](apps.md) describes, and nothing beyond it:
 
@@ -128,10 +136,9 @@ authority:
   readable at a pinned commit. Each SDK's CI fetches a pinned version and
   asserts every vector its tier implements; bumping the pin is the PR that
   shows what changed.
-- **What it holds for tier 1.** The auth-challenge vector exists today. The
-  slash-dispatch Ed25519 verification and the webhook HKDF+HMAC derivation are
-  hub-side code with no vectors yet — they are added to the suite first,
-  because they are exactly what a third party implements.
+- **What it holds for tier 1.** `auth_challenge`, `bound_auth_challenge`,
+  and the two webhook signatures (`webhook_delivery_hub` for Ed25519
+  dispatch, `webhook_delivery_outgoing` for the HKDF+HMAC deliveries).
 - **The existing mirrors join it.** The clients' TypeScript and desktop Rust
   mirrors move from copied vectors to the same file, so the discipline in
   [wire-format.md](wire-format.md) has one source rather than three.
@@ -171,8 +178,10 @@ missed every cross-process bug this project has had.
   a new one opens a server-side change first.
 - **Model a bot as a kind of account**, or send `is_bot`. That path was
   deleted ([apps.md](apps.md) §1).
-- **Mix the two axes.** Tier 1 is community-axis only; personal-axis state
-  belongs to tier 2 and the home hub.
+- **Mix the two axes.** Tier 1 is community-axis only. E2E DMs
+  ([sdk-dm.md](sdk-dm.md)) are personal-axis and keep their state (ratchet
+  sessions, pins) in the program's store, never in a community hub's tables;
+  the rest of the personal axis (home hub list, prefs, devices) is tier 2.
 
 ## 7. Versioning and release
 
@@ -183,24 +192,36 @@ lacks it is handled at runtime by §5, not by the version number. Pre-1.0 while
 the hub is pre-1.0. The README of each SDK lists which capabilities each
 feature needs and which conformance-suite version it is pinned to.
 
-## 8. Tier 2: a full client (later)
+## 8. Tier 2: voice and E2E DMs first, the rest of a full client after
 
-E2E DMs (X25519 from the Ed25519 seed, AES-256-GCM, signed envelopes, group
-sender keys — [e2e-encryption.md](e2e-encryption.md)), multi-device subkey
-certs and pairing ([multi-device.md](multi-device.md)), the home hub list and
-prefs blob ([home-hub.md](home-hub.md)), and voice over WebTransport with Opus
-and voice E2E ([voice-transport-v2.md](voice-transport-v2.md)).
+Tier 2 is what a full client holds beyond tier 1: voice over WebTransport with
+Opus and voice E2E ([voice-transport-v2.md](voice-transport-v2.md)), E2E DMs
+([e2e-encryption.md](e2e-encryption.md)), multi-device subkey certs and
+pairing ([multi-device.md](multi-device.md)), and the home hub list and prefs
+blob ([home-hub.md](home-hub.md)).
 
-Why it waits: it is most of `wire-format.md` reimplemented byte for byte six
-times; X25519 conversion and AEAD vary far more across ecosystems than
-Ed25519; voice needs QUIC/WebTransport and native Opus, immature in several of
-these languages. Tier 1 already makes a program a full participant in
+**Voice and E2E DMs come first**, together, because one published DH key
+enables both and a program holding it gets both from the clients anyway
+(decisions.md, "SDK voice and E2E DMs: the SDK offers the mechanism, the
+program sets the policy"). Specs: [sdk-voice.md](sdk-voice.md) and
+[sdk-dm.md](sdk-dm.md). Per language:
+
+| SDK | Voice | E2E DMs | Tracking |
+|---|---|---|---|
+| Rust | first; settles the API | with voice | [Wavvon-sdk-rust#19](https://github.com/Wavvon/Wavvon-sdk-rust/issues/19) |
+| Go | next (`webtransport-go`) | with voice | [Wavvon-sdk-go#15](https://github.com/Wavvon/Wavvon-sdk-go/issues/15) |
+| Python | after a spike on `aioquic` as a WebTransport client | with voice | [Wavvon-sdk-python#14](https://github.com/Wavvon/Wavvon-sdk-python/issues/14) |
+| TypeScript | blocked on native WebTransport in Node | possible now (`@noble/curves` has X25519) | [Wavvon-sdk-js#18](https://github.com/Wavvon/Wavvon-sdk-js/issues/18) |
+| C# | none: no WebTransport client in .NET | possible (X25519, HKDF, AES-GCM via the BCL or NSec) | none yet |
+| Java | none: no WebTransport client | possible (JDK 11+ has X25519, AES-GCM) | none yet |
+
+E2E DMs need no transport beyond REST and the WebSocket every SDK already
+holds, so voice is never what holds them back.
+
+The rest of tier 2 (devices, pairing, home hub list, prefs) waits: it is most
+of the remaining `wire-format.md` reimplemented per language, and nothing in
+tier 1, voice or DMs depends on it. Tier 1 already makes a program a full participant in
 cleartext, as apps.md describes for any client with no DH key.
-
-**Voice comes first, ahead of the rest of tier 2**, in Rust, Go and (after a
-spike) Python: [sdk-voice.md](sdk-voice.md). It needs only the voice key wrap,
-the packet seal and a published DH key, all of which `wavvon-identity` and the
-existing vectors already cover.
 
 ## 9. Rollout
 
@@ -214,6 +235,11 @@ existing vectors already cover.
    programs, C# because it has a reviewer in-house (§10, question 5).
 3. **Go and Java**, community / experimental.
 
+All six shipped tier 1 by 2026-11-13. Tier 2 starts with voice and E2E DMs
+in the order of the §8 table: Rust, then Go, then Python after its spike.
+E2E DMs alone can follow in TypeScript, C# and Java whenever someone takes
+them up; TypeScript voice waits for Node.
+
 ## 10. Questions settled before building
 
 All answered on 2026-10-18.
@@ -221,7 +247,7 @@ All answered on 2026-10-18.
 1. **Package names**: npm `@wavvon/sdk`, crates.io `wavvon-sdk`, PyPI
    `wavvon-sdk`, NuGet `Wavvon.Sdk`, Maven `org.wavvon:wavvon-sdk` (falls back
    to `io.github.wavvon` if Maven Central cannot verify the `wavvon.org`
-   domain), Go `github.com/Wavvon/Wavvon-sdk-go`. Reserve them before
+   domain; it did fall back: published as `io.github.wavvon:wavvon-sdk`), Go `github.com/Wavvon/Wavvon-sdk-go`. Reserve them before
    announcing.
 2. **Licence: Apache-2.0**, not the hub's AGPL-3.0, so a closed-source program
    can link the SDK. Apache rather than MIT for its patent grant.

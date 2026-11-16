@@ -19,9 +19,11 @@
 > ([voice-transport-v2.md](voice-transport-v2.md)). Attenuation lives in
 > Wavvon-clients `apps/desktop/src-tauri/src/ws.rs` (desktop) and
 > `apps/web/src/platform/voice.ts` (web). Hub handlers:
-> Wavvon-server `crates/hub/src/routes/ws/handlers/voice.rs`. The
-> `wavvon:createVoiceZone` / `wavvon:setVoicePosition` SDK calls do not
-> exist.
+> Wavvon-server `crates/hub/src/routes/ws/handlers/voice.rs`. The game-SDK
+> calls below were never built; a mini-app now moves its own user through
+> the client's host bridge ([mini-app-bridge.md](mini-app-bridge.md),
+> Wavvon-clients#423, designed 2026-11-16), and a program stands in a zone
+> through the SDK ([sdk-voice.md](sdk-voice.md) §4).
 
 A platform-level feature that attenuates each speaker's volume based on
 their distance from the listener in a shared coordinate space. Volume fades
@@ -82,8 +84,10 @@ decision in `gaming.md` — the chat WS already solves auth, membership,
 channel routing, and reconnect. Position events ride the same infrastructure
 at near-zero protocol cost.
 
-**Rate**: designed as a 30 updates/second per user per zone limit. Not
-implemented — the hub accepts and fans out every valid update.
+**Rate**: designed as a 30 updates/second per user per zone limit. As built,
+the hub silently drops an update arriving less than 30 ms after the
+sender's previous one; senders coalesce to stay under it
+([mini-app-bridge.md](mini-app-bridge.md) §3).
 
 ---
 
@@ -226,7 +230,13 @@ game-session-host bypass was never kept: game sessions are gone.
 
 ---
 
-## SDK surface for games
+## SDK surface for games (superseded, never built)
+
+> **Superseded 2026-11-16** by [mini-app-bridge.md](mini-app-bridge.md):
+> one bridge message, `wavvon:setVoicePosition` with a `[x, y]` array, own
+> user only, only in voice in the mini-app's room, sent on the room map's
+> path. No zone creation from a frame, no `"auto"` zone, no game sessions,
+> no `voice_zone` capability. Kept below as the record of the first design.
 
 Extends the postMessage SDK in `gaming.md`. Requires the `multiplayer`
 capability (already gated) and a new `voice_zone` sub-capability
@@ -336,7 +346,7 @@ Gaming Tier 3 (MMO + persistent shared world) will **consume** this feature
 — proximity voice in a game world is implemented by posting position
 updates from the game SDK and letting the platform handle attenuation. The
 MMO design does not need to own voice attenuation logic; it only needs to
-call `wavvon:setVoicePosition` per tick. This is the whole point of making
+post `wavvon:setVoicePosition` per tick ([mini-app-bridge.md](mini-app-bridge.md)). This is the whole point of making
 proximity voice a general platform primitive: Tier 3 gets it for free when
 the time comes.
 

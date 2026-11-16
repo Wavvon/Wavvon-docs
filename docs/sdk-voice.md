@@ -4,7 +4,8 @@
 > [Wavvon-sdk-rust#19](https://github.com/Wavvon/Wavvon-sdk-rust/issues/19).
 > Rust goes first and settles the API; Go follows; Python after a spike;
 > TypeScript waits for native WebTransport in Node; C# and Java have no
-> WebTransport client and are closed. Use cases: a radio program streaming
+> WebTransport client, so no voice there (their E2E DMs are still possible,
+> [sdk-dm.md](sdk-dm.md)). Use cases: a radio program streaming
 > freely licensed audio into a room (Wavvon-demo-bot#7), and a program
 > standing at a position in a proximity room. Parent: [sdk.md](sdk.md) §8.
 
@@ -100,11 +101,10 @@ need adding. The downlink prefix is three plain bytes and gets no vector.
 
 **A program with a DH key gets encrypted DMs.** Both clients encrypt a DM to
 any recipient with a published key, so E2E DMs ship in the same release as
-voice: the SDK decrypts what it receives and encrypts what it sends, per
-[e2e-encryption.md](e2e-encryption.md), asserting the DM vectors in
-`wire-vectors.json` like the voice ones. A DM-only program is a first-class
-use case, not a side effect (decisions.md, "SDK voice and E2E DMs: the SDK
-offers the mechanism, the program sets the policy").
+voice. What the SDK implements for them, and which vectors are still missing,
+is [sdk-dm.md](sdk-dm.md). A DM-only program is a first-class use case, not a
+side effect (decisions.md, "SDK voice and E2E DMs: the SDK offers the
+mechanism, the program sets the policy").
 
 ## 3. Audio
 
@@ -259,6 +259,6 @@ An attenuation helper; a receive jitter buffer; video and screen share.
 
 DH pins live behind a small store interface (get, put). The SDK ships an
 in-memory default; a program that wants pins across restarts plugs in its own
-storage. Policy (AFK handling, what to do on a changed key beyond skipping,
+storage. The DM ratchet state uses the same store ([sdk-dm.md](sdk-dm.md) §5). Policy (AFK handling, what to do on a changed key beyond skipping,
 stereo or mono) is the program's: the SDK exposes events and mechanisms and
 decides nothing on its behalf.

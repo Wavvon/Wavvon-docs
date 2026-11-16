@@ -80,9 +80,14 @@ matching event. Same structure as the app WS event (§5):
   "webhook_id": "wh_3Kn9q",
   "at":        1748217600,
   "seq":       8471,
-  "payload":   { "pubkey": "...", "display_name": "player42" }
+  "payload":   { "display_name": "player42" }
 }
 ```
+
+`member.joined` is hub admission (someone became a member); voice joins are
+`voice.joined` / `voice.left` ([apps.md](apps.md) §5). The payload names
+nobody: the newcomer's pubkey is the audit row's `actor_pubkey`, which only a
+replay carries today, so a webhook receiver cannot yet tell who joined.
 
 `webhook_id` is added to let receivers with multiple incoming sources
 distinguish which hub and webhook a delivery came from. `seq` mirrors the

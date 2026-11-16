@@ -6,7 +6,42 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## A mini-app moves its own user in voice through the client
+
+**Decision** (2026-11-16): a mini-app frame sets its user's proximity-voice
+position by posting `wavvon:setVoicePosition` to its own client, which checks
+that the user is in voice in the mini-app's room and sends the position on
+its own voice socket through the room map's path, coalesced to one every
+50 ms. The user sees that the app is moving them, and the room map yields
+while it does ([mini-app-bridge.md](mini-app-bridge.md)). It is the only
+request a frame may make of the client.
+
+**Alternatives.** Let the frame's scoped socket send `voice_position_update`
+itself, which needs a hub change (positions come only from the socket in
+voice, and a mini-app session cannot join voice) and would make a mini-app
+token a voice credential; or the first design's game-SDK surface (zone
+creation, an `"auto"` zone bound to a game session, a `voice_zone`
+capability), whose game sessions no longer exist.
+
+**Tradeoff.** A client-side bridge has two implementations (iframe
+`postMessage` on web, an injected listener plus one runtime-scoped Tauri
+command on desktop) instead of one hub path. In exchange the hub and its
+30 ms rule stay untouched, the token stays chat-only, and moving yourself
+remains something only your own client does.
+
+**Outcome.** Wavvon-clients#423. Zone creation from a frame and forwarding
+others' positions to it are deferred; the app process can do both over its
+own session.
+
 ## SDK voice and E2E DMs: the SDK offers the mechanism, the program sets the policy
+
+> **Correction (2026-11-16, same day):** "every vector needed already
+> exists" holds for voice only. The DM vectors pin signing bytes, not the
+> encryption: the v1 key, the ratchet KDFs and the group ratchet and wrap
+> have no shared vectors and live only in the clients. That server work is in
+> [sdk-dm.md](sdk-dm.md) §6. Also: "C# and Java closed" means voice only;
+> E2E DMs need no WebTransport and remain possible in C#, Java and
+> TypeScript ([sdk.md](sdk.md) §8).
 
 **Decision** (2026-11-16): a program joins voice exactly as a client does
 ([sdk-voice.md](sdk-voice.md)). It publishes its seed-derived DH key before

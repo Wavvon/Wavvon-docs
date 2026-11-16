@@ -1060,7 +1060,7 @@ first shape; events re-sent during a `resume` replay additionally carry
 | field | type | notes |
 |---|---|---|
 | `seq` | integer (i64) | monotonically increasing event sequence |
-| `event` | string | event type, e.g. `member.joined`, `message.created` |
+| `event` | string | event type, e.g. `member.joined` (hub admission), `voice.joined`, `message.created` |
 | `hub_url` | string | public URL of this hub |
 | `at` | integer | Unix timestamp |
 | `payload` | object | event-specific payload (delivered only where the subscriber can read the channel) |

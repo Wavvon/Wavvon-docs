@@ -256,7 +256,7 @@ desktop notification system (Wavvon-desktop `src-tauri/`) fires a reminder
 **Connection to proximity voice**: for a concert or meetup, the creator
 can name a voice zone on the event; the card shows a "Join" button that
 drops the user into the channel's voice at that proximity-zone origin
-(reuses the shipped proximity-voice SDK, see ROADMAP "Recently shipped").
+(reuses the zone protocol in [proximity-voice.md](proximity-voice.md)).
 
 **UI sketch**:
 

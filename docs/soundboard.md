@@ -95,7 +95,8 @@ gate that once stood beside them was deleted with the bot subsystem
 `/voice/ws` relay this section described is gone too — the transport is voice
 v2 (`voice-transport-v2.md`).
 
-No client SDK helper (`join_voice`/`send_opus`) exists yet: a program that
+The SDK helper (`join_voice`/`send_opus`) is designed in
+[sdk-voice.md](sdk-voice.md), not built yet; until it is, a program that
 wants to speak opens the transport and frames Opus packets itself, matching
 what `voice.md` documents for the browser client.
 
@@ -115,14 +116,14 @@ another such session:
   anyone else — exactly why it gets a *stream* while soundboard clips do
   not: this audio is long-form (music, TTS, recordings) where per-source
   volume and mute matter.
-- SDK addition: a small `send_opus(channel_id, frames)` /
-  `join_voice(channel_id)` helper; encoding is the caller's problem
-  (document 48kHz/20ms mono Opus as the expected shape, same as
-  clients produce).
+- SDK addition: `join_voice` / `send_opus`, specified in
+  [sdk-voice.md](sdk-voice.md) (20 ms Opus packets, the shape both clients
+  produce and the only one the desktop decodes).
 - No new relay machinery: fan-out, session binding, self-mute
-  semantics all apply as-is. **Deliberately not designed here**: a program
-  *receiving* voice (recording/STT) — that's a consent/privacy design
-  (voice is currently relay-opaque and unrecorded), kept separate.
+  semantics all apply as-is. A program *receiving* voice is a participant
+  like any other, holding the room's keys because the others wrapped them
+  for it; [sdk-voice.md](sdk-voice.md) covers it. The hub still records
+  nothing.
 
 ## 3. Deferred
 
