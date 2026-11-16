@@ -86,8 +86,8 @@ matching event. Same structure as the app WS event (§5):
 
 `member.joined` is hub admission (someone became a member); voice joins are
 `voice.joined` / `voice.left` ([apps.md](apps.md) §5). The payload names
-nobody: the newcomer's pubkey is the audit row's `actor_pubkey`, which only a
-replay carries today, so a webhook receiver cannot yet tell who joined.
+nobody; the newcomer's pubkey is the envelope's `target_pubkey` (as are
+`actor_pubkey` and `channel_id`, when present).
 
 `webhook_id` is added to let receivers with multiple incoming sources
 distinguish which hub and webhook a delivery came from. `seq` mirrors the

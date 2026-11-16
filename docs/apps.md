@@ -123,9 +123,9 @@ Two transports, same events:
 - **WebSocket** — an app with a registered profile gets a `hub_event` push on
   its socket, and `Resume` replays the last 72 hours from the audit log.
   One envelope serves live push, replay and outgoing webhooks: `type`, `seq`,
-  `event`, `hub_url`, `at`, `payload`. A replayed event also carries
-  `replayed: true` and, when the audit row has them, `actor_pubkey`,
-  `target_pubkey` and `channel_id` (absent, not null, when empty). Outgoing
+  `event`, `hub_url`, `at`, `payload` and, when the event has them,
+  `actor_pubkey`, `target_pubkey` and `channel_id` (absent, not null, when
+  empty). A replayed event also carries `replayed: true`. Outgoing
   webhooks add `webhook_id` and, when cut to the size cap, `truncated: true`.
 - **HTTP polling** — `GET /me/events?cursor=<seq>` for a client that holds
   no persistent socket. It reads the same audit log `Resume` does, so it
@@ -141,15 +141,6 @@ with `DELETE /me`. Kicks and bans stay `member.kicked` / `member.banned`.
 Joining and leaving a voice channel are `voice.joined` / `voice.left`, with
 the `channel_id`. A hub advertises `events.member.joined` in its capabilities;
 on an older hub `member.joined` still meant a voice join.
-
-**Gap:** a live push and an outgoing webhook carry only `payload`, and the
-payload of `member.joined` and `voice.joined` (`{ display_name }`) names
-nobody, so a live subscriber
-learns that someone joined but not who; only a replay or a poll, which read
-`actor_pubkey` from the audit row, can say. Wavvon-server
-`crates/hub/src/apps/events.rs` `publish_hub_event` builds the live
-`HubEvent` without the row's `actor_pubkey` / `target_pubkey` /
-`channel_id`; the fix is to send them live as well.
 
 `GET /admin/audit-log` is the same stream as an admin view, gated on
 `audit.read`.

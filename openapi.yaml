@@ -375,9 +375,9 @@ components:
         hub_url: { type: string }
         at: { type: integer, format: int64, description: Unix seconds }
         payload: { type: object, additionalProperties: true }
-        actor_pubkey: { type: string }
-        target_pubkey: { type: string }
-        channel_id: { type: string }
+        actor_pubkey: { type: string, description: Absent when empty. Live, replay and webhooks. }
+        target_pubkey: { type: string, description: Absent when empty. Live, replay and webhooks. }
+        channel_id: { type: string, description: Absent when empty. Live, replay and webhooks. }
         replayed: { type: boolean, description: Set on events read back from the audit log (Resume and polling). }
         webhook_id: { type: string, description: Outgoing webhooks only. }
         truncated: { type: boolean, description: "Outgoing webhooks only, when the payload was cut to the size cap." }
