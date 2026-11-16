@@ -133,6 +133,15 @@ Two transports, same events:
   acknowledged, and a cursor older than the window is a 410 with the
   `replay_unavailable` body.
 
+Membership events: `member.joined` fires when someone becomes a member of the
+hub (hub-wide, no `channel_id`; `actor_pubkey` and `target_pubkey` are the new
+member, `payload.display_name` is set when the profile already has one, which
+is usually not yet at first contact) and `member.left` when a member leaves
+with `DELETE /me`. Kicks and bans stay `member.kicked` / `member.banned`.
+Joining and leaving a voice channel are `voice.joined` / `voice.left`, with
+the `channel_id`. A hub advertises `events.member.joined` in its capabilities;
+on an older hub `member.joined` still meant a voice join.
+
 `GET /admin/audit-log` is the same stream as an admin view, gated on
 `audit.read`.
 

@@ -6,6 +6,26 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## `member.joined` means the hub; voice joins are `voice.joined`
+
+**Decision** (2026-11-16): `member.joined` / `member.left` are published when
+someone becomes a member of the hub or leaves it. The events that carried those
+names, fired on joining and leaving a voice channel, are renamed
+`voice.joined` / `voice.left` (same payload, `channel_id` kept).
+
+**Why.** A welcome app needs to know about newcomers, and the only name that
+says so was already taken by a different event. **Alternatives:** a new name
+for the hub event (`hub.member_joined`) and leaving the voice pair alone, which
+keeps a misnomer forever; or keeping both meanings under one name, which no
+subscriber can disambiguate without reading `channel_id`.
+
+**Tradeoff.** An app subscribed to the old `member.joined` for voice activity
+silently stops getting it. Accepted in alpha; the hub advertises
+`events.member.joined` so an app can tell which meaning a hub has.
+
+**Outcome.** Every admission path goes through `admit_member`, which publishes
+the event; `DELETE /me` publishes `member.left`.
+
 ## Language packs ride the theme mechanism, with the security strings locked
 
 **Decision** (2026-11-14): a hub owner or a user can add a language to the
