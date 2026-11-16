@@ -44,8 +44,11 @@ On successful connect the hub immediately:
    cached init chunk, if any) for every screen share already in progress in a
    subscribed channel.
 
-DM conversation membership is also loaded **once at connect time**: a client
-added to a new DM conversation must reconnect to start receiving its events.
+DM conversation membership is loaded at connect time and then kept live: a
+`dm_member_changed` that adds the connection's identity (which creating a
+conversation sends too) puts the conversation in the connection's set, so no
+reconnect is needed (`routes/ws/connection.rs`, the DM branch; the Rust SDK's
+DM smoke relies on it).
 
 The same goes for being an **app socket**. At upgrade the hub checks whether
 the socket's identity has an app profile (`PUT /me/app/profile`), and that

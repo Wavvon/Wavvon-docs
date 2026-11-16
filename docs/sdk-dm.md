@@ -1,7 +1,7 @@
 # SDK E2E DMs: a program in an encrypted conversation
 
-> **Status (2026-11-16): designed, not built** (the shared primitives and
-> vectors in `wavvon-identity` 0.6.0 are done; the SDKs are not). Ships with voice in the SDKs
+> **Status (2026-11-17): built in the Rust SDK** (Wavvon-sdk-rust#20, `Client::dms()`,
+> smoke-tested against a real hub); Go and Python follow. Ships with voice in the SDKs
 > that get voice ([sdk-voice.md](sdk-voice.md)): Rust first
 > ([Wavvon-sdk-rust#19](https://github.com/Wavvon/Wavvon-sdk-rust/issues/19)),
 > then Go and Python. It needs no WebTransport, so TypeScript, C# and Java can
@@ -43,9 +43,13 @@ primitives (§6).
   encrypted one its `content` is the placeholder `[encrypted]`, so the SDK
   fetches `GET /conversations/{id}/messages` (`listConversationMessages`,
   keyset-paged) and decrypts `encrypted_envelope` / `group_encrypted_envelope`
-  from the rows. A socket learns its conversations at connect
-  ([ws-protocol.md](ws-protocol.md)), so after joining a new conversation the
-  SDK reconnects before relying on `dm` events for it.
+  from the rows. A socket keeps its set of conversations live from
+  `dm_member_changed` ([ws-protocol.md](ws-protocol.md)), so a conversation
+  opened after connect delivers `dm` events with no reconnect. The Rust SDK
+  turns the event into `Dms::poll(conv)`, which returns the messages it has
+  not handed out yet, and keeps the plaintext of what it decrypted in a
+  bounded in-memory cache: a ratchet message key is spent by its first read,
+  so reading history again would otherwise fail.
 - Plaintext JSON inside every ciphertext: `{"content": "...",
   "attachments": [...]}`, `attachments` omitted when empty.
 
@@ -89,8 +93,12 @@ Sender keys per e2e-encryption.md, "Group DMs — v2":
   sender's DH key, advance from the held iteration to the message's; a
   message before the held iteration cannot be read, by design.
 - **Rotate** (`version + 1`, fresh chain, re-distribute) on
-  `dm_member_changed`, and right after the program itself adds or removes a
-  member. Keep a peer's chains per version so messages before a rotation
+  `dm_member_changed` and right after the program itself adds a member. The
+  Rust SDK does the first when the program passes the event to
+  `Dms::handle_event` (it never acts on a stream it does not own), and
+  `rotate_group_key` is the same step called directly. A member who cannot
+  be given the key (no DH key, a changed one) is reported in
+  `Distribution::skipped`, never dropped silently. Keep a peer's chains per version so messages before a rotation
   stay readable. Membership changes the program makes are signed
   (`dm_member_change_signing_bytes`) where the hub advertises
   `dms.group.signedmembers`.

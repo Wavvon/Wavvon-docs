@@ -1,6 +1,7 @@
 # SDK voice: a program in a voice channel
 
-> **Status (2026-11-16): designed, not built.** Tracking issue
+> **Status (2026-11-17): built in the Rust SDK** (Wavvon-sdk-rust#21,
+> smoke-tested against a real hub); tracking issue
 > [Wavvon-sdk-rust#19](https://github.com/Wavvon/Wavvon-sdk-rust/issues/19).
 > Rust goes first and settles the API; Go follows; Python after a spike;
 > TypeScript waits for native WebTransport in Node; C# and Java have no
@@ -16,8 +17,9 @@ each SDK, built on wire formats and vectors that already exist.
 
 ## 1. Join sequence
 
-All signalling rides the program's one chat WebSocket (`/ws`), the socket the
-SDK already holds for events. It must be the same socket throughout: the hub
+All signalling rides one chat WebSocket (`/ws`). The Rust SDK opens a socket
+of its own for the room, so `client.events()` and the voice session never
+share one and the room's messages are never repeated in `events()`. It must be the same socket throughout: the hub
 records the voice room on that connection (`cs.voice_channel`), refuses
 position updates from any other, and runs `leave_voice` when it closes.
 
@@ -85,6 +87,9 @@ What the SDK implements, all from the existing `wavvon-identity` crate
   as "no key".
 - **Unwrap** on `voice_key_received` (`voice_key_unwrap`), keyed by
   `from_pubkey`; keep every generation by `key_id` until the sender leaves.
+  A new key for a `(sender, key_id)` restarts its counter watermark; the
+  watermark otherwise advances only for a packet that opened, so a forged
+  packet cannot lock the real sender out. A rejoin never reuses a `key_id`.
 - **Rotate** on `voice_participant_left`: `key_id + 1`, fresh `SK`/salt, `ctr`
   back to 0, re-offer to everyone remaining. Answer `voice_key_request` with an
   offer to the newcomer only.
@@ -206,9 +211,13 @@ while let Some(ev) = voice.next().await { match ev? {
 voice.leave().await?;
 ```
 
-`join_voice` needs the client's WebSocket task; voice frames arriving on it
-are routed to the session, not repeated in `events()`. One session per client,
-as the hub allows one room per identity.
+`Voice` is cheap to clone, and `next` takes `&self`, so one task can send
+while another reads. `set_position` is synchronous (it checks the zone and
+arity, then the newest position goes out at most every 50 ms). A `voice_*`
+message the SDK does not model is `VoiceEvent::Unknown`; chat traffic that
+reaches the room's socket is ignored, not surfaced. `VoiceEvent::KeySkipped`
+reports a peer that could not be given the key. `create_zone` and
+`destroy_zone` exist for programs holding `channels.manage`.
 
 **Go** (Wavvon-sdk-go#15): `quic-go/webtransport-go` client; the cert-hash pin
 is a `tls.Config` with `VerifyPeerCertificate` comparing SHA-256 of the leaf
