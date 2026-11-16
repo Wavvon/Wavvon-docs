@@ -6,6 +6,34 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## SDK voice and E2E DMs: the SDK offers the mechanism, the program sets the policy
+
+**Decision** (2026-11-16): a program joins voice exactly as a client does
+([sdk-voice.md](sdk-voice.md)). It publishes its seed-derived DH key before
+its first join and takes part in voice key distribution. No hub change and no
+voice-only key. Because a published key makes both clients encrypt DMs to it,
+E2E DMs ship in the same SDK release as voice. The SDK sends 20 ms Opus only
+(anything else is inaudible to the desktop) and owns send pacing; everything
+that is a choice (AFK moves, pin persistence, channel count, receive jitter
+buffering) is left to the program, with events and hooks to make it.
+
+**Why.** There is no cleartext voice: a participant without a DH key is
+skipped by every key distributor, so a program without one can neither hear
+nor be heard. **Alternatives:** a cleartext voice path for programs, which
+would let the operator listen to any room with a program in it, undoing voice
+E2E; a separate voice-only DH key, which is a new signed record type, three
+mirrors and new vectors; or shipping voice alone and letting a voice program
+lose its DMs, rejected because a DM-driven program is a use case in its own
+right and the SDK should not take capabilities away.
+
+**Tradeoff.** More per-language crypto in one release (DM envelopes on top of
+the voice key wrap), paid once; the Rust SDK gets both from `wavvon-identity`.
+The 20 ms rule is set by the desktop decoder, whose buffer holds exactly 20 ms.
+
+**Outcome.** Rust first (Wavvon-sdk-rust#19), then Go, then Python after a
+spike; TypeScript waits for WebTransport in Node; C# and Java closed. Every
+vector needed already exists.
+
 ## `member.joined` means the hub; voice joins are `voice.joined`
 
 **Decision** (2026-11-16): `member.joined` / `member.left` are published when

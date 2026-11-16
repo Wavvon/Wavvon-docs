@@ -197,6 +197,11 @@ Ed25519; voice needs QUIC/WebTransport and native Opus, immature in several of
 these languages. Tier 1 already makes a program a full participant in
 cleartext, as apps.md describes for any client with no DH key.
 
+**Voice comes first, ahead of the rest of tier 2**, in Rust, Go and (after a
+spike) Python: [sdk-voice.md](sdk-voice.md). It needs only the voice key wrap,
+the packet seal and a published DH key, all of which `wavvon-identity` and the
+existing vectors already cover.
+
 ## 9. Rollout
 
 0. **Wavvon-server and Wavvon-docs first**: the vector JSON export, the
