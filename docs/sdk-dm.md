@@ -1,6 +1,7 @@
 # SDK E2E DMs: a program in an encrypted conversation
 
-> **Status (2026-11-16): designed, not built.** Ships with voice in the SDKs
+> **Status (2026-11-16): designed, not built** (the shared primitives and
+> vectors in `wavvon-identity` 0.6.0 are done; the SDKs are not). Ships with voice in the SDKs
 > that get voice ([sdk-voice.md](sdk-voice.md)): Rust first
 > ([Wavvon-sdk-rust#19](https://github.com/Wavvon/Wavvon-sdk-rust/issues/19)),
 > then Go and Python. It needs no WebTransport, so TypeScript, C# and Java can
@@ -108,37 +109,35 @@ reports a decryption failure per message and does not try to repair it.
 
 ## 6. Reuse and vectors
 
-**Rust reuses from `wavvon-identity`** (Wavvon-server `crates/identity/src/`):
-`Identity::dh_keypair`, `DhKeyRecord` (`signing_bytes`, `verify`),
-`dm_envelope_signing_bytes`, `dr_envelope_signing_bytes`,
+**Rust reuses from `wavvon-identity`** (Wavvon-server `crates/identity/src/`,
+0.6.0 and later): `Identity::dh_keypair`, `DhKeyRecord` (`signing_bytes`,
+`verify`), `dm_envelope_signing_bytes`, `dr_envelope_signing_bytes`,
 `group_dm_envelope_signing_bytes`, `sender_key_dist_signing_bytes`,
 `dm_member_change_signing_bytes`, `federated_plaintext_dm_v2_signing_bytes`,
-`SubkeyCert::verify`, `verify_signature`. **Not in the crate**: the DM key
-derivations and AEAD (v1 key, the ratchet KDFs, the group ratchet and wrap).
-They exist twice today, in Wavvon-clients `apps/desktop/src-tauri/src/dm.rs`
-and `packages/core/src/identity/crypto.ts`.
+`SubkeyCert::verify`, `verify_signature`, and the `dm` module: `dm_key_v1`,
+`dm_v1_seal`/`dm_v1_open`, `dr_root_key`, `dr_kdf_rk`, `dr_kdf_ck`,
+`dr_derive_nonce`, `dr_message_seal`/`dr_message_open`, `dr_initiator_init`,
+`dr_responder_init`, `dr_dh`, `group_msg_key`, `group_next_chain_key`,
+`group_nonce`, `group_message_seal`/`group_message_open`,
+`group_key_wrap`/`group_key_unwrap`. The module is pure: nonces and ephemeral
+scalars are arguments. Keeping sessions (the skip cache, the DH-ratchet step
+on a new remote key) is still the caller's job. The desktop shell and
+`packages/core` keep their own implementations, as for voice, and assert the
+same vectors.
 
-**Vectors present** in `crates/identity/wire-vectors.json`, asserted by every
-DM-capable SDK: `master_dh_pubkey`, `dh_key_record`, `dm_envelope`,
-`dr_envelope`, `group_dm_envelope`, `sender_key_dist`, `dm_member_change`,
-`federated_plaintext_dm_v2`, `subkey_cert`. These pin signing bytes and
-signatures only.
-
-**Server work needed** (not yet an issue): nothing pins the encryption
-itself. The clients agree with each other through vectors outside the shared
-file (`groupDm.test.ts` against `dm.rs`, and a desktop-made DR envelope in
-`crypto.test.ts`), which a third SDK cannot read. Move the primitives into
-`wavvon-identity` (a `dm` module, as `voice.rs` did for voice) and export:
+**Vectors** in `crates/identity/wire-vectors.json`, asserted by every
+DM-capable SDK. Signing bytes and signatures: `master_dh_pubkey`,
+`dh_key_record`, `dm_envelope`, `dr_envelope`, `group_dm_envelope`,
+`sender_key_dist`, `dm_member_change`, `federated_plaintext_dm_v2`,
+`subkey_cert`. The encryption itself, added 2026-11-16 from the clients'
+existing behaviour (layout in [wire-format.md](wire-format.md)):
 
 | Vector | Pins |
 |---|---|
 | `dm_key_v1` | two fixture seeds, `conv_id` → derived key; fixed nonce + plaintext JSON → ciphertext |
-| `dr_session` | fixed static seeds and ephemeral scalar → `rk0`, first `RK`/`CKs`, message key, derived nonce, ciphertext of message 0; then the receiver's first reply chain |
-| `group_ratchet` | `chain_key`, N → `msg_key`, next chain key, ciphertext (the clients' `0x11…`, N = 2 case) |
-| `group_key_wrap` | fixed seeds, `conv_id`, nonce, `chain_key`, iteration → wrapped hex |
-
-Then the desktop shell and core TypeScript move onto the same vectors, and
-the Rust SDK calls the crate instead of carrying a third copy.
+| `dr_session` | static seeds and both ephemeral scalars → `rk0`, initiator `rk`/`cks`, message key, nonce, ciphertext of message 0; the responder's `rk`/`ckr`/`cks`, its reply ciphertext, and the initiator's DH-ratchet step on that reply |
+| `group_ratchet` | `chain_key` (`0x11…`), iteration 2 → `message_key`, `next_chain_key`, nonce, ciphertext |
+| `group_key_wrap` | seeds, `conv_id`, nonce, `chain_key`, iteration → wrapped ciphertext |
 
 ## 7. Deferred
 

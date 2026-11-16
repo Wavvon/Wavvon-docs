@@ -498,6 +498,37 @@ ctr=7, ts=5000:
   f12e9fffa9ba4fb471ca80882171360024
 ```
 
+### E2E DM encryption (dm_key_v1, dr_session, group_ratchet, group_key_wrap)
+
+Not signed envelopes: the key derivations and AEAD behind the DM envelopes
+above. Canonical impl: `crates/identity/src/dm.rs` (Wavvon-server); scheme in
+[e2e-encryption.md](e2e-encryption.md), what a program implements in
+[sdk-dm.md](sdk-dm.md). Every ciphertext is AES-256-GCM, tag appended; every
+HKDF is SHA-256 and no info string carries a NUL. Static DH keys are the
+X25519 scalars of the Ed25519 seeds.
+
+```
+dm_key_v1      key   = HKDF(X25519(me, peer), salt=conv_id, info="wavvon/dm-key/v1")
+dr_session     rk0   = HKDF(X25519(static, static), salt=conv_id, info="wavvon/dr-init/v2")
+               KDF_RK(rk, dh) = HKDF(ikm=dh, salt=rk, info="wavvon/dr-rk/v2", 64) -> (rk', ck)
+               KDF_CK(ck)     = HKDF(ikm=ck, no salt, info="wavvon/dr-ck-step/v2", 64) -> (mk, ck')
+               nonce          = HKDF(ikm=mk, no salt, info="wavvon/dr-nonce/v2", 12)
+group_ratchet  msg_key  = HKDF(ck, salt=iteration_be[4], info="wavvon/group-msg/v1")
+               next_ck  = HKDF(ck, salt=iteration_be[4], info="wavvon/group-chain/v1")
+               nonce    = 0[8] || iteration_be[4]
+group_key_wrap key  = HKDF(X25519(me, member), salt=conv_id, info="wavvon/group-key-dist/v1")
+               plaintext = chain_key[32] || iteration_be[4]   (36 bytes)
+```
+
+The initiator's first sending chain is `KDF_RK(rk0, X25519(eph, their static))`;
+the responder derives the same chain from the first envelope's `dh_pubkey`,
+then seeds its own sending chain with a fresh ratchet key. The vectors in
+`wire-vectors.json` carry the fixed inputs (seeds, ephemeral scalars, nonces,
+plaintext) and every intermediate key and ciphertext: `dm_key_v1` (`key`,
+`ciphertext`), `dr_session` (`rk0` through `reply_step_ckr`: message 0, the
+reply, and the initiator's DH-ratchet step on it), `group_ratchet` (iteration 2)
+and `group_key_wrap`.
+
 ---
 
 ### PublicHubProfile
