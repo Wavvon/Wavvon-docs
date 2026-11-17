@@ -6078,7 +6078,7 @@ paths:
       summary: Mark a channel as read up to now, or unread from a message
       description: |
         Without a body the caller's read marker moves to now. With
-        `message_id` ("mark unread", capability `channels.mark_unread`) it
+        `message_id` ("mark unread", capability `channels.markunread`) it
         moves to that message's `created_at` minus one, so the message and
         everything after it count as unread. Only the caller's marker changes.
       tags: [Channels]
