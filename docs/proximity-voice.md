@@ -12,7 +12,7 @@
 > no game-session host bypass, because game sessions were removed with
 > the bot/game model ([decisions.md](decisions.md), "A bot is a client
 > like any other"); `session_id` is stored but nothing checks it, and
-> `auth_mode: "session_roster"` now refuses every position update. A
+> `auth_mode: "session_roster"` is refused when the zone is created. A
 > member's position updates are dropped when closer than 30 ms apart, and
 > the clients send one per click. Voice itself moved from UDP
 > to WebTransport on 2026-08-07
@@ -162,7 +162,7 @@ Sent by the creator when calling `voice_zone_create`. Stored in hub memory
 | `attenuation.max_radius` | Distance at which gain reaches 0 |
 | `attenuation.ref_dist` | For `inverse_square`/`exponential`: distance where gain = 1.0 |
 | `attenuation.rolloff` | Model-specific coefficient |
-| `auth_mode` | `"creator_only"` / `"any_channel_member"` / `"session_roster"` |
+| `auth_mode` | `"creator_only"` / `"any_channel_member"` (`"session_roster"` is refused until a session roster exists) |
 | `session_id` | If set, the zone is bound to a game session and destroyed when the session ends |
 
 ---
