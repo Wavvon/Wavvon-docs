@@ -6111,6 +6111,91 @@ paths:
         "404":
           description: Channel not found, or the message is not in this channel
 
+  # ── Web Push ──────────────────────────────────────────────────────────────
+
+  /push/vapid-key:
+    get:
+      operationId: getPushVapidKey
+      summary: The hub's VAPID application server key (capability `push.web`)
+      description: |
+        The P-256 public key (uncompressed point, base64url) a browser passes
+        to `PushManager.subscribe` as `applicationServerKey`. Generated on
+        first use and kept in the hub's database.
+      tags: [Push]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [public_key]
+                properties:
+                  public_key: { type: string }
+
+  /push/subscriptions:
+    put:
+      operationId: putPushSubscription
+      summary: Add or update this browser's Web Push subscription
+      description: |
+        Keyed by `endpoint` per identity: a second call updates the keys and
+        the notify modes. The hub pushes a mention, a reply to the caller's
+        message or a DM while the caller has no socket open, is not in
+        `dnd`, and the channel (or the hub) is not `silent` in `notify`.
+        The encrypted payload (RFC 8291) is only
+        `{hub, kind: mention|reply|dm, channel_id | conversation_id}`, never
+        message text. The endpoint must be https and resolve to a public
+        address unless the operator set `WAVVON_ALLOW_PRIVATE_WEBHOOKS`; a
+        404 or 410 from the push service drops the subscription. At most 20
+        per identity.
+      tags: [Push]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [endpoint, keys]
+              properties:
+                endpoint: { type: string, maxLength: 2048 }
+                keys:
+                  type: object
+                  required: [p256dh, auth]
+                  properties:
+                    p256dh: { type: string, description: "base64url P-256 point" }
+                    auth: { type: string, description: "base64url, 16 bytes" }
+                notify:
+                  type: object
+                  description: The client's notify modes for this hub; mentions, replies and DMs push under all and mentions, never under silent (channel over hub).
+                  properties:
+                    hub: { type: string, enum: [all, mentions, silent] }
+                    channels:
+                      type: object
+                      additionalProperties: { type: string, enum: [all, mentions, silent] }
+      responses:
+        "204":
+          description: Stored
+        "400":
+          description: Bad keys, or an endpoint that is not https or resolves to a private address
+        "409":
+          description: Too many subscriptions for this identity
+    delete:
+      operationId: deletePushSubscription
+      summary: Forget this browser's subscription for the caller
+      tags: [Push]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [endpoint]
+              properties:
+                endpoint: { type: string }
+      responses:
+        "204":
+          description: Removed (or was not there)
+
   # ── Message pins ──────────────────────────────────────────────────────────
 
   /channels/{channel_id}/pins:
@@ -9730,3 +9815,5 @@ tags:
   - name: Search
   - name: Emojis
   - name: Uploads
+  - name: Push
+    description: Web Push for a closed web client (capability `push.web`).

@@ -410,10 +410,63 @@ Everything else — `getDisplayMedia`, the WebSocket frame protocol, the
 | Deep links (`wavvon://`) | yes | no | No protocol handler is registered; invites arrive as URL params |
 | System tray | yes | **no** | Browser has no tray |
 | OS notifications | yes | yes | `Notification` API; needs user permission grant |
+| Notifications with the app closed | yes (while running) | yes | Web Push, opt-in per device; see "Web Push" below |
 | Window title unread count | yes | yes | `document.title` mutation |
 | Themes (dark/light + custom skins) | yes | yes | Shared `packages/ui/src/styles.css`, `data-theme` |
 | Local block list | yes | yes | IndexedDB instead of JSON file |
 | Pinned channels / collapsed categories | yes | yes | IndexedDB instead of JSON files |
+
+---
+
+## Web Push
+
+A closed web client hears about a mention, a reply to its own message or a
+DM (Wavvon-server#402, Wavvon-clients#411). Desktop shows OS notifications
+while it runs and does not use this.
+
+**Hub** (`crates/hub/src/push.rs`, routes in `routes/push.rs`, capability
+`push.web`).
+
+- `GET /push/vapid-key` serves the application server key. The VAPID key
+  pair is generated on first use and kept in the database (`push_vapid`),
+  so a backup carries it and a restore leaves subscriptions valid.
+- `PUT /push/subscriptions` stores `{endpoint, keys, notify}` per identity
+  and endpoint; `DELETE` removes one. `notify` is the client's notify
+  modes for that hub (hub and per channel), sent with the subscription
+  because they live on the client and the hub has to honour them while the
+  client is closed.
+- A push goes out when the member has no socket open, is not in `dnd`, can
+  read the channel, and neither the channel nor the hub is `silent` in
+  `notify`. Budget: 30 a minute per recipient.
+- **The payload carries no text.** It crosses the browser vendor's push
+  service (Google, Mozilla, Apple), so it is only
+  `{hub, kind: mention|reply|dm, channel_id | conversation_id}`,
+  RFC 8291-encrypted (`web-push-native`, pure Rust). The RFC 8292 token is
+  an ES256 JWT signed with `p256` directly.
+- The endpoint is the browser's to choose and the hub POSTs to it, so it
+  passes the outgoing-webhook SSRF rule when stored (https, public address,
+  unless `WAVVON_ALLOW_PRIVATE_WEBHOOKS`), and every send resolves it
+  again and pins the connection to the checked addresses with no proxy and
+  no redirects. A 404 or 410 drops the subscription.
+- A mirrored copy of a DM (home-hub.md) is not pushed again; the hub that
+  accepted it already did.
+
+**Client** (`apps/web/src/platform/push.ts`, `hooks/useWebPush.ts`,
+`public/push-sw.js`).
+
+- Opt-in per account and device in Settings → Notifications; the browser
+  permission is asked only on that click.
+- A registration holds one subscription with one application server key,
+  and every hub has its own key, so the same worker is registered once per
+  account and hub, scoped `push/<account>/<hub>/`. The page leaves the
+  translated notification text and the app address in the Cache API beside
+  each scope: the worker has no i18n and no session.
+- The subscription is refreshed whenever the notify modes change.
+- Clicking a notification focuses an open tab and navigates it, or opens one
+  carrying the target in the URL hash.
+- Turning it off, removing the hub from this device, or removing the account
+  unsubscribes in the browser and tells the hub; the browser unsubscribe
+  alone is enough, since the push service answers 410 from then on.
 
 ---
 
@@ -422,7 +475,7 @@ Everything else — `getDisplayMedia`, the WebSocket frame protocol, the
 | Question | Working answer |
 |---|---|
 | **PWA / offline support** | Defer. v1 is online-only. A service worker that caches the shell + a subset of recent messages is a v2 feature; the message cache needs an eviction policy and integration with the hub's message-history pagination. |
-| **Push notifications (Web Push API)** | Hub does not implement Web Push today. Designing it means a new VAPID-keyed push subscription per device, a hub-side queue keyed on the user's subscription endpoint, and a `service-worker.js` to render notifications. Defer; the in-tab `Notification` API covers the foreground case. |
+| **Push notifications (Web Push API)** | **Shipped** (Wavvon-server#402, Wavvon-clients#411) — see "Web Push" below. |
 | **CSP headers from the hub** | Shipped (Wavvon-server#251): every web-client response carries one fixed policy (`HTML_CSP` in `crates/hub/src/web_client.rs`: same-origin scripts plus one hashed inline script, `connect-src 'self' https: wss: http: ws:` because other hubs are arbitrary origins, some without TLS, `frame-ancestors 'none'`), and every other response gets `default-src 'none'; sandbox`. No operator knob. The client must not render inline `<style>` elements. |
 | **Session persistence policy** | sessionStorage by default; localStorage + TTL opt-in (see §"Auth flow"). Revisit once the farm model lands — SSO across a farm changes the default. |
 | **Distribution: hosted page vs. browser extension** | **Superseded 2026-08-25** — decisions.md, "Two web clients: one per hub, one per user": the client ships as two builds, a single-hub build a hub serves from its own origin and a multi-hub build we host next to the directory. The rest of this cell is the previous stance, kept because the reasoning is the record. ~~Hosted is v1, and the primary path is **hub-served**: a hub serves this client from its own origin alongside the API (`WAVVON_WEB_CLIENT_DIR`; the official Docker image bakes a version-matched build in and serves it at `/`). This keeps the federated story consistent — there is no central wavvon.app — and means visiting `https://your-hub/` lands directly in the client, defaulted to that hub. See [hosting.md](hosting.md#serving-the-web-client). A standalone static host (e.g. GitHub Pages) also works for a client that asks the user to type a hub URL. A browser extension would let us claim `wavvon://` deep links and use `chrome.storage.local` instead of IndexedDB, but it's not worth the maintenance until the hosted version is stable.~~ |

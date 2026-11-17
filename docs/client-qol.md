@@ -5,13 +5,13 @@
 > behind storing custom emoji as base64 in the database is gone — the
 > tradeoff wants re-deciding before that part is built, not copying.
 
-Seven features that sharpen daily use without changing Wavvon's shape.
+Eight features that sharpen daily use without changing Wavvon's shape.
 Each is small in isolation; grouped here because they share the same
 constraints — federated (no global coordinator), two-axis state
 (community state on the community hub, personal state on the home hub
 list), and master+subkey identity.
 
-The recurring design question across all seven is **where does the state
+The recurring design question across all eight is **where does the state
 live**. The answers split cleanly:
 
 - **Community-axis, hub-enforced** (search index, custom emojis, events,
@@ -464,6 +464,43 @@ DMs buffer **per conversation**, not per hub, because the sender matters:
 
 **Deferred**: per-hub notification-throttle settings (user-tunable debounce
 window), notification action buttons (Reply, Mark read).
+
+---
+
+## 8. Read marker, new-messages divider, mark as unread — **SHIPPED**
+
+**Where the state lives.** Community-axis, on the community hub: one
+timestamp per member and channel (`channel_last_read`, unix ms). Messages
+with a later `created_at` are unread; `GET /channels/unread` counts them.
+
+**Hub** (`routes/channels.rs`, Wavvon-server#403). `POST
+/channels/{id}/read` moves the caller's marker to now and answers
+`previous_last_read_at`, the marker before the call. With a `message_id`
+(capability `channels.markunread`) the marker becomes that message's
+`created_at` minus one instead — "mark as unread". Only the caller's own
+marker ever moves. The capability matters: an older hub ignores the body
+and marks the channel read, the opposite of what was asked.
+
+**Clients** (Wavvon-clients#412, #417; web and desktop alike).
+
+- Opening a channel marks it read and keeps the previous marker. The
+  divider goes above the first later message someone else wrote
+  (`firstUnreadId` in `packages/ui/src/utils/unreadCounts.ts`); a marker
+  of 0 (never read) or a hub too old to answer draws none. The channel
+  opens at the divider instead of at the bottom.
+- The divider is held by message id, so it does not move while reading
+  and stays until the channel is left. While it is above the viewport a
+  bar says how many messages are new, with Jump and Mark as read; Esc
+  marks read too.
+- Leaving a channel marks it read again, so messages read live while it
+  was open do not come back as new — unless the reader just marked it
+  unread, which is the whole point of that action.
+- "Mark as unread" in the message menu moves the hub marker back, marks
+  the channel unread in the sidebar and puts the divider at that message.
+
+**Not done.** The sidebar's unread dots are still client state seeded
+from `/channels/unread` at hub load, not pushed per marker change, so a
+second device learns of a read on the first only at its next load.
 
 ---
 

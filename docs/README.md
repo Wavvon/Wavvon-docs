@@ -182,6 +182,8 @@ Reading order is for learning the system end-to-end. This section is for
 - **Quiet hours / DND (notification downgrade)** — [block-mute-ignore.md](block-mute-ignore.md)
 - **System tray + OS notifications + sound** — [client.md](client.md)
 - **Window title unread count** — [client.md](client.md)
+- **Read marker, new-messages divider, mark as unread** — [client-qol.md](client-qol.md)
+- **Web Push for a closed web client** — [browser-client.md](browser-client.md)
 - **Themes (dark / light)** — [client.md](client.md), [custom-themes.md](custom-themes.md)
 - **Custom user skins** — [custom-themes.md](custom-themes.md)
 - **Themes (colours, icons, background, layout)** — [themes.md](themes.md)
