@@ -6071,10 +6071,6 @@ paths:
                   properties:
                     channel_id: { type: string }
                     unread_count: { type: integer, format: int64 }
-                    last_read_at:
-                      type: integer
-                      format: int64
-                      description: The caller's read marker (unix ms, 0 = never read); later messages are unread.
 
   /channels/{channel_id}/read:
     post:
@@ -6100,8 +6096,18 @@ paths:
               properties:
                 message_id: { type: string }
       responses:
-        "204":
-          description: No content
+        "200":
+          description: Marker moved. Older hubs answer 204 with no body.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [previous_last_read_at]
+                properties:
+                  previous_last_read_at:
+                    type: integer
+                    format: int64
+                    description: The marker before this call (unix ms, 0 = never read). A client opening the channel draws its new-messages divider above the first later message.
         "404":
           description: Channel not found, or the message is not in this channel
 
