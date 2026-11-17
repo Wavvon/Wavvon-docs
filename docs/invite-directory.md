@@ -4,7 +4,8 @@
 client browsing not.** Wavvon-discovery validates and stores listings
 (`src/lib/identity.ts`, `/api/identities` and `/api/identities/[pubkey]`,
 including the required `contact` route of §3). Since 2026-11-17 both
-clients publish a person's listing from the account settings (§6). No hub
+clients publish a person's listing from the account settings (§6), and
+the JS and Rust SDKs and a CLI publish a program's or any listing (§6a). No hub
 delivers an invite to a listing's `home_hub` or `endpoint` yet, and no
 client browses listings. Replaces the bot listing the directory
 carried until 2026-09-26, and is deliberately not a rename of it — the shape
@@ -184,8 +185,23 @@ identity's home hub designation, and `description` empty.
 - Like every directory surface it renders only where the build sets
   `DISCOVERY_URL`. The web client posts the listing as a plain-text body,
   a request a browser sends without a preflight; the delete carries
-  `x-wavvon-signature` and so needs the directory to answer a CORS
-  preflight from the client's origin when the two are not one origin.
+  `x-wavvon-signature` and so needs a CORS preflight when the client and
+  the directory are not one origin. Wavvon-discovery answers it on every
+  `/api` route with `Access-Control-Allow-Origin: *` (Wavvon-discovery#35):
+  nothing there trusts a cookie, so any origin may call it.
+
+## 6a. Publishing from a program or by hand
+
+The SDKs build the same bytes as the clients' builder, for any `kind`, with
+either contact route and the optional `app` block: `publishListing` /
+`unpublishListing` in `@wavvon/sdk` (Wavvon-sdk-js#16) and
+`publish_listing` / `unpublish_listing` in `wavvon-sdk` (Wavvon-sdk-rust#17).
+`kind` defaults to `"program"`, `listed_at` to now, and `contact` must name
+exactly one route before anything is sent. For a listing written by hand,
+`npx @wavvon/sdk publish <file.json> [--remove] --directory <url>` signs a
+`wavvon.identity` or `.wavvonclient` file with the key in `WAVVON_SEED` (or
+`--seed-file`) and posts it or sends the signed delete (Wavvon-sdk-js#15).
+There is no official directory URL yet, so the directory is always named.
 
 ## 7. Deferred
 
