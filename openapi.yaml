@@ -586,6 +586,12 @@ components:
           properties:
             sha256: { type: string, description: Hex SHA-256 of the package bytes }
             has_preview: { type: boolean }
+        languages:
+          allOf: [{ $ref: "#/components/schemas/HubLanguages" }]
+          description: >-
+            The hub's language packs and default language (`hub.languages`),
+            the same value as `GET /hub/languages`. Absent while the hub has
+            neither.
         invite_only: { type: boolean }
         min_security_level: { type: integer }
         min_pow_level: { type: integer }
@@ -648,6 +654,21 @@ components:
         max_fps: { type: integer }
         max_kbps: { type: integer }
 
+    HubLanguagePack:
+      type: object
+      required: [code, name, sha256]
+      properties:
+        code: { type: string, description: BCP-47 tag in canonical case }
+        name: { type: string }
+        sha256: { type: string, description: "Hex SHA-256 of the package bytes; it is served at /hub/languages/{sha256}" }
+    HubLanguages:
+      type: object
+      required: [packs]
+      properties:
+        default: { type: string, nullable: true, description: The default language code, or null }
+        packs:
+          type: array
+          items: { $ref: "#/components/schemas/HubLanguagePack" }
     Landing:
       type: object
       description: >-
@@ -1740,6 +1761,106 @@ paths:
               schema: { type: string, format: binary }
         "404":
           description: Not the current theme, or it has no preview
+
+  /hub/languages:
+    get:
+      operationId: listHubLanguages
+      summary: The hub's language packs and default language (public)
+      security: []
+      tags: [Hub]
+      responses:
+        "200":
+          description: The packs, by code
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HubLanguages" }
+    put:
+      operationId: putHubLanguage
+      summary: Upload a language pack (owner only)
+      description: >-
+        The body is a `.wavvonlang` package (language-packs.md). The hub
+        checks the envelope only: a zip holding `lang.json` alone, format and
+        version, a BCP-47 code, a 1-48 character name, string-only
+        `strings`, 512 KB. Locked keys and placeholders are the client's to
+        enforce. A pack with the code of one already stored replaces it.
+        Advertised as `hub.languages`.
+      tags: [Hub]
+      requestBody:
+        required: true
+        content:
+          application/zip:
+            schema: { type: string, format: binary, maxLength: 589824 }
+      responses:
+        "200":
+          description: Stored
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HubLanguagePack" }
+        "400":
+          description: The package breaks a rule; the body says which
+        "403":
+          description: Not the hub owner
+
+  /hub/languages/default:
+    put:
+      operationId: putHubDefaultLanguage
+      summary: Set or clear the hub default language (owner only)
+      description: >-
+        A BCP-47 code: a stored pack's, or a language the client ships. The
+        user's own choice always wins over it.
+      tags: [Hub]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string, nullable: true, description: null clears the default }
+      responses:
+        "200":
+          description: The updated list
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HubLanguages" }
+        "400":
+          description: Not a BCP-47 code
+        "403":
+          description: Not the hub owner
+
+  /hub/languages/{sha256}:
+    get:
+      operationId: getHubLanguage
+      summary: A hub language pack (public, immutable)
+      description: >-
+        Answers only for a stored pack's hash, with
+        `Cache-Control: public, max-age=31536000, immutable`.
+      security: []
+      tags: [Hub]
+      parameters:
+        - { name: sha256, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The package
+          content:
+            application/zip:
+              schema: { type: string, format: binary }
+        "404":
+          description: No pack with that hash
+    delete:
+      operationId: deleteHubLanguage
+      summary: Remove a language pack (owner only)
+      tags: [Hub]
+      parameters:
+        - { name: sha256, in: path, required: true, schema: { type: string } }
+      responses:
+        "204":
+          description: Removed
+        "403":
+          description: Not the hub owner
+        "404":
+          description: No pack with that hash
 
   /hub/members:
     get:
