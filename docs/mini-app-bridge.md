@@ -1,6 +1,6 @@
 # Mini-app host bridge: a frame moves its own user in voice
 
-> **Status (2026-11-16): designed, not built.** Tracking issue
+> **Status (2026-11-17): built** (Wavvon-clients#433, from the design of 2026-11-16). Tracking issue
 > [Wavvon-clients#423](https://github.com/Wavvon/Wavvon-clients/issues/423);
 > needed by Wavvon-demo-bot#6. Replaces the `wavvon:setVoicePosition` call
 > that [proximity-voice.md](proximity-voice.md) designed for the removed game
@@ -80,8 +80,17 @@ The mini-app window loads an external URL with no Tauri access, and
 `wavvon:setVoicePosition` to one Tauri command, `mini_app_voice_position`,
 granted to that window label alone by a runtime capability scoped to the
 `mini_app_url` origin. The shell maps the label to the `app_open` it was
-opened for, so the channel never comes from the frame; replies are posted
-back into the window. Same checks, same send path.
+opened for, so the channel never comes from the frame, and relays the request
+to the main window as an event; the main window runs the same checks as web
+(one shared implementation in `@wavvon/core`) and the same send path, and
+replies through a second command, `mini_app_post`, which evals a
+`postMessage` into the window. The command is listed in the app manifest
+(`build.rs`), so no window holds it by default; the runtime capability grants
+`allow-mini-app-voice-position` to one window label on the app origin only.
+
+The client reports one zone: the room map's, always `2d`. A hub may hold
+several zones in a room, but no client draws or tracks more than the first,
+so `ambiguous_zone` is reachable only once a client does.
 
 ## 6. Contract and deferred
 
