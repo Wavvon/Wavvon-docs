@@ -4,6 +4,16 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Saved messages, reminders, voice messages, empty states, findable
+  identities (2026-11-17)**: a personal Saved list across hubs with "Remind
+  me" at an absolute time, both in the synced settings on the home hub
+  (Wavvon-clients#454, #455); hold-to-record voice messages sent as
+  ordinary attachments with an inline waveform player (#456); empty lists
+  that say how to fill them (#457); and "Be findable in the directory",
+  which signs a person's `wavvon.identity` listing with the master key
+  (#458, [invite-directory.md](invite-directory.md) §6). Details in
+  [client-qol.md](client-qol.md) §9–11.
+
 - **Mute a hub or channel for a time (2026-11-17)**: 15 minutes, 1 hour,
   8 hours or until tomorrow, from the notifications submenu of the hub
   menu, the hub tab and the channel menu. It is `silent` plus an absolute

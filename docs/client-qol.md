@@ -491,7 +491,8 @@ and marks the channel read, the opposite of what was asked.
 - The divider is held by message id, so it does not move while reading
   and stays until the channel is left. While it is above the viewport a
   bar says how many messages are new, with Jump and Mark as read; Esc
-  marks read too.
+  marks read too — only when no menu or dialog took the key (it used to
+  mark read while closing a context menu).
 - Leaving a channel marks it read again, so messages read live while it
   was open do not come back as new — unless the reader just marked it
   unread, which is the whole point of that action.
@@ -501,6 +502,82 @@ and marks the channel read, the opposite of what was asked.
 **Not done.** The sidebar's unread dots are still client state seeded
 from `/channels/unread` at hub load, not pushed per marker change, so a
 second device learns of a read on the first only at its next load.
+
+---
+
+## 9. Saved messages and reminders — **SHIPPED**
+
+**Where the state lives.** Personal axis: one list in the synced settings
+(`wavvon.savedMessages`, carried by the prefs blob on the home hub; web
+through `SYNCED_KEYS`, desktop through `synced_setting_get/set` under the
+same key). Nothing is stored on the community hub. Each entry keeps what
+showing and reopening it needs without asking anyone: hub id, URL and name,
+channel id and name, message id, author, a 200-character excerpt, when the
+message was written and when it was saved. The list is capped at 500 because
+it travels in the blob on every sync, and it is last writer wins like every
+other synced value.
+
+**Saved** (Wavvon-clients#413). "Save message" in the message menu; a
+bookmark button in the top bar opens the list, newest first, across hubs;
+an entry jumps to the message through the permalink path. A delete seen
+for a saved message marks it deleted instead of dropping it.
+
+**Reminders** (Wavvon-clients#414). "Remind me" in the message menu: in 20
+minutes, 1 hour, 3 hours, tomorrow at 09:00, or a chosen time. The entry
+gets an absolute `remind_at`, never a bare timer, so a reload or another
+device keeps it; a message reminded but not saved is kept for the reminder
+alone and leaves with it. When due the client toasts it, shows an OS
+notification where the page may, counts it on the Saved button and lists it
+first until dismissed; the entry is marked fired, so it fires once.
+
+Shared code: `packages/ui/src/utils/savedMessages.ts`,
+`hooks/useSavedMessages.ts`, `components/content/SavedMessagesModal.tsx`.
+
+**Not done.** No Web Push for a reminder while no tab is open: that would
+need a hub to hold a schedule of personal reminders, which is
+personal-axis state on whatever hub sends the push. A closed client fires
+the reminder on its next load.
+
+---
+
+## 10. Voice messages — **SHIPPED**
+
+(Wavvon-clients#415.) A microphone button in the composer: hold to record,
+release to send, slide the pointer away (or press Esc) to cancel; Space or
+Enter held on the focused button does the same. `MediaRecorder` records
+Opus at 32 kbit/s, in Ogg where the browser can and WebM otherwise, for at
+most five minutes; the microphone permission is asked on the first press.
+
+**No new hub surface.** A recording is an ordinary attachment named
+`voice-message-<ms>.ogg|webm`, so the hub's attachment size limit,
+retention and permissions apply as to any file, and the button shows only
+where the hub stores attachments (`attachments.stored`). The hub sniffs
+the bytes: Ogg is `audio/ogg`, WebM is `video/webm`, which an `<audio>`
+element plays all the same.
+
+**Player.** An attachment with that name renders inline: play/pause, a
+waveform decoded from the file that is also the seek bar, the time, and
+1x/1.5x/2x speed. The duration comes from the decoded audio, because a
+`MediaRecorder` WebM carries none in its header and the element reports
+`Infinity`. Shared code: `packages/ui/src/utils/voiceMessage.ts`,
+`components/content/VoiceRecordButton.tsx`,
+`components/VoiceMessagePlayer.tsx`.
+
+**Not done.** Voice messages in DMs: an encrypted DM carries its
+attachments inline rather than as hub uploads, and the recorder is wired to
+the channel composer only.
+
+---
+
+## 11. Empty states that teach — **SHIPPED**
+
+(Wavvon-clients#418.) Where a list is empty it says how to fill it, as text
+from the catalogues: the friends list (add from a name or a key, and what a
+friend gives), Saved (saving and reminders, and that the list follows the
+identity), the directory with no results (what to change, and when the
+NSFW filter hid everything), and a hub with no channels seen by someone who
+can create them, which offers the setup templates again. The DM list
+already said how to start a conversation.
 
 ---
 

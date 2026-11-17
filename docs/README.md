@@ -183,6 +183,8 @@ Reading order is for learning the system end-to-end. This section is for
 - **System tray + OS notifications + sound** — [client.md](client.md)
 - **Window title unread count** — [client.md](client.md)
 - **Read marker, new-messages divider, mark as unread** — [client-qol.md](client-qol.md)
+- **Saved messages and reminders** — [client-qol.md](client-qol.md)
+- **Voice messages** — [client-qol.md](client-qol.md)
 - **Web Push for a closed web client** — [browser-client.md](browser-client.md)
 - **Themes (dark / light)** — [client.md](client.md), [custom-themes.md](custom-themes.md)
 - **Custom user skins** — [custom-themes.md](custom-themes.md)

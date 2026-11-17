@@ -1,10 +1,12 @@
 # The invite directory: listing an identity that wants to be found
 
-**Status: directory side built; hub and client sides not.** Wavvon-discovery
-validates and stores listings (`src/lib/identity.ts`, `/api/identities` and
-`/api/identities/[pubkey]`, including the required `contact` route of §3).
-As of 2026-11-02 no hub delivers an invite to a listing's `home_hub` or
-`endpoint`, and no client publishes or browses listings. Replaces the bot listing the directory
+**Status: directory side and client publishing built; hub delivery and
+client browsing not.** Wavvon-discovery validates and stores listings
+(`src/lib/identity.ts`, `/api/identities` and `/api/identities/[pubkey]`,
+including the required `contact` route of §3). Since 2026-11-17 both
+clients publish a person's listing from the account settings (§6). No hub
+delivers an invite to a listing's `home_hub` or `endpoint` yet, and no
+client browses listings. Replaces the bot listing the directory
 carried until 2026-09-26, and is deliberately not a rename of it — the shape
 changed with the model.
 
@@ -156,7 +158,36 @@ and a person looking for a community are the same query with a different
   else. A listing claiming to be someone famous is as true as its key —
   which is the same guarantee everywhere else in Wavvon.
 
-## 6. Deferred
+## 6. Publishing from a client
+
+Wavvon-clients#397. The account settings carry "Be findable in the
+directory": name, tagline, tags and languages. The document is a person's
+(`kind: "person"`) with `contact.home_hub` set to the first hub of the
+identity's home hub designation, and `description` empty.
+
+- **Consent first.** Turning it on shows the three things of §2 before
+  anything is sent; only then does the form open, and only "Publish"
+  submits.
+- **Signed with the master key.** The listing names the master pubkey, so
+  only the device holding the recovery phrase can publish it; on a paired
+  device, or with no home hub to route invites to, the switch is disabled
+  with the reason.
+- **One builder.** `packages/core/src/identityListing.ts` builds the exact
+  bytes, the delete message and the base64url signature, so web and desktop
+  submit the same document. Web signs in the page; desktop hands the
+  payload to the shell (`directory_identity_publish`), which checks it is
+  an identity listing naming this master before signing it in Rust, and
+  also reads (`directory_identity_get`) and removes
+  (`directory_identity_unpublish`) the listing.
+- Editing republishes with a new `listed_at`; off sends the signed delete
+  for the `listed_at` the directory holds.
+- Like every directory surface it renders only where the build sets
+  `DISCOVERY_URL`. The web client posts the listing as a plain-text body,
+  a request a browser sends without a preflight; the delete carries
+  `x-wavvon-signature` and so needs the directory to answer a CORS
+  preflight from the client's origin when the two are not one origin.
+
+## 7. Deferred
 
 - Badges or reputation on a listing. Trust is one hop and viewer-decided
   ([hub-certifications.md](hub-certifications.md)); a directory-wide score is

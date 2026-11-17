@@ -51,12 +51,12 @@ Every block is optional except `format`, `version`, `name` and `colors`.
   images (`<img>` or a CSS mask), never inlined: inline SVG can run script.
   State styling (muted, deafened, live) stays the client's, so a replaced
   glyph never hides a state. The set as built (`iconRegistry.ts` in the
-  clients repo) is 35 interface icons: `phone-off`, `mic`, `mic-off`,
+  clients repo) is 36 interface icons: `phone-off`, `mic`, `mic-off`,
   `deafen`, `screen-share`, `camera`, `camera-off`, `pin`, `search`,
   `members`, `link`, `flag`, `reply`, `edit`, `trash`, `settings`, `plus`,
   `close`, `chevron`, `expand`, `reset`, `forum`, `bell-off`, `lock`,
   `paperclip`, `speaker`, `clock`, `whisper`, `cake`, `calendar`, `wave`,
-  `reaction-add`, `messages`, `discover`, `mention`; the four channel types
+  `reaction-add`, `messages`, `discover`, `mention`, `bookmark`; the four channel types
   `channel-text`, `channel-voice`, `channel-forum`, `channel-spawner`; and 27
   channel glyphs, each `channel-` plus one of `chat`, `mic`, `headphones`,
   `speaker`, `video`, `music`, `game`, `film`, `book`, `star`, `heart`,
