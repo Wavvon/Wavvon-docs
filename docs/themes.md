@@ -50,21 +50,40 @@ Every block is optional except `format`, `version`, `name` and `colors`.
   image in the zip. An unknown name is ignored. Icons are always rendered as
   images (`<img>` or a CSS mask), never inlined: inline SVG can run script.
   State styling (muted, deafened, live) stays the client's, so a replaced
-  glyph never hides a state.
+  glyph never hides a state. The set as built (`iconRegistry.ts` in the
+  clients repo) is 35 interface icons: `phone-off`, `mic`, `mic-off`,
+  `deafen`, `screen-share`, `camera`, `camera-off`, `pin`, `search`,
+  `members`, `link`, `flag`, `reply`, `edit`, `trash`, `settings`, `plus`,
+  `close`, `chevron`, `expand`, `reset`, `forum`, `bell-off`, `lock`,
+  `paperclip`, `speaker`, `clock`, `whisper`, `cake`, `calendar`, `wave`,
+  `reaction-add`, `messages`, `discover`, `mention`; the four channel types
+  `channel-text`, `channel-voice`, `channel-forum`, `channel-spawner`; and 27
+  channel glyphs, each `channel-` plus one of `chat`, `mic`, `headphones`,
+  `speaker`, `video`, `music`, `game`, `film`, `book`, `star`, `heart`,
+  `shield`, `crown`, `lock`, `key`, `bolt`, `home`, `globe`, `info`,
+  `warning`, `person`, `group`, `trophy`, `rocket`, `tools`, `megaphone`,
+  `news`.
 - **`background`**: one image; `fit` is `cover`, `contain`, `tile` or
   `center`; `dim` (0 to 0.9) is a dark veil over it, `panel_opacity` (0.6 to
   1) lets it show through the panels, `blur` (0 to 20 px) is the frosted
-  effect.
+  effect. The blur is applied to the image layer itself, not to the panels
+  in front of it. An out-of-range number is pulled into range and an unknown
+  `fit` falls back to `cover`.
 - **`layout`**: each key takes one value from a closed list the client
   defines. An unknown key or value falls back to the default, so a theme made
   for a newer client still loads on an older one. New layout options are added
   over time, and every theme can use them. The user's own layout choices stay
-  theirs: a theme sets defaults.
+  theirs: a theme sets defaults. The keys as built, default first:
+  `member_list` (`right`, `left`, `hidden`), `channel_list` (`tree`,
+  `compact`), `tabs` (`top`, `side`), `density` (`cozy`, `compact`),
+  `avatar_shape` (`square`, `circle`).
 - **`font`**: one of the fonts the client ships. Custom font files: later.
-- **`sounds`**: a closed set of sound names (`message`, `mention`,
-  `voice_join`, `voice_leave`, `mute`, `unmute`, `deafen`, `undeafen`, …),
-  each mapped to an audio file in the zip. The user's sound volume and
-  on/off settings still apply.
+- **`sounds`**: a closed set of eight sound names, `message`, `mention`,
+  `voice_join`, `voice_leave`, `mute`, `unmute`, `deafen`, `undeafen`, each
+  mapped to an audio file in the zip. The user's sound volume and on/off
+  settings still apply.
+- **`preview`**: the path of an image in the zip, captured by the editor's
+  "make preview" button. The gallery and a hub's directory listing show it.
 
 The loader, the install and switch flow, the hub default and the directory
 download are written once for both themes and [language packs](language-packs.md),
@@ -120,3 +139,23 @@ server who uses it.
 
 The directory never hosts the packages: it lists them, the way it lists
 clients.
+
+The client reads the first section from
+`GET {directory}/api/themes?q=&page=`:
+
+```json
+{
+  "themes": [{
+    "id": "…", "author_pubkey": "…", "name": "Sakura Night",
+    "description": "…", "metadata": { "colors": { "dark": {}, "light": {} } },
+    "preview_url": "https://…", "download_url": "https://…",
+    "sha256": "…", "listed_at": 1763337600
+  }],
+  "total": 1
+}
+```
+
+`description` and `preview_url` may be absent; `q` searches name and
+description; `page` starts at 1, with 20 listings a page. A hub listing may also carry a signed
+`theme_preview_url`, the preview of that hub's default theme, shown on its
+card.

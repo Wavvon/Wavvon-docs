@@ -576,6 +576,16 @@ components:
             The invite landing look, the same value as the invite preview's.
             `image` is present only when an image is set, so a client can skip
             requesting it. Absent on hubs that predate the field.
+        theme:
+          type: object
+          description: >-
+            The hub default theme (`hub.theme`), present while one is set. The
+            package is at `/hub/theme/{sha256}` and, when `has_preview`, its
+            preview image at `/hub/theme/{sha256}/preview`.
+          required: [sha256, has_preview]
+          properties:
+            sha256: { type: string, description: Hex SHA-256 of the package bytes }
+            has_preview: { type: boolean }
         invite_only: { type: boolean }
         min_security_level: { type: integer }
         min_pow_level: { type: integer }
@@ -1653,6 +1663,83 @@ paths:
               schema: { type: string, format: binary }
         "404":
           description: No landing image set
+
+  /hub/theme:
+    put:
+      operationId: putHubTheme
+      summary: Set or replace the hub default theme (hub.appearance)
+      description: >-
+        The body is a `.wavvontheme` package (themes.md). The hub checks it
+        with the client's rules (size limits, relative paths, no links,
+        allowed file types, colour token values, sound lengths) and refuses
+        anything the client would. Advertised as `hub.theme`.
+      tags: [Hub]
+      requestBody:
+        required: true
+        content:
+          application/zip:
+            schema: { type: string, format: binary, maxLength: 8388608 }
+      responses:
+        "200":
+          description: Stored
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [sha256, has_preview]
+                properties:
+                  sha256: { type: string }
+                  has_preview: { type: boolean }
+        "400":
+          description: The package breaks a rule; the body says which
+        "403":
+          description: Missing hub.appearance
+    delete:
+      operationId: deleteHubTheme
+      summary: Remove the hub default theme (hub.appearance)
+      tags: [Hub]
+      responses:
+        "204":
+          description: Removed
+        "404":
+          description: No hub theme set
+
+  /hub/theme/{sha256}:
+    get:
+      operationId: getHubTheme
+      summary: The hub default theme package (public, immutable)
+      description: >-
+        Answers only for the current theme's hash, with
+        `Cache-Control: public, max-age=31536000, immutable`.
+      security: []
+      tags: [Hub]
+      parameters:
+        - { name: sha256, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The package
+          content:
+            application/zip:
+              schema: { type: string, format: binary }
+        "404":
+          description: Not the current theme
+
+  /hub/theme/{sha256}/preview:
+    get:
+      operationId: getHubThemePreview
+      summary: The hub default theme's preview image (public, immutable)
+      security: []
+      tags: [Hub]
+      parameters:
+        - { name: sha256, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The image named by the package's `preview` key
+          content:
+            image/*:
+              schema: { type: string, format: binary }
+        "404":
+          description: Not the current theme, or it has no preview
 
   /hub/members:
     get:
@@ -4947,6 +5034,10 @@ paths:
     post:
       operationId: signAdminDirectoryListing
       summary: Sign a directory entry for the hub discovery service
+      description: >-
+        Returns `canonical_payload` (sorted keys: bio, hub_url, invite_code
+        when given, language, nonce, tags, and `theme_preview_url` when the hub
+        has a default theme with a preview), the hub key and its signature.
       tags: [Federation]
       requestBody:
         required: true
