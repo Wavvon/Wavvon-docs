@@ -126,6 +126,16 @@ If you restrict origins, add the serving origin of any browser client (including
 
 **A farm has the same setting, and it is not optional to think about.** A farm-hosted hub is reached through the farm proxy, and its `/info.farm_url` tells clients to send `/auth/*` to the farm itself — so a browser talks to both. `WAVVON_CORS_ORIGINS` on the farm covers the farm own routes (the proxy passes the hub headers through, and a second set would be a duplicate a browser rejects). It defaults to `*` there too; a farm that restricts origins and forgets the client origin refuses every join, and the client shows only "could not reach".
 
+### Choosing the web client
+
+By default the hub serves the client baked into the image or pointed at by
+`WAVVON_WEB_CLIENT_DIR`. To serve one somebody else publishes, set
+`WAVVON_WEB_CLIENT_URL` and `WAVVON_WEB_CLIENT_SHA256` (the hub downloads it
+once, verifies the hash and refuses to start on a mismatch), or mount a
+client image's build through a shared volume. Both are written up, with the
+Content-Security-Policy a third-party client must live under, in
+[hosting.md](hosting.md#serving-a-third-party-web-client).
+
 ---
 
 ## Hub ownership

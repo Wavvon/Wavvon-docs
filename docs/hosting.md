@@ -632,6 +632,79 @@ for API-only. Design rationale: [decisions.md](decisions.md) ("Hubs may
 optionally self-serve the web client"); client details:
 [browser-client.md](browser-client.md).
 
+### Serving a third-party web client
+
+The hub does not have to serve the client we publish. Two ways to serve
+another one (design: [decisions.md](decisions.md), "An operator chooses the
+web client a hub serves, from a pinned download"). Both replace the image's
+baked-in client, so clear `WAVVON_WEB_CLIENT_DIR` first where it is preset.
+
+**Pinned download.** Name an `https` archive (`.tar.gz` or `.zip`) of a
+built client and its SHA-256:
+
+```
+WAVVON_WEB_CLIENT_URL=https://example.com/releases/client-1.4.0.tar.gz
+WAVVON_WEB_CLIENT_SHA256=<64 hex characters>
+```
+
+Compute the hash of the file you reviewed, not of whatever the URL serves
+today: `sha256sum client-1.4.0.tar.gz` (Linux), `shasum -a 256 ...`
+(macOS) or `Get-FileHash -Algorithm SHA256 ...` (PowerShell).
+
+- **The hash is required.** The web client holds its users' private keys, so
+  the hub serves an exact build, never "whatever is at the URL": the author
+  cannot change the code under you, and a compromised download host cannot
+  ship itself to your hub at its next restart. A URL without a hash, or
+  together with `WAVVON_WEB_CLIENT_DIR`, is a startup error.
+- At boot the hub downloads the archive (size and time limits, the same
+  outbound-fetch protections as link previews), checks the hash, unpacks it
+  into `web-client-cache/<hash>/` in its working directory and serves it
+  like a local directory. A later boot with the same hash uses the cache and
+  makes no request.
+- The archive needs an `index.html` at its root (or under a single
+  top-level directory). Entries with absolute paths, `..` or links are
+  refused.
+- A failed download or a hash mismatch stops the hub with an error naming the
+  URL and both hashes. There is no fallback to an older or different client.
+  `--doctor` runs the same check.
+- **To upgrade, change the URL and the hash together.** Old cache directories
+  are left in place; delete them when you like.
+
+**Docker, with no hub change.** A client image copies its build into a named
+volume once, and the hub mounts the volume read-only (the image name and path
+below are placeholders for the client author's):
+
+```yaml
+services:
+  client-init:
+    image: ghcr.io/example/wavvon-client:1.4.0
+    command: ["sh", "-c", "rm -rf /out/* && cp -r /app/dist/. /out/"]
+    volumes:
+      - webclient:/out
+  hub:
+    image: ghcr.io/wavvon/wavvon-hub:latest
+    depends_on:
+      client-init:
+        condition: service_completed_successfully
+    environment:
+      WAVVON_WEB_CLIENT_DIR: /web-client-ext
+    volumes:
+      - webclient:/web-client-ext:ro
+volumes:
+  webclient:
+```
+
+Pin the client image by tag or, better, by digest: that is the same
+trust decision as the hash above.
+
+**What a third-party client must respect.** The hub's Content-Security-Policy
+is fixed and applies to every file it serves: no inline scripts beyond the one
+the hub injects, no remote script origins, no framing (`HTML_CSP` in
+`crates/hub/src/web_client.rs` of the server repo). A client that needs more
+is a client to change, not a policy to relax. And it must decide what to show
+from the hub's `capabilities` list in `GET /info`, never from the hub's
+version: one client talks to hubs of any age.
+
 ---
 
 ## --doctor first-aid
@@ -639,7 +712,7 @@ optionally self-serve the web client"); client details:
 `wavvon-hub --doctor` is the first thing to run when something isn't
 working. It checks port bindability, TLS file readability and PEM
 validity, working-directory write access, and the web-client directory
-(when `WAVVON_WEB_CLIENT_DIR` is set), then exits 0 on success or 1 on any
+(when `WAVVON_WEB_CLIENT_DIR` is set, or the pinned download when `WAVVON_WEB_CLIENT_URL` is), then exits 0 on success or 1 on any
 failure. Under Docker: `docker compose exec hub wavvon-hub --doctor`.
 
 The startup banner logs effective config before serving and warns when
