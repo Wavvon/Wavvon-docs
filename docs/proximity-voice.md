@@ -194,7 +194,10 @@ message shape, the sender's membership and auth_mode, and fans out
 `voice_position_updated` to all channel members in voice.
 An update for an unknown zone, or from a sender a `creator_only` zone refuses,
 is answered with an `error` frame (`context: "voice_position_update"`); the
-30 ms rate-limit drop stays silent.
+30 ms rate-limit drop stays silent. Both clients put the user back where the
+hub last placed them (its own `voice_position_updated`, or the zone state at
+join), for the map and the local attenuation alike, say so on the map, and
+tell a mini-app that was moving the user (Wavvon-clients#436).
 
 ---
 

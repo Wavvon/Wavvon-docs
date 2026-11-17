@@ -35,7 +35,13 @@ no secret):
 leaving the room, a zone created or destroyed); a frame that never receives
 it is on a client without the bridge. Success is not acknowledged, since a
 game sends at tick rate; every refusal is, with `reason` one of
-`not_in_voice`, `no_zone`, `ambiguous_zone`, `bad_position`.
+`not_in_voice`, `no_zone`, `ambiguous_zone`, `bad_position` (the client's
+own checks, §2), or `refused`: the hub turned a sent move down (an unknown
+zone, or a `creator_only` zone the user did not create) with an `error`
+frame, `context: "voice_position_update"` (Wavvon-server#416). That one
+arrives after the fact, so a frame may already have sent later positions;
+the client puts the user back where the hub last placed them
+(Wavvon-clients#436).
 
 ## 2. What the client checks
 
