@@ -208,8 +208,8 @@ program sets the policy"). Specs: [sdk-voice.md](sdk-voice.md) and
 
 | SDK | Voice | E2E DMs | Tracking |
 |---|---|---|---|
-| Rust | first; settles the API | with voice | [Wavvon-sdk-rust#19](https://github.com/Wavvon/Wavvon-sdk-rust/issues/19) |
-| Go | next (`webtransport-go`) | with voice | [Wavvon-sdk-go#15](https://github.com/Wavvon/Wavvon-sdk-go/issues/15) |
+| Rust | built; settled the API | built | [Wavvon-sdk-rust#19](https://github.com/Wavvon/Wavvon-sdk-rust/issues/19) |
+| Go | built (own WebTransport client over `quic-go`) | built | [Wavvon-sdk-go#15](https://github.com/Wavvon/Wavvon-sdk-go/issues/15) |
 | Python | after a spike on `aioquic` as a WebTransport client | with voice | [Wavvon-sdk-python#14](https://github.com/Wavvon/Wavvon-sdk-python/issues/14) |
 | TypeScript | blocked on native WebTransport in Node | possible now (`@noble/curves` has X25519) | [Wavvon-sdk-js#18](https://github.com/Wavvon/Wavvon-sdk-js/issues/18) |
 | C# | none: no WebTransport client in .NET | possible (X25519, HKDF, AES-GCM via the BCL or NSec) | none yet |

@@ -1,7 +1,9 @@
 # SDK E2E DMs: a program in an encrypted conversation
 
 > **Status (2026-11-17): built in the Rust SDK** (Wavvon-sdk-rust#20, `Client::dms()`,
-> smoke-tested against a real hub); Go and Python follow. Ships with voice in the SDKs
+> smoke-tested against a real hub) **and the Go SDK** (Wavvon-sdk-go#16, `Client.DMs()`,
+> smoke-tested against a real hub and against the Rust SDK, 1:1 and group); Python
+> follows. Ships with voice in the SDKs
 > that get voice ([sdk-voice.md](sdk-voice.md)): Rust first
 > ([Wavvon-sdk-rust#19](https://github.com/Wavvon/Wavvon-sdk-rust/issues/19)),
 > then Go and Python. It needs no WebTransport, so TypeScript, C# and Java can

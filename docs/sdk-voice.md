@@ -1,9 +1,11 @@
 # SDK voice: a program in a voice channel
 
 > **Status (2026-11-17): built in the Rust SDK** (Wavvon-sdk-rust#21,
-> smoke-tested against a real hub); tracking issue
+> smoke-tested against a real hub) **and the Go SDK** (Wavvon-sdk-go#17, the `voice`
+> package, smoke-tested against a real hub and in one room with the Rust SDK, each
+> side reading the other's frames); tracking issue
 > [Wavvon-sdk-rust#19](https://github.com/Wavvon/Wavvon-sdk-rust/issues/19).
-> Rust goes first and settles the API; Go follows; Python after a spike;
+> Rust went first and settled the API; Python is next, after a spike;
 > TypeScript waits for native WebTransport in Node; C# and Java have no
 > WebTransport client, so no voice there (their E2E DMs are still possible,
 > [sdk-dm.md](sdk-dm.md)). Use cases: a radio program streaming
@@ -185,10 +187,12 @@ Capability gate: `channels.voice`. A `voice_joined` without `voice_wt_url`
 (a hub older than voice transport v2) is `UnsupportedByHub`. No new
 capability string.
 
-**No hub change is required.** One recommended, not blocking: the silent drops
-in `handle_voice_position_update` for an unknown zone and a refused
-`creator_only` sender should answer `error`, per "unknown is loud" (the rate
-limit drop can stay silent).
+**No hub change is required.** The silent drops in `handle_voice_position_update`
+for an unknown zone and a refused `creator_only` sender now answer `error` with
+context `voice_position_update` (Wavvon-server#416; the rate limit drop stays
+silent). The SDKs surface it as `VoiceEvent::PositionRefused { reason }` (Rust)
+and `voice.PositionRefused` (Go): an event, never a fatal error and never a
+policy.
 
 ## 6. Rust API (the reference)
 
@@ -205,7 +209,8 @@ voice.set_position(&zone_id, &[40.0, 60.0])?;        // coalesced, >= 50 ms apar
 while let Some(ev) = voice.next().await { match ev? {
     VoiceEvent::Audio(a) => {}   // from, sender_id, ts, ctr, whisper, opus, pcm
     VoiceEvent::Roster(_) | VoiceEvent::Speaking { .. } | VoiceEvent::Zones(_)
-    | VoiceEvent::Position { .. } | VoiceEvent::TalkGranted | VoiceEvent::MoveRequested { .. }
+    | VoiceEvent::Position { .. } | VoiceEvent::PositionRefused { .. }
+    | VoiceEvent::TalkGranted | VoiceEvent::MoveRequested { .. }
     | VoiceEvent::Rejoining | VoiceEvent::Unknown { .. } => {}
 }}
 voice.leave().await?;
@@ -219,12 +224,26 @@ reaches the room's socket is ignored, not surfaced. `VoiceEvent::KeySkipped`
 reports a peer that could not be given the key. `create_zone` and
 `destroy_zone` exist for programs holding `channels.manage`.
 
-**Go** (Wavvon-sdk-go#15): `quic-go/webtransport-go` client; the cert-hash pin
-is a `tls.Config` with `VerifyPeerCertificate` comparing SHA-256 of the leaf
-DER (system verification off only in that branch). Crypto is stdlib plus
-`x/crypto` (`curve25519`, `hkdf`); the seed-to-X25519 step is SHA-512 and a
-clamp, asserted by `master_dh_pubkey`. `SendOpus` is pure Go; PCM needs cgo
-libopus behind a build tag. A `Voice` struct with a `<-chan VoiceEvent`.
+**Go** (Wavvon-sdk-go#17, package `voice`): `voice.Join(ctx, client, channelID)`
+returns a `*Voice` with `Events() <-chan Event` (an unbounded queue behind it),
+`SendOpus`, `SendPCM`, `SetPosition`. The cert-hash pin is a `tls.Config` with
+`VerifyPeerCertificate` comparing SHA-256 of the leaf DER (system verification
+off only in that branch). Crypto is stdlib (`crypto/ecdh` X25519, AES-GCM,
+HKDF written out); the seed-to-X25519 step is SHA-512 and a clamp, asserted by
+`master_dh_pubkey`. `SendOpus` is pure Go; PCM needs cgo and libopus behind the
+`opus` build tag (`gopkg.in/hraban/opus.v2`).
+
+**`quic-go/webtransport-go` does not work against the hub.** The CVE fixes
+(CVE-2026-21435, CVE-2026-57497) are in v0.11.1 and later, but since v0.11.0 its
+client requires `SETTINGS_WT_ENABLED` (0x2c7cf000) from the server, and the
+hub's `wtransport` 0.7 sends only `SETTINGS_ENABLE_WEBTRANSPORT` (0x2b603742),
+the codepoint of the older drafts that browsers still accept: the dial fails
+with "server didn't enable WebTransport". The Go SDK therefore carries a small
+WebTransport client of its own over `quic-go`'s HTTP/3 (extended CONNECT with
+`Sec-Webtransport-Http3-Draft02: 1`, then HTTP/3 datagrams on the CONNECT
+stream), which is all voice uses. Revisit when the hub's `wtransport` moves to
+the current draft's settings. The same applies to any other SDK that reaches
+for a WebTransport library.
 
 **Python** (Wavvon-sdk-python#14): a spike first, on whether `aioquic` can be
 a WebTransport client (extended CONNECT, HTTP/3 datagrams) against the hub,
