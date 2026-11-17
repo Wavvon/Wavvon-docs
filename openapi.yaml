@@ -6071,20 +6071,39 @@ paths:
                   properties:
                     channel_id: { type: string }
                     unread_count: { type: integer, format: int64 }
+                    last_read_at:
+                      type: integer
+                      format: int64
+                      description: The caller's read marker (unix ms, 0 = never read); later messages are unread.
 
   /channels/{channel_id}/read:
     post:
       operationId: markChannelRead
-      summary: Mark a channel as read up to now
+      summary: Mark a channel as read up to now, or unread from a message
+      description: |
+        Without a body the caller's read marker moves to now. With
+        `message_id` ("mark unread", capability `channels.mark_unread`) it
+        moves to that message's `created_at` minus one, so the message and
+        everything after it count as unread. Only the caller's marker changes.
       tags: [Channels]
       parameters:
         - name: channel_id
           in: path
           required: true
           schema: { type: string }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message_id: { type: string }
       responses:
         "204":
           description: No content
+        "404":
+          description: Channel not found, or the message is not in this channel
 
   # ── Message pins ──────────────────────────────────────────────────────────
 
