@@ -4,6 +4,16 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Mute a hub or channel for a time (2026-11-17)**: 15 minutes, 1 hour,
+  8 hours or until tomorrow, from the notifications submenu of the hub
+  menu, the hub tab and the channel menu. It is `silent` plus an absolute
+  deadline stored beside the mode, the shape presence's "clear after"
+  already used, and Web Push carries the deadline so a hub stops honouring
+  a mute that ended while the tab was closed (Wavvon-clients#453,
+  Wavvon-server#423, [block-mute-ignore.md](block-mute-ignore.md)). The
+  same PR stopped Esc from marking a channel read when it was closing a
+  menu or a dialog.
+
 - **A room map for voice (2026-11-10)**: the hub had relayed voice zones
   and both clients had attenuated by them for months, but no client ever
   sent a zone or a position. A voice room now has a map: someone with

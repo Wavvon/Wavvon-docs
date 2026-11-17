@@ -438,6 +438,12 @@ while it runs and does not use this.
 - A push goes out when the member has no socket open, is not in `dnd`, can
   read the channel, and neither the channel nor the hub is `silent` in
   `notify`. Budget: 30 a minute per recipient.
+- A timed mute (Wavvon-clients#416) also sends its end: `hub_until` and
+  `channels_until`, epoch ms. Past its deadline a mode counts as unset, so
+  an expired channel mute falls back to the hub's mode. The deadline is
+  sent because a closed tab cannot re-send its modes when the mute ends
+  (capability `push.web.muteuntil`; an older hub ignores the fields and
+  keeps the mute until the client next re-sends).
 - **The payload carries no text.** It crosses the browser vendor's push
   service (Google, Mozilla, Apple), so it is only
   `{hub, kind: mention|reply|dm, channel_id | conversation_id}`,

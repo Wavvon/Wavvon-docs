@@ -6172,6 +6172,14 @@ paths:
                     channels:
                       type: object
                       additionalProperties: { type: string, enum: [all, mentions, silent] }
+                    hub_until:
+                      type: integer
+                      format: int64
+                      description: Epoch-ms end of a timed hub mute; past it the hub mode counts as unset (capability push.web.muteuntil).
+                    channels_until:
+                      type: object
+                      description: Epoch-ms end of a timed mute per channel; past it the channel falls back to the hub mode.
+                      additionalProperties: { type: integer, format: int64 }
       responses:
         "204":
           description: Stored

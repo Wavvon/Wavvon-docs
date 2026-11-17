@@ -253,6 +253,19 @@ quieting tool: setting a hub's (or a channel's) notify mode to `silent`
 suppresses that hub's notifications without touching your visible
 status. The two gates are independent and both applied at read time.
 
+A hub or channel can also be muted **for a time** (15 minutes, 1 hour,
+8 hours, until 08:00 tomorrow) from the notifications submenu of the hub
+menu, the hub tab's menu and the channel menu. That is `silent` plus an
+absolute epoch-ms deadline stored next to the mode (web: the synced
+`wavvon.notifyMuteUntil`; desktop: `mute_until` in
+`notification_mutes.json`, which, like the desktop notify modes, is not
+synced yet), the shape presence's "clear after" uses, never a bare timer.
+At the deadline, or on the first load after it, the mode returns to the
+default. Picking any mode ends the timed mute. The menu shows when it
+ends, as does the hub tab's muted mark. Shared pieces:
+`packages/ui/src/utils/muteExpiry.ts`, `hooks/useMuteExpiry.ts`,
+`components/layout/MuteForItems.tsx`.
+
 Only the **future schedule** would live in the prefs blob
 (`DndSchedule { start, end, tz }`, replicated so phone and desktop
 agree). Multi-device presence reconciliation (device A sets DND — what
