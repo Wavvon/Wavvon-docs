@@ -192,6 +192,9 @@ channel-scoped (include `channel_id`).
 The hub does not interpret positions or compute distances. It validates the
 message shape, the sender's membership and auth_mode, and fans out
 `voice_position_updated` to all channel members in voice.
+An update for an unknown zone, or from a sender a `creator_only` zone refuses,
+is answered with an `error` frame (`context: "voice_position_update"`); the
+30 ms rate-limit drop stays silent.
 
 ---
 
