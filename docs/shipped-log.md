@@ -4,6 +4,24 @@ Full historical record of shipped work, moved out of [ROADMAP.md](../ROADMAP.md)
 to keep the roadmap slim. Newest entries first. Forward-looking work lives in
 the roadmap; design rationale lives in [decisions.md](decisions.md).
 
+- **Desktop updater that waits for you (2026-11-17)**: an update now
+  downloads in the background with progress (MB of MB, time left), and
+  installs only when the user picks "Restart to update" (asking first
+  during a voice call) or quits. macOS and Linux restart themselves after
+  installing, and the app re-checks every six hours of wall-clock time, so
+  a resume from sleep catches up (Wavvon-clients#419,
+  [packaging.md](packaging.md) §3). Not yet proven against a real signed
+  release on a Mac or a Linux box.
+
+- **Onboarding finds you a hub (2026-11-17)**: with no invite, onboarding
+  continues after the profile with interests (topics, languages, only open
+  hubs, nearest first; kept on the device) and "Hubs for you": directory
+  hubs matching them, each saying why, ordered by a latency the client
+  measures with one `/info` per candidate. "Later" lands on an empty home
+  with the same suggestions (Wavvon-clients#260, decisions.md "Client
+  layout"). Everything waits on `DISCOVERY_URL`, null until the directory
+  is hosted; it was driven against a mock directory.
+
 - **Saved messages, reminders, voice messages, empty states, findable
   identities (2026-11-17)**: a personal Saved list across hubs with "Remind
   me" at an absolute time, both in the synced settings on the home hub

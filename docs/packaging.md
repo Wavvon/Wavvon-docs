@@ -104,11 +104,38 @@ Tauri 2 updater JSON, served from the endpoint:
 
 ### UX
 
-- Check on startup, non-blocking.
-- Toast on available update: "Wavvon v0.x.y is available — restart to
-  update."
-- Silent background download. Apply on next restart. No forced
-  interruptions.
+All of it lives in `src-tauri/src/updater.rs` and the desktop
+`UpdateBanner`; the web client has no updater (it updates with the hub that
+serves it).
+
+- **When it checks**: at startup, then every six hours of wall-clock time.
+  The loop wakes every 15 minutes and compares `SystemTime`, because a
+  monotonic sleep does not advance while the machine sleeps; a resume
+  therefore catches up within 15 minutes. A check is skipped while an
+  update is downloading, ready or installing; a failed one is replaced,
+  which is the automatic retry.
+- **Download in the background**: as soon as a check finds a version, the
+  plugin's `download()` runs while the app stays usable. Progress reaches
+  the banner as `update-status` events (at most four a second): a progress
+  bar with MB of MB and a time left from a smoothed rate, or an
+  indeterminate bar with MB received when there is no `Content-Length`.
+  The bytes are kept **in memory only**, so a failed or abandoned update
+  leaves nothing on disk. `get_update_status` answers the same state to a
+  banner that mounts late (startup race, account switch).
+- **Install when chosen**: the banner offers "Restart to update" or
+  "Later". During a voice call, restarting asks first. On Windows the NSIS
+  installer closes and relaunches the app; on macOS and Linux `install()`
+  replaces the bundle and the app calls `AppHandle::restart()`.
+- **Install on quit**: quitting with a downloaded update installs it on
+  `RunEvent::Exit`, with the Windows relaunch turned off, so the next
+  launch is the new version.
+- **Failure**: a failed download or install keeps the running version and
+  the banner offers Retry, which downloads afresh.
+- **Dismissal**: "Later" hides that version for the rest of the session
+  (it survives an account switch, not a relaunch). A quit still installs
+  it.
+- Not yet proven on real hardware: the macOS and Linux restart after
+  install, which needs a signed release to update from.
 
 ---
 
