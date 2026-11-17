@@ -510,7 +510,7 @@ An allied hub becomes a **write path into your forum**. Over
 
 - **Spam/flood via an ally.** Add a **per-origin-hub rate limiter** on
   federated forum writes (mirror the `badge_offer` limiter in
-  `hub/src/rate_limit.rs`, Wavvon-server) and a **federated-write policy**
+  `hub/src/federation/handlers.rs`, Wavvon-server) and a **federated-write policy**
   the owner controls per shared channel — because the proxied write
   authenticates as a hub, the local `create_posts`/`send_messages` gates
   don't map to a user. New additive `alliance_shared_channels` column
@@ -574,7 +574,7 @@ All Wavvon-server unless noted.
 - `hub/src/db/migrations.rs` — additive `author_hub` on
   `posts`/`post_replies`; `forum_remote_write` on
   `alliance_shared_channels`.
-- `hub/src/rate_limit.rs` — per-origin-hub federated forum write limiter.
+- `hub/src/routes/posts.rs` — per-origin-hub federated forum write limiter.
 - `hub/src/routes/post_models.rs` — wire types gain optional `author_hub`
   / origin fields (serde defaults so un-upgraded peers parse).
 - `hub/src/server.rs` — route wiring for

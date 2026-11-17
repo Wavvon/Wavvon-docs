@@ -340,7 +340,7 @@ shared set** via the existing resolver in
 depth-32 guard apply unchanged; entry `channel_type == "text"` else
 `400 not_a_voice_space`; entry is remote, else `409 channel_is_local`
 (use plain `voice_join`). Per-caller rate limit mirroring the
-`badge_offer` limiter in `hub/src/rate_limit.rs`.
+`badge_offer` limiter in `hub/src/federation/handlers.rs`.
 
 **Owning hub — admit.** `POST /auth/verify`
 (`hub/src/auth/handlers.rs`) gains one optional field,
