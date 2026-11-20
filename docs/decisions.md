@@ -6,7 +6,45 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Voice transport v3: WebRTC data channels behind a transport port
+
+**Decision** (2026-11-20, the user's call): voice leaves WebTransport for
+WebRTC, using unordered, non-retransmitting **data channels** that carry the
+existing sealed packets unchanged, and every implementation splits voice logic
+from a transport port so the next change is an adapter. Design:
+[voice-transport-v3.md](voice-transport-v3.md). No release until it lands.
+
+**Alternatives.** Stay on WebTransport and patch the codepoints
+(BiagioFesta/wtransport#340): cheap, but the protocol is an IETF draft still
+changing, and Node, .NET and Java have no client, so voice stays missing from
+three SDKs. WebRTC audio tracks (RTP) instead of data channels: the browser's
+media stack for free, but it replaces our codec, crypto and jitter buffer and
+needs encoded transforms to keep E2E; data channels change only the transport.
+
+**Tradeoff.** About one to two months across hub, web, desktop and six SDKs,
+and the hub runs a small WebRTC endpoint (ICE-lite on the same single UDP
+port, DTLS per peer) instead of a QUIC listener. Operators see no change. In
+exchange voice sits on a finished standard with libraries everywhere, and the
+transport no longer leaks into the logic.
+
+**Why the earlier choice went the other way.** "Voice transport v2" below
+rejected WebRTC because "voice is hub-relayed by design" — but no decision
+ever made voice hub-relayed: it was how the first UDP relay was built, and the
+June web-voice entry had named WebRTC "the right answer for a future P2P
+upgrade". The v2 entry weighed implementation simplicity and checked browser
+support; it did not weigh that the standard was a draft. From now on, the
+maturity of a standard and of its ecosystem is an explicit criterion for any
+dependency the product rests on, beside simplicity.
+
+**Outcome.** Tracked in issues on Wavvon-server, Wavvon-clients and the SDK
+repositories. Private calls without a hub channel become possible on the same
+port ([future-features.md](future-features.md)).
+
 ## Voice transport stays on `wtransport`; we contribute upstream and fork if it stalls
+
+> **Superseded the same day** by "Voice transport v3" above: WebTransport is
+> being removed. The upstream PR stays useful to others; nothing here is
+> carried into the hub.
 
 **Decision** (2026-11-20): the hub's voice relay and the desktop/Rust SDK
 voice clients keep `wtransport`. It is essentially one maintainer's crate
@@ -3440,6 +3478,10 @@ fix — it converts a silent divergence into something the next hub feature
 surfaces on first run.
 
 ## Voice transport v2: one WebTransport (QUIC) transport with per-packet E2E AEAD
+
+> **Transport superseded 2026-11-20** by "Voice transport v3: WebRTC data
+> channels behind a transport port". The E2E layer below (sender keys,
+> `voice_key_*`, packet format, vectors) is kept.
 
 **Decision** (2026-08-06, user chose "final version directly, no two
 versions"): voice moves to a single WebTransport (QUIC) transport with

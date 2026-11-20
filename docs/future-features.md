@@ -25,6 +25,17 @@ backlog, or project work rather than a feature.
 
 ---
 
+## Private calls without a hub channel
+
+Voice and group calls between people, outside any hub's voice channel —
+today voice exists only inside channels. Intent settled 2026-11-20; it waits
+on [voice-transport-v3.md](voice-transport-v3.md), whose transport port makes
+it an adapter: peer-to-peer WebRTC data channels between the callers (a mesh
+for small groups), the callers' home hubs carrying only the signaling, as they
+already carry DMs. To design: ringing and presence, group size before a mesh
+needs a relay, the relay fallback when two peers cannot connect directly, and
+key distribution reusing the voice sender keys.
+
 ## Hub menu — entries the reference clients have and this one does not
 
 The gesture and the menu are both built: the chevron beside the hub name and a
