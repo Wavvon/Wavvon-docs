@@ -6,6 +6,38 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Voice transport stays on `wtransport`; we contribute upstream and fork if it stalls
+
+**Decision** (2026-11-20): the hub's voice relay and the desktop/Rust SDK
+voice clients keep `wtransport`. It is essentially one maintainer's crate
+(BiagioFesta: 395 of ~460 commits), but it is the thin WebTransport/HTTP/3
+layer only (~13k lines with `wtransport-proto`); QUIC and TLS underneath are
+`quinn` and `rustls`, both widely maintained. We fix what we need upstream
+ourselves (BiagioFesta/wtransport#340 announces `SETTINGS_WT_ENABLED` and
+accepts `webtransport-h3`, for Wavvon-server#417), and if the crate stops
+moving we fork it and carry it.
+
+**Alternatives.** `h3` + `h3-quinn` + `h3-webtransport` (hyperium, about
+three active maintainers): its README calls it "very experimental", nothing
+has been released since May 2025, its WebTransport issues include session
+close and a wrong `session_id()`, and it has **no client**, so the desktop
+client and the Rust SDK would stay on `wtransport` anyway. Writing our own
+WebTransport stack: more code to own than the fork we would fall back to.
+
+**Tradeoff.** One person's review pace gates upstream fixes (several PRs
+there have waited since August), so a fix we need urgently may have to ride
+a `[patch.crates-io]` on a pinned commit of our fork for a while. In
+exchange the voice path stays on the only Rust WebTransport crate with both
+a client and a server, over `quinn`.
+
+**Outcome.** BiagioFesta/wtransport#340, verified against
+`quic-go/webtransport-go` v0.11.1 (refused before, datagram round trip
+after). Clients on `webtransport-go` >= 0.12 additionally need QUIC
+`RESET_STREAM_AT` from `quinn` (quinn-rs/quinn#2954), which no WebTransport
+crate can provide on its own; until then the Go SDK keeps its draft-02
+client. Revisit `h3` when `h3-webtransport` ships a client and a recent
+release.
+
 ## A mini-app moves its own user in voice through the client
 
 **Decision** (2026-11-16): a mini-app frame sets its user's proximity-voice
