@@ -141,9 +141,11 @@ forwarded to the authoring app's HTTP webhook (not over WS).
 > Transport note: the events below are the channel-WS control plane and
 > apply to all clients. **Audio datagrams** travel out of band over a
 > WebTransport session opened at `voice_wt_url?token=<voice_token>`
-> (both fields from [`voice_joined`](#voice_joined)) — one transport
-> for every client since voice transport v2
-> ([voice-transport-v2.md](voice-transport-v2.md)). Packets are E2E
+> (both fields from [`voice_joined`](#voice_joined)), or — on a hub with
+> the `voice.webrtc` capability — over a WebRTC data channel bound with
+> [`voice_rtc_offer`](#voice_rtc_offer) (voice transport v3,
+> [voice-transport-v3.md](voice-transport-v3.md), which replaces
+> WebTransport once every client has moved). Packets are E2E
 > AEAD-sealed; keys travel over THIS control plane via
 > [`voice_key_offer`](#voice_key_offer) /
 > [`voice_key_received`](#voice_key_received) /
@@ -183,6 +185,22 @@ The hub relays each bundle to its recipient as
 |---|---|---|
 | `channel_id` | string | |
 | `bundles` | array | `{recipient_pubkey, ciphertext_hex, nonce_hex}` — X25519 static-static wrap, see [wire-format.md](wire-format.md) |
+
+#### `voice_rtc_offer`
+Bind a WebRTC transport to your voice session (voice transport v3 —
+[voice-transport-v3.md](voice-transport-v3.md)), the alternative to the
+WebTransport session. Behind the `voice.webrtc` capability. The offer must
+include one data channel negotiated out of band on stream id `0`, label
+`voice`, unordered, `maxRetransmits: 0`; sealed voice packets travel on it
+exactly as they do over WebTransport datagrams. Consumes the single-use
+token. Answered with [`voice_rtc_answer`](#voice_rtc_answer), or an
+[`error`](#error) with context `voice_rtc_offer` (unknown, used or expired
+token; a token minted for another identity; no WebRTC relay on this hub).
+
+| field | type | notes |
+|---|---|---|
+| `token` | string | the `voice_token` from [`voice_joined`](#voice_joined) |
+| `sdp` | string | the client's SDP offer |
 
 #### `voice_leave`
 
@@ -686,10 +704,20 @@ Direct reply to a successful `voice_join`.
 | `channel_id` | string | may differ from the requested id when you joined a spawner |
 | `sender_id` | integer (u16) | your own relay id (also in your `participants` entry) |
 | `participants` | array of [VoiceParticipant](#voiceparticipant) | current participants, including you |
-| `voice_token` | string | 64 hex chars, single-use, 30 s TTL. Open the WebTransport session at `voice_wt_url?token=<voice_token>` — accepting the session consumes the token and binds it to (channel, you). **No audio is relayed to or from you until the session is accepted.** |
+| `voice_token` | string | 64 hex chars, single-use, 30 s TTL. Open the WebTransport session at `voice_wt_url?token=<voice_token>`, or send it in [`voice_rtc_offer`](#voice_rtc_offer) — either consumes the token and binds it to (channel, you). **No audio is relayed to or from you until the session is accepted.** |
 | `voice_wt_url` | string | absolute `https://host:port/voice` of the hub's WebTransport voice endpoint |
 | `voice_cert_hash` | string \| null | SHA-256 (hex) of the endpoint's self-signed cert for `serverCertificateHashes` / desktop pinning; `null` when the hub serves a CA-signed cert |
 | `may_speak` | boolean | `false` when the channel's `min_talk_power` is above what the joiner carries and nobody has granted them the floor: they are in the room and hearing it, and the relay drops what they send. Behind the `voice.talk` capability — an older hub omits the field, and a missing field must not be read as muted |
+
+#### `voice_rtc_answer`
+Direct reply to [`voice_rtc_offer`](#voice_rtc_offer). The hub is ICE-lite:
+the answer carries its host candidates on its public address, so no STUN or
+TURN server is involved. The session is bound as soon as this is sent;
+packets sent before the data channel opens are dropped.
+
+| field | type | notes |
+|---|---|---|
+| `sdp` | string | the hub's SDP answer |
 
 #### `voice_key_received`
 Relayed voice sender-key bundle (voice transport v2). Unwrap with your
