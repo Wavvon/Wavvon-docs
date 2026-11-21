@@ -6,6 +6,27 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Discovery drops Next.js
+
+**Decision** (2026-11-21, the user's call): Wavvon-discovery leaves Next.js
+for Hono on Node, with React used only to render HTML on the server. Pages,
+URLs, the API and the look are unchanged.
+
+**Alternatives.** Keep Next.js and set `agentRules: false`, which stops the
+immediate annoyance (Next 16 writes an `AGENTS.md` into the repo whenever an
+AI agent runs `next dev`, and restores it if removed). Drop React as well, for
+plain templates or `hono/jsx`: lighter still, but every component would be
+rewritten instead of moved.
+
+**Tradeoff.** The routing table, security headers, CORS, font hosting and the
+docs cache that Next provided are now about 170 lines in `src/server.tsx`
+and `src/lib/docs.ts`, and nothing hydrates, so any interactivity is a few
+lines of plain script. In exchange the site is twelve pages and fourteen JSON
+routes with no framework moving under them: Next.js changed its API at every
+major, and the filters-are-links design never used what it was for.
+
+**Outcome.** Wavvon-discovery#38. Superseded the one-line opt-out, #37.
+
 ## Voice transport v3: WebRTC data channels behind a transport port
 
 **Decision** (2026-11-20, the user's call): voice leaves WebTransport for

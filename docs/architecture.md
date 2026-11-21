@@ -15,7 +15,7 @@ Wavvon-clients      ── pnpm + Cargo monorepo for every client:
                        apps/desktop (Tauri 2 + React),
                        crates/voice (Rust),
                        packages/core|i18n|ui (shared TS)
-Wavvon-discovery    ── Next.js directory: hubs, clients, providers, docs
+Wavvon-discovery    ── directory site (Hono + server-rendered React): hubs, clients, providers, docs
 ```
 
 The clients were previously three separate repos (Wavvon-desktop,

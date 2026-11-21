@@ -63,8 +63,8 @@ a QR code for in-person sharing.
 
 ### Separate repository
 
-The directory lives in a separate repo (`Wavvon-discovery`, a Next.js
-project). Rationale: it is a web service with its own deployment
+The directory lives in a separate repo (`Wavvon-discovery`, a small Node
+server: Hono and server-rendered React). Rationale: it is a web service with its own deployment
 lifecycle (deploy a CSS fix without touching the desktop or hub
 releases), its own CI/CD (Vercel / Cloudflare Pages), and a different
 contributor profile (web developers who don't need Rust toolchains). The
@@ -73,7 +73,8 @@ API contract documented here is the boundary between repos.
 ### What the website is
 
 A public-facing web application. Hub pages (the site also lists clients,
-identities and hosting providers; Wavvon-discovery `src/app/`):
+identities and hosting providers; Wavvon-discovery `src/pages/`, wired in
+`src/server.tsx`):
 
 - **`/hubs`** — browseable, searchable hub listings (tag, language, name).
 - **`/hubs/<pubkey>`** — individual hub page with full listing and a
@@ -323,6 +324,6 @@ client verify the list was produced by the user, not the hub operator.
 - ~~PoW level for submissions~~ / ~~scrape frequency~~ / ~~delisting by
   scrape~~ — moot: no PoW, and the directory never probes hubs (see
   Anti-spam). A hub delists itself with a signed delete.
-- **Tech stack for `Wavvon-discovery`** — Next.js (TypeScript, SSR,
-  easy Vercel deploy) is what the repo ships with, a natural fit given
-  the desktop client is already TypeScript/React.
+- **Tech stack for `Wavvon-discovery`** — shipped on Next.js, replaced on
+  2026-11-21 by Hono plus React rendered on the server (decisions.md,
+  "Discovery drops Next.js").
