@@ -36,7 +36,7 @@ serve API-only by default; opt into the web client explicitly.
   it never passes through an HTTP proxy.
 - `WAVVON_PUBLIC_URL` set to the hub's public base URL
   (`https://your-hub.example`). Without it the hub warns at startup and
-  voice, invite links and passkeys are unavailable. Farm-hosted hubs derive
+  voice and invite links are unavailable. Farm-hosted hubs derive
   it from the farm and need not set it.
 - TLS — terminated at the hub or at a reverse proxy. Browser clients
   served over HTTPS cannot connect to a plain-`http://` hub.

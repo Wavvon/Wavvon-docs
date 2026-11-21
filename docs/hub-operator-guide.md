@@ -51,7 +51,7 @@ The hub reads configuration from three sources, in priority order (highest last)
 ```toml
 http_port       = 3000           # HTTP / WebSocket port
 voice_udp_port  = 3001           # Voice (WebRTC) UDP port
-public_url      = "https://hub.example.com"  # needed for voice, invites, passkeys
+public_url      = "https://hub.example.com"  # needed for voice and invites
 
 # tls_cert = "/etc/wavvon/hub.crt"   # enable HTTPS (both must be set)
 # tls_key  = "/etc/wavvon/hub.key"

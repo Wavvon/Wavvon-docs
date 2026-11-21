@@ -15,7 +15,8 @@ It stays a file because most of what is below is not one piece of work — see
 
 Three entries that were single, nameable pieces of work became `help wanted`
 issues on 2026-09-16 and are no longer described here: alliance member
-discovery, Android QR pairing, and passkey registration from desktop. What
+discovery, Android QR pairing, and passkey registration from desktop (since
+closed: passkeys were removed on 2026-11-21). What
 stays below is what is not one piece of work — a set of small questions, a
 backlog, or project work rather than a feature.
 

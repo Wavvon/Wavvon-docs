@@ -59,7 +59,7 @@ for commands it lacks; web omits native-only ones):
 |---|---|---|
 | **Profile** (Accounts) | profile card editor (converged model, §4), certifications | — |
 | **Accounts** (Accounts) | switcher table, recovery phrase, backup, full archive, home hubs | now multi-account on both (§3) |
-| **Devices** (Accounts) | paired devices, pairing, passkeys, trusted devices | passkey *registration* web-only (view/rename/delete both); global PTT native-only |
+| **Devices** (Accounts) | paired devices, pairing, trusted devices | global PTT native-only (passkeys removed 2026-11-21) |
 | **Privacy** (Accounts) | block / ignore | — |
 | **Notifications** (App) | mention ping, notify sound | desktop's Voice-tab "notify sound" moves here |
 | **Appearance** (App) | theme, skin editor, skins gallery, language | — |
@@ -197,7 +197,7 @@ All of §6 shipped in one pass. Documented cuts, tracked not hidden:
   from Settings — same active-account-only limitation as Devices/Privacy
   below.
 - Desktop's **Devices/Privacy tabs are active-account-only** — the Rust side
-  has no surface to read another account's passkeys/trusted devices/blocks
+  has no surface to read another account's trusted devices/blocks
   (web's IndexedDB model does). By design, not a missing prop.
 - `hiddenBadges` + follows-default lists are **unscoped localStorage** on
   both clients (minor regression from web's account-scoped storage, traded

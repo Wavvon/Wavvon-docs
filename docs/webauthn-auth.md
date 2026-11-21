@@ -1,5 +1,10 @@
 # WebAuthn / Passkey Authentication
 
+> **Status (2026-11-21): passkeys are REMOVED** from the hub and both
+> clients (Wavvon-server#437, Wavvon-clients#479; decisions.md, "Passkeys
+> removed"). This document is kept as the record of the design, and of the
+> PRF identity path in particular, for whoever brings passkeys back.
+>
 > **Status update (2026-07-19)**: the hub ceremony (registration,
 > assertion, credential + trusted-device management) and its web client
 > integration are shipped and stay. The **PRF identity path was REMOVED

@@ -170,7 +170,8 @@ Everything here is **portable** (no native API) unless marked native-only.
 **Re-audited 2026-09-08 against the code, and most of this list was stale** —
 it dated from the 2026-07-04 audit and later waves closed items without
 updating it. Present on **both** clients now: link previews, role categories
-with per-role colour/icon, passkeys, hub trusted devices. Not present on
+with per-role colour/icon, hub trusted devices. (Passkeys were removed from
+both on 2026-11-21.) Not present on
 either under any name: the channel permission-overwrite tab, event role slots,
 the quiet-hours schedule.
 

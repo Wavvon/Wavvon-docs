@@ -6,6 +6,39 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Passkeys removed
+
+**Decision** (2026-11-21, the user's call): passkeys leave the hub and both
+clients. They come back as a new design if somebody asks for them.
+
+Passkeys were brought in to carry the identity: the PRF output would be the
+seed, so a user could keep it in Bitwarden or another password manager
+instead of copying 24 words, the way crypto wallets work. That path was
+removed on 2026-07-19 ("Passkey PRF output is the identity entropy", and the
+status notes in [webauthn-auth.md](webauthn-auth.md)) when the providers
+could not serve it. What stayed was a different, smaller thing: a credential
+that signs in to one hub from that hub's own page, restoring nothing. It was
+kept by inertia, and it is what Wavvon-clients#40 (registration from the
+desktop) was trying to extend.
+
+**Alternatives.** Keep the per-hub sign-in and close only #40. Register from
+the desktop by handing off to the system browser, which needs a new
+session-transfer token for a credential the desktop never uses. A native
+platform-authenticator plugin, which on macOS requires every hub to publish
+an associated-domains file naming our app. Re-run the PRF provider matrix
+and restore the identity path.
+
+**Tradeoff.** Someone who signed in to a hub's page with a passkey now signs
+in with the identity they hold (phrase, backup file, or a paired device), as
+every other client already does. In exchange the hub drops four
+unauthenticated auth routes, a table, a relying-party setup at boot that had
+already taken a farm down once, and webauthn-rs with OpenSSL and rsa under
+it. Reviewing those routes found that registration accepted any identity
+from the request body; that was fixed (Wavvon-server#436) before the removal.
+
+**Outcome.** Wavvon-server#437, Wavvon-clients#479; #40 closed as not
+planned. The PRF design stays in [webauthn-auth.md](webauthn-auth.md).
+
 ## Discovery drops Next.js
 
 **Decision** (2026-11-21, the user's call): Wavvon-discovery leaves Next.js
@@ -2279,6 +2312,9 @@ identity, silently. That is the price of not asking for 24 words at the door,
 and it is why the state is a fixture rather than a notification.
 
 ## Passkeys belong to the hub, so the user build has none
+
+> **Superseded 2026-11-21** by "Passkeys removed": there are no passkeys in
+> either build any more.
 
 **Decision** (2026-08-29): a passkey affordance is rendered only when the page
 is served from the hub it would authenticate against. In the hub build that is
