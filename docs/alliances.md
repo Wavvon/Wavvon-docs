@@ -384,7 +384,7 @@ so a late sweep cannot extend a visit.
 `hub/src/auth/middleware.rs` already carries `member` / `lobby`;
 `alliance_voice` is a third value. It is an **allowlist** because a
 denylist grows a hole every time a route is added. Reachable: `GET
-/info` (capabilities, `voice_wt_url`, `voice_cert_hash`); the WS; `PUT
+/info` (capabilities, which name `voice.webrtc`); the WS; `PUT
 /identity/me/dh-key` and `GET /identity/:pk/dh-key` (E2E wrapping needs
 both directions). Everything else → `403 alliance_voice_scope`.
 
@@ -429,10 +429,10 @@ hubs — but the client must not, or the mic is live in two places.
   /alliances/:id/voice-grant` on the current hub, then `/auth/challenge`
   + `/auth/verify` (carrying the grant) on the returned
   `owner_hub_url`, then a WS to the owner, then `voice_join`, then
-  `VoiceWtSession` with the returned `voice_wt_url` / `voice_token` /
-  `voice_cert_hash`. `VoiceWtSession`
-  (`clients/apps/web/src/platform/voice.ts`) took all three already — no
-  change to it. The visitor session is deliberately **not** in the hub
+  `VoiceSession` with the returned `voice_token`, whose WebRTC offer goes
+  over that same visitor socket (voice-transport-v3.md).
+  `VoiceSession` (`clients/apps/web/src/platform/voice.ts`) needs nothing
+  visit-specific. The visitor session is deliberately **not** in the hub
   session map: it is not a hub the user joined, and everything walking
   `allSessions()` (hub list, restore, DM delivery, account switch) would
   be wrong about it.

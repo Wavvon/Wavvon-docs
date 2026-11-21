@@ -139,13 +139,11 @@ forwarded to the authoring app's HTTP webhook (not over WS).
 ### Voice
 
 > Transport note: the events below are the channel-WS control plane and
-> apply to all clients. **Audio datagrams** travel out of band over a
-> WebTransport session opened at `voice_wt_url?token=<voice_token>`
-> (both fields from [`voice_joined`](#voice_joined)), or — on a hub with
-> the `voice.webrtc` capability — over a WebRTC data channel bound with
-> [`voice_rtc_offer`](#voice_rtc_offer) (voice transport v3,
-> [voice-transport-v3.md](voice-transport-v3.md), which replaces
-> WebTransport once every client has moved). Packets are E2E
+> apply to all clients. **Audio packets** travel out of band over a
+> WebRTC data channel bound with [`voice_rtc_offer`](#voice_rtc_offer)
+> and the `voice_token` from [`voice_joined`](#voice_joined) (voice
+> transport v3, [voice-transport-v3.md](voice-transport-v3.md); the
+> hub advertises `voice.webrtc`). Packets are E2E
 > AEAD-sealed; keys travel over THIS control plane via
 > [`voice_key_offer`](#voice_key_offer) /
 > [`voice_key_received`](#voice_key_received) /
@@ -704,9 +702,7 @@ Direct reply to a successful `voice_join`.
 | `channel_id` | string | may differ from the requested id when you joined a spawner |
 | `sender_id` | integer (u16) | your own relay id (also in your `participants` entry) |
 | `participants` | array of [VoiceParticipant](#voiceparticipant) | current participants, including you |
-| `voice_token` | string | 64 hex chars, single-use, 30 s TTL. Open the WebTransport session at `voice_wt_url?token=<voice_token>`, or send it in [`voice_rtc_offer`](#voice_rtc_offer) — either consumes the token and binds it to (channel, you). **No audio is relayed to or from you until the session is accepted.** |
-| `voice_wt_url` | string | absolute `https://host:port/voice` of the hub's WebTransport voice endpoint |
-| `voice_cert_hash` | string \| null | SHA-256 (hex) of the endpoint's self-signed cert for `serverCertificateHashes` / desktop pinning; `null` when the hub serves a CA-signed cert |
+| `voice_token` | string | 64 hex chars, single-use, 30 s TTL. Send it in [`voice_rtc_offer`](#voice_rtc_offer), which consumes it and binds your WebRTC session to (channel, you). **No audio is relayed to or from you until the session is bound.** |
 | `may_speak` | boolean | `false` when the channel's `min_talk_power` is above what the joiner carries and nobody has granted them the floor: they are in the room and hearing it, and the relay drops what they send. Behind the `voice.talk` capability — an older hub omits the field, and a missing field must not be read as muted |
 
 #### `voice_rtc_answer`

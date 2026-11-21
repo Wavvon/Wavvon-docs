@@ -32,7 +32,7 @@ serve API-only by default; opt into the web client explicitly.
 - A Linux server with a public IP (or behind a reverse proxy with one).
 - A domain name pointing at the server (A/AAAA record to the IP).
 - Two open ports: HTTP/WS (default **3000**) and voice UDP (default
-  **3001**, WebTransport over QUIC). Voice UDP must be reachable directly —
+  **3001**, WebRTC data channels). Voice UDP must be reachable directly —
   it never passes through an HTTP proxy.
 - `WAVVON_PUBLIC_URL` set to the hub's public base URL
   (`https://your-hub.example`). Without it the hub warns at startup and

@@ -1,6 +1,8 @@
 # Voice Transport v3 — WebRTC data channels behind a transport port
 
-> **Status:** designed 2026-11-20, in progress. Replaces the *transport* of
+> **Status:** designed 2026-11-20; hub, web, desktop and the Rust, Go and
+> Python SDKs shipped on it by 2026-11-21, WebTransport removed (unreleased).
+> The JS, .NET and Java SDKs have no voice yet. Replaces the *transport* of
 > [voice-transport-v2.md](voice-transport-v2.md) (WebTransport/QUIC). The E2E
 > layer of v2 — sender keys, `voice_key_*` signaling, the sealed packet format,
 > the identity-crate constructions and their test vectors — is **kept
@@ -58,7 +60,16 @@ only its adapter depends on a WebRTC library.
   so firewall guidance is unchanged.
 - **ICE-lite** with a single host candidate (the advertise host and voice
   port). The hub has a public address, as today, so no STUN/TURN service is
-  needed: clients dial out to it exactly as they do now.
+  needed: clients dial out to it exactly as they do now. Browsers never send
+  ICE checks to a loopback candidate, even on the same machine, so a hub
+  configured as `localhost` (development, CI) also advertises the address it
+  routes out of.
+- The browser hands the data channel to its encode worker
+  (transferable `RTCDataChannel`), so a busy main thread does not hold up
+  packets; where the transfer is refused the main thread relays them.
+- A client waiting for `voice_rtc_answer` must keep the other events that
+  arrive meanwhile: a `voice_key_received` dropped there leaves it unable to
+  open that speaker.
 - DTLS uses a per-hub self-signed certificate whose fingerprint travels in the
   SDP. The WebTransport certificate rotation, `voice_cert_hash` and
   `voice_wt_url` go away.

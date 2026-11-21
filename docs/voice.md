@@ -69,21 +69,16 @@ Key wrap/unwrap and the `voice_key_*` signaling live with each app:
 
 ## Hub-side relay
 
-The hub binds a WebTransport server on the voice port (default 3001,
-`WAVVON_VOICE_UDP_PORT` — QUIC runs over UDP). `voice_join` (main WS)
-returns `voice_token` (single-use, 30 s TTL), `voice_wt_url`, and
-`voice_cert_hash`; the client opens a WT session at
-`<voice_wt_url>?token=…`. Accepting the session consumes the token and
-binds it to `(channel, pubkey)` — audio is never relayed to or from an
-unbound session (this inherits the anti-spoofing invariant of the old
-VXRG design, now enforced at the QUIC handshake).
-
-Certificates: hubs with `WAVVON_TLS_CERT`/`KEY` use their real cert;
-otherwise the hub auto-generates a self-signed ECDSA cert (≤14-day
-validity, rotated at ~10 days, hot-swapped) whose SHA-256 digest is
-published in `/info` — browsers pass it via WebTransport
-`serverCertificateHashes`, desktop pins the same hash. No CA needed
-for voice.
+The hub runs a WebRTC relay (str0m, ICE-lite) on one UDP socket on the
+voice port (default 3001, `WAVVON_VOICE_UDP_PORT`), detail in
+[voice-transport-v3.md](voice-transport-v3.md). `voice_join` (main WS)
+returns `voice_token` (single-use, 30 s TTL); the client sends it with
+its SDP offer in `voice_rtc_offer` and gets `voice_rtc_answer` back.
+The offer consumes the token and binds the session to
+`(channel, pubkey)` — audio is never relayed to or from an unbound
+session (the anti-spoofing invariant of the old VXRG design). DTLS
+inside WebRTC authenticates the channel; no certificate is needed for
+voice.
 
 Relay behavior: each inbound datagram gets `[sender_id:u16]
 [packet_type:u8]` prepended and is fanned out to the channel's other

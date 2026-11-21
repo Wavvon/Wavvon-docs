@@ -634,8 +634,6 @@ components:
         welcome_label: { type: string, description: Omitted unless set. }
         welcome_invite_url: { type: string, description: Omitted unless set. }
         farewell_label: { type: string, description: Omitted unless set. }
-        voice_wt_url: { type: string, description: WebTransport voice endpoint. Omitted unless set. }
-        voice_cert_hash: { type: string, description: Omitted unless set. }
         timezone: { type: string, description: Omitted unless set. }
         birthdays_enabled: { type: boolean }
         max_attachment_bytes: { type: integer, format: int64 }

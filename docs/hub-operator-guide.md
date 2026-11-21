@@ -50,7 +50,7 @@ The hub reads configuration from three sources, in priority order (highest last)
 
 ```toml
 http_port       = 3000           # HTTP / WebSocket port
-voice_udp_port  = 3001           # Voice (WebTransport/QUIC) UDP port
+voice_udp_port  = 3001           # Voice (WebRTC) UDP port
 public_url      = "https://hub.example.com"  # needed for voice, invites, passkeys
 
 # tls_cert = "/etc/wavvon/hub.crt"   # enable HTTPS (both must be set)
@@ -362,7 +362,7 @@ the check and do not refuse; the backup is still the way back.)
 - [ ] **TLS**: terminate TLS at the hub (via `WAVVON_TLS_CERT` / `WAVVON_TLS_KEY`)
   or at a reverse proxy (nginx/Caddy). Never expose HTTP to the public internet.
 - [ ] **Firewall**: allow only ports 443 (HTTPS) and `WAVVON_VOICE_UDP_PORT`
-  (UDP, WebTransport voice). No SSH from the internet.
+  (UDP, WebRTC voice). No SSH from the internet.
 - [ ] **Service user**: run the hub as a dedicated non-root user.
   `hub_identity.json` must be readable only by that user (`chmod 600`).
 - [ ] **Backups**: schedule daily `wavvon-hub backup FILE` + an off-site copy of
