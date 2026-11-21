@@ -252,7 +252,7 @@ Wavvon-sdk-java#12): Opus passthrough only, no PCM. JS uses `werift` (pure
 TypeScript, an optional peer dependency, Node 22+); .NET uses SIPSorcery, which
 sends the channel reliable and ordered whatever `maxRetransmits` says, harmless
 for 20 ms frames on a healthy link; Java uses `webrtc-java` (JNI over
-libwebrtc), today a regular dependency.
+libwebrtc), an optional dependency a program adds for voice.
 
 ## 7. Smoke test
 
