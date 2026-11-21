@@ -85,6 +85,12 @@ Everything [apps.md](apps.md) describes, and nothing beyond it:
   `app_join` and relaying `mini_app_message`. The in-webview game SDK in
   [gaming.md](gaming.md) is a separate, browser-only surface and stays where
   it is.
+- **Invite-directory listing** — publish and remove the program's own signed
+  `wavvon.identity` listing ([invite-directory.md](invite-directory.md) §6a):
+  same bytes as the clients' builder, `pubkey` from the program's key, one
+  `contact` route checked before sending, signed delete over the held
+  `listed_at`. Built in JS (`publishListing`, `npx @wavvon/sdk publish`) and
+  Rust (`publish_listing`).
 
 This tier needs only Ed25519, SHA-256, HMAC-SHA256 and HKDF. Every one of the
 six languages has these in its standard library or one ubiquitous package
@@ -194,8 +200,8 @@ feature needs and which conformance-suite version it is pinned to.
 
 ## 8. Tier 2: voice and E2E DMs first, the rest of a full client after
 
-Tier 2 is what a full client holds beyond tier 1: voice over WebTransport with
-Opus and voice E2E ([voice-transport-v2.md](voice-transport-v2.md)), E2E DMs
+Tier 2 is what a full client holds beyond tier 1: voice over a WebRTC data channel
+with Opus and voice E2E ([voice-transport-v3.md](voice-transport-v3.md)), E2E DMs
 ([e2e-encryption.md](e2e-encryption.md)), multi-device subkey certs and
 pairing ([multi-device.md](multi-device.md)), and the home hub list and prefs
 blob ([home-hub.md](home-hub.md)).
@@ -208,12 +214,12 @@ program sets the policy"). Specs: [sdk-voice.md](sdk-voice.md) and
 
 | SDK | Voice | E2E DMs | Tracking |
 |---|---|---|---|
-| Rust | built; settled the API | built | [Wavvon-sdk-rust#19](https://github.com/Wavvon/Wavvon-sdk-rust/issues/19) |
-| Go | built (own WebTransport client over `quic-go`) | built | [Wavvon-sdk-go#15](https://github.com/Wavvon/Wavvon-sdk-go/issues/15) |
-| Python | after a spike on `aioquic` as a WebTransport client | with voice | [Wavvon-sdk-python#14](https://github.com/Wavvon/Wavvon-sdk-python/issues/14) |
-| TypeScript | blocked on native WebTransport in Node | possible now (`@noble/curves` has X25519) | [Wavvon-sdk-js#18](https://github.com/Wavvon/Wavvon-sdk-js/issues/18) |
-| C# | none: no WebTransport client in .NET | possible (X25519, HKDF, AES-GCM via the BCL or NSec) | none yet |
-| Java | none: no WebTransport client | possible (JDK 11+ has X25519, AES-GCM) | none yet |
+| Rust | built (`str0m`); settled the API | built | [Wavvon-sdk-rust#19](https://github.com/Wavvon/Wavvon-sdk-rust/issues/19) |
+| Go | built (`pion/webrtc`) | built | [Wavvon-sdk-go#15](https://github.com/Wavvon/Wavvon-sdk-go/issues/15) |
+| Python | built (`aiortc`) | built | [Wavvon-sdk-python#14](https://github.com/Wavvon/Wavvon-sdk-python/issues/14) |
+| TypeScript | built (`werift`, Opus only) | not yet (`@noble/curves` has X25519) | [Wavvon-sdk-js#24](https://github.com/Wavvon/Wavvon-sdk-js/pull/24) |
+| C# | built (SIPSorcery, Opus only) | not yet (X25519, HKDF, AES-GCM via the BCL or NSec) | [Wavvon-sdk-dotnet#12](https://github.com/Wavvon/Wavvon-sdk-dotnet/pull/12) |
+| Java | built (`webrtc-java`, Opus only) | not yet (JDK 11+ has X25519, AES-GCM) | [Wavvon-sdk-java#12](https://github.com/Wavvon/Wavvon-sdk-java/pull/12) |
 
 E2E DMs need no transport beyond REST and the WebSocket every SDK already
 holds, so voice is never what holds them back.
@@ -236,9 +242,9 @@ cleartext, as apps.md describes for any client with no DH key.
 3. **Go and Java**, community / experimental.
 
 All six shipped tier 1 by 2026-11-13. Tier 2 starts with voice and E2E DMs
-in the order of the §8 table: Rust, then Go, then Python after its spike.
-E2E DMs alone can follow in TypeScript, C# and Java whenever someone takes
-them up; TypeScript voice waits for Node.
+in the order of the §8 table: Rust, then Go, then Python. Moving voice to
+WebRTC (2026-11-21) brought voice to TypeScript, C# and Java; their E2E DMs
+can follow whenever someone takes them up.
 
 ## 10. Questions settled before building
 

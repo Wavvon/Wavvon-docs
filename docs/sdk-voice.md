@@ -5,11 +5,14 @@
 > package, smoke-tested against a real hub and in one room with the Rust SDK, each
 > side reading the other's frames); tracking issue
 > [Wavvon-sdk-rust#19](https://github.com/Wavvon/Wavvon-sdk-rust/issues/19).
-> Rust went first and settled the API; Python is next, after a spike;
-> TypeScript waits for native WebTransport in Node; C# and Java have no
-> WebTransport client, so no voice there (their E2E DMs are still possible,
-> [sdk-dm.md](sdk-dm.md)). Use cases: a radio program streaming
-> freely licensed audio into a room (Wavvon-demo-bot#7), and a program
+> Rust went first and settled the API; Python (Wavvon-sdk-python#14) followed.
+> **Since 2026-11-21 voice rides a WebRTC data channel**
+> ([voice-transport-v3.md](voice-transport-v3.md)), which unblocked the three
+> SDKs that had no WebTransport client: TypeScript (Wavvon-sdk-js#24), C#
+> (Wavvon-sdk-dotnet#12) and Java (Wavvon-sdk-java#12) have voice too. All six
+> send and receive Opus; PCM is an opt-in extra where a language has one. Use
+> cases: a radio program streaming freely licensed audio into a room (the
+> `radio/` program in Wavvon-demo-bot, built on the Rust SDK), and a program
 > standing at a position in a proximity room. Parent: [sdk.md](sdk.md) §8.
 
 A program in voice does exactly what the two clients do. No hub change is
@@ -33,20 +36,23 @@ position updates from any other, and runs `leave_voice` when it closes.
 3. **`voice_joined`** carries `channel_id` (may differ from the request for a
    spawner room: use this one from now on), `sender_id: u16`, `participants`
    (`public_key`, `sender_id`), `voice_token` (32 random bytes hex, single
-   use, **30 s TTL**), `voice_wt_url`, `voice_cert_hash` (hex SHA-256, null
-   when the hub has a CA certificate) and `may_speak`.
-4. **WebTransport connect** to `voice_wt_url?token=<voice_token>`, pinning
-   `voice_cert_hash` as `serverCertificateHashes` when present, normal CA
-   validation otherwise (Wavvon-clients `crates/voice/src/transport.rs`,
-   `wtransport` 0.7.1). Hub side: `crates/hub/src/voice_wt.rs`
-   `handle_session` consumes the token and binds `(channel, pubkey)`.
+   use, **30 s TTL**) and `may_speak`.
+4. **WebRTC offer.** One peer connection with one negotiated data channel
+   `voice` (`negotiated: true, id: 0, ordered: false, maxRetransmits: 0`);
+   send `voice_rtc_offer { token, sdp }` on the same socket and apply the
+   `voice_rtc_answer { sdp }` that comes back. The hub is ICE-lite, so the
+   client trickles nothing. Hub side: Wavvon-server
+   `crates/hub/src/routes/ws/handlers/voice.rs` `handle_voice_rtc_offer`
+   consumes the token and binds `(channel, pubkey)`. While waiting for the
+   answer, keep every other event: a dropped `voice_key_received` is a deaf
+   listener. Details in [voice-transport-v3.md](voice-transport-v3.md).
 5. **Key offer** to every other participant from `voice_joined` (§2).
-6. **Datagrams.** Uplink `key_id_be[4] || ctr_be[8] || ts_be[4] ||
+6. **Packets**, one per data-channel message. Uplink `key_id_be[4] || ctr_be[8] || ts_be[4] ||
    AES-256-GCM(opus)`; downlink is the same prefixed by `sender_id_be[2] ||
    packet_type[1]` (`0x00` normal, `0x01` whisper). Layout and vectors in
    [wire-format.md](wire-format.md), "Voice packet seal".
-7. **Leave**: `voice_leave { channel_id }`, then close the session. Closing
-   the WebTransport session alone does not leave the roster.
+7. **Leave**: `voice_leave { channel_id }`, then close the peer connection.
+   Closing the peer connection alone does not leave the roster.
 
 While in the room the SDK handles `voice_participant_joined` / `_left`,
 `voice_roster_update` (sender_id to pubkey), `voice_key_request`,
@@ -127,7 +133,7 @@ decoder's output buffer holds 20 ms (`VoiceDecoder::new`), so a 40 or 60 ms
 packet fails to decode on every desktop listener. The SDK reads the
 packet's TOC byte and refuses any other duration, since nobody could hear it.
 Channel count is the program's choice; both clients decode to mono today. Keep packets
-under ~1000 bytes (QUIC datagram limit); for music, 64-96 kbps mono with
+under ~1000 bytes (one unfragmented data-channel message); for music, 64-96 kbps mono with
 application `audio` is ample.
 
 **API shape** (§6): `send_opus(packet)` for pre-encoded 20 ms Opus, which
@@ -148,7 +154,7 @@ arrive with `ts` and `ctr`, decoded or not.
 sending and sends `voice_speaking false`; deafen stops delivering received
 audio but keeps key distribution running, so undeafening is instant.
 **Talk power**: with `may_speak: false` the relay drops the program's
-datagrams; `send_*` returns a typed `MayNotSpeak` error rather than sending
+packets; `send_*` returns a typed `MayNotSpeak` error rather than sending
 into nothing, and `voice_talk_granted` lifts it. A hub voice-mute refuses the
 join itself.
 
@@ -183,9 +189,8 @@ power where the channel sets a threshold, and `channels.manage` only to create
 zones. No `apps.register` is needed for voice. Mini-app scoped sessions cannot
 join, by design; a program's normal session can.
 
-Capability gate: `channels.voice`. A `voice_joined` without `voice_wt_url`
-(a hub older than voice transport v2) is `UnsupportedByHub`. No new
-capability string.
+Capability gate: `channels.voice` and `voice.webrtc`; a hub without the
+second (older than voice transport v3) is `UnsupportedByHub`.
 
 **No hub change is required.** The silent drops in `handle_voice_position_update`
 for an unknown zone and a refused `creator_only` sender now answer `error` with
@@ -196,7 +201,7 @@ policy.
 
 ## 6. Rust API (the reference)
 
-Cargo features: `voice` (wtransport, Opus passthrough, no C dependency) and
+Cargo features: `voice` (`str0m`, Opus passthrough, no C dependency) and
 `voice-pcm` (adds `audiopus`, which builds libopus).
 
 ```rust
@@ -231,24 +236,23 @@ returns a `*Voice` with `Events() <-chan Event` (an unbounded queue behind it),
 off only in that branch). Crypto is stdlib (`crypto/ecdh` X25519, AES-GCM,
 HKDF written out); the seed-to-X25519 step is SHA-512 and a clamp, asserted by
 `master_dh_pubkey`. `SendOpus` is pure Go; PCM needs cgo and libopus behind the
-`opus` build tag (`gopkg.in/hraban/opus.v2`).
+`opus` build tag (`gopkg.in/hraban/opus.v2`). Transport is `pion/webrtc`.
 
-**`quic-go/webtransport-go` does not work against the hub.** The CVE fixes
-(CVE-2026-21435, CVE-2026-57497) are in v0.11.1 and later, but since v0.11.0 its
-client requires `SETTINGS_WT_ENABLED` (0x2c7cf000) from the server, and the
-hub's `wtransport` 0.7 sends only `SETTINGS_ENABLE_WEBTRANSPORT` (0x2b603742),
-the codepoint of the older drafts that browsers still accept: the dial fails
-with "server didn't enable WebTransport". The Go SDK therefore carries a small
-WebTransport client of its own over `quic-go`'s HTTP/3 (extended CONNECT with
-`Sec-Webtransport-Http3-Draft02: 1`, then HTTP/3 datagrams on the CONNECT
-stream), which is all voice uses. Revisit when the hub's `wtransport` moves to
-the current draft's settings. The same applies to any other SDK that reaches
-for a WebTransport library.
+**Python** (Wavvon-sdk-python#14): transport is `aiortc`, which gathers every
+candidate before `setLocalDescription` returns, so the offer is complete when
+sent. asyncio holds 20 ms pacing on slot arithmetic, not on sleeps: a late
+wake-up is caught up inside the three-frame lag window. Crypto is
+`cryptography` (X25519 from raw bytes, HKDF, AESGCM). PCM is the `opus` extra
+(`opuslib`, which needs the libopus shared library); the default install
+carries Opus passthrough only. API: `client.join_voice(channel)` returns a
+`Voice` with `async for` events, `send_opus`, `send_pcm`, `set_position`.
 
-**Python** (Wavvon-sdk-python#14): a spike first, on whether `aioquic` can be
-a WebTransport client (extended CONNECT, HTTP/3 datagrams) against the hub,
-and whether asyncio holds 20 ms pacing. Crypto from `cryptography` (X25519
-from raw bytes, HKDF, AESGCM). PCM through `opuslib` or PyAV as an extra.
+**TypeScript, C#, Java** (Wavvon-sdk-js#24, Wavvon-sdk-dotnet#12,
+Wavvon-sdk-java#12): Opus passthrough only, no PCM. JS uses `werift` (pure
+TypeScript, an optional peer dependency, Node 22+); .NET uses SIPSorcery, which
+sends the channel reliable and ordered whatever `maxRetransmits` says, harmless
+for 20 ms frames on a healthy link; Java uses `webrtc-java` (JNI over
+libwebrtc), today a regular dependency.
 
 ## 7. Smoke test
 
