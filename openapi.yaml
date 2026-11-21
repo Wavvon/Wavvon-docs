@@ -5433,9 +5433,12 @@ paths:
   /auth/webauthn/begin:
     post:
       operationId: beginWebauthnRegistration
-      summary: Start WebAuthn passkey registration
-      description: Excludes credentials the user already has so re-registering the same authenticator is blocked.
-      security: []
+      summary: Start WebAuthn passkey registration for the signed-in identity
+      description: >-
+        Needs a session: the passkey is bound to the session's identity, since
+        finishing registration (and every later assertion) signs in as it.
+        Excludes credentials the identity already has so re-registering the same
+        authenticator is blocked.
       tags: [Auth]
       requestBody:
         required: true
@@ -5443,9 +5446,8 @@ paths:
           application/json:
             schema:
               type: object
-              required: [user_pubkey]
               properties:
-                user_pubkey: { type: string, description: Hex-encoded Ed25519 public key }
+                user_pubkey: { type: string, description: "Optional. Must be the session's own identity, or the request is refused with 403." }
                 display_name: { type: string }
       responses:
         "200":
@@ -5457,6 +5459,8 @@ paths:
                 properties:
                   session_id: { type: string }
                   options: { type: object, description: "PublicKeyCredentialCreationOptions" }
+        "401": { description: No session }
+        "403": { description: "`user_pubkey` names another identity" }
 
   /auth/webauthn/finish:
     post:
