@@ -6,6 +6,41 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Free layout on the voice stage, mirrored by a picture-in-picture window
+
+**Decision** (2026-11-22, the user's call): the voice stage gets a "Free
+layout" option beside the grid of "Client layout: hub tabs with pinned
+folders, a stage and an audience in voice, media on request" (below), which
+stays the default. In free layout a member places and sizes each stage tile
+(cameras, pinned avatars, opened lives) where they want. There are exactly
+**two layers**, lives and people: tiles on one layer never overlap each
+other, a camera may overlap a live, and the member picks which layer is on
+top. Positions are percentages of the stage, kept per member on the device
+like pins. The audience stays a grid.
+
+The room's picture-in-picture is a **read-only copy of the stage as the
+member arranged it** (grid or free), or of everyone in the call when there
+is no stage. It uses Document Picture-in-Picture only, opens only on
+request, and is disabled with an explanation where the browser lacks the
+API. The in-page floating camera window (`VideoPipWindow`) goes away: cameras
+belong in their owner's tile.
+
+**Alternatives.** Arrange the picture-in-picture window itself, which needs
+drag handling inside a second document and a second layout to keep in step.
+One picture-in-picture window per kind (cameras, lives), which browsers do
+not reliably allow: one Document Picture-in-Picture window per tab, and a
+browser may close one when another opens. Free overlap with any z-order,
+which turns a layout into a compositor (OBS already exists). Keeping the
+in-page floating window as a fallback for browsers without the API.
+
+**Tradeoff.** "Nobody moves" from the stage design holds for the grid only:
+in free layout the member moves tiles, and nobody else does. Two layers mean
+two lives cannot overlap and neither can two cameras, which is a limit and
+the point. Safari and Firefox for Android get no picture-in-picture at all.
+
+**Outcome.** Wavvon-clients#488 (cameras in their owner's tile),
+Wavvon-clients#496 (free layout), Wavvon-clients#495 (picture-in-picture).
+
 ## Passkeys removed
 
 **Decision** (2026-11-21, the user's call): passkeys leave the hub and both
