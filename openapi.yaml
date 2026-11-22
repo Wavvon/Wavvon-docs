@@ -6568,9 +6568,18 @@ paths:
   /soundboard:
     get:
       operationId: listSoundboardSounds
-      summary: List every clip in the hub's soundboard library
-      description: Any authenticated member may list; playing one is gated separately by use_soundboard.
+      summary: List the hub's soundboard library by name, one page at a time
+      description: Any authenticated member may list; playing one is gated separately by use_soundboard. There is no cap on the number of clips, so clients page to exhaustion.
       tags: [Soundboard]
+      parameters:
+        - name: limit
+          in: query
+          description: Page size, clamped to 1..500.
+          schema: { type: integer, format: int64, default: 100, minimum: 1, maximum: 500 }
+        - name: cursor
+          in: query
+          description: Keyset cursor — the `id` of the previous page's last clip.
+          schema: { type: string }
       responses:
         "200":
           description: OK

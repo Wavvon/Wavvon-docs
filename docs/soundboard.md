@@ -51,7 +51,9 @@ CREATE TABLE IF NOT EXISTS soundboard_clips (
 
 Audio bytes go through the existing upload storage (`uploads.rs`
 patterns). Format: **Opus-in-Ogg only**, validated server-side; caps:
-**≤10s, ≤512KB, ≤50 clips per hub** (hub-configurable later). Both
+**≤10s, ≤512KB per clip**, and no cap on how many clips a hub holds:
+that is its operator's call (the 50-clip cap went in Wavvon-server#448).
+`GET /soundboard` pages in the hub's list dialect, by name. Both
 clients already ship Opus decoders (audiopus native, opusscript web).
 
 ### Permissions
@@ -146,8 +148,9 @@ another such session:
   decoration; bots are content.
 - **Opus-in-Ogg only, hard caps.** Both platforms already decode Opus;
   accepting arbitrary formats means a transcoding pipeline and a
-  moderation surface. 10s/512KB/50-clips keeps the library a
-  soundboard, not a file host.
+  moderation surface. 10s/512KB per clip keeps each clip a soundboard
+  clip, not a file. The count cap (50) was dropped on 2026-11-22: how
+  much a hub stores is its operator's decision, not ours.
 - **`soundboard_played` is attribution UX, not enforcement.** The relay
   is audio-opaque by design; enforcement is the channel-scoped
   `voice.soundboard.use` check on the played-event POST plus the fact that
