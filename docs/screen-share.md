@@ -181,10 +181,21 @@ attached to an HTML `<video>` element:
 2. On each `ScreenShareChunkOut` + binary frame, append the bytes
    to the `SourceBuffer`. The init chunk (`is_init: true`) must be
    appended **first**; later chunks rely on its header.
-3. If a viewer joins mid-stream, they don't have the init segment.
-   The hub caches the init chunk per active stream and pushes it
-   to any late joiner before forwarding new chunks. Without this
-   the viewer's `SourceBuffer` rejects every chunk.
+3. If a viewer joins mid-stream, the init segment is not enough:
+   MediaRecorder writes one continuous byte stream, relayed in
+   arbitrary slices, so the next slice starts inside a cluster after
+   frames the viewer never had, and the browser reports a decode
+   error (Wavvon-clients#486). The hub follows each stream's WebM
+   element tree (`Wavvon-server: crates/hub/src/webm_replay.rs`) and
+   keeps the header plus every byte since the newest cluster that
+   opens on a video keyframe. A late joiner is sent those two parts
+   first, then live chunks from where they end (`hub_seq` cutoff, so
+   nothing is sent twice). Sharers ask the recorder for a keyframe
+   every 2 s (`videoKeyFrameIntervalDuration`), which bounds that
+   group; past 8 MiB it is dropped and a joiner waits for the next
+   keyframe. A stream that is not parseable WebM falls back to the
+   cached first chunk. The viewer jumps to the newest buffered range
+   and stays within 3 s of its end.
 4. On `ScreenShareStopped`, the viewer calls
    `mediaSource.endOfStream()` and tears down the element.
 
