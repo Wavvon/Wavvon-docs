@@ -214,6 +214,18 @@ Broadcast a speaking indicator to the voice channel.
 | `channel_id` | string | |
 | `speaking` | boolean | |
 
+#### `voice_self_state`
+Report your own mute and deafen state to the room (hubs with
+`voice.mute.state`, Wavvon-server#452). Informational: a muted client sends
+no audio anyway. Kept while you are in voice and relayed as
+[`voice_participant_self_state`](#voice_participant_self_state).
+
+| field | type | notes |
+|---|---|---|
+| `channel_id` | string | |
+| `muted` | boolean | |
+| `deafened` | boolean | |
+
 #### `voice_whisper_start`
 Open a whisper session to a set of targets. The hub resolves the targets to
 currently-connected voice participants and notifies them with
@@ -762,6 +774,19 @@ Broadcast to the voice channel (not echoed to the speaker).
 | `channel_id` | string | |
 | `public_key` | string | |
 | `speaking` | boolean | |
+
+#### `voice_participant_self_state`
+A participant's mute and deafen state, to the voice channel. The same
+fields ride on every voice roster entry (`voice_joined` participants,
+`GET /voice/participants`) for whoever looks later. Only on hubs with
+`voice.mute.state`; elsewhere their absence means unknown, not unmuted.
+
+| field | type | notes |
+|---|---|---|
+| `channel_id` | string | |
+| `public_key` | string | |
+| `muted` | boolean | |
+| `deafened` | boolean | |
 
 #### `voice_roster_update`
 Full roster (with the relay `sender_id` mappings) broadcast after every voice join
