@@ -817,6 +817,7 @@ the sender's audio ([soundboard.md](soundboard.md)).
 | `channel_id` | string | |
 | `clip_id` | string | |
 | `clip_name` | string | |
+| `emoji` | string | nullable; the clip's emoji, which clients animate on the player's avatar |
 | `public_key` | string | who played it |
 
 #### `voice_whisper_started`

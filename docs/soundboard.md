@@ -71,8 +71,11 @@ Two permissions in `crates/hub/src/permissions.rs`:
 - Playing: client mixes locally and POSTs `/soundboard/{id}/played`
   `{channel_id}` (`voice.soundboard.use` resolved channel-scoped), which
   broadcasts WS `soundboard_played { channel_id, clip_id, clip_name,
-  public_key }` — the **attribution path**: clients show a transient
-  "🔊 X played *airhorn*" chip in the voice roster. The server cannot
+  emoji, public_key }` — the **attribution path**: clients show a transient
+  "🔊 X played *airhorn*" chip in the voice roster, and a short burst of the
+  clip's emoji (🔊 when it has none) rising from the player's avatar and video
+  tile. The burst is skipped under reduced motion and can be turned off in
+  Settings. The server cannot
   verify the mix actually happened (it's opaque audio); the event is
   UX, and the permission check is the enforcement that matters —
   a client that mixes without POSTing gains nothing a talking user
