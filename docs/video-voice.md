@@ -205,8 +205,6 @@ interface PeerEntry {
 videoEnabled: boolean          // my webcam is on
 processedStream: MediaStream   // after background processing (what we send)
 remoteStreams: Map<string, MediaStream>  // pubkey → received stream
-activeSpeakers: string[]       // top-3 currently speaking
-pinnedPubkey: string | null
 backgroundMode: "none" | "blur" | "image"
 backgroundImage: string | null
 ```
@@ -217,29 +215,16 @@ backgroundImage: string | null
   lexicographically less than X's, I initiate the offer (prevents both
   sides racing).
 - On `video_offer_in`: create answer, send `video_answer`.
-- On `voice_participant_speaking { speaking: true }`: update `activeSpeakers`,
-  call `setTrackEnabled(pubkey, true/false)` on affected connections.
 - On voice leave: send `video_disable`, close all peer connections.
 
-### `VideoGrid` component
+### Where cameras show
 
-```
-props:
-  streams:    Map<pubkey, { stream, displayName, speaking, pinned }>
-  selfStream: MediaStream | null
-  selfName:   string
-  onPin:      (pubkey) => void
-  onUnpin:    () => void
-```
-
-**Layouts:**
-- 0 streams and video off → hidden, no impact on chat layout
-- 1–4 active streams → equal-size grid tiles
-- 5+ active → 1 large active-speaker tile + scrollable thumbnail row
-- Self-view → small corner overlay, always shown when video on
-
-Each tile: `<video autoPlay playsInline muted={isSelf}>` + name badge +
-mute indicator + pin button on hover.
+In the voice room (`VoiceStage`, Wavvon-clients `packages/ui`), each camera
+replaces its owner's avatar in their tile: on the stage, and everywhere while
+the room has 12 people or fewer; otherwise the audience tile carries a CAM
+badge. Your own camera is mirrored. The earlier floating window (web) and
+active-speaker grid (desktop) were removed (decisions.md, "Cameras stay
+peer-to-peer and show in their owner's tile").
 
 ### `BackgroundProcessor` class
 
@@ -253,9 +238,7 @@ in a `requestAnimationFrame` loop; segmentation is async on a WebGL backend.
 - **Background button** (🖼) beside the camera button when video is on —
   opens a small picker (None / Blur / Image).
 
-`VideoGrid` renders in the channel content area when
-`remoteStreams.size > 0 || videoEnabled`. The existing voice participant list
-is unchanged — video is additive.
+Cameras render inside the voice room's tiles, not in a separate surface.
 
 ---
 

@@ -6,6 +6,29 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Cameras stay peer-to-peer and show in their owner's tile
+
+**Decision** (2026-11-22): a camera in a voice call keeps travelling over the
+peer-to-peer video session (`video_offer`/`video_answer`, one
+RTCPeerConnection per pair) and is shown in its owner's tile of the voice
+room: on the stage, and everywhere while the room has 12 people or fewer;
+otherwise the audience tile carries a CAM badge. The in-page floating window
+(web) and the active-speaker grid (desktop) are gone.
+
+**Alternatives.** Send cameras through the hub's live relay as
+`kind: "webcam"` streams, which the stage already knew how to open:
+it scales to big rooms because each sender uploads once, but it adds the
+MediaRecorder latency of a few hundred milliseconds and shared the
+late-viewer freeze of Wavvon-clients#486. Keep the floating window as a
+fallback.
+
+**Tradeoff.** Peer-to-peer means each sender uploads once per viewer, which
+grows with the room. The design already limits what opens to the stage and
+small rooms; a big room that needs every camera is the case that would move
+cameras onto the relay.
+
+**Outcome.** Wavvon-clients#488.
+
 ## Free layout on the voice stage, mirrored by a picture-in-picture window
 
 **Decision** (2026-11-22, the user's call): the voice stage gets a "Free

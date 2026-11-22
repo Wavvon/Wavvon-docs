@@ -134,7 +134,7 @@ Everything here is **portable** (no native API) unless marked native-only.
 | **Real-time media** | | |
 | Start a screen share (outbound) | ✅ (2026-07-04) | ✅ |
 | View someone's screen share | ✅ | ✅ |
-| Camera / webcam video (`VideoGrid`) | ✅ (2026-07-04) | ✅ |
+| Camera / webcam video (in the voice room tiles, `VoiceStage`) | ✅ (2026-07-04) | ✅ |
 | Whisper (targeted voice) | ✅ (2026-07-04) | ✅ |
 | Hub-streams panel (cross-channel) | ✅ (2026-07-04) | ✅ |
 | Mic level meter | ✅ (2026-07-04) | ✅ |
@@ -476,9 +476,10 @@ Definitive status for everything still not at parity:
   (`platform/video.ts`) does full-mesh WebRTC over the main WS
   (video_offer/answer/ice, STUN-only, smaller-pubkey-initiates). Created at
   voice-join (to catch the `video_participants` roster), camera captured on
-  toggle; `VideoGrid` + a header camera button. `e2e/live/20` verifies two
+  toggle; shown in the voice room tiles since Wavvon-clients#488. `e2e/live/20` verifies two
   clients exchange remote tracks. *Follow-ups: background blur, device
-  picker, active-speaker gating — desktop extras not ported.*
+  picker — desktop extras not ported. Active-speaker gating was removed from
+  desktop with #488.*
 - **Whisper — DONE (2026-07-04).** Web `WhisperBar` + `voice_whisper_*`
   control, `voice.ts` now accepts 0x01 frames, and the **hub** gained
   pubkey-based whisper routing (`whisper_target_pubkeys` +
