@@ -53,7 +53,13 @@ Audio bytes go through the existing upload storage (`uploads.rs`
 patterns). Format: **Opus-in-Ogg only**, validated server-side; caps:
 **≤10s, ≤512KB per clip**, and no cap on how many clips a hub holds:
 that is its operator's call (the 50-clip cap went in Wavvon-server#448).
-`GET /soundboard` pages in the hub's list dialect, by name. Both
+`GET /soundboard` pages in the hub's list dialect, by name.
+A new hub starts with six clips of its own (Wavvon-server#447: airhorn,
+applause, ding, drum roll, sad trombone, ta-da), synthesised for the
+project and bundled under `crates/hub/assets/soundboard/`. They are installed
+once, only into an empty library; a `soundboard_defaults_seeded` setting keeps
+a deleted one from coming back. A shipped clip has no uploader, reported as
+`""`. Both
 clients already ship Opus decoders (audiopus native, opusscript web).
 
 ### Permissions

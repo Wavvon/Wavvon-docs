@@ -6593,7 +6593,7 @@ paths:
                     id: { type: string }
                     name: { type: string }
                     emoji: { type: string, nullable: true }
-                    uploader: { type: string }
+                    uploader: { type: string, description: "Pubkey of the member who uploaded it; empty for a clip the hub ships with" }
                     size_bytes: { type: integer, format: int64 }
                     duration_ms: { type: integer, format: int64 }
                     created_at: { type: integer, format: int64 }
