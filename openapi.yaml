@@ -8139,17 +8139,25 @@ paths:
           schema: { type: string }
       responses:
         "200":
-          description: Pubkeys, in pin order
+          description: The stage, and whether the caller may change it
           content:
             application/json:
               schema:
-                type: array
-                items: { type: string }
+                type: object
+                required: [public_keys, can_pin]
+                properties:
+                  public_keys:
+                    type: array
+                    items: { type: string }
+                    description: In pin order
+                  can_pin:
+                    type: boolean
+                    description: The caller's own `voice.stage` in this channel
 
   /channels/{channel_id}/voice-pins/{pubkey}:
     post:
       operationId: pinVoice
-      summary: Pin a member to this voice room's stage (moderation.mute)
+      summary: Pin a member to this voice room's stage (voice.stage)
       description: >-
         Puts a member on the stage for everyone in the room and sends the room
         a `voice_pins` snapshot. 409 when the member is not in this voice
@@ -8166,13 +8174,13 @@ paths:
           schema: { type: string }
       responses:
         "204": { description: Pinned (or already pinned) }
-        "403": { description: Missing moderation.mute }
+        "403": { description: Missing voice.stage in this channel }
         "409": { description: That member is not in this voice channel }
     delete:
       operationId: unpinVoice
       summary: Take a member off the stage
       description: >-
-        A moderator (`moderation.mute`) may unpin anyone; a member may unpin
+        Whoever holds `voice.stage` in this channel may unpin anyone; a member may unpin
         themselves.
       tags: [Moderation]
       parameters:
@@ -8186,7 +8194,7 @@ paths:
           schema: { type: string }
       responses:
         "204": { description: Not pinned now }
-        "403": { description: Unpinning someone else without moderation.mute }
+        "403": { description: Unpinning someone else without voice.stage }
 
   # ── Badges (hub-to-hub attestations) ──────────────────────────────────────
 

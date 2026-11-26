@@ -10,7 +10,8 @@ so this file stays small enough to read whole.
 
 **Decision** (2026-11-27): the stage of a voice room (who is pinned) is held
 by the hub and is the same for everyone in the room. A member holding
-`moderation.mute` pins and unpins; anyone may step off the stage themselves.
+`voice.stage` (channel-scoped, so it can be one room's) pins and unpins;
+anyone may step off the stage themselves.
 The hub keeps the pins in memory for one voice session: a pinned member who
 leaves loses their pin, and an empty room loses its stage. Clients keep their
 own order for the grid of everyone else.
@@ -20,6 +21,9 @@ started: kept per device in local storage, so a host running an event could
 not put the speaker on everyone's stage, and the pins outlived the call.
 Persisting pins per channel: a stage is about who is speaking now, and a
 standing pin would put someone on the stage of a room they are not in.
+Gating pins on `moderation.mute`, as the first cut did because it already
+runs the floor: running a stage is not moderation, and an event host would
+have needed the power to mute people to put a speaker on stage.
 
 **Tradeoff.** A member can no longer pin someone just for themselves; the
 grid order stays theirs. A hub restart clears every stage, like it clears

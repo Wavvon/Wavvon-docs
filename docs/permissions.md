@@ -283,6 +283,7 @@ here", and that is the gap `voice.join` closes.
 | `voice.soundboard.use` | H C | `use_soundboard` | Playing a clip |
 | `voice.soundboard.manage` | H | `manage_soundboard` | Uploading and deleting clips |
 | `voice.move_members` | H C | `move_members` | Moving a participant; resolved against the **destination** channel |
+| `voice.stage` | H C | — (new, 2026-11-27) | Pinning members to a voice room's stage for everyone in it; not a moderation power, so an event host can hold it on one room |
 
 **`voice.join` is independent of `messages.read`** (decided 2026-09-15).
 Neither implies the other, and both directions are meant to be used:
