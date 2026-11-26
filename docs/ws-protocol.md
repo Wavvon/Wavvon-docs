@@ -820,8 +820,8 @@ the grantee included. Behind `voice.hands`.
 
 #### `voice_pins`
 Who is pinned to this voice room's stage, in pin order. Sent to everyone in
-the channel when a moderator pins someone (`POST /channels/{id}/voice-pins/{pubkey}`),
-someone is unpinned (`DELETE`, a moderator or the member themselves), or a
+the channel when someone holding `voice.stage` pins a member (`POST /channels/{id}/voice-pins/{pubkey}`),
+someone is unpinned (`DELETE`, by `voice.stage` or the member themselves), or a
 pinned member leaves. A snapshot: replace local state with it. Read the
 current stage with `GET /channels/{id}/voice-pins`. Behind `voice.pins`.
 
