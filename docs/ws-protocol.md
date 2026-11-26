@@ -818,6 +818,18 @@ the grantee included. Behind `voice.hands`.
 | `channel_id` | string | |
 | `public_key` | string | |
 
+#### `voice_pins`
+Who is pinned to this voice room's stage, in pin order. Sent to everyone in
+the channel when a moderator pins someone (`POST /channels/{id}/voice-pins/{pubkey}`),
+someone is unpinned (`DELETE`, a moderator or the member themselves), or a
+pinned member leaves. A snapshot: replace local state with it. Read the
+current stage with `GET /channels/{id}/voice-pins`. Behind `voice.pins`.
+
+| field | type | notes |
+|---|---|---|
+| `channel_id` | string | |
+| `public_keys` | string[] | pin order |
+
 #### `voice_move`
 *Targeted* to the member being moved (see the client
 [`voice_move`](#voice_move)). `auto: true` (they claimed a slot or RSVP'd

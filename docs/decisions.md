@@ -6,6 +6,28 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Who is on a voice room's stage is the room's, not each viewer's
+
+**Decision** (2026-11-27): the stage of a voice room (who is pinned) is held
+by the hub and is the same for everyone in the room. A member holding
+`moderation.mute` pins and unpins; anyone may step off the stage themselves.
+The hub keeps the pins in memory for one voice session: a pinned member who
+leaves loses their pin, and an empty room loses its stage. Clients keep their
+own order for the grid of everyone else.
+
+**Alternatives.** Pins as a viewer's preference, which is how the stage
+started: kept per device in local storage, so a host running an event could
+not put the speaker on everyone's stage, and the pins outlived the call.
+Persisting pins per channel: a stage is about who is speaking now, and a
+standing pin would put someone on the stage of a room they are not in.
+
+**Tradeoff.** A member can no longer pin someone just for themselves; the
+grid order stays theirs. A hub restart clears every stage, like it clears
+talk grants.
+
+**Outcome.** `voice.pins` capability; Wavvon-server voice pins PR and the
+clients PR that follows it.
+
 ## Cameras stay peer-to-peer and show in their owner's tile
 
 **Decision** (2026-11-22): a camera in a voice call keeps travelling over the

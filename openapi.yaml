@@ -8123,6 +8123,71 @@ paths:
         "403": { description: "Missing moderation.mute, or the target outranks the caller" }
         "409": { description: That member is not in this voice channel }
 
+  /channels/{channel_id}/voice-pins:
+    get:
+      operationId: listVoicePins
+      summary: Who is pinned to this voice room's stage, in pin order
+      description: >-
+        The room's stage, the same for every viewer. Pins live in memory for
+        one voice session: whoever leaves loses their pin and an empty room
+        loses its stage. Behind `voice.pins`.
+      tags: [Moderation]
+      parameters:
+        - name: channel_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Pubkeys, in pin order
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { type: string }
+
+  /channels/{channel_id}/voice-pins/{pubkey}:
+    post:
+      operationId: pinVoice
+      summary: Pin a member to this voice room's stage (moderation.mute)
+      description: >-
+        Puts a member on the stage for everyone in the room and sends the room
+        a `voice_pins` snapshot. 409 when the member is not in this voice
+        channel.
+      tags: [Moderation]
+      parameters:
+        - name: channel_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: pubkey
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204": { description: Pinned (or already pinned) }
+        "403": { description: Missing moderation.mute }
+        "409": { description: That member is not in this voice channel }
+    delete:
+      operationId: unpinVoice
+      summary: Take a member off the stage
+      description: >-
+        A moderator (`moderation.mute`) may unpin anyone; a member may unpin
+        themselves.
+      tags: [Moderation]
+      parameters:
+        - name: channel_id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: pubkey
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204": { description: Not pinned now }
+        "403": { description: Unpinning someone else without moderation.mute }
+
   # ── Badges (hub-to-hub attestations) ──────────────────────────────────────
 
   /badges:
