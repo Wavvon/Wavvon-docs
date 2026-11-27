@@ -6,6 +6,31 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## A certificate is a fast lane into a hub, and a badge never opens a door
+
+**Decision** (2026-11-27): certificates gain a type from the issuing hub's
+catalogue, and only certificates count for admission: a badge (a cert with a
+`label`) never does, which closes a hole where any badge from a trusted hub
+admitted its holder. An admin trusts whole hubs, or specific hub and type
+pairs. A newcomer matching either skips the lobby, approval and challenges;
+everyone else comes in the usual way, or is refused on a strict hub, by the
+admin's choice. A separate switch lets a trusted certificate stand in for an
+invite. Replaces `cert_mode` and `cert_require`. Design:
+[certified-admission.md](certified-admission.md).
+
+**Alternatives.** Keep `cert_mode` as a gate (`none` / `any` / `trusted`): a
+hub had to choose between refusing the uncertified and ignoring certificates,
+with nothing in between. Trust whole hubs only: an official hub that issues
+many kinds of certificate could not be trusted for one of them. Keep the
+property rule (`cert_require`): a type named by the issuer says the same thing
+and can be picked from a list.
+
+**Tradeoff.** The type is a new field in a signed envelope, so it moves the
+identity crate, both client mirrors and the shared vectors together; appended
+as an optional field, certificates already issued keep verifying.
+
+**Outcome.** Designed, not built.
+
 ## Badges are a catalogue the hub, its rules and its programs award from
 
 **Decision** (2026-11-27): a badge becomes an entry in the hub's catalogue (name, icon, description, how it is earned) instead of free text typed on each grant. It is earned by hand, by a rule the hub checks (membership age, presence, chat, voice, role held, with levels, kept or conditional) or by a program holding `badges.programs`, which can create and award its own badges so a tournament runs without supervision. Every award is still the signed badge cert of [hub-certifications.md](hub-certifications.md), so badges stay portable and revocable. Design: [achievement-badges.md](achievement-badges.md).

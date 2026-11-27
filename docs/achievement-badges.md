@@ -11,7 +11,9 @@ A badge stops being free text on a single grant and becomes an **entry in the
 hub's catalogue**: a name, an icon, a description, and **how it is earned**.
 Granting a badge still issues the same signed badge cert as today, so a badge
 earned here travels in the member's portfolio to every hub, verifiable and
-revocable, with no change to the wire format of the cert itself.
+revocable, with no change to the wire format of the cert itself. A badge is
+decoration and never admits anyone to another hub; that is what certificates
+are for ([certified-admission.md](certified-admission.md)).
 
 Three ways to earn a badge:
 

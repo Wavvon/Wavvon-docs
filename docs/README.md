@@ -54,6 +54,7 @@ had a "recently shipped" section, whatever this line used to claim):
 15. [server-tags.md](server-tags.md) — self-tags (discovery keywords) + portable signed hub badges
     - [hub-certifications.md](hub-certifications.md) — anti-spam Layer 2: hub-signs-user reputation certs, portable PoW credit
       - [achievement-badges.md](achievement-badges.md) — badges as a catalogue: earned by hand, by rule (membership age, presence, chat, voice, role held) or granted by programs; levels, conditional badges (designed, not built)
+      - [certified-admission.md](certified-admission.md) — certificate types, badges never admit, and admission as a fast lane: trusted hubs or specific certificate types skip the lobby, everyone else takes the usual way or is refused (designed, not built)
     - [moderation-enhancements.md](moderation-enhancements.md) — federated ban lists (signed, opt-in), auto-moderation webhook (fail-open), content reporting queue
 16. [browser-client.md](browser-client.md) — second client (no Tauri), platform adapter, IndexedDB identity
 17. [android-client.md](android-client.md) — **removed 2026-07-12**: the Tauri 2 Android wrapper design; no APK was ever published. Kept for the reasoning
