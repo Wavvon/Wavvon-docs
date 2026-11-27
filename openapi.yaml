@@ -848,6 +848,43 @@ components:
         issued_at: { type: string, description: "ISO-8601 timestamp" }
         expires_at: { type: string, nullable: true }
 
+    BadgeLevel:
+      type: object
+      required: [level, name, threshold]
+      properties:
+        level: { type: integer, description: 1-based, in threshold order. }
+        name: { type: string }
+        threshold: { type: integer, format: int64, description: Seconds for member_age, online, voice and role_held; a count for messages and active_days. }
+    BadgeDefRequest:
+      type: object
+      required: [name, rule, levels]
+      properties:
+        name: { type: string }
+        icon: { type: string }
+        description: { type: string }
+        rule: { type: string, enum: [manual, member_age, online, messages, active_days, voice, role_held] }
+        role_id: { type: string, description: Required by role_held. }
+        keep_while: { type: boolean, description: Held only while the condition is true; otherwise kept for good. }
+        levels: { type: array, items: { $ref: '#/components/schemas/BadgeLevel' } }
+    BadgeDef:
+      type: object
+      required: [id, name, rule, keep_while, hidden, levels, holders]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        icon: { type: string, nullable: true }
+        description: { type: string, nullable: true }
+        rule: { type: string }
+        role_id: { type: string, nullable: true }
+        keep_while: { type: boolean }
+        program_pubkey: { type: string, nullable: true, description: The program that owns it. }
+        declared_rule: { type: string, nullable: true, description: How to earn it, as the program declares; not checked by the hub. }
+        hidden: { type: boolean }
+        levels: { type: array, items: { $ref: '#/components/schemas/BadgeLevel' } }
+        holders:
+          type: object
+          description: Members per level number.
+          additionalProperties: { type: integer, format: int64 }
     CertType:
       type: object
       required: [id, name]
@@ -8608,6 +8645,242 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/CertType' }
+
+  /badges/defs:
+    get:
+      operationId: listBadgeDefs
+      summary: The hub's badge catalogue
+      description: Hidden badges are left out unless the caller holds badges.manage.
+      tags: [Badges]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/BadgeDef' }
+
+  /admin/badge-defs:
+    post:
+      operationId: createBadgeDef
+      summary: Define a hub badge, by hand or by rule (badges.manage)
+      description: A rule badge is retroactive; whoever already qualifies receives it at once.
+      tags: [Badges]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BadgeDefRequest' }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BadgeDef' }
+        "400":
+          description: Invalid name, rule or levels
+
+  /admin/badge-defs/preview:
+    post:
+      operationId: previewBadgeDef
+      summary: How many members a rule badge would reach, per level (badges.manage)
+      tags: [Badges]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BadgeDefRequest' }
+      responses:
+        "200":
+          description: Members per level number
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: { type: integer, format: int64 }
+
+  /admin/badge-defs/{id}:
+    patch:
+      operationId: updateBadgeDef
+      summary: Hide or show a badge, a program's included (badges.manage)
+      tags: [Badges]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                hidden: { type: boolean }
+      responses:
+        "204":
+          description: No content
+    delete:
+      operationId: deleteBadgeDef
+      summary: Delete a badge and revoke every award (badges.manage)
+      tags: [Badges]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204":
+          description: No content
+
+  /admin/badge-defs/{id}/awards:
+    get:
+      operationId: listBadgeAwards
+      summary: Who holds a badge, at which level (badges.manage)
+      tags: [Badges]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [subject_pubkey, level, awarded_at]
+                  properties:
+                    subject_pubkey: { type: string }
+                    level: { type: integer }
+                    awarded_at: { type: integer, format: int64 }
+
+  /admin/badge-defs/{id}/grant:
+    post:
+      operationId: grantBadge
+      summary: Give a hand badge to several members (badges.manage)
+      tags: [Badges]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subjects]
+              properties:
+                subjects: { type: array, items: { type: string } }
+                level: { type: integer, description: The first level when absent. }
+      responses:
+        "204":
+          description: No content
+        "409":
+          description: Not a hand badge (a rule's or a program's)
+
+  /admin/badge-defs/{id}/awards/{pubkey}:
+    delete:
+      operationId: revokeBadgeAward
+      summary: Take a badge back from a member (badges.manage)
+      tags: [Badges]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: pubkey, in: path, required: true, schema: { type: string } }
+      responses:
+        "204":
+          description: No content
+
+  /badges/programs:
+    post:
+      operationId: createProgramBadge
+      summary: A program defines one of its own badges (badges.programs)
+      description: At most 50 badges per program. The program decides who earns which level; declared_rule says how, in its own words.
+      tags: [Badges]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                icon: { type: string }
+                description: { type: string }
+                declared_rule: { type: string, description: "Up to 280 chars" }
+                levels: { type: array, items: { type: string }, description: Level names in order; one level when absent. }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BadgeDef' }
+        "409":
+          description: The program already defines the maximum number of badges
+
+  /badges/programs/{id}:
+    delete:
+      operationId: deleteProgramBadge
+      summary: A program retires one of its badges, revoking every award (badges.programs)
+      tags: [Badges]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204":
+          description: No content
+        "403":
+          description: Not this program's badge
+
+  /badges/programs/{id}/grant:
+    post:
+      operationId: grantProgramBadge
+      summary: A program gives one of its badges to a member (badges.programs)
+      description: At most 60 grants a minute per program.
+      tags: [Badges]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subject]
+              properties:
+                subject: { type: string }
+                level: { type: integer }
+      responses:
+        "204":
+          description: No content
+        "403":
+          description: Not this program's badge
+        "429":
+          description: Too many grants this minute
+
+  /badges/programs/{id}/awards/{pubkey}:
+    delete:
+      operationId: revokeProgramBadge
+      summary: A program takes one of its badges back (badges.programs)
+      tags: [Badges]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: pubkey, in: path, required: true, schema: { type: string } }
+      responses:
+        "204":
+          description: No content
 
   /admin/cert-types:
     post:

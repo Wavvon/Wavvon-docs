@@ -500,6 +500,7 @@ is a channel.
 | `certs.revoke` | H | `admin` | Revoking; listing |
 | `certs.settings` | H | `admin` | Certificate requirement tier |
 | `badges.manage` | H | `admin` | Badge CRUD, issue, revoke, pending accept/decline |
+| `badges.programs` | H | — | A program's own badges: create, grant, revoke only those ([achievement-badges.md](achievement-badges.md)) |
 
 ### Federation and presence
 
