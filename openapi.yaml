@@ -3083,8 +3083,10 @@ paths:
       operationId: reorderRoles
       summary: Reorder every role below the caller in one call (roles.manage)
       description: >-
-        `role_ids` must name exactly the roles the caller may move: every role except the
-        built-ins whose priority is below the caller's highest. They keep the priorities they
+        `role_ids` must name exactly the roles the caller may move: every role except
+        `builtin-owner` whose priority is below the caller's highest. `builtin-everyone` is
+        movable too (capability `roles.order.everyone`), so a role can rank below it; a
+        request that leaves it out keeps it where it is. They keep the priorities they
         held between them, handed out in the new order (equal ones nudged apart), in one
         transaction. Capability `roles.order`.
       tags: [Roles]
