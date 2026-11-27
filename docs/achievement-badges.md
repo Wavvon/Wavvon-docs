@@ -63,6 +63,13 @@ every program permission is: [apps.md](apps.md#2-appsregister)) may:
 - grant and revoke those badges, and only those;
 - not touch the hub's own badges or another program's.
 
+Program badges are created only through the SDK, never from the admin's
+"New badge" dialog. The hub knows for certain which program owns a badge and
+made each grant, since the program authenticates with its own key; it cannot
+know *why* a grant happened. So a program badge carries a "how to earn it"
+text the program declares when creating it, shown as declared by the program,
+apart from the hub's own rules, which the hub applies itself.
+
 Limits keep a runaway bot from flooding the catalogue and every portfolio: a
 cap on how many badges one program can define, and a rate limit on grants.
 An admin can hide or delete any program badge; deleting one revokes its
