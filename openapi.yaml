@@ -375,9 +375,9 @@ components:
         hub_url: { type: string }
         at: { type: integer, format: int64, description: Unix seconds }
         payload: { type: object, additionalProperties: true }
-        actor_pubkey: { type: string, description: Absent when empty. Live, replay and webhooks. }
-        target_pubkey: { type: string, description: Absent when empty. Live, replay and webhooks. }
-        channel_id: { type: string, description: Absent when empty. Live, replay and webhooks. }
+        actor_pubkey: { type: string, description: "Absent when empty. Live, replay and webhooks." }
+        target_pubkey: { type: string, description: "Absent when empty. Live, replay and webhooks." }
+        channel_id: { type: string, description: "Absent when empty. Live, replay and webhooks." }
         replayed: { type: boolean, description: Set on events read back from the audit log (Resume and polling). }
         webhook_id: { type: string, description: Outgoing webhooks only. }
         truncated: { type: boolean, description: "Outgoing webhooks only, when the payload was cut to the size cap." }
@@ -663,7 +663,7 @@ components:
       type: object
       required: [packs]
       properties:
-        default: { type: string, nullable: true, description: The default language code, or null }
+        default: { type: string, nullable: true, description: "The default language code, or null" }
         packs:
           type: array
           items: { $ref: "#/components/schemas/HubLanguagePack" }
@@ -852,9 +852,9 @@ components:
       type: object
       required: [level, name, threshold]
       properties:
-        level: { type: integer, description: 1-based, in threshold order. }
+        level: { type: integer, description: "1-based, in threshold order." }
         name: { type: string }
-        threshold: { type: integer, format: int64, description: Seconds for member_age, online, voice and role_held; a count for messages and active_days. }
+        threshold: { type: integer, format: int64, description: "Seconds for member_age, online, voice and role_held; a count for messages and active_days." }
     BadgeDefRequest:
       type: object
       required: [name, rule, levels]
@@ -878,7 +878,7 @@ components:
         role_id: { type: string, nullable: true }
         keep_while: { type: boolean }
         program_pubkey: { type: string, nullable: true, description: The program that owns it. }
-        declared_rule: { type: string, nullable: true, description: How to earn it, as the program declares; not checked by the hub. }
+        declared_rule: { type: string, nullable: true, description: "How to earn it, as the program declares; not checked by the hub." }
         hidden: { type: boolean }
         levels: { type: array, items: { $ref: '#/components/schemas/BadgeLevel' } }
         holders:
