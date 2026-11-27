@@ -2881,6 +2881,12 @@ paths:
             schema:
               type: object
               properties:
+                code:
+                  type: string
+                  description: >-
+                    A code the creator chooses instead of a random one (`invites.customcode`):
+                    3–32 of a-z, 0-9, - and _, stored and matched case-insensitively. A taken
+                    code is a 409.
                 max_uses:
                   type: integer
                   format: int64
@@ -2908,6 +2914,8 @@ paths:
                   description: "64 hex characters. The only identity this invite admits."
                   nullable: true
       responses:
+        "409":
+          description: The chosen code is taken
         "201":
           description: Created
           content:
