@@ -6,6 +6,16 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Badges are a catalogue the hub, its rules and its programs award from
+
+**Decision** (2026-11-27): a badge becomes an entry in the hub's catalogue (name, icon, description, how it is earned) instead of free text typed on each grant. It is earned by hand, by a rule the hub checks (membership age, presence, chat, voice, role held, with levels, kept or conditional) or by a program holding `badges.programs`, which can create and award its own badges so a tournament runs without supervision. Every award is still the signed badge cert of [hub-certifications.md](hub-certifications.md), so badges stay portable and revocable. Design: [achievement-badges.md](achievement-badges.md).
+
+**Alternatives.** Keep one-off grants and add a bulk form: still no way to reward time or activity without someone counting by hand. Let the hub measure bot play itself: the hub does not know what a game or a win is, and the program does. A single badge per threshold ("1 month", "1 year" as separate badges): a portfolio full of stale tiers; levels replace the previous cert instead.
+
+**Tradeoff.** The hub starts keeping running totals it never kept (presence time, voice time, chat counters), and programs get a way to put things in members' portfolios, bounded by a per-program cap, a grant rate limit and admin deletion. A message counter rewards spam, so the chat rule can count active days instead.
+
+**Outcome.** Designed, not built.
+
 ## Who is on a voice room's stage is the room's, not each viewer's
 
 **Decision** (2026-11-27): the stage of a voice room (who is pinned) is held
