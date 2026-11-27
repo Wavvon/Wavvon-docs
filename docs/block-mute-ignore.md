@@ -5,11 +5,9 @@
 gates `send_dm` with a success-shaped response so the sender cannot detect
 the block), and `blocked_users` rides the encrypted prefs blob, so the
 per-device list has already moved onto personal-axis storage for that field.
-**Ignore is built client-side** too: a shared settings section
-(Wavvon-clients `packages/ui/src/components/BlockIgnoreSection.tsx`), a
-context-menu action, and ignored authors' messages collapsed in
-`MessageRow`; on web the list syncs in the prefs blob
-(`wavvon.ignoredUsers`). Quiet-hours scheduling is still design.
+**Ignore was removed on 2026-11-27** (decisions.md, "Block is the only
+per-person control"): it is kept below as the record of what it was.
+Quiet-hours scheduling is still design.
 
 > Repo naming: what this doc calls Wavvon-desktop is now `apps/desktop/` in
 > the Wavvon-clients monorepo.
@@ -26,8 +24,9 @@ Three independent features share this doc because they share a storage
 home (the prefs blob) and a settings surface, not because they're tiers
 of one thing:
 
-1. **Block** — strongest. "I never want to see this person anywhere."
-2. **Ignore / hide** — softer, chat-only, no enforcement.
+1. **Block** — "I want nothing from this person": chat, DMs, voice,
+   soundboard, mentions.
+2. ~~**Ignore / hide**~~ — removed; Block covers it.
 3. **Quiet hours / DND** — status-driven notification downgrade
    (schedule deferred), no per-person targeting. Picks up the deferred
    item from the notifications decision in [decisions.md](decisions.md).
@@ -88,10 +87,10 @@ single pubkey, which is their subkey-0 pubkey, so the same key matches.
 
 | Surface | Effect | Enforced by |
 |---|---|---|
-| Channel chat (shared community) | Messages hidden client-side, replaced by a collapsed placeholder | Client filter |
+| Channel chat (shared community) | Messages hidden client-side (filtered out; the placeholder below was the design, not what shipped) | Client filter |
 | DMs to you | Blocked user **cannot** send you a DM | **Server** (home hub) |
 | DMs you send | You can still DM them (blocking is one-directional and private) | n/a |
-| Voice in a shared channel | Their audio is muted **client-side** for you; you stay in the channel | Client |
+| Voice in a shared channel | Their audio is muted **client-side** for you, their soundboard clips make no sound, chip or burst, and they never light up as speaking; you stay in the channel | Client |
 | Reactions, typing, presence | Their reactions on your view are hidden; typing indicator suppressed | Client |
 | Mentions | A mention *from* a blocked user produces no notification and no unread pin | Client (notification gate) |
 
@@ -157,9 +156,16 @@ removal on the home hub. After unblock, their new messages render
 normally; previously-collapsed placeholders in scrollback un-collapse on
 next render. No notification to either party.
 
-## 2. Ignore / hide
+## 2. Ignore / hide — removed 2026-11-27
 
-### What it is
+Two controls that differed in ways nobody could guess from their names
+confused people, and a user who did not want to hear from someone wanted
+all of it, not a chat-only half. Block now covers what Ignore did, and the
+ignore list, its prefs-blob field and its archive field are gone (alpha: an
+existing list was dropped, not turned into blocks). The original design
+follows, superseded.
+
+### What it was
 
 A softer block: "mute this person in chat, but don't sever them." Their
 messages collapse to the same placeholder as a block, **but**:

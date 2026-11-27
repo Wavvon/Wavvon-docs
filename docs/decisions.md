@@ -6,6 +6,26 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## Block is the only per-person control
+
+**Decision** (2026-11-27): Ignore is removed and Block covers everything it
+did and more: a blocked person's messages are hidden, they cannot DM you,
+their voice is muted for you, their soundboard clips make no sound, chip or
+burst, they never light up as speaking, and their mentions do not notify.
+The block confirmation is an ordinary toast with Undo, no longer the red
+hub-error banner. Design: [block-mute-ignore.md](block-mute-ignore.md).
+
+**Alternatives.** Keep both, as designed (Ignore chat-only, Block severing):
+the two differed in ways nobody guessed from the names, and someone who
+does not want to hear from a person wants all of it. Make Ignore silence voice
+too: two names for nearly the same act.
+
+**Tradeoff.** The softer "noisy in chat, but still let them DM me" case
+loses its control. Alpha: an existing ignore list was dropped rather than
+converted into blocks, which a user might not have meant.
+
+**Outcome.** Built (Wavvon-clients#521).
+
 ## A certificate is a fast lane into a hub, and a badge never opens a door
 
 **Decision** (2026-11-27): certificates gain a type from the issuing hub's
