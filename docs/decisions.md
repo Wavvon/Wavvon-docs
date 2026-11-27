@@ -25,9 +25,10 @@ many kinds of certificate could not be trusted for one of them. Keep the
 property rule (`cert_require`): a type named by the issuer says the same thing
 and can be picked from a list.
 
-**Tradeoff.** The type is a new field in a signed envelope, so it moves the
-identity crate, both client mirrors and the shared vectors together; appended
-as an optional field, certificates already issued keep verifying.
+**Tradeoff.** The type is a new field in the hub-signed certificate payload;
+appended as an optional field, certificates already issued keep verifying.
+`cert_mode` and the property rule go, so a hub configured with them falls back
+to no fast lane until its admin sets the new lists.
 
 **Outcome.** Designed, not built.
 

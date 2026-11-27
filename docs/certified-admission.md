@@ -32,11 +32,11 @@ managed by admins and its own rules, never by programs, and publishes it so
 another hub can pick from it by name.
 
 The type travels inside the signed payload as a new optional field, appended
-the way `label` was, so certificates already issued keep verifying. It is
-still a change to a signed envelope: the server's `identity` crate, both
-client mirrors and the shared vectors move together
-([wire-format.md](wire-format.md)). A certificate issued without a type is the
-plain standing certificate it is today.
+the way `label` was, so certificates already issued keep verifying. The
+payload is JSON signed by the issuing hub, not an envelope of the `identity`
+crate, and clients only display certificates, so nothing else moves with it.
+A certificate issued without a type is the plain standing certificate it is
+today.
 
 The property rule of today (`cert_require`, "any cert that says member for 90
 days") is retired: a hub that wants to vouch for long-standing members creates

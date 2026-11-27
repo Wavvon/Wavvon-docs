@@ -612,17 +612,17 @@ components:
               signature: { type: string }
         cert_requirement:
           type: object
-          description: What a certificate must show to admit a member. Omitted unless set.
-          required: [mode, trusted_issuers, require]
+          description: >-
+            Which certificates take a newcomer through the fast lane (no lobby,
+            approval or challenge). Omitted while both trust lists are empty.
+          required: [trusted_issuers, trusted_types, others, replaces_invite]
           properties:
-            mode: { type: string }
-            trusted_issuers: { type: array, items: { type: string } }
-            require:
-              type: object
-              required: [min_pow_level, min_member_since_days]
-              properties:
-                min_pow_level: { type: integer, nullable: true }
-                min_member_since_days: { type: integer, nullable: true }
+            trusted_issuers: { type: array, items: { type: string }, description: Hubs whose every certificate counts. }
+            trusted_types:
+              type: array
+              items: { $ref: '#/components/schemas/TrustedCertType' }
+            others: { type: string, enum: [lobby, refuse], description: What happens without a trusted certificate. }
+            replaces_invite: { type: boolean, description: A trusted certificate stands in for an invite. }
         sfu_url: { type: string, description: Omitted unless the hub runs an SFU. }
         emoji_count: { type: integer, format: int64 }
         rotation:
@@ -848,6 +848,19 @@ components:
         issued_at: { type: string, description: "ISO-8601 timestamp" }
         expires_at: { type: string, nullable: true }
 
+    CertType:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        description: { type: string, nullable: true }
+    TrustedCertType:
+      type: object
+      required: [issuer, cert_type]
+      properties:
+        issuer: { type: string, description: Issuer hub pubkey. }
+        cert_type: { type: string, description: Type id in that hub's catalogue. }
     CertPayload:
       type: object
       description: Canonical certification payload signed by the issuing hub.
@@ -867,6 +880,7 @@ components:
           description: Badge display name; present means this cert is an achievement badge. Omitted unless set.
         description: { type: string, description: Omitted unless set. }
         icon: { type: string, description: Emoji or short icon for the badge. Omitted unless set. }
+        cert_type: { type: string, description: A type from the issuer's catalogue. Absent on a plain standing cert and on every badge. }
 
     Certification:
       type: object
@@ -8438,18 +8452,29 @@ paths:
     post:
       operationId: issueAdminCert
       summary: Manually issue a cert for a user (admin)
+      description: An optional body names a type from this hub's catalogue; without one the cert is a plain standing cert.
       tags: [Certifications]
       parameters:
         - name: pubkey
           in: path
           required: true
           schema: { type: string }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                cert_type: { type: string, description: Id from GET /certs/types. }
       responses:
         "201":
           description: Created
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Certification' }
+        "400":
+          description: Unknown certificate type
         "403":
           description: User not approved or banned
     delete:
@@ -8513,11 +8538,15 @@ paths:
               schema:
                 type: object
                 properties:
-                  cert_mode: { type: string, enum: [none, any, trusted] }
                   cert_auto_issue: { type: boolean }
                   cert_min_age_days: { type: integer, format: int64 }
                   cert_validity_days: { type: integer, format: int64 }
                   cert_trusted_issuers: { type: array, items: { type: string } }
+                  cert_trusted_types:
+                    type: array
+                    items: { $ref: '#/components/schemas/TrustedCertType' }
+                  cert_others: { type: string, enum: [lobby, refuse] }
+                  cert_replaces_invite: { type: boolean }
                   cert_issuer_urls:
                     type: object
                     additionalProperties: { type: string }
@@ -8547,22 +8576,77 @@ paths:
                   oneOf: [{ type: string }, { type: integer }]
                 cert_validity_days:
                   oneOf: [{ type: string }, { type: integer }]
-                cert_mode: { type: string, enum: [none, any, trusted] }
                 cert_trusted_issuers: { type: array, items: { type: string } }
+                cert_trusted_types:
+                  type: array
+                  items: { $ref: '#/components/schemas/TrustedCertType' }
+                cert_others: { type: string, enum: [lobby, refuse] }
+                cert_replaces_invite:
+                  oneOf: [{ type: string }, { type: boolean }]
                 cert_issuer_urls:
                   type: object
                   additionalProperties: { type: string }
                   description: "Replaces the whole map, like the trust list it accompanies."
-                cert_require:
-                  type: object
-                  properties:
-                    min_pow_level: { type: integer }
-                    min_member_since_days: { type: integer }
-                cert_min_pow_level:
-                  oneOf: [{ type: string }, { type: integer }]
       responses:
         "204":
           description: No content
+        "400":
+          description: An unknown cert_others value or a malformed cert_trusted_types list
+
+  /certs/types:
+    get:
+      operationId: listCertTypes
+      summary: This hub's catalogue of certificate types (public)
+      description: Read by another hub's admin to trust one type of certificate from this hub.
+      security: []
+      tags: [Certifications]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/CertType' }
+
+  /admin/cert-types:
+    post:
+      operationId: createCertType
+      summary: Add a certificate type to the catalogue (admin)
+      tags: [Certifications]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, description: "1–64 chars" }
+                description: { type: string }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CertType' }
+
+  /admin/cert-types/{id}:
+    delete:
+      operationId: deleteCertType
+      summary: Remove a certificate type (admin)
+      description: Certificates already issued keep the type.
+      tags: [Certifications]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204":
+          description: No content
+        "404":
+          description: No such type
 
   /identity/{pubkey}/certs:
     get:
