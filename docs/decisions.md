@@ -6,6 +6,25 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## The role list hides the owner and orders everyone like any role
+
+**Decision** (2026-11-27): hub settings › Roles no longer lists the owner
+role, and `everyone` takes a place in the role order (`PUT /roles/order`
+accepts it, capability `roles.order.everyone`), so an admin can rank a role
+below it.
+
+**Alternatives.** Keep both pinned at the two ends, as first designed: the
+owner row is there on every hub and nothing about it can be edited, and a
+fixed `everyone` forbids a role ranked under the base one, which an admin
+asked for.
+
+**Tradeoff.** A role below `everyone` outranks nobody: priority decides who
+can manage whom, and every member already holds `everyone`. Old clients
+leave `everyone` out of the order they send, and the hub keeps it where it
+is.
+
+**Outcome.** Built (Wavvon-server#468, Wavvon-clients#533).
+
 ## Block is the only per-person control
 
 **Decision** (2026-11-27): Ignore is removed and Block covers everything it
