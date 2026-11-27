@@ -384,6 +384,7 @@ to the channel. Multiple concurrent sharers per channel are allowed; each
 | `mime` | string | container/codec MIME of the chunk stream |
 | `has_audio` | boolean | |
 | `width`, `height`, `fps`, `kbps` | integer, optional | what the sharer intends to send. On hubs advertising `screenshare.limits` a value above the hub's `stream_limits` (see `/info`) is refused with [`error`](#error) context `screen_share_start`; an undeclared value is not checked. |
+| `audience` | string, optional | `"room"` on hubs advertising `screenshare.audience`: the stream is announced, listed in [`hub_streams`](#hub_streams), relayed and subscribable only for the sharer and the members of that voice room; a member who joins the room later is sent its `screen_share_started`. Absent or any other value: the whole hub, as before. |
 
 #### `screen_share_chunk`
 Envelope for one media chunk. **Must be immediately followed by a binary

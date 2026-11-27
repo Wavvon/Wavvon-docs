@@ -443,6 +443,8 @@ separate screen-share permission and no hub-wide toggle (both were
 planned here and not built): restricting sharing means restricting
 `voice.join` on that channel.
 
+**Who can watch** (`screenshare.audience`, 2026-11-27): the share dialog asks whether the stream is for the voice room only or for the whole hub. A room-only stream is invisible to everyone outside the room: not in the hub-wide live list, not announced, not relayed, not subscribable. Without the capability, or when the sharer picks the whole hub, nothing changes.
+
 The home hub list (personal-axis) is not involved — screen share
 is community traffic, flowing direct between the sharer and the
 community hub.
