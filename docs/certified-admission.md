@@ -65,6 +65,20 @@ public community can then let certified people in without minting invites.
 With both lists empty there is no fast lane, and admission is what Joining
 alone sets, as on a hub that never touched certificates.
 
+## A ban revokes what the hub vouched for
+
+Banning a member revokes every certificate and every badge this hub issued
+to them, through the existing revocation path, so a hub that trusts this one
+learns it on its next revocation poll and the fast lane closes behind them.
+Today the certificate worker only stops issuing to a banned member
+(Wavvon-server: `crates/hub/src/cert_worker.rs`); what it issued before the
+ban stays valid until it expires.
+
+A temporary ban revokes too. When it lifts, automatic issuance and rule
+badges give back what the member qualifies for on the next tick; certificates
+and badges granted by hand do not come back by themselves. A kick revokes
+nothing: it is not a judgement on standing.
+
 ## Settings, replacing `cert_mode`
 
 `cert_mode` (`none` / `any` / `trusted`) and `cert_require` give way to:
