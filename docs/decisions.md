@@ -6,6 +6,30 @@ the top. This file holds the most recent entries; older ones are
 relocated verbatim to [decisions-archive.md](decisions-archive.md)
 so this file stays small enough to read whole.
 
+## A presented certificate admits only after its issuer confirms it
+
+**Decision** (2026-11-28): a certificate a joiner presents at
+`/auth/verify` no longer earns the certified fast lane by itself. It names
+the issuer to ask first; the receiving hub pulls that issuer's live
+portfolio for the subject (at the configured `cert_issuer_urls` address,
+or else at the `issuer_url` the cert signs) and admits only on what the
+issuer still lists. Supersedes "The pushed path stays as the fast path" in
+[hub-certifications.md](hub-certifications.md) §11.
+
+**Alternatives.** Keep a revocation set per trusted issuer, synced from
+`/certs/revocations`, and check presented certs against it: no network hop
+at admission, but a second sync loop that is only as fresh as its last
+poll (the existing worker runs every six hours), and the revocation list is
+unpaginated.
+
+**Tradeoff.** Every fast-lane admission now needs the issuer reachable
+(2 s timeout, answers cached 10 minutes). An unreachable issuer means the
+usual way in, never a pass. Within a farm the call is loopback.
+
+**Outcome.** Built (Wavvon-server#477, fixes Wavvon-server#469): a copy kept
+after a ban on the issuing hub (which revokes since #463) no longer gets its
+holder past invite_only, approval, PoW and the challenge.
+
 ## The role list hides the owner and orders everyone like any role
 
 **Decision** (2026-11-27): hub settings › Roles no longer lists the owner

@@ -501,6 +501,11 @@ The pushed path **stays** as the fast path (it is already implemented
 and it needs no network hop). Pull is the fallback that makes the
 feature work at all.
 
+*Superseded 2026-11-28 ([decisions.md](decisions.md), "A presented
+certificate admits only after its issuer confirms it"):* a presented cert
+stays signed and unexpired after its issuer revokes it, so it now only
+names the issuer to ask first, and the pull decides.
+
 ### Alternatives considered
 
 - **Client push only** (the §4 "push-at-auth" path as the sole
@@ -571,7 +576,8 @@ offers a single pubkey text box. So §11 owns:
 
 A hand-configured issuer with no URL is then simply not pullable — the
 pushed-cert path still works for it — which is a better failure than a
-field the UI cannot fill.
+field the UI cannot fill. (Since 2026-11-28 such an issuer is asked at the
+`issuer_url` its presented cert signs instead.)
 
 ### What it landed as
 
